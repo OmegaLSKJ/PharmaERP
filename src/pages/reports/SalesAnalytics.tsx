@@ -1,15 +1,21 @@
 ﻿import { useState } from 'react'
 import { Download, TrendingUp, TrendingDown } from 'lucide-react'
+import { useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
+import { getErp } from '../../lib/erpApi'
 
 const monthlySales: Array<{ month:string; value:number }> = []
 const catData: Array<{ name:string; value:number }> = []
 const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4']
 const topParties: Array<{ name:string; sales:number; growth:number }> = []
 const topItems: Array<{ name:string; qty:number; revenue:number; margin:number }> = []
+type SalesReport = { monthlySales:Array<{month:string;value:number}>; categories:Array<{name:string;value:number}>; topParties:Array<{name:string;sales:number;growth:number}>; topItems:Array<{name:string;qty:number;revenue:number;margin:number}>; units:number }
 
 export default function SalesAnalytics() {
+  const [report,setReport]=useState<SalesReport>({monthlySales:[],categories:[],topParties:[],topItems:[],units:0})
+  useEffect(()=>{getErp<SalesReport>('report-sales').then(setReport)},[])
+  const {monthlySales,topParties,topItems,units}=report,catData=report.categories
   const totalSales = monthlySales.reduce((a, m) => a + m.value, 0)
   const avgMonthly = totalSales / 12
   const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a, { month: 'No data', value: 0 })
@@ -41,7 +47,7 @@ export default function SalesAnalytics() {
         </div>
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Units Sold</div>
-          <div className="text-xl font-bold text-white mt-1">43,200</div>
+          <div className="text-xl font-bold text-white mt-1">{units.toLocaleString()}</div>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -1,11 +1,16 @@
 import { Download, TrendingUp, TrendingDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect, useState } from 'react'
+import { getErp } from '../../lib/erpApi'
 
 const monthlyPurchases: Array<{ month:string; value:number }> = []
 const topSuppliers: Array<{ name:string; purchases:number; growth:number }> = []
 
 export default function PurchaseAnalytics() {
+  const [report,setReport]=useState<{monthlyPurchases:Array<{month:string;value:number}>;topSuppliers:Array<{name:string;purchases:number;growth:number}>;activeSuppliers:number}>({monthlyPurchases:[],topSuppliers:[],activeSuppliers:0})
+  useEffect(()=>{getErp<typeof report>('report-purchases').then(setReport)},[])
+  const {monthlyPurchases,topSuppliers,activeSuppliers}=report
   const totalPurchases = monthlyPurchases.reduce((a, m) => a + m.value, 0)
 
   return (
@@ -32,7 +37,7 @@ export default function PurchaseAnalytics() {
         </div>
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Active Suppliers</div>
-          <div className="text-xl font-bold text-white mt-1">0</div>
+          <div className="text-xl font-bold text-white mt-1">{activeSuppliers}</div>
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 ﻿import { useState } from 'react'
 import { Download, AlertTriangle } from 'lucide-react'
+import { useEffect } from 'react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
+import { getErp } from '../../lib/erpApi'
 
 const DATA: Array<{ name:string; batch:string; expiry:string; qty:number; mrp:number; rate:number; location:string }> = []
 
@@ -15,8 +17,14 @@ function getAgeGroup(expiry: string) {
 }
 
 export default function StockAgeing() {
+  const [data,setData]=useState<Array<{name:string;batch:string;expiry:string;qty:number;mrp:number;rate:number;location:string}>>([])
+  useEffect(() => {
+    getErp<any[]>('report-stock').then((rows) => setData(rows
+      .filter((row) => Number(row.qty) > 0 && row.expiry)
+      .map((row) => ({ ...row, mrp: Number(row.mrp ?? 0), rate: Number(row.rate ?? 0) }))))
+  }, [])
   const [filter, setFilter] = useState('all')
-  const enriched = DATA.map(d => ({ ...d, ageGroup: getAgeGroup(d.expiry), days: daysUntilExpiry(d.expiry) })).sort((a, b) => a.days - b.days)
+  const enriched = data.map(d => ({ ...d, ageGroup: getAgeGroup(d.expiry), days: daysUntilExpiry(d.expiry) })).sort((a, b) => a.days - b.days)
   const filtered = filter === 'all' ? enriched : enriched.filter(d => d.ageGroup.label === filter)
   const groups = ['all', ...new Set(enriched.map(d => d.ageGroup.label))]
 
