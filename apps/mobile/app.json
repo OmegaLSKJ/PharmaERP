@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "PharmaERP",
+    "slug": "pharma-erp",
+    "scheme": "pharmaerp",
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "BROWSER": "chromium"
+      }
+    },
+    "filesystem": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Users/SCL/OneDrive/Documents/Default Project"
+      ],
+      "enabled": true
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}"
+      }
+    },
+    "vercel": {
+      "type": "remote",
+      "url": "https://mcp.vercel.com",
+      "enabled": true,
+      "headers": { "Authorization": "Bearer {env:VERCEL_TOKEN}" }
+    },
+    "netlify": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@netlify/mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "NETLIFY_AUTH_TOKEN": "{env:NETLIFY_AUTH_TOKEN}"
+      }
+    },
+    "replicate": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "replicate-mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "REPLICATE_API_TOKEN": "{env:REPLICATE_API_TOKEN}"
+      }
+    },
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true
+    },
+    "threejs-devtools": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "threejs-devtools-mcp"
+      ],
+      "enabled": true
+    },
+    "r3f": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "r3f-mcp-server",
+        "--port",
+        "3333"
+      ],
+      "enabled": true
+    },
+    "blender": {
+      "type": "local",
+      "command": [
+        "cmd",
+        "/c",
+        "uvx",
+        "blender-mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876"
+      }
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

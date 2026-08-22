@@ -1,0 +1,22 @@
+.env
+.next
+node_modules
+dist
+data/
+*.log
+*.tsbuildinfo
+server.err
+server.out
+$null
+$out
+# Local 3D/visualisation workspaces are not part of the PharmaERP web bundle.
+ferrari_*
+ferrari_frames/
+garage.glb
+garage.hdr
+solar-system.png
+solar_system.blend
+solar_system.blend1
+solar_system_render.png
+public/models/
+public/textures/

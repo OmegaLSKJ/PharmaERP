@@ -1,0 +1,56 @@
+﻿import { useState } from 'react'
+import { Save, Truck } from 'lucide-react'
+import { cn } from '../../lib/utils'
+import { postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
+
+const ITEMS = [
+  { name:'Amoxicillin 500mg', batch:'AMX-2026-045', rate:152, stock:240 },
+  { name:'Paracetamol 650mg', batch:'PCM-2026-088', rate:76, stock:380 },
+  { name:'Azithromycin 250mg', batch:'AZT-2026-012', rate:216, stock:160 },
+]
+interface Line { id:string; name:string; batch:string; qty:number; rate:number }
+
+export default function ChallanEntry() {
+  const [party,setParty] = useState('')
+  const [lines,setLines] = useState<Line[]>([])
+  const [transport,setTransport] = useState('Surface')
+  const [saving, setSaving] = useState(false)
+  const showToast = useUIStore((s) => s.showToast)
+  const addItem = (i:typeof ITEMS[0]) => setLines([...lines,{id:Date.now().toString(),name:i.name,batch:i.batch,qty:1,rate:i.rate}])
+  const totalQty = lines.reduce((a,l)=>a+l.qty,0)
+  const saveChallan = async () => { try { setSaving(true); const saved = await postErp<{ id: string }>('challans', { party, transport, lines }); showToast(`Challan ${saved.id} saved.`); setLines([]) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save challan.') } finally { setSaving(false) } }
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold tracking-tight text-white">Delivery Challan</h1>
+          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Truck size={14} className="text-cyan-400"/>Goods without invoice | CH-0113</p></div>
+        <button onClick={saveChallan} disabled={saving || !party || !lines.length} className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md"><Save size={16}/>{saving ? 'Saving…' : 'Save Challan'}</button>
+      </div>
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Party</label>
+          <input value={party} onChange={e=>setParty(e.target.value)} placeholder="Search party..." className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"/></div>
+        <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Transport</label>
+          <select value={transport} onChange={e=>setTransport(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none"><option>Surface</option><option>DTDC</option><option>BlueDart</option><option>Hand Delivery</option></select></div>
+        <div className="flex items-end"><div className="bg-slate-950 border border-slate-800 rounded-lg p-2 w-full"><div className="text-[10px] text-slate-400 uppercase">Items</div><div className="text-lg font-bold text-white">{lines.length}</div></div></div>
+        <div className="flex items-end"><div className="bg-slate-950 border border-slate-800 rounded-lg p-2 w-full"><div className="text-[10px] text-slate-400 uppercase">Total Qty</div><div className="text-lg font-bold text-cyan-400">{totalQty}</div></div></div>
+      </div>
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Add Items</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          {ITEMS.map(i=>(<button key={i.batch} onClick={()=>addItem(i)} className="text-left p-3 rounded-lg border border-cyan-800/50 hover:bg-cyan-900/20 transition">
+            <div className="text-sm font-medium text-white">{i.name}</div>
+            <div className="text-xs text-slate-500 font-mono">{i.batch} | Stock: {i.stock}</div>
+          </button>))}
+        </div>
+      </div>
+      {lines.length>0 && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs">
+        <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+          <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-right px-4 py-3 font-medium">Qty</th>
+        </tr></thead>
+        <tbody className="divide-y divide-slate-800 text-slate-300">
+          {lines.map(l=>(<tr key={l.id}><td className="px-4 py-3 font-medium text-white">{l.name}</td><td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td><td className="px-4 py-3 text-right">{l.qty}</td></tr>))}
+        </tbody></table></div>)}
+    </div>
+  )
+}
