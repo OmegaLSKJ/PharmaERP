@@ -1,53 +1,9 @@
 import { Download } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const trialBalance = [
-  { ledger: 'Cash in Hand', group: 'Cash', debit: 350000, credit: 0 },
-  { ledger: 'HDFC Bank Current', group: 'Bank', debit: 2840000, credit: 0 },
-  { ledger: 'MediCare Pharma', group: 'Sundry Debtors', debit: 78000, credit: 0 },
-  { ledger: 'HealthFirst Distributors', group: 'Sundry Debtors', debit: 0, credit: 45000 },
-  { ledger: 'CareWell Pharmacy', group: 'Sundry Debtors', debit: 78000, credit: 0 },
-  { ledger: 'Sun Pharma Industries', group: 'Sundry Creditors', debit: 0, credit: 515000 },
-  { ledger: 'Cipla Ltd', group: 'Sundry Creditors', debit: 0, credit: 560000 },
-  { ledger: 'Dr. Reddy Labs', group: 'Sundry Creditors', debit: 0, credit: 180000 },
-  { ledger: 'Sales Account', group: 'Sales', debit: 0, credit: 8100000 },
-  { ledger: 'Purchase Account', group: 'Purchase', debit: 6500000, credit: 0 },
-  { ledger: 'GST Output CGST', group: 'Tax', debit: 0, credit: 486000 },
-  { ledger: 'GST Output SGST', group: 'Tax', debit: 0, credit: 486000 },
-  { ledger: 'Salary Account', group: 'Expense', debit: 1200000, credit: 0 },
-  { ledger: 'Rent Expense', group: 'Expense', debit: 300000, credit: 0 },
-  { ledger: 'Discount Received', group: 'Income', debit: 0, credit: 85000 },
-  { ledger: 'Freight Charges', group: 'Expense', debit: 45000, credit: 0 },
-]
-
-const pnlData = {
-  income: [
-    { item: 'Sales Revenue', amount: 8100000 },
-    { item: 'Discount Received', amount: 85000 },
-    { item: 'Other Income', amount: 25000 },
-  ],
-  expenses: [
-    { item: 'Purchase Cost', amount: 6500000 },
-    { item: 'Salary', amount: 1200000 },
-    { item: 'Rent', amount: 300000 },
-    { item: 'Freight', amount: 45000 },
-    { item: 'Other Expenses', amount: 60000 },
-  ],
-}
-
-const balanceSheet = {
-  assets: [
-    { item: 'Cash in Hand', amount: 350000 },
-    { item: 'Bank Balance', amount: 2840000 },
-    { item: 'Sundry Debtors', amount: 156000 },
-    { item: 'Closing Stock', amount: 1250000 },
-  ],
-  liabilities: [
-    { item: 'Sundry Creditors', amount: 1255000 },
-    { item: 'GST Payable', amount: 972000 },
-    { item: 'Capital Account', amount: 2369000 },
-  ],
-}
+const trialBalance: Array<{ ledger:string; group:string; debit:number; credit:number }> = []
+const pnlData: { income:Array<{item:string;amount:number}>; expenses:Array<{item:string;amount:number}> } = { income: [], expenses: [] }
+const balanceSheet: { assets:Array<{item:string;amount:number}>; liabilities:Array<{item:string;amount:number}> } = { assets: [], liabilities: [] }
 
 export default function FinancialReports() {
   const totalDr = trialBalance.reduce((a, r) => a + r.debit, 0)

@@ -4,11 +4,11 @@ import { cn, formatCurrency } from '../../lib/utils'
 interface Row { desc: string; count: number; taxable: number; cgst: number; sgst: number; igst: number }
 
 const ROWS: Row[] = [
-  { desc: 'B2B Supplies', count: 48, taxable: 1250000, cgst: 75000, sgst: 75000, igst: 0 },
-  { desc: 'B2C Large Invoice (>5L)', count: 4, taxable: 850000, cgst: 51000, sgst: 51000, igst: 0 },
-  { desc: 'B2C Small Invoice (<5L)', count: 312, taxable: 680000, cgst: 40800, sgst: 40800, igst: 0 },
-  { desc: 'Nil Rated / Exempted', count: 22, taxable: 35000, cgst: 0, sgst: 0, igst: 0 },
-  { desc: 'Export Invoices', count: 2, taxable: 120000, cgst: 0, sgst: 0, igst: 0 },
+  { desc: 'B2B Supplies', count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0 },
+  { desc: 'B2C Large Invoice (>5L)', count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0 },
+  { desc: 'B2C Small Invoice (<5L)', count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0 },
+  { desc: 'Nil Rated / Exempted', count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0 },
+  { desc: 'Export Invoices', count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0 },
 ]
 
 export default function GstrSummary() {

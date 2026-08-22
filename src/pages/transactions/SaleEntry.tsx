@@ -6,13 +6,12 @@ import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
 interface LineItem { id: string; name: string; batch: string; stock: number; qty: number; free: number; rate: number; disc: number; gst: number; amount: number }
-
-const CUSTOMERS = [{ label: 'MediCare Pharma', value: '1' }, { label: 'HealthFirst', value: '2' }, { label: 'CareWell', value: '3' }]
-const ITEMS = [{ label: 'Amoxicillin 500mg', batch: 'AMX-001', stock: 240, rate: 152, gst: 12 }, { label: 'Paracetamol 650mg', batch: 'PCM-002', stock: 380, rate: 76, gst: 12 }]
+type CustomerOption = { label: string; value: string }
+type ItemOption = { label: string; batch: string; stock: number; rate: number; gst: number }
 
 export default function SaleEntry() {
-  const [customerOptions, setCustomerOptions] = useState(CUSTOMERS)
-  const [itemOptions, setItemOptions] = useState(ITEMS)
+  const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([])
+  const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [items, setItems] = useState<LineItem[]>([])
   const [customer, setCustomer] = useState('')
   const [showItemSearch, setShowItemSearch] = useState(false)
@@ -27,7 +26,7 @@ export default function SaleEntry() {
     }).catch((error) => showToast(error.message))
   }, [showToast])
   
-  const addRow = (item: typeof ITEMS[0]) => {
+  const addRow = (item: ItemOption) => {
     setItems([...items, { id: Date.now().toString(), name: item.label, batch: item.batch, stock: item.stock, qty: 1, free: 0, rate: item.rate, disc: 0, gst: item.gst, amount: item.rate }])
     setShowItemSearch(false)
   }

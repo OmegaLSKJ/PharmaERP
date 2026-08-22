@@ -2,13 +2,7 @@
 import { FileCheck, Zap, RefreshCw } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const DATA = [
-  { id:'1',inv:'SI-2026-1842',party:'MediCare Pharma',gstin:'27AAACM1234F1Z5',date:'2026-03-15',total:45600,irn:'a1b2c3d4e5f6...789012',status:'generated' },
-  { id:'2',inv:'SI-2026-1841',party:'HealthFirst Dist.',gstin:'27BBBHF2345G1Z6',date:'2026-03-15',total:32100,irn:'f6e5d4c3b2a1...210987',status:'generated' },
-  { id:'3',inv:'SI-2026-1840',party:'CareWell Pharmacy',gstin:'27CCCCW3456H1Z7',date:'2026-03-14',total:18900,irn:'',status:'pending' },
-  { id:'4',inv:'SI-2026-1839',party:'Wellness Pharma',gstin:'24DDDDP4567J1Z8',date:'2026-03-14',total:42000,irn:'',status:'failed' },
-  { id:'5',inv:'SI-2026-1838',party:'LifeLine Medical',gstin:'07EEEEE5678K1Z9',date:'2026-03-13',total:67000,irn:'9z8y7x6w5v4u...654321',status:'generated' },
-]
+const DATA: Array<{ id:string; inv:string; party:string; gstin:string; date:string; total:number; irn:string; status:string }> = []
 const ST: Record<string,string> = { generated:'bg-emerald-500/10 text-emerald-400', pending:'bg-amber-500/10 text-amber-400', failed:'bg-rose-500/10 text-rose-400' }
 
 export default function EInvoice() {

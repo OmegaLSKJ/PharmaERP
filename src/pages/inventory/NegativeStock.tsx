@@ -1,12 +1,7 @@
 ﻿import { AlertOctagon } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const DATA = [
-  { name:'Amoxicillin 250mg', batch:'AMX-2025-092', location:'Store A', qty:-15, rate:65 },
-  { name:'Ciprofloxacin 500mg', batch:'CIP-2025-042', location:'Store C', qty:-8, rate:72 },
-  { name:'Ranitidine 150mg', batch:'RAN-2025-011', location:'Store B', qty:-22, rate:24 },
-  { name:'Domperidone 10mg', batch:'DOM-2025-067', location:'Main Godown', qty:-5, rate:31 },
-]
+const DATA: Array<{ name:string; batch:string; location:string; qty:number; rate:number }> = []
 
 export default function NegativeStock() {
   const total = DATA.reduce((a,d)=>a+Math.abs(d.qty*d.rate),0)

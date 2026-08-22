@@ -2,19 +2,8 @@ import { Download, TrendingUp, TrendingDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const monthlyPurchases = [
-  { month: 'Apr', value: 380000 }, { month: 'May', value: 350000 }, { month: 'Jun', value: 420000 },
-  { month: 'Jul', value: 400000 }, { month: 'Aug', value: 460000 }, { month: 'Sep', value: 510000 },
-  { month: 'Oct', value: 490000 }, { month: 'Nov', value: 550000 }, { month: 'Dec', value: 580000 },
-  { month: 'Jan', value: 540000 }, { month: 'Feb', value: 600000 }, { month: 'Mar', value: 650000 },
-]
-
-const topSuppliers = [
-  { name: 'Sun Pharma', purchases: 1850000, growth: 15 },
-  { name: 'Cipla Ltd', purchases: 1420000, growth: 8 },
-  { name: 'Dr. Reddy Labs', purchases: 980000, growth: -3 },
-  { name: 'Ranbaxy Labs', purchases: 750000, growth: 12 },
-]
+const monthlyPurchases: Array<{ month:string; value:number }> = []
+const topSuppliers: Array<{ name:string; purchases:number; growth:number }> = []
 
 export default function PurchaseAnalytics() {
   const totalPurchases = monthlyPurchases.reduce((a, m) => a + m.value, 0)
@@ -35,7 +24,7 @@ export default function PurchaseAnalytics() {
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Purchases</div>
           <div className="text-xl font-bold text-white mt-1">{formatCurrency(totalPurchases)}</div>
-          <div className="flex items-center gap-1 mt-1 text-[10px]"><TrendingUp size={10} className="text-emerald-400" /><span className="text-emerald-400">+8.5% YoY</span></div>
+          <div className="flex items-center gap-1 mt-1 text-[10px]"><TrendingUp size={10} className="text-emerald-400" /><span className="text-emerald-400">0% YoY</span></div>
         </div>
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Avg Monthly</div>
@@ -43,7 +32,7 @@ export default function PurchaseAnalytics() {
         </div>
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Active Suppliers</div>
-          <div className="text-xl font-bold text-white mt-1">12</div>
+          <div className="text-xl font-bold text-white mt-1">0</div>
         </div>
       </div>
 

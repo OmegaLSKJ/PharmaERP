@@ -2,19 +2,12 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const SALE_DIFF = [
-  { id:'1', inv:'SI-2026-1820', party:'MediCare Pharma', item:'Amoxicillin 500mg', oldRate:148, newRate:152, qty:120, diff:+480 },
-  { id:'2', inv:'SI-2026-1801', party:'HealthFirst Dist.', item:'Pantoprazole 40mg', oldRate:132, newRate:135, qty:80, diff:+240 },
-]
-const PURC_DIFF = [
-  { id:'3', inv:'PB-2026-1180', supplier:'Sun Pharma', item:'Azithromycin 250mg', oldRate:124, newRate:120, qty:100, diff:-400 },
-  { id:'4', inv:'PB-2026-1165', supplier:'Cipla Ltd', item:'Metformin 500mg', oldRate:58, newRate:55, qty:200, diff:-600 },
-]
-
-type PriceDifferenceRow = (typeof SALE_DIFF)[number] | (typeof PURC_DIFF)[number]
+type PriceDifferenceRow = { id:string; inv:string; party?:string; supplier?:string; item:string; oldRate:number; newRate:number; qty:number; diff:number }
+const SALE_DIFF: PriceDifferenceRow[] = []
+const PURC_DIFF: PriceDifferenceRow[] = []
 
 function partyName(row: PriceDifferenceRow) {
-  return 'party' in row ? row.party : row.supplier
+  return row.party ?? row.supplier ?? ''
 }
 
 export default function PriceDifference() {

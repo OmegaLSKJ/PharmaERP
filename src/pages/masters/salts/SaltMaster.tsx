@@ -7,19 +7,6 @@ import { useUIStore } from '../../../store/uiStore'
 
 interface Salt { id: string; name: string; composition: string; itemcount: number; category: string }
 
-const DATA: Salt[] = [
-  { id: 'S01', name: 'Amoxicillin Trihydrate', composition: 'Amoxicillin 500mg', itemcount: 3, category: 'Antibiotic' },
-  { id: 'S02', name: 'Paracetamol', composition: 'Paracetamol 650mg', itemcount: 4, category: 'Analgesic' },
-  { id: 'S03', name: 'Azithromycin Dihydrate', composition: 'Azithromycin 250mg', itemcount: 2, category: 'Antibiotic' },
-  { id: 'S04', name: 'Cetirizine HCl', composition: 'Cetirizine 10mg', itemcount: 2, category: 'Antiallergic' },
-  { id: 'S05', name: 'Metformin HCl', composition: 'Metformin 500mg', itemcount: 3, category: 'Antidiabetic' },
-  { id: 'S06', name: 'Pantoprazole Sodium', composition: 'Pantoprazole 40mg', itemcount: 2, category: 'Gastrointestinal' },
-  { id: 'S07', name: 'Dextromethorphan HBr', composition: 'Dextromethorphan 15mg', itemcount: 1, category: 'Respiratory' },
-  { id: 'S08', name: 'Ibuprofen', composition: 'Ibuprofen 400mg', itemcount: 2, category: 'Analgesic' },
-  { id: 'S09', name: 'Omeprazole', composition: 'Omeprazole 20mg', itemcount: 2, category: 'Gastrointestinal' },
-  { id: 'S10', name: 'Ciprofloxacin HCl', composition: 'Ciprofloxacin 500mg', itemcount: 1, category: 'Antibiotic' },
-]
-
 const CAT_COLORS: Record<string, string> = {
   Antibiotic: 'bg-blue-500/10 text-blue-400', Analgesic: 'bg-emerald-500/10 text-emerald-400',
   Antiallergic: 'bg-purple-500/10 text-purple-400', Antidiabetic: 'bg-amber-500/10 text-amber-400',

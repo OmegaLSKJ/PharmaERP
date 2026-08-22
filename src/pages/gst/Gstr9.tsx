@@ -2,12 +2,12 @@
 import { cn, formatCurrency } from '../../lib/utils'
 
 const TABLES = [
-  { no: '4', title: 'Outward Supplies (Auto from GSTR-1)', taxable: 2935000, tax: 258600, status: 'auto-filled' },
-  { no: '5', title: 'Inward Supplies (Auto from GSTR-2A)', taxable: 1128000, tax: 135360, status: 'auto-filled' },
-  { no: '6', title: 'Amendments', taxable: 15000, tax: 1800, status: 'manual' },
-  { no: '7', title: 'ITC Reversal / Adjustment', taxable: 0, tax: 4200, status: 'review' },
-  { no: '8', title: 'ITC Summary (Books vs 2A vs 2B)', taxable: 0, tax: 131160, status: 'review' },
-  { no: '10', title: 'Supplies through E-commerce', taxable: 45000, tax: 5400, status: 'manual' },
+  { no: '4', title: 'Outward Supplies (Auto from GSTR-1)', taxable: 0, tax: 0, status: 'review' },
+  { no: '5', title: 'Inward Supplies (Auto from GSTR-2A)', taxable: 0, tax: 0, status: 'review' },
+  { no: '6', title: 'Amendments', taxable: 0, tax: 0, status: 'review' },
+  { no: '7', title: 'ITC Reversal / Adjustment', taxable: 0, tax: 0, status: 'review' },
+  { no: '8', title: 'ITC Summary (Books vs 2A vs 2B)', taxable: 0, tax: 0, status: 'review' },
+  { no: '10', title: 'Supplies through E-commerce', taxable: 0, tax: 0, status: 'review' },
 ]
 
 export default function Gstr9() {

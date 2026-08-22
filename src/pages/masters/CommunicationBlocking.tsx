@@ -7,12 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface Block { id:string; type:'email'|'sms'|'whatsapp'; value:string; reason:string; blockedOn:string }
 
-const INIT: Block[] = [
-  { id:'1', type:'sms', value:'+91-98200-12345', reason:'Customer requested no SMS', blockedOn:'2026-02-10' },
-  { id:'2', type:'email', value:'spam@junkmail.com', reason:'Invalid / bounced address', blockedOn:'2026-01-22' },
-  { id:'3', type:'whatsapp', value:'+91-99870-55512', reason:'DND registered number', blockedOn:'2026-03-01' },
-]
-
 const TYPE_ICON = { email:<Mail size={13}/>, sms:<MessageSquare size={13}/>, whatsapp:<MessageSquare size={13}/> }
 const TYPE_STYLE: Record<string,string> = { email:'bg-blue-500/10 text-blue-400', sms:'bg-emerald-500/10 text-emerald-400', whatsapp:'bg-purple-500/10 text-purple-400' }
 

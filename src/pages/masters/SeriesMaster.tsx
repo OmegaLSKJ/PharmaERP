@@ -7,17 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface Series { id:string; doc:string; prefix:string; suffix:string; nextNo:number; padding:number; fyReset:boolean; active:boolean }
 
-const INIT: Series[] = [
-  { id:'1', doc:'Sale Invoice', prefix:'SI-', suffix:'', nextNo:1843, padding:4, fyReset:true, active:true },
-  { id:'2', doc:'Sale Return', prefix:'SR-', suffix:'', nextNo:87, padding:3, fyReset:true, active:true },
-  { id:'3', doc:'Purchase Bill', prefix:'PB-', suffix:'', nextNo:1204, padding:4, fyReset:true, active:true },
-  { id:'4', doc:'Purchase Return', prefix:'PR-', suffix:'', nextNo:45, padding:3, fyReset:true, active:true },
-  { id:'5', doc:'Challan', prefix:'CH-', suffix:'', nextNo:112, padding:4, fyReset:true, active:true },
-  { id:'6', doc:'Credit Note', prefix:'CN-', suffix:'', nextNo:34, padding:3, fyReset:false, active:true },
-  { id:'7', doc:'Debit Note', prefix:'DN-', suffix:'', nextNo:12, padding:3, fyReset:false, active:true },
-  { id:'8', doc:'Order (SO)', prefix:'SO-', suffix:'', nextNo:35, padding:3, fyReset:true, active:false },
-]
-
 export default function SeriesMaster() {
   const [series,setSeries] = useState<Series[]>([])
   const [saving, setSaving] = useState(false)

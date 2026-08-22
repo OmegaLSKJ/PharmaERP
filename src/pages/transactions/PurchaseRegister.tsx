@@ -7,14 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface PurchaseInv { id: string; challanNo: string; invoiceNo: string; date: string; supplier: string; items: number; total: number; status: string }
 
-const DATA: PurchaseInv[] = [
-  { id: '1', challanNo: 'PC-2026-045', invoiceNo: 'SUN-INV-8921', date: '2026-03-15', supplier: 'Sun Pharma', items: 12, total: 285000, status: 'received' },
-  { id: '2', challanNo: 'PC-2026-044', invoiceNo: 'CIPL-INV-4567', date: '2026-03-14', supplier: 'Cipla Ltd', items: 8, total: 192000, status: 'received' },
-  { id: '3', challanNo: 'PC-2026-043', invoiceNo: 'DRR-INV-1234', date: '2026-03-13', supplier: "Dr. Reddy's Labs", items: 6, total: 145000, status: 'pending' },
-  { id: '4', challanNo: 'PC-2026-042', invoiceNo: 'RAN-INV-7890', date: '2026-03-12', supplier: 'Ranbaxy Labs', items: 15, total: 340000, status: 'received' },
-  { id: '5', challanNo: 'PC-2026-041', invoiceNo: 'SUN-INV-8888', date: '2026-03-11', supplier: 'Sun Pharma', items: 10, total: 220000, status: 'partial' },
-]
-
 const STATUS_STYLE: Record<string, string> = {
   received: 'bg-emerald-500/10 text-emerald-400',
   pending: 'bg-amber-500/10 text-amber-400',

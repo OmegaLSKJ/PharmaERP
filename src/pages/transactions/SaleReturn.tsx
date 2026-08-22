@@ -7,13 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface ReturnEntry { id: string; returnNo: string; date: string; party: string; origInvoice: string; items: number; total: number; reason: string; status: string }
 
-const DATA: ReturnEntry[] = [
-  { id: '1', returnNo: 'SR-2026-012', date: '2026-03-15', party: 'MediCare Pharma', origInvoice: 'SI-2026-1830', items: 3, total: 8400, reason: 'Expired stock', status: 'processed' },
-  { id: '2', returnNo: 'SR-2026-011', date: '2026-03-14', party: 'CareWell Pharmacy', origInvoice: 'SI-2026-1825', items: 2, total: 5200, reason: 'Damaged', status: 'pending' },
-  { id: '3', returnNo: 'SR-2026-010', date: '2026-03-12', party: 'HealthFirst Distributors', origInvoice: 'SI-2026-1820', items: 5, total: 12800, reason: 'Wrong item', status: 'processed' },
-  { id: '4', returnNo: 'SR-2026-009', date: '2026-03-10', party: 'LifeLine Medical', origInvoice: 'SI-2026-1815', items: 1, total: 3600, reason: 'Near expiry', status: 'rejected' },
-]
-
 const STATUS_STYLE: Record<string, string> = {
   processed: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400', rejected: 'bg-rose-500/10 text-rose-400',
 }

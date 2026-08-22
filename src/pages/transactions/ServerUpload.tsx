@@ -2,15 +2,8 @@
 import { CloudUpload, Cloud, RefreshCw, Database } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const PENDING_UPLOAD = [
-  { id:'1', type:'Sale Invoice', ref:'SI-2026-1842', date:'2026-03-15', amount:45600 },
-  { id:'2', type:'Receipt Voucher', ref:'REC-2026-045', date:'2026-03-14', amount:45600 },
-  { id:'3', type:'Purchase Bill', ref:'PB-2026-1204', date:'2026-03-13', amount:250000 },
-]
-const UPLOADED = [
-  { id:'4', type:'Sale Invoice', ref:'SI-2026-1839', date:'2026-03-12', amount:42000, syncedAt:'2026-03-12 18:30' },
-  { id:'5', type:'Payment Voucher', ref:'PAY-2026-031', date:'2026-03-11', amount:180000, syncedAt:'2026-03-11 20:15' },
-]
+const PENDING_UPLOAD: Array<{ id:string; type:string; ref:string; date:string; amount:number }> = []
+const UPLOADED: Array<{ id:string; type:string; ref:string; date:string; amount:number; syncedAt:string }> = []
 
 export default function ServerUpload() {
   const [syncing,setSyncing] = useState(false)
@@ -24,7 +17,7 @@ export default function ServerUpload() {
         </button>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        {[{l:'Pending Upload',v:String(PENDING_UPLOAD.length),c:'text-amber-400'},{l:'Uploaded Today',v:String(UPLOADED.length),c:'text-emerald-400'},{l:'Last Sync',v:'2026-03-12 20:00',c:'text-slate-300'}].map(s=>(
+        {[{l:'Pending Upload',v:String(PENDING_UPLOAD.length),c:'text-amber-400'},{l:'Uploaded Today',v:String(UPLOADED.length),c:'text-emerald-400'},{l:'Last Sync',v:'Not yet',c:'text-slate-300'}].map(s=>(
           <div key={s.l} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4"><div className="text-[10px] text-slate-400 uppercase font-semibold">{s.l}</div><div className={cn('text-lg font-bold mt-1',s.c)}>{s.v}</div></div>
         ))}
       </div>

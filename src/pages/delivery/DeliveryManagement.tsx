@@ -2,13 +2,7 @@
 import { Truck } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const DATA = [
-  { id:'1',order:'SO-2026-034',cust:'MediCare Pharma',items:8,total:45600,dispatch:'2026-03-16',deliver:'2026-03-18',transport:'DTDC',status:'dispatched',track:'DTDC-456123' },
-  { id:'2',order:'SO-2026-033',cust:'HealthFirst Dist.',items:5,total:32100,dispatch:'2026-03-15',deliver:'2026-03-17',transport:'BlueDart',status:'delivered',track:'BD-789012' },
-  { id:'3',order:'SO-2026-032',cust:'CareWell Pharmacy',items:3,total:18900,dispatch:'',deliver:'2026-03-16',transport:'Surface',status:'pending',track:'' },
-  { id:'4',order:'SO-2026-031',cust:'Wellness Pharma',items:7,total:42000,dispatch:'2026-03-14',deliver:'2026-03-16',transport:'DTDC',status:'delivered',track:'DTDC-321654' },
-  { id:'5',order:'SO-2026-030',cust:'LifeLine Medical',items:12,total:67000,dispatch:'',deliver:'2026-03-19',transport:'',status:'pending',track:'' },
-]
+const DATA: Array<{ id:string; order:string; cust:string; items:number; total:number; dispatch:string; deliver:string; transport:string; status:string; track:string }> = []
 const ST: Record<string,string> = { pending:'bg-amber-500/10 text-amber-400',dispatched:'bg-blue-500/10 text-blue-400',delivered:'bg-emerald-500/10 text-emerald-400' }
 
 export default function DeliveryManagement() {

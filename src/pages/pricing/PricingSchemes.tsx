@@ -2,18 +2,11 @@
 import { Tag, Percent, Gift } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const ITEMS = [
-  { name:'Amoxicillin 500mg',packing:'10x10',mrp:180,purc:85,sale:152,margin:44,scheme:'5+1',disc:2 },
-  { name:'Paracetamol 650mg',packing:'10x10',mrp:90,purc:35,sale:76,margin:51,scheme:'10+2',disc:3 },
-  { name:'Azithromycin 250mg',packing:'10x6',mrp:240,purc:120,sale:216,margin:40,scheme:'4+1',disc:1 },
-  { name:'Cetirizine 10mg',packing:'10x10',mrp:75,purc:28,sale:65,margin:56,scheme:'-',disc:2 },
-  { name:'Metformin 500mg',packing:'10x15',mrp:120,purc:55,sale:105,margin:54,scheme:'-',disc:1.5 },
-  { name:'Pantoprazole 40mg',packing:'10x10',mrp:150,purc:68,sale:135,margin:46,scheme:'8+2',disc:2 },
-]
+const ITEMS: Array<{ name:string; packing:string; mrp:number; purc:number; sale:number; margin:number; scheme:string; disc:number }> = []
 
 export default function PricingSchemes() {
   const [tab,setTab] = useState<'rates'|'schemes'>('rates')
-  const avgMargin = Math.round(ITEMS.reduce((a,i)=>a+i.margin,0)/ITEMS.length)
+  const avgMargin = ITEMS.length ? Math.round(ITEMS.reduce((a,i)=>a+i.margin,0)/ITEMS.length) : 0
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">

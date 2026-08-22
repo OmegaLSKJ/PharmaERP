@@ -7,19 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface SaleInv { id: string; invoiceNo: string; date: string; customer: string; items: number; total: number; status: string }
 
-const DATA: SaleInv[] = [
-  { id: '1', invoiceNo: 'SI-2026-1842', date: '2026-03-15', customer: 'MediCare Pharma', items: 8, total: 45600, status: 'paid' },
-  { id: '2', invoiceNo: 'SI-2026-1841', date: '2026-03-15', customer: 'HealthFirst Distributors', items: 5, total: 32100, status: 'pending' },
-  { id: '3', invoiceNo: 'SI-2026-1840', date: '2026-03-14', customer: 'CareWell Pharmacy', items: 3, total: 18900, status: 'paid' },
-  { id: '4', invoiceNo: 'SI-2026-1839', date: '2026-03-14', customer: 'LifeLine Medical', items: 12, total: 67000, status: 'overdue' },
-  { id: '5', invoiceNo: 'SI-2026-1838', date: '2026-03-13', customer: 'PharmaPlus Retail', items: 4, total: 23400, status: 'paid' },
-  { id: '6', invoiceNo: 'SI-2026-1837', date: '2026-03-13', customer: 'Wellness Pharma Chain', items: 7, total: 42000, status: 'partial' },
-  { id: '7', invoiceNo: 'SI-2026-1836', date: '2026-03-12', customer: 'MediCare Pharma', items: 6, total: 33000, status: 'paid' },
-  { id: '8', invoiceNo: 'SI-2026-1835', date: '2026-03-12', customer: 'CareWell Pharmacy', items: 9, total: 60000, status: 'paid' },
-  { id: '9', invoiceNo: 'SI-2026-1834', date: '2026-03-11', customer: 'HealthFirst Distributors', items: 2, total: 10000, status: 'pending' },
-  { id: '10', invoiceNo: 'SI-2026-1833', date: '2026-03-11', customer: 'LifeLine Medical', items: 11, total: 50000, status: 'paid' },
-]
-
 const STATUS_STYLE: Record<string, string> = {
   paid: 'bg-emerald-500/10 text-emerald-400', posted: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400',
   overdue: 'bg-rose-500/10 text-rose-400', partial: 'bg-blue-500/10 text-blue-400',

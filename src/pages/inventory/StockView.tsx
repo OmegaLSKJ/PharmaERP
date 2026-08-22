@@ -11,19 +11,6 @@ interface StockItem {
   expiry: string; mrp: number; purchaseRate: number; stock: number; location: string;
 }
 
-const STOCK_DATA: StockItem[] = [
-  { id: '1', name: 'Amoxicillin 500mg', packing: '10x10', manufacturer: 'Cipla', batch: 'AMX-2026-045', expiry: '2027-06-30', mrp: 180, purchaseRate: 85, stock: 240, location: 'Store A' },
-  { id: '2', name: 'Amoxicillin 500mg', packing: '10x10', manufacturer: 'Cipla', batch: 'AMX-2025-118', expiry: '2026-04-15', mrp: 180, purchaseRate: 80, stock: 60, location: 'Store A' },
-  { id: '3', name: 'Paracetamol 650mg', packing: '10x10', manufacturer: 'Sun Pharma', batch: 'PCM-2026-088', expiry: '2027-09-15', mrp: 90, purchaseRate: 35, stock: 380, location: 'Store B' },
-  { id: '4', name: 'Azithromycin 250mg', packing: '10x6', manufacturer: 'Dr. Reddy\'s', batch: 'AZT-2026-012', expiry: '2027-03-20', mrp: 240, purchaseRate: 120, stock: 160, location: 'Store A' },
-  { id: '5', name: 'Cetirizine 10mg', packing: '10x10', manufacturer: 'Cipla', batch: 'CTZ-2026-077', expiry: '2027-11-10', mrp: 75, purchaseRate: 28, stock: 290, location: 'Store C' },
-  { id: '6', name: 'Metformin 500mg', packing: '10x10', manufacturer: 'USV', batch: 'MTF-2026-034', expiry: '2027-08-25', mrp: 120, purchaseRate: 55, stock: 150, location: 'Store B' },
-  { id: '7', name: 'Pantoprazole 40mg', packing: '10x10', manufacturer: 'Alkem', batch: 'PNT-2026-091', expiry: '2027-04-18', mrp: 150, purchaseRate: 68, stock: 210, location: 'Store A' },
-  { id: '8', name: 'Ciprofloxacin 500mg', packing: '10x10', manufacturer: 'Cipla', batch: 'CIP-2025-042', expiry: '2026-04-20', mrp: 160, purchaseRate: 72, stock: 150, location: 'Store C' },
-  { id: '9', name: 'Omeprazole 20mg', packing: '10x10', manufacturer: 'Zydus', batch: 'OMP-2025-073', expiry: '2026-05-10', mrp: 110, purchaseRate: 48, stock: 180, location: 'Store B' },
-  { id: '10', name: 'Dolo 650', packing: '15x10', manufacturer: 'Micro Labs', batch: 'DLO-2026-201', expiry: '2028-01-15', mrp: 120, purchaseRate: 45, stock: 450, location: 'Store A' },
-]
-
 export default function StockView() {
   const [stockData, setStockData] = useState<StockItem[]>([])
   const [search, setSearch] = useState('')

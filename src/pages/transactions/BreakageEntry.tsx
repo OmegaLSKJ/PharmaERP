@@ -5,17 +5,11 @@ import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
-const ITEMS = [
-  { name: 'Amoxicillin 500mg', batch: 'AMX-2025-118', expiry: '2026-04-15', stock: 200, mrp: 180, rate: 85 },
-  { name: 'Ciprofloxacin 500mg', batch: 'CIP-2025-042', expiry: '2026-04-20', stock: 150, mrp: 160, rate: 72 },
-  { name: 'Metronidazole 400mg', batch: 'MET-2025-091', expiry: '2026-05-01', stock: 300, mrp: 95, rate: 38 },
-  { name: 'Omeprazole 20mg', batch: 'OMP-2025-073', expiry: '2026-05-10', stock: 180, mrp: 110, rate: 48 },
-]
-
+interface AvailableItem { name: string; batch: string; expiry: string; stock: number; mrp: number; rate: number }
 interface Line { id: string; name: string; batch: string; expiry: string; qty: number; rate: number; reason: string }
 
 export default function BreakageEntry() {
-  const [availableItems, setAvailableItems] = useState(ITEMS)
+  const [availableItems, setAvailableItems] = useState<AvailableItem[]>([])
   const [entryType, setEntryType] = useState<'expiry' | 'breakage'>('expiry')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [lines, setLines] = useState<Line[]>([])
@@ -24,7 +18,7 @@ export default function BreakageEntry() {
   const showToast = useUIStore((s) => s.showToast)
   useEffect(() => { getErp<any[]>('items').then((items) => setAvailableItems(items.flatMap((item) => (item.batches ?? []).filter((batch:any) => batch.stock > 0).map((batch:any) => ({ name:item.name, batch:batch.batch, expiry:batch.expiry ?? '', stock:batch.stock, mrp:batch.mrp || item.mrp, rate:item.purchaseRate }))))).catch((e) => showToast(e.message)) }, [showToast])
 
-  const addItem = (item: typeof ITEMS[0]) => {
+  const addItem = (item: AvailableItem) => {
     setLines([...lines, { id: Date.now().toString(), name: item.name, batch: item.batch, expiry: item.expiry, qty: 1, rate: item.rate, reason: '' }])
   }
   const updateLine = (id: string, field: keyof Line, value: string | number) => {

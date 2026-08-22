@@ -3,37 +3,16 @@ import { Download, TrendingUp, TrendingDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const monthlySales = [
-  { month: 'Apr', value: 420000 }, { month: 'May', value: 380000 }, { month: 'Jun', value: 510000 },
-  { month: 'Jul', value: 470000 }, { month: 'Aug', value: 550000 }, { month: 'Sep', value: 620000 },
-  { month: 'Oct', value: 580000 }, { month: 'Nov', value: 690000 }, { month: 'Dec', value: 720000 },
-  { month: 'Jan', value: 680000 }, { month: 'Feb', value: 750000 }, { month: 'Mar', value: 810000 },
-]
-const catData = [
-  { name: 'Antibiotic', value: 2450000 }, { name: 'Analgesic', value: 1820000 },
-  { name: 'Antidiabetic', value: 1340000 }, { name: 'Gastro', value: 980000 },
-  { name: 'Antiallergic', value: 650000 }, { name: 'Respiratory', value: 420000 },
-]
+const monthlySales: Array<{ month:string; value:number }> = []
+const catData: Array<{ name:string; value:number }> = []
 const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4']
-const topParties = [
-  { name: 'MediCare Pharma', sales: 1250000, growth: 12 },
-  { name: 'HealthFirst Dist.', sales: 890000, growth: -5 },
-  { name: 'CareWell Pharmacy', sales: 780000, growth: 18 },
-  { name: 'LifeLine Medical', sales: 650000, growth: 8 },
-  { name: 'Wellness Pharma', sales: 520000, growth: 22 },
-]
-const topItems = [
-  { name: 'Amoxicillin 500mg', qty: 12400, revenue: 1890000, margin: 44 },
-  { name: 'Azithromycin 250mg', qty: 8600, revenue: 1740000, margin: 40 },
-  { name: 'Paracetamol 650mg', qty: 9800, revenue: 744000, margin: 51 },
-  { name: 'Metformin 500mg', qty: 6500, revenue: 656500, margin: 54 },
-  { name: 'Pantoprazole 40mg', qty: 5900, revenue: 743400, margin: 46 },
-]
+const topParties: Array<{ name:string; sales:number; growth:number }> = []
+const topItems: Array<{ name:string; qty:number; revenue:number; margin:number }> = []
 
 export default function SalesAnalytics() {
   const totalSales = monthlySales.reduce((a, m) => a + m.value, 0)
   const avgMonthly = totalSales / 12
-  const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a)
+  const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a, { month: 'No data', value: 0 })
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -49,7 +28,7 @@ export default function SalesAnalytics() {
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Sales</div>
           <div className="text-xl font-bold text-white mt-1">{formatCurrency(totalSales)}</div>
-          <div className="flex items-center gap-1 mt-1 text-[10px]"><TrendingUp size={10} className="text-emerald-400" /><span className="text-emerald-400">+14.2% YoY</span></div>
+          <div className="flex items-center gap-1 mt-1 text-[10px]"><TrendingUp size={10} className="text-emerald-400" /><span className="text-emerald-400">0% YoY</span></div>
         </div>
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">Avg Monthly</div>

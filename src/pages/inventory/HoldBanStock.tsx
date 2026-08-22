@@ -2,12 +2,7 @@
 import { Ban, ShieldAlert } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const DATA = [
-  { id:'1', name:'Cough Syrup Codeine 100ml', batch:'CSY-2025-078', qty:35, mrp:145, reason:'Schedule H1 — prescription hold', type:'hold' },
-  { id:'2', name:'Alprazolam 0.5mg', batch:'ALP-2025-022', qty:20, mrp:85, reason:'NDPS restricted — banned sale', type:'ban' },
-  { id:'3', name:'Tramadol 50mg', batch:'TRA-2025-055', qty:15, mrp:110, reason:'Recall notice from manufacturer', type:'hold' },
-  { id:'4', name:'Fentanyl Patch', batch:'FEN-2024-009', qty:5, mrp:450, reason:'Expired licence category', type:'ban' },
-]
+const DATA: Array<{ id:string; name:string; batch:string; qty:number; mrp:number; reason:string; type:string }> = []
 
 export default function HoldBanStock() {
   const [tab,setTab] = useState<'all'|'hold'|'ban'>('all')

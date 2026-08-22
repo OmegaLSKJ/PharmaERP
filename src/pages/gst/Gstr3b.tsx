@@ -5,22 +5,18 @@ import { cn, formatCurrency } from '../../lib/utils'
 interface Gstr3bSection { section: string; taxable: number; cgst: number; sgst: number; igst: number; totalTax: number }
 
 const SECTIONS: Gstr3bSection[] = [
-  { section: '3.1(a) Outward taxable supplies (other than zero rated, nil rated and exempted)', taxable: 680000, cgst: 40800, sgst: 40800, igst: 0, totalTax: 81600 },
+  { section: '3.1(a) Outward taxable supplies (other than zero rated, nil rated and exempted)', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
   { section: '3.1(b) Outward taxable supplies (zero rated)', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
-  { section: '3.1(c) Other outward supplies (Nil rated, exempted)', taxable: 35000, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
-  { section: '3.2 Inward supplies (liable to reverse charge)', taxable: 120000, cgst: 7200, sgst: 7200, igst: 0, totalTax: 14400 },
-  { section: '4 Eligible ITC - (A) ITB on inward supplies', taxable: 580000, cgst: 34800, sgst: 34800, igst: 0, totalTax: 69600 },
-  { section: '4 Eligible ITC - (B) Other ITC', taxable: 25000, cgst: 1500, sgst: 1500, igst: 0, totalTax: 3000 },
+  { section: '3.1(c) Other outward supplies (Nil rated, exempted)', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
+  { section: '3.2 Inward supplies (liable to reverse charge)', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
+  { section: '4 Eligible ITC - (A) ITB on inward supplies', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
+  { section: '4 Eligible ITC - (B) Other ITC', taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 },
 ]
 
-const EXEMPT_SUPPLY = [
-  { name: 'Nil rated medicines', value: 18000 },
-  { name: 'Exempt formulations', value: 12000 },
-  { name: 'Non-GST items', value: 5000 },
-]
+const EXEMPT_SUPPLY: Array<{ name:string; value:number }> = []
 
 export default function Gstr3b() {
-  const [month, setMonth] = useState('March 2026')
+  const [month, setMonth] = useState('')
 
   const totalLiability = SECTIONS.slice(0, 3).reduce((a, s) => a + s.totalTax, 0)
   const totalITC = SECTIONS.slice(4).reduce((a, s) => a + s.totalTax, 0)

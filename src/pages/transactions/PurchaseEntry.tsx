@@ -9,26 +9,12 @@ interface LineItem {
   qty: number; freeQty: number; purchaseRate: number; discount: number;
   scheme: number; gstRate: number; amount: number; saleRate: number; mrp: number
 }
-
-const SUPPLIER_OPTIONS = [
-  { name: 'Sun Pharma Industries', gstin: '27DDDSS3456J1Z4', outstanding: 230000 },
-  { name: 'Cipla Ltd', gstin: '27EEECI7890K1Z7', outstanding: 560000 },
-  { name: 'Dr. Reddy\'s Laboratories', gstin: '36GGGDR5678M1Z3', outstanding: 180000 },
-  { name: 'Ranbaxy Laboratories', gstin: '06IIIRB3456P1Z9', outstanding: 95000 },
-]
-
-const ITEM_OPTIONS = [
-  { name: 'Amoxicillin 500mg', packing: '10x10', mrp: 180, purchaseRate: 85, saleRate: 152, gstRate: 12 },
-  { name: 'Paracetamol 650mg', packing: '10x10', mrp: 90, purchaseRate: 35, saleRate: 76, gstRate: 12 },
-  { name: 'Azithromycin 250mg', packing: '10x6', mrp: 240, purchaseRate: 120, saleRate: 202, gstRate: 12 },
-  { name: 'Cetirizine 10mg', packing: '10x10', mrp: 75, purchaseRate: 28, saleRate: 63, gstRate: 12 },
-  { name: 'Metformin 500mg', packing: '10x10', mrp: 120, purchaseRate: 55, saleRate: 101, gstRate: 12 },
-  { name: 'Pantoprazole 40mg', packing: '10x10', mrp: 150, purchaseRate: 68, saleRate: 126, gstRate: 12 },
-]
+type SupplierOption = { name: string; gstin: string; outstanding: number }
+type ItemOption = { name: string; packing: string; mrp: number; purchaseRate: number; saleRate: number; gstRate: number }
 
 export default function PurchaseEntry() {
-  const [supplierOptions, setSupplierOptions] = useState(SUPPLIER_OPTIONS)
-  const [itemOptions, setItemOptions] = useState(ITEM_OPTIONS)
+  const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
+  const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [supplier, setSupplier] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
@@ -55,7 +41,7 @@ export default function PurchaseEntry() {
     if (showSupplierSearch && supplierRef.current) supplierRef.current.focus()
   }, [showItemSearch, showSupplierSearch])
 
-  const addItem = (item: typeof ITEM_OPTIONS[0]) => {
+  const addItem = (item: ItemOption) => {
     setItems([...items, {
       id: Date.now().toString(), itemName: item.name, packing: item.packing,
       batch: '', expiry: '', qty: 1, freeQty: 0, purchaseRate: item.purchaseRate,

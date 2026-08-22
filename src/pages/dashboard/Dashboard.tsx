@@ -4,44 +4,10 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 
-const salesData = [
-  { month: 'Apr', sale: 420000, purchase: 380000 },
-  { month: 'May', sale: 380000, purchase: 350000 },
-  { month: 'Jun', sale: 510000, purchase: 420000 },
-  { month: 'Jul', sale: 470000, purchase: 400000 },
-  { month: 'Aug', sale: 550000, purchase: 460000 },
-  { month: 'Sep', sale: 620000, purchase: 510000 },
-  { month: 'Oct', sale: 580000, purchase: 490000 },
-  { month: 'Nov', sale: 690000, purchase: 550000 },
-  { month: 'Dec', sale: 720000, purchase: 580000 },
-  { month: 'Jan', sale: 680000, purchase: 540000 },
-  { month: 'Feb', sale: 750000, purchase: 600000 },
-  { month: 'Mar', sale: 810000, purchase: 650000 },
-]
-
-const topItems = [
-  { name: 'Amoxicillin 500mg', qty: 1240, amount: 62000 },
-  { name: 'Paracetamol 650mg', qty: 980, amount: 29400 },
-  { name: 'Azithromycin 250mg', qty: 860, amount: 51600 },
-  { name: 'Cetirizine 10mg', qty: 740, amount: 18500 },
-  { name: 'Metformin 500mg', qty: 650, amount: 32500 },
-  { name: 'Pantoprazole 40mg', qty: 590, amount: 29500 },
-]
-
-const recentInvoices = [
-  { id: 'SI-2026-1842', party: 'MediCare Pharma', amount: 45600, date: '2026-03-15', status: 'paid' },
-  { id: 'SI-2026-1841', party: 'HealthFirst Distributors', amount: 32100, date: '2026-03-15', status: 'pending' },
-  { id: 'SI-2026-1840', party: 'CareWell Pharmacy', amount: 18900, date: '2026-03-14', status: 'paid' },
-  { id: 'SI-2026-1839', party: 'LifeLine Medical', amount: 67200, date: '2026-03-14', status: 'overdue' },
-  { id: 'SI-2026-1838', party: 'PharmaPlus', amount: 23400, date: '2026-03-13', status: 'paid' },
-]
-
-const expiryAlerts = [
-  { item: 'Amoxicillin 500mg', batch: 'AMX-2025-118', expiry: '2026-04-15', qty: 200 },
-  { item: 'Ciprofloxacin 500mg', batch: 'CIP-2025-042', expiry: '2026-04-20', qty: 150 },
-  { item: 'Metronidazole 400mg', batch: 'MET-2025-091', expiry: '2026-05-01', qty: 300 },
-  { item: 'Omeprazole 20mg', batch: 'OMP-2025-073', expiry: '2026-05-10', qty: 180 },
-]
+const salesData: Array<{ month: string; sale: number; purchase: number }> = []
+const topItems: Array<{ name: string; qty: number; amount: number }> = []
+const recentInvoices: Array<{ id: string; party: string; amount: number; date: string; status: string }> = []
+const expiryAlerts: Array<{ item: string; batch: string; expiry: string; qty: number }> = []
 
 function KpiCard({ title, value, change, icon: Icon, trend, className }: {
   title: string; value: string; change: string; icon: React.ElementType; trend: 'up' | 'down'; className?: string
@@ -89,10 +55,10 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={formatCurrency(810000)} change="+8.2%" icon={IndianRupee} trend="up" />
-        <KpiCard title="Total Purchases" value={formatCurrency(650000)} change="+5.1%" icon={Truck} trend="up" />
-        <KpiCard title="Active Items" value="2,847" change="+23" icon={Package} trend="up" />
-        <KpiCard title="Pending Invoices" value="14" change="-3" icon={ShoppingCart} trend="down" />
+        <KpiCard title="Total Sales" value={formatCurrency(0)} change="0" icon={IndianRupee} trend="up" />
+        <KpiCard title="Total Purchases" value={formatCurrency(0)} change="0" icon={Truck} trend="up" />
+        <KpiCard title="Active Items" value="0" change="0" icon={Package} trend="up" />
+        <KpiCard title="Pending Invoices" value="0" change="0" icon={ShoppingCart} trend="down" />
       </div>
 
       {/* Charts Row */}

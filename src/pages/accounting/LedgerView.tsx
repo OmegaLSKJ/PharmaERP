@@ -8,24 +8,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface LedgerEntry { id: string; date: string; vType: string; vNo: string; debit: number; credit: number; balance: number; narration: string; balType: string }
 
-const PARTY_LEDGERS: Record<string, LedgerEntry[]> = {
-  'MediCare Pharma': [
-    { id: '1', date: '2026-03-01', vType: 'Opening', vNo: 'OPN', debit: 0, credit: 0, balance: 85000, narration: 'Opening balance', balType: 'Dr' },
-    { id: '2', date: '2026-03-05', vType: 'Sale', vNo: 'SI-2026-1830', debit: 45600, credit: 0, balance: 130600, narration: 'Sale - 8 items', balType: 'Dr' },
-    { id: '3', date: '2026-03-08', vType: 'Receipt', vNo: 'REC-2026-030', debit: 0, credit: 40000, balance: 90600, narration: 'NEFT received', balType: 'Dr' },
-    { id: '4', date: '2026-03-12', vType: 'Sale', vNo: 'SI-2026-1836', debit: 33000, credit: 0, balance: 123600, narration: 'Sale - 6 items', balType: 'Dr' },
-    { id: '5', date: '2026-03-15', vType: 'Receipt', vNo: 'REC-2026-045', debit: 0, credit: 45600, balance: 78000, narration: 'NEFT received', balType: 'Dr' },
-  ],
-  'Sun Pharma Industries': [
-    { id: '1', date: '2026-03-01', vType: 'Opening', vNo: 'OPN', debit: 0, credit: 200000, balance: 200000, narration: 'Opening balance', balType: 'Cr' },
-    { id: '2', date: '2026-03-05', vType: 'Purchase', vNo: 'PC-2026-038', debit: 0, credit: 180000, balance: 380000, narration: 'Purchase - 15 items', balType: 'Cr' },
-    { id: '3', date: '2026-03-10', vType: 'Payment', vNo: 'PAY-2026-018', debit: 150000, credit: 0, balance: 230000, narration: 'NEFT payment', balType: 'Cr' },
-    { id: '4', date: '2026-03-15', vType: 'Purchase', vNo: 'PC-2026-045', debit: 0, credit: 285000, balance: 515000, narration: 'Purchase - 12 items', balType: 'Cr' },
-  ],
-}
-
-const ALL_LEDGERS = Object.keys(PARTY_LEDGERS)
-
 export default function LedgerView() {
   const [allEntries, setAllEntries] = useState<Array<LedgerEntry & { party: string }>>([])
   const [selectedLedger, setSelectedLedger] = useState('')

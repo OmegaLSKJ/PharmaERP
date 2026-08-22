@@ -78,8 +78,79 @@ export async function list(resource: string, partyName?: string) {
   if (resource === 'ledgers') { const { data, error } = await client.from('voucher_lines').select('id,debit,credit,narration,vouchers!inner(voucher_date,voucher_number,voucher_type),chart_of_accounts!inner(name)'); if (error) throw error; return (data ?? []).filter((v: any) => !partyName || v.chart_of_accounts.name === partyName).map((v: any) => ({ id: v.id, party: v.chart_of_accounts.name, date: v.vouchers.voucher_date, vType: v.vouchers.voucher_type, vNo: v.vouchers.voucher_number, debit: +v.debit, credit: +v.credit, narration: v.narration ?? '' })) }
   throw new Error('Unknown ERP resource.')
 }
+
+type ImportRow = Record<string, unknown>
+
+const importRequired: Record<string, string[]> = {
+  parties: ['code', 'party_type', 'legal_name'],
+  manufacturers: ['name'],
+  salts: ['code', 'name'],
+  hsn: ['code'],
+  warehouses: ['code', 'name'],
+  accounts: ['code', 'name'],
+  items: ['code', 'name'],
+  'opening-stock': ['item_code', 'batch', 'warehouse_code', 'quantity'],
+  sales: ['invoice_number', 'invoice_date', 'customer', 'item_code', 'batch', 'quantity', 'rate'],
+  purchases: ['invoice_number', 'invoice_date', 'supplier', 'item_code', 'batch', 'quantity', 'purchase_rate'],
+}
+
+const importText = (row: ImportRow, key: string) => String(row[key] ?? '').trim()
+const importNumber = (row: ImportRow, key: string, fallback = 0) => {
+  const value = Number(row[key])
+  return Number.isFinite(value) ? value : fallback
+}
+
+async function importDataset(type: string, rows: ImportRow[]) {
+  if (!importRequired[type]) throw new Error('Unsupported import type.')
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('The import file has no data rows.')
+  if (rows.length > 5000) throw new Error('Import files are limited to 5,000 rows per upload.')
+  const invalid = rows.flatMap((row, index) => importRequired[type].filter((key) => !importText(row, key)).map((key) => `Row ${index + 2}: ${key} is required`))
+  if (invalid.length) throw new Error(invalid.slice(0, 20).join('; '))
+
+  const { client, organizationId } = await context()
+  if (type === 'parties') {
+    const payload = rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), party_type: importText(row, 'party_type').toLowerCase(), legal_name: importText(row, 'legal_name'), phone: importText(row, 'phone') || null, email: importText(row, 'email') || null, gstin: importText(row, 'gstin') || null, credit_limit: importNumber(row, 'credit_limit'), is_blocked: importText(row, 'status').toLowerCase() === 'blocked' }))
+    if (payload.some((row) => !['customer', 'supplier', 'both'].includes(row.party_type))) throw new Error('party_type must be customer, supplier, or both.')
+    const { data, error } = await client.from('parties').upsert(payload, { onConflict: 'organization_id,code' }).select('id,code'); if (error) throw error
+    for (const partyRow of data ?? []) { const source = rows.find((row) => importText(row, 'code') === partyRow.code); const city = source ? importText(source, 'city') : ''; if (!city) continue; const { data: existing } = await client.from('party_addresses').select('id').eq('party_id', partyRow.id).eq('is_default', true).maybeSingle(); const address = { party_id: partyRow.id, address_type: 'business', line1: importText(source!, 'address') || city, city, state_code: importText(source!, 'state') || null, postal_code: importText(source!, 'pincode') || null, is_default: true }; const { error: addressError } = existing ? await client.from('party_addresses').update(address).eq('id', existing.id) : await client.from('party_addresses').insert(address); if (addressError) throw addressError }
+    return { type, importedRows: rows.length, records: data?.length ?? 0 }
+  }
+  if (type === 'manufacturers') { const { data, error } = await client.from('manufacturers').upsert(rows.map((row) => ({ organization_id: organizationId, name: importText(row, 'name'), code: importText(row, 'code') || null, is_active: importText(row, 'status').toLowerCase() !== 'inactive' })), { onConflict: 'organization_id,name' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 } }
+  if (type === 'salts') { const { data, error } = await client.from('salts').upsert(rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), name: importText(row, 'name'), composition: importText(row, 'composition') || null, category: importText(row, 'category') || null })), { onConflict: 'organization_id,name' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 } }
+  if (type === 'hsn') { const { data, error } = await client.from('hsn_codes').upsert(rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), description: importText(row, 'description') || null, gst_rate: importNumber(row, 'gst_rate') })), { onConflict: 'organization_id,code' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 } }
+  if (type === 'warehouses') { const { data, error } = await client.from('warehouses').upsert(rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), name: importText(row, 'name'), warehouse_type: importText(row, 'warehouse_type') || 'Store Room', address: importText(row, 'address') || null, capacity: importNumber(row, 'capacity'), is_active: importText(row, 'status').toLowerCase() !== 'inactive' })), { onConflict: 'organization_id,code' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 } }
+  if (type === 'accounts') { const { data, error } = await client.from('chart_of_accounts').upsert(rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), name: importText(row, 'name'), account_type: importText(row, 'account_type') || 'general', account_group: importText(row, 'account_group') || 'General', opening_balance: importNumber(row, 'opening_balance'), is_active: importText(row, 'status').toLowerCase() !== 'inactive' })), { onConflict: 'organization_id,code' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 } }
+  if (type === 'items') {
+    const [{ data: manufacturers }, { data: salts }, { data: hsnCodes }] = await Promise.all([client.from('manufacturers').select('id,name').eq('organization_id', organizationId), client.from('salts').select('id,name').eq('organization_id', organizationId), client.from('hsn_codes').select('id,code').eq('organization_id', organizationId)])
+    const manufacturerMap = new Map((manufacturers ?? []).map((row) => [row.name.toLowerCase(), row.id])), saltMap = new Map((salts ?? []).map((row) => [row.name.toLowerCase(), row.id])), hsnMap = new Map((hsnCodes ?? []).map((row) => [row.code.toLowerCase(), row.id]))
+    const missing = rows.flatMap((row, index) =>
+      ([['manufacturer', manufacturerMap], ['salt', saltMap], ['hsn_code', hsnMap]] as const).flatMap(([key, map]) => {
+        const value = importText(row, key)
+        return value && !map.has(value.toLowerCase()) ? [`Row ${index + 2}: ${key} "${value}" is not in its master table`] : []
+      }),
+    )
+    if (missing.length) throw new Error(missing.slice(0, 20).join('; '))
+    const payload = rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), name: importText(row, 'name'), packing: importText(row, 'packing') || null, manufacturer_id: manufacturerMap.get(importText(row, 'manufacturer').toLowerCase()) ?? null, salt_id: saltMap.get(importText(row, 'salt').toLowerCase()) ?? null, hsn_id: hsnMap.get(importText(row, 'hsn_code').toLowerCase()) ?? null, mrp: importNumber(row, 'mrp'), sale_rate: importNumber(row, 'sale_rate'), purchase_rate: importNumber(row, 'purchase_rate'), is_active: importText(row, 'status').toLowerCase() !== 'inactive' }))
+    const { data, error } = await client.from('items').upsert(payload, { onConflict: 'organization_id,code' }).select('id'); if (error) throw error; return { type, importedRows: rows.length, records: data?.length ?? 0 }
+  }
+  if (type === 'opening-stock') {
+    const [{ data: items }, { data: warehouses }] = await Promise.all([client.from('items').select('id,code').eq('organization_id', organizationId), client.from('warehouses').select('id,code').eq('organization_id', organizationId)])
+    const itemMap = new Map((items ?? []).map((row) => [row.code.toLowerCase(), row.id])), warehouseMap = new Map((warehouses ?? []).map((row) => [row.code.toLowerCase(), row.id]))
+    for (const [index, row] of rows.entries()) { const itemId = itemMap.get(importText(row, 'item_code').toLowerCase()), warehouseId = warehouseMap.get(importText(row, 'warehouse_code').toLowerCase()), quantity = importNumber(row, 'quantity'); if (!itemId || !warehouseId || quantity < 0) throw new Error(`Row ${index + 2}: item, warehouse, or quantity is invalid.`); const { data: batch, error: batchError } = await client.from('item_batches').upsert({ item_id: itemId, batch_number: importText(row, 'batch'), expiry_on: importText(row, 'expiry') || null, mrp: importNumber(row, 'mrp') }, { onConflict: 'item_id,batch_number' }).select('id').single(); if (batchError) throw batchError; const { error: deleteError } = await client.from('stock_movements').delete().eq('organization_id', organizationId).eq('item_batch_id', batch.id).eq('warehouse_id', warehouseId).eq('movement_type', 'opening'); if (deleteError) throw deleteError; const { error: movementError } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: batch.id, warehouse_id: warehouseId, movement_type: 'opening', quantity, source_type: 'csv_import', remarks: importText(row, 'remarks') || 'Opening stock import' }); if (movementError) throw movementError }
+    return { type, importedRows: rows.length, records: rows.length }
+  }
+  const partyKey = type === 'sales' ? 'customer' : 'supplier', rateKey = type === 'sales' ? 'rate' : 'purchase_rate'
+  const [{ data: parties }, { data: items }] = await Promise.all([client.from('parties').select('legal_name,party_type').eq('organization_id', organizationId), client.from('items').select('code,name').eq('organization_id', organizationId)])
+  const partyMap = new Map((parties ?? []).map((row) => [row.legal_name.toLowerCase(), row.party_type])), itemMap = new Map((items ?? []).map((row) => [row.code.toLowerCase(), row.name]) )
+  const groups = new Map<string, ImportRow[]>()
+  for (const [index, row] of rows.entries()) { const partyName = importText(row, partyKey), itemName = itemMap.get(importText(row, 'item_code').toLowerCase()); if (!partyMap.has(partyName.toLowerCase()) || !itemName) throw new Error(`Row ${index + 2}: party or item code does not exist in the master data.`); const invoice = importText(row, 'invoice_number'); groups.set(invoice, [...(groups.get(invoice) ?? []), row]) }
+  for (const [invoiceNumber, invoiceRows] of groups) { const first = invoiceRows[0], lines = invoiceRows.map((row) => ({ name: itemMap.get(importText(row, 'item_code').toLowerCase())!, batch: importText(row, 'batch'), expiry: importText(row, 'expiry') || undefined, qty: importNumber(row, 'quantity'), freeQty: importNumber(row, 'free_quantity'), rate: importNumber(row, rateKey), discount: importNumber(row, 'discount_percent'), gstRate: importNumber(row, 'gst_rate'), mrp: importNumber(row, 'mrp'), amount: importNumber(row, 'quantity') * importNumber(row, rateKey) })); const total = lines.reduce((sum, line) => sum + line.amount, 0); await create(type, { id: invoiceNumber, party: importText(first, partyKey), supplierInvoice: importText(first, 'supplier_invoice_number') || invoiceNumber, date: importText(first, 'invoice_date'), lines, total }) }
+  return { type, importedRows: rows.length, records: groups.size }
+}
+
 export async function create(resource: string, body: any) {
   const { client, organizationId, financialYearId } = await context()
+  if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows)
   if (resource === 'parties') {
     if (!body.name) throw new Error('Party name is required.')
     const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: body.type || 'customer', legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()

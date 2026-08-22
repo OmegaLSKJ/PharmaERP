@@ -8,13 +8,7 @@ interface GstrEntry {
   taxable: number; cgst: number; sgst: number; igst: number; totalTax: number; invoiceValue: number;
 }
 
-const GSTR_DATA: GstrEntry[] = [
-  { id: '1', invoiceNo: 'SI-2026-1838', date: '2026-03-15', partyName: 'MediCare Pharma', gstin: '27AAACM1234F1Z5', type: 'B2B', taxable: 40714, cgst: 2443, sgst: 2443, igst: 0, totalTax: 4886, invoiceValue: 45600 },
-  { id: '2', invoiceNo: 'SI-2026-1839', date: '2026-03-15', partyName: 'HealthFirst Distributors', gstin: '07BBBHM5678G1Z8', type: 'B2B', taxable: 28661, cgst: 1720, sgst: 1720, igst: 0, totalTax: 3440, invoiceValue: 32100 },
-  { id: '3', invoiceNo: 'SI-2026-1840', date: '2026-03-14', partyName: 'CareWell Pharmacy', gstin: '29CCCPW9012H1Z1', type: 'B2B', taxable: 16875, cgst: 1013, sgst: 1013, igst: 0, totalTax: 2025, invoiceValue: 18900 },
-  { id: '4', invoiceNo: 'SI-2026-1841', date: '2026-03-14', partyName: 'Walk-in Customer', gstin: '', type: 'B2C Small', taxable: 59821, cgst: 3589, sgst: 3589, igst: 0, totalTax: 7179, invoiceValue: 67000 },
-  { id: '5', invoiceNo: 'SI-2026-1842', date: '2026-03-13', partyName: 'Wellness Pharma', gstin: '19JJJWT7890R1Z2', type: 'B2B', taxable: 20893, cgst: 1254, sgst: 1254, igst: 0, totalTax: 2508, invoiceValue: 23400 },
-]
+const GSTR_DATA: GstrEntry[] = []
 
 export default function GstReports() {
   const [typeFilter, setTypeFilter] = useState<string>('all')

@@ -5,15 +5,11 @@ import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
-const ITEMS = [
-  { name:'Amoxicillin 500mg', batch:'AMX-2026-045', rate:152, stock:240 },
-  { name:'Paracetamol 650mg', batch:'PCM-2026-088', rate:76, stock:380 },
-  { name:'Azithromycin 250mg', batch:'AZT-2026-012', rate:216, stock:160 },
-]
+interface AvailableItem { name:string; batch:string; rate:number; stock:number }
 interface Line { id:string; name:string; batch:string; qty:number; rate:number }
 
 export default function ChallanEntry() {
-  const [availableItems, setAvailableItems] = useState(ITEMS)
+  const [availableItems, setAvailableItems] = useState<AvailableItem[]>([])
   const [parties, setParties] = useState<string[]>([])
   const [party,setParty] = useState('')
   const [lines,setLines] = useState<Line[]>([])
@@ -21,7 +17,7 @@ export default function ChallanEntry() {
   const [saving, setSaving] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
   useEffect(() => { Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')]).then(([partyRows, productRows]) => { setParties(partyRows.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => p.name)); setAvailableItems(productRows.flatMap((p) => (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({ name: p.name, batch: b.batch, rate: p.saleRate, stock: b.stock })))) }).catch((e) => showToast(e.message)) }, [showToast])
-  const addItem = (i:typeof ITEMS[0]) => setLines([...lines,{id:Date.now().toString(),name:i.name,batch:i.batch,qty:1,rate:i.rate}])
+  const addItem = (i:AvailableItem) => setLines([...lines,{id:Date.now().toString(),name:i.name,batch:i.batch,qty:1,rate:i.rate}])
   const totalQty = lines.reduce((a,l)=>a+l.qty,0)
   const saveChallan = async () => { try { setSaving(true); const saved = await postErp<{ id: string }>('challans', { party, transport, lines }); showToast(`Challan ${saved.id} saved.`); setLines([]) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save challan.') } finally { setSaving(false) } }
   return (

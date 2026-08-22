@@ -5,12 +5,6 @@ import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
-const ITEMS = [
-  { name:'Dolo 650', rate:45 }, { name:'Cetirizine 10mg', rate:28 }, { name:'Paracetamol 650mg', rate:35 },
-  { name:'ORS Sachet', rate:22 }, { name:'Vicks Inhaler', rate:85 }, { name:'Band-Aid (10)', rate:40 },
-  { name:'Digene Gel', rate:120 }, { name:'Betadine 15ml', rate:95 },
-]
-
 export default function CounterSale() {
   const [available, setAvailable] = useState<Array<{name:string;rate:number;batch:string;stock:number;gst:number}>>([])
   const [cart,setCart] = useState<Array<{name:string;qty:number;rate:number;batch:string;stock:number;gst:number}>>([])

@@ -5,14 +5,6 @@ import { useUIStore } from '../../../store/uiStore'
 
 interface HsnItem { id: string; code: string; description: string; gstRate: number; type: 'Goods' | 'Services' }
 
-const DEFAULT_HSN: HsnItem[] = [
-  { id: '1', code: '30049011', description: 'Paracetamol preparations', gstRate: 12, type: 'Goods' },
-  { id: '2', code: '30049099', description: 'Amoxicillin preparations', gstRate: 12, type: 'Goods' },
-  { id: '3', code: '9993', description: 'Medical consultation services', gstRate: 18, type: 'Services' },
-  { id: '4', code: '30049011', description: 'Pantoprazole preparations', gstRate: 12, type: 'Goods' },
-  { id: '5', code: '30049011', description: 'Cetirizine preparations', gstRate: 12, type: 'Goods' },
-]
-
 export default function HsnList() {
   const [items, setItems] = useState<HsnItem[]>([])
   const [search, setSearch] = useState('')

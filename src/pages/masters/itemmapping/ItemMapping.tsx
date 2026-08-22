@@ -7,14 +7,6 @@ import { useUIStore } from '../../../store/uiStore'
 
 interface Map { id:string; supplier:string; supplierItem:string; canonicalItem:string; packing:string; mrp:number; status:'active'|'pending' }
 
-const DATA: Map[] = [
-  { id:'1', supplier:'Sun Pharma', supplierItem:'AMOXI-500 CAP', canonicalItem:'Amoxicillin 500mg', packing:'10x10', mrp:180, status:'active' },
-  { id:'2', supplier:'Cipla Ltd', supplierItem:'CIPLOX-AZ', canonicalItem:'Azithromycin 250mg', packing:'10x6', mrp:240, status:'active' },
-  { id:'3', supplier:"Dr. Reddy's", supplierItem:'DOLO-650 TAB', canonicalItem:'Paracetamol 650mg', packing:'10x15', mrp:120, status:'active' },
-  { id:'4', supplier:'Ranbaxy Labs', supplierItem:'PCM-650', canonicalItem:'Paracetamol 650mg', packing:'10x10', mrp:90, status:'pending' },
-  { id:'5', supplier:'Sun Pharma', supplierItem:'PANTOCID-40', canonicalItem:'Pantoprazole 40mg', packing:'10x10', mrp:150, status:'active' },
-]
-
 export default function ItemMapping() {
   const [mappings, setMappings] = useState<Map[]>([])
   const [search,setSearch] = useState('')

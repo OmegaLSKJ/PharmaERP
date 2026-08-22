@@ -1,31 +1,27 @@
 import { useState } from 'react'
 import { Save, Search } from 'lucide-react'
+import { useEffect } from 'react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { postErp } from '../../lib/erpApi'
+import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
 interface VoucherLine { id: string; ledger: string; debit: number; credit: number; narration: string }
 
 const VOUCHER_TYPES = ['Receipt', 'Payment', 'Debit Note', 'Credit Note', 'Contra', 'Journal']
-const LEDGER_LIST = [
-  'Cash in Hand', 'HDFC Bank Current', 'MediCare Pharma', 'HealthFirst Distributors',
-  'CareWell Pharmacy', 'Sun Pharma Industries', 'Cipla Ltd', 'Sales Account',
-  'Purchase Account', 'GST Output CGST', 'GST Output SGST', 'GST Output IGST',
-  'Discount Received', 'Freight Charges', 'Salary Account', 'Rent Expense',
-]
-
 export default function VoucherEntry() {
   const [vType, setVType] = useState('Receipt')
-  const [vNo, setVNo] = useState('REC-2026-001')
-  const [vDate, setVDate] = useState('2026-03-16')
+  const [vNo, setVNo] = useState('')
+  const [vDate, setVDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [partyLedger, setPartyLedger] = useState('')
-  const [bankLedger, setBankLedger] = useState('HDFC Bank Current')
+  const [bankLedger, setBankLedger] = useState('')
+  const [ledgerList, setLedgerList] = useState<string[]>([])
   const [lines, setLines] = useState<VoucherLine[]>([])
   const [narration, setNarration] = useState('')
   const [showLedgerSearch, setShowLedgerSearch] = useState(false)
   const [activeLine, setActiveLine] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  useEffect(() => { Promise.all([getErp<any[]>('accounts'), getErp<any[]>('parties')]).then(([accounts, parties]) => setLedgerList([...accounts.map((row) => row.name), ...parties.map((row) => row.name)])) .catch((error) => showToast(error.message)) }, [showToast])
 
   const addLine = () => {
     setLines([...lines, { id: Date.now().toString(), ledger: '', debit: 0, credit: 0, narration: '' }])
@@ -75,7 +71,7 @@ export default function VoucherEntry() {
             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Party Ledger</label>
             <select value={partyLedger} onChange={(e) => setPartyLedger(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500">
               <option value="">Select ledger...</option>
-              {LEDGER_LIST.map(l => <option key={l} value={l}>{l}</option>)}
+              {ledgerList.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
         </div>
@@ -105,7 +101,7 @@ export default function VoucherEntry() {
                 <td className="px-4 py-2">
                   <select value={line.ledger} onChange={(e) => updateLine(line.id, 'ledger', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded p-1.5 text-white outline-none focus:border-indigo-500">
                     <option value="">Select...</option>
-                    {LEDGER_LIST.map(l => <option key={l} value={l}>{l}</option>)}
+                    {ledgerList.map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </td>
                 <td className="px-4 py-2 text-right"><input type="number" value={line.debit || ''} onChange={(e) => updateLine(line.id, 'debit', Number(e.target.value))} className="w-28 bg-slate-950 border border-slate-800 rounded p-1.5 text-right text-white outline-none focus:border-indigo-500" placeholder="0" /></td>

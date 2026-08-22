@@ -2,13 +2,7 @@
 import { Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
 
-const DATA = [
-  { id:'1',inv:'SUN-8921',sup:'Sun Pharma',d:'2026-03-15',tax:250000,gst:30000,tot:280000,mb:'Matched',ga:'Matched' },
-  { id:'2',inv:'CIPL-4567',sup:'Cipla Ltd',d:'2026-03-14',tax:170000,gst:20400,tot:190400,mb:'Matched',ga:'Mismatch' },
-  { id:'3',inv:'DRR-1234',sup:"Dr. Reddy's",d:'2026-03-13',tax:128000,gst:15360,tot:143360,mb:'Matched',ga:'Missing' },
-  { id:'4',inv:'RAN-7890',sup:'Ranbaxy',d:'2026-03-12',tax:300000,gst:36000,tot:336000,mb:'Matched',ga:'Matched' },
-  { id:'5',inv:'SUN-8888',sup:'Sun Pharma',d:'2026-03-11',tax:200000,gst:24000,tot:224000,mb:'Missing',ga:'Matched' },
-]
+const DATA: Array<{ id:string; inv:string; sup:string; d:string; tax:number; gst:number; tot:number; mb:string; ga:string }> = []
 const SC: Record<string,string> = { Matched:'bg-emerald-500/10 text-emerald-400',Mismatch:'bg-amber-500/10 text-amber-400',Missing:'bg-rose-500/10 text-rose-400' }
 const IC: Record<string,any> = { Matched:<CheckCircle size={12}/>,Mismatch:<AlertTriangle size={12}/>,Missing:<XCircle size={12}/> }
 

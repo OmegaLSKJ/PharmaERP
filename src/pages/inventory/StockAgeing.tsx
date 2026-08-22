@@ -2,20 +2,7 @@
 import { Download, AlertTriangle } from 'lucide-react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
 
-const DATA = [
-  { name: 'Amoxicillin 500mg', batch: 'AMX-2025-118', expiry: '2026-04-15', qty: 200, mrp: 180, rate: 85, location: 'Store A' },
-  { name: 'Amoxicillin 500mg', batch: 'AMX-2026-045', expiry: '2027-06-30', qty: 240, mrp: 180, rate: 85, location: 'Store A' },
-  { name: 'Ciprofloxacin 500mg', batch: 'CIP-2025-042', expiry: '2026-04-20', qty: 150, mrp: 160, rate: 72, location: 'Store C' },
-  { name: 'Metronidazole 400mg', batch: 'MET-2025-091', expiry: '2026-05-01', qty: 300, mrp: 95, rate: 38, location: 'Store B' },
-  { name: 'Omeprazole 20mg', batch: 'OMP-2025-073', expiry: '2026-05-10', qty: 180, mrp: 110, rate: 48, location: 'Store B' },
-  { name: 'Paracetamol 650mg', batch: 'PCM-2026-088', expiry: '2027-09-15', qty: 380, mrp: 90, rate: 35, location: 'Store B' },
-  { name: 'Azithromycin 250mg', batch: 'AZT-2026-012', expiry: '2027-03-20', qty: 160, mrp: 240, rate: 120, location: 'Store A' },
-  { name: 'Cetirizine 10mg', batch: 'CTZ-2026-077', expiry: '2027-11-10', qty: 290, mrp: 75, rate: 28, location: 'Store C' },
-  { name: 'Metformin 500mg', batch: 'MTF-2026-034', expiry: '2027-08-25', qty: 150, mrp: 120, rate: 55, location: 'Store B' },
-  { name: 'Pantoprazole 40mg', batch: 'PNT-2026-091', expiry: '2027-04-18', qty: 210, mrp: 150, rate: 68, location: 'Store A' },
-  { name: 'Dolo 650', batch: 'DLO-2026-201', expiry: '2028-01-15', qty: 450, mrp: 120, rate: 45, location: 'Store A' },
-  { name: 'Ibuprofen 400mg', batch: 'IBU-2024-055', expiry: '2026-03-20', qty: 80, mrp: 85, rate: 32, location: 'Store C' },
-]
+const DATA: Array<{ name:string; batch:string; expiry:string; qty:number; mrp:number; rate:number; location:string }> = []
 
 function getAgeGroup(expiry: string) {
   const days = daysUntilExpiry(expiry)

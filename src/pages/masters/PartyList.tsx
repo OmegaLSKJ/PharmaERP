@@ -11,19 +11,6 @@ interface Party {
   gstin: string; balance: number; creditLimit: number; lastSale: string; status: 'active' | 'blocked'
 }
 
-const PARTIES: Party[] = [
-  { id: 'P001', name: 'MediCare Pharma Pvt Ltd', type: 'customer', phone: '9876543210', city: 'Mumbai', gstin: '27AAACM1234F1Z5', balance: 125000, creditLimit: 500000, lastSale: '2026-03-15', status: 'active' },
-  { id: 'P002', name: 'HealthFirst Distributors', type: 'customer', phone: '9876543211', city: 'Delhi', gstin: '07BBBHM5678G1Z8', balance: -45000, creditLimit: 300000, lastSale: '2026-03-14', status: 'active' },
-  { id: 'P003', name: 'CareWell Pharmacy', type: 'customer', phone: '9876543212', city: 'Bangalore', gstin: '29CCCPW9012H1Z1', balance: 78000, creditLimit: 200000, lastSale: '2026-03-12', status: 'active' },
-  { id: 'P004', name: 'Sun Pharma Industries', type: 'supplier', phone: '9876543213', city: 'Mumbai', gstin: '27DDDSS3456J1Z4', balance: -230000, creditLimit: 1000000, lastSale: '2026-03-10', status: 'active' },
-  { id: 'P005', name: 'Cipla Ltd', type: 'supplier', phone: '9876543214', city: 'Mumbai', gstin: '27EEECI7890K1Z7', balance: -560000, creditLimit: 2000000, lastSale: '2026-03-08', status: 'active' },
-  { id: 'P006', name: 'LifeLine Medical Stores', type: 'customer', phone: '9876543215', city: 'Chennai', gstin: '33FFFLM1234L1Z0', balance: 156000, creditLimit: 400000, lastSale: '2026-03-05', status: 'blocked' },
-  { id: 'P007', name: 'Dr. Reddy\'s Laboratories', type: 'supplier', phone: '9876543216', city: 'Hyderabad', gstin: '36GGGDR5678M1Z3', balance: -180000, creditLimit: 800000, lastSale: '2026-03-01', status: 'active' },
-  { id: 'P008', name: 'PharmaPlus Retail', type: 'customer', phone: '9876543217', city: 'Pune', gstin: '27HHHPP9012N1Z6', balance: 34000, creditLimit: 150000, lastSale: '2026-02-28', status: 'active' },
-  { id: 'P009', name: 'Ranbaxy Laboratories', type: 'supplier', phone: '9876543218', city: 'Gurgaon', gstin: '06IIIRB3456P1Z9', balance: -95000, creditLimit: 600000, lastSale: '2026-02-25', status: 'active' },
-  { id: 'P010', name: 'Wellness Pharma Chain', type: 'customer', phone: '9876543219', city: 'Kolkata', gstin: '19JJJWT7890R1Z2', balance: 210000, creditLimit: 350000, lastSale: '2026-02-20', status: 'active' },
-]
-
 export default function PartyList() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all')

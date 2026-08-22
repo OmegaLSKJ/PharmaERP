@@ -3,13 +3,7 @@ import { Clock, CheckCircle, XCircle, ArrowRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useNavigate } from 'react-router-dom'
 
-const PENDING = [
-  { id:'1', type:'Sales Order', ref:'SO-2026-034', party:'MediCare Pharma', date:'2026-03-14', amount:45600, status:'awaiting-stock', items:8 },
-  { id:'2', type:'Purchase Order', ref:'PO-2026-021', party:'Sun Pharma', date:'2026-03-13', amount:250000, status:'awaiting-delivery', items:12 },
-  { id:'3', type:'Challan to Invoice', ref:'CH-2026-108', party:'CareWell Pharmacy', date:'2026-03-12', amount:18900, status:'convert-pending', items:5 },
-  { id:'4', type:'Sales Order', ref:'SO-2026-032', party:'Wellness Pharma', date:'2026-03-11', amount:42000, status:'awaiting-stock', items:7 },
-  { id:'5', type:'Purchase Order', ref:'PO-2026-020', party:'Cipla Ltd', date:'2026-03-10', amount:170000, status:'partially-received', items:9 },
-]
+const PENDING: Array<{ id:string; type:string; ref:string; party:string; date:string; amount:number; status:string; items:number }> = []
 const ST: Record<string,string> = {
   'awaiting-stock':'bg-amber-500/10 text-amber-400','awaiting-delivery':'bg-blue-500/10 text-blue-400',
   'convert-pending':'bg-purple-500/10 text-purple-400','partially-received':'bg-cyan-500/10 text-cyan-400' }

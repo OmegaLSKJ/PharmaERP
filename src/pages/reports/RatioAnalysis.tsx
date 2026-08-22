@@ -1,26 +1,6 @@
 ﻿import { formatCurrency } from '../../lib/utils'
 
-const RATIOS = [
-  { group: 'Liquidity Ratios', items: [
-    { name: 'Current Ratio', value: '2.14', formula: 'Current Assets / Current Liabilities', good: true },
-    { name: 'Quick Ratio', value: '1.68', formula: '(CA - Stock) / Current Liabilities', good: true },
-    { name: 'Cash Ratio', value: '1.13', formula: 'Cash + Bank / Current Liabilities', good: true },
-  ]},
-  { group: 'Profitability Ratios', items: [
-    { name: 'Gross Profit Margin', value: '19.8%', formula: 'Gross Profit / Net Sales', good: false },
-    { name: 'Net Profit Margin', value: '12.9%', formula: 'Net Profit / Net Sales', good: true },
-    { name: 'Return on Capital', value: '32.0%', formula: 'Net Profit / Capital Employed', good: true },
-  ]},
-  { group: 'Efficiency Ratios', items: [
-    { name: 'Stock Turnover', value: '5.2x', formula: 'Cost of Goods / Avg Stock', good: true },
-    { name: 'Debtors Turnover', value: '4.2x', formula: 'Credit Sales / Avg Debtors', good: false },
-    { name: 'Avg Collection Days', value: '87 days', formula: '365 / Debtors Turnover', good: false },
-  ]},
-  { group: 'Solvency Ratios', items: [
-    { name: 'Debt-Equity Ratio', value: '0.00x', formula: 'Total Debt / Shareholders Equity', good: true },
-    { name: 'Interest Coverage', value: 'N/A', formula: 'EBIT / Interest Expense', good: true },
-  ]},
-]
+const RATIOS: Array<{ group:string; items:Array<{ name:string; value:string; formula:string; good:boolean }> }> = []
 
 export default function RatioAnalysis() {
   return (

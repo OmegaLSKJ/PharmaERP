@@ -6,20 +6,6 @@ import { useUIStore } from '../../../store/uiStore'
 
 interface Ledger { id: string; name: string; group: string; balance: number; type: 'Dr' | 'Cr' }
 
-const DEFAULT_LEDGERS: Ledger[] = [
-  { id: '1', name: 'MediCare Pharma', group: 'Sundry Debtors', balance: 125000, type: 'Dr' },
-  { id: '2', name: 'HealthFirst Distributors', group: 'Sundry Debtors', balance: -45000, type: 'Cr' },
-  { id: '3', name: 'Sun Pharma Industries', group: 'Sundry Creditors', balance: 230000, type: 'Cr' },
-  { id: '4', name: 'Cipla Ltd', group: 'Sundry Creditors', balance: 560000, type: 'Cr' },
-  { id: '5', name: 'GST Output CGST', group: 'Tax - CGST', balance: 97200, type: 'Cr' },
-  { id: '6', name: 'GST Output SGST', group: 'Tax - SGST', balance: 97200, type: 'Cr' },
-  { id: '7', name: 'GST Output IGST', group: 'Tax - IGST', balance: 48600, type: 'Cr' },
-  { id: '8', name: 'Sales Account', group: 'Sales Account', balance: 8100000, type: 'Cr' },
-  { id: '9', name: 'Purchase Account', group: 'Purchase Account', balance: 6500000, type: 'Dr' },
-  { id: '10', name: 'Cash in Hand', group: 'Cash', balance: 350000, type: 'Dr' },
-  { id: '11', name: 'HDFC Bank Current', group: 'Bank', balance: 2840000, type: 'Dr' },
-]
-
 export default function LedgerList() {
   const [ledgers, setLedgers] = useState<Ledger[]>([])
   const [search, setSearch] = useState('')

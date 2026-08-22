@@ -2,17 +2,9 @@
 import { Zap, Turtle } from 'lucide-react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
 
-const FAST = [
-  { name:'Dolo 650', sold:450, stock:1200, days:3.2, value:20250 },
-  { name:'Cetirizine 10mg', sold:290, stock:850, days:4.1, value:8120 },
-  { name:'Paracetamol 650mg', sold:380, stock:1100, days:5.5, value:13300 },
-  { name:'Pantoprazole 40mg', sold:210, stock:640, days:6.8, value:14280 },
-]
-const SLOW = [
-  { name:'Ibuprofen 400mg', sold:12, stock:640, days:95, value:20480 },
-  { name:'Ranitidine 150mg', sold:8, stock:480, days:140, value:11520 },
-  { name:'Domperidone 10mg', sold:15, stock:520, days:88, value:16120 },
-]
+type MovementRow = { name:string; sold:number; stock:number; days:number; value:number }
+const FAST: MovementRow[] = []
+const SLOW: MovementRow[] = []
 
 export default function FastSlowMoving() {
   const [tab,setTab] = useState<'fast'|'slow'>('fast')

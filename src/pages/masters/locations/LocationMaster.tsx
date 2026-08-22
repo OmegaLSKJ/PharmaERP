@@ -7,15 +7,6 @@ import { useUIStore } from '../../../store/uiStore'
 
 interface Location { id: string; name: string; type: string; address: string; capacity: number; used: number; status: string }
 
-const DATA: Location[] = [
-  { id: 'L01', name: 'Store A', type: 'Store Room', address: 'Ground Floor, Block A', capacity: 5000, used: 3200, status: 'active' },
-  { id: 'L02', name: 'Store B', type: 'Store Room', address: 'Ground Floor, Block B', capacity: 3000, used: 1800, status: 'active' },
-  { id: 'L03', name: 'Store C', type: 'Store Room', address: 'First Floor', capacity: 2000, used: 1200, status: 'active' },
-  { id: 'L04', name: 'Main Godown', type: 'Godown', address: 'Warehouse Road, Building 2', capacity: 20000, used: 14500, status: 'active' },
-  { id: 'L05', name: 'Cold Storage', type: 'Godown', address: 'Warehouse Road, Building 3', capacity: 5000, used: 3200, status: 'active' },
-  { id: 'L06', name: 'Returns Area', type: 'Block Room', address: 'Back Office, Block C', capacity: 1000, used: 350, status: 'active' },
-]
-
 const TYPE_STYLE: Record<string, string> = {
   'Store Room': 'bg-blue-500/10 text-blue-400', Godown: 'bg-purple-500/10 text-purple-400', 'Block Room': 'bg-amber-500/10 text-amber-400',
 }

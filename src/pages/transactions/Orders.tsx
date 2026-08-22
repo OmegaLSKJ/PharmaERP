@@ -7,17 +7,6 @@ import { useUIStore } from '../../store/uiStore'
 
 interface Order { id: string; orderNo: string; date: string; party: string; type: string; items: number; total: number; deliveryDate: string; status: string }
 
-const DATA: Order[] = [
-  { id: '1', orderNo: 'SO-2026-034', date: '2026-03-15', party: 'MediCare Pharma', type: 'Sale', items: 8, total: 45600, deliveryDate: '2026-03-18', status: 'confirmed' },
-  { id: '2', orderNo: 'PO-2026-021', date: '2026-03-15', party: 'Sun Pharma', type: 'Purchase', items: 15, total: 285000, deliveryDate: '2026-03-20', status: 'pending' },
-  { id: '3', orderNo: 'SO-2026-033', date: '2026-03-14', party: 'HealthFirst Dist.', type: 'Sale', items: 5, total: 32100, deliveryDate: '2026-03-17', status: 'dispatched' },
-  { id: '4', orderNo: 'PO-2026-020', date: '2026-03-13', party: 'Cipla Ltd', type: 'Purchase', items: 10, total: 192000, deliveryDate: '2026-03-19', status: 'confirmed' },
-  { id: '5', orderNo: 'SO-2026-032', date: '2026-03-12', party: 'CareWell Pharmacy', type: 'Sale', items: 3, total: 18900, deliveryDate: '2026-03-15', status: 'delivered' },
-  { id: '6', orderNo: 'SO-2026-031', date: '2026-03-11', party: 'Wellness Pharma', type: 'Sale', items: 7, total: 42000, deliveryDate: '2026-03-14', status: 'delivered' },
-  { id: '7', orderNo: 'PO-2026-019', date: '2026-03-10', party: 'Dr. Reddy Labs', type: 'Purchase', items: 6, total: 145000, deliveryDate: '2026-03-16', status: 'dispatched' },
-  { id: '8', orderNo: 'SO-2026-030', date: '2026-03-09', party: 'LifeLine Medical', type: 'Sale', items: 12, total: 67000, deliveryDate: '2026-03-12', status: 'cancelled' },
-]
-
 const STATUS_STYLE: Record<string, string> = {
   pending: 'bg-amber-500/10 text-amber-400', confirmed: 'bg-blue-500/10 text-blue-400',
   dispatched: 'bg-purple-500/10 text-purple-400', delivered: 'bg-emerald-500/10 text-emerald-400',

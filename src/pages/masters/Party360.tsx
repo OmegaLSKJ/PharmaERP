@@ -5,26 +5,12 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 const PARTY = {
-  name: 'MediCare Pharma Pvt Ltd', type: 'Customer', phone: '9876543210',
-  city: 'Mumbai', state: 'Maharashtra', gstin: '27AAACM1234F1Z5', drugLicence: 'MH-2024-1234',
-  creditLimit: 500000, outstanding: 125000, openingBalance: 85000,
-  totalDebit: 456000, totalCredit: 416000, lastSale: '2026-03-15', lastPayment: '2026-03-14',
-  avgSaleDays: 3, avgCollectionDays: 12, turnoverRatio: 4.2, billsCount: 48,
-  salesHistory: [
-    { month: 'Oct', value: 180000 }, { month: 'Nov', value: 220000 }, { month: 'Dec', value: 195000 },
-    { month: 'Jan', value: 240000 }, { month: 'Feb', value: 210000 }, { month: 'Mar', value: 175000 },
-  ],
-  recentTxns: [
-    { date: '2026-03-15', type: 'Sale', ref: 'SI-2026-1842', debit: 45600, credit: 0, balance: 125000 },
-    { date: '2026-03-14', type: 'Receipt', ref: 'REC-2026-045', debit: 0, credit: 45600, balance: 79400 },
-    { date: '2026-03-12', type: 'Sale', ref: 'SI-2026-1836', debit: 33000, credit: 0, balance: 112400 },
-    { date: '2026-03-08', type: 'Receipt', ref: 'REC-2026-038', debit: 0, credit: 40000, balance: 79400 },
-  ],
-  topItems: [
-    { name: 'Amoxicillin 500mg', qty: 120, amount: 18240 },
-    { name: 'Azithromycin 250mg', qty: 80, amount: 16160 },
-    { name: 'Paracetamol 650mg', qty: 100, amount: 7600 },
-  ],
+  name: 'No party selected', type: '', phone: '', city: '', state: '', gstin: '', drugLicence: '',
+  creditLimit: 0, outstanding: 0, openingBalance: 0, totalDebit: 0, totalCredit: 0,
+  lastSale: '', lastPayment: '', avgSaleDays: 0, avgCollectionDays: 0, turnoverRatio: 0, billsCount: 0,
+  salesHistory: [] as Array<{ month:string; value:number }>,
+  recentTxns: [] as Array<{ date:string; type:string; ref:string; debit:number; credit:number; balance:number }>,
+  topItems: [] as Array<{ name:string; qty:number; amount:number }>,
 }
 
 const TS: Record<string, string> = { Sale: 'bg-blue-500/10 text-blue-400', Receipt: 'bg-emerald-500/10 text-emerald-400' }

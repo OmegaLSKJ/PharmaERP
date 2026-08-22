@@ -2,14 +2,9 @@
 import { Download, Percent } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const TDS = [
-  { id:'1',type:'TDS 194Q (Goods)',party:'Sun Pharma Industries',gstin:'27DDDSS3456J1Z4',amount:250000,rate:0.1,tax:250,date:'2026-03-10',status:'due' },
-  { id:'2',type:'TDS 194C (Contract)',party:'Facility Mgmt Co.',gstin:'27FFFFM4567L1Z1',amount:120000,rate:2,tax:2400,date:'2026-03-05',status:'paid' },
-  { id:'3',type:'TDS 194I (Rent)',party:'Property Owner',gstin:'27GGGGP5678M1Z2',amount:300000,rate:10,tax:30000,date:'2026-03-01',status:'paid' },
-]
-const TCS = [
-  { id:'4',type:'TCS on Sale',party:'MediCare Pharma',gstin:'27AAACM1234F1Z5',amount:45600,rate:1,tax:456,date:'2026-03-15',status:'due' },
-]
+type TaxRow = { id:string; type:string; party:string; gstin:string; amount:number; rate:number; tax:number; date:string; status:string }
+const TDS: TaxRow[] = []
+const TCS: TaxRow[] = []
 
 export default function TdsTcs() {
   const [tab,setTab] = useState<'tds'|'tcs'>('tds')

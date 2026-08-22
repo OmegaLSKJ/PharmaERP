@@ -12,19 +12,6 @@ interface Item {
   stock: number; batchCount: number; category: string; status: 'active' | 'banned' | 'slow'
 }
 
-const ITEMS: Item[] = [
-  { id: 'I001', name: 'Amoxicillin 500mg', packing: '10x10', manufacturer: 'Cipla', salt: 'Amoxicillin Trihydrate', hsn: '3004', gstRate: 12, mrp: 180, saleRate: 152, purchaseRate: 85, stock: 1240, batchCount: 4, category: 'Antibiotic', status: 'active' },
-  { id: 'I002', name: 'Paracetamol 650mg', packing: '10x10', manufacturer: 'Sun Pharma', salt: 'Paracetamol', hsn: '3004', gstRate: 12, mrp: 90, saleRate: 76, purchaseRate: 35, stock: 980, batchCount: 3, category: 'Analgesic', status: 'active' },
-  { id: 'I003', name: 'Azithromycin 250mg', packing: '10x6', manufacturer: 'Dr. Reddy\'s', salt: 'Azithromycin Dihydrate', hsn: '3004', gstRate: 12, mrp: 240, saleRate: 202, purchaseRate: 120, stock: 860, batchCount: 2, category: 'Antibiotic', status: 'active' },
-  { id: 'I004', name: 'Cetirizine 10mg', packing: '10x10', manufacturer: 'Cipla', salt: 'Cetirizine HCl', hsn: '3004', gstRate: 12, mrp: 75, saleRate: 63, purchaseRate: 28, stock: 740, batchCount: 3, category: 'Antiallergic', status: 'active' },
-  { id: 'I005', name: 'Metformin 500mg', packing: '10x10', manufacturer: 'USV', salt: 'Metformin HCl', hsn: '3004', gstRate: 12, mrp: 120, saleRate: 101, purchaseRate: 55, stock: 650, batchCount: 2, category: 'Antidiabetic', status: 'active' },
-  { id: 'I006', name: 'Pantoprazole 40mg', packing: '10x10', manufacturer: 'Alkem', salt: 'Pantoprazole Sodium', hsn: '3004', gstRate: 12, mrp: 150, saleRate: 126, purchaseRate: 68, stock: 590, batchCount: 2, category: 'Gastrointestinal', status: 'active' },
-  { id: 'I007', name: 'Dolo 650', packing: '15x10', manufacturer: 'Micro Labs', salt: 'Paracetamol', hsn: '3004', gstRate: 12, mrp: 120, saleRate: 101, purchaseRate: 45, stock: 450, batchCount: 3, category: 'Analgesic', status: 'active' },
-  { id: 'I008', name: 'Cough Syrup DX', packing: '100ml', manufacturer: 'Dabur', salt: 'Dextromethorphan', hsn: '3004', gstRate: 12, mrp: 95, saleRate: 80, purchaseRate: 42, stock: 30, batchCount: 1, category: 'Respiratory', status: 'slow' },
-  { id: 'I009', name: 'Ibuprofen 400mg', packing: '10x10', manufacturer: 'Ranbaxy', salt: 'Ibuprofen', hsn: '3004', gstRate: 12, mrp: 85, saleRate: 72, purchaseRate: 32, stock: 0, batchCount: 0, category: 'Analgesic', status: 'banned' },
-  { id: 'I010', name: 'Omeprazole 20mg', packing: '10x10', manufacturer: 'Zydus', salt: 'Omeprazole', hsn: '3004', gstRate: 12, mrp: 110, saleRate: 93, purchaseRate: 48, stock: 420, batchCount: 2, category: 'Gastrointestinal', status: 'active' },
-]
-
 export default function ItemList() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')

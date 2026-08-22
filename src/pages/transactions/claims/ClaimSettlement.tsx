@@ -2,13 +2,7 @@
 import { CheckCircle, Clock } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
 
-const CLAIMS = [
-  { id:'1', claimNo:'CLM-2026-012', supplier:'Sun Pharma', items:3, qty:45, claimed:3825, approved:3825, date:'2026-03-10', status:'settled' },
-  { id:'2', claimNo:'CLM-2026-013', supplier:'Cipla Ltd', items:1, qty:20, claimed:2400, approved:2400, date:'2026-03-12', status:'approved' },
-  { id:'3', claimNo:'CLM-2026-014', supplier:"Dr. Reddy's", items:2, qty:35, claimed:1680, approved:1200, date:'2026-03-14', status:'partial' },
-  { id:'4', claimNo:'CLM-2026-015', supplier:'Ranbaxy Labs', items:4, qty:60, claimed:4320, approved:0, date:'2026-03-15', status:'pending' },
-  { id:'5', claimNo:'CLM-2026-008', supplier:'Sun Pharma', items:2, qty:25, claimed:1450, approved:1450, date:'2026-02-28', status:'credited' },
-]
+const CLAIMS: Array<{ id:string; claimNo:string; supplier:string; items:number; qty:number; claimed:number; approved:number; date:string; status:string }> = []
 const ST: Record<string,string> = {
   pending:'bg-amber-500/10 text-amber-400', approved:'bg-blue-500/10 text-blue-400',
   partial:'bg-purple-500/10 text-purple-400', settled:'bg-emerald-500/10 text-emerald-400', credited:'bg-cyan-500/10 text-cyan-400' }

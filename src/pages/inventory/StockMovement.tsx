@@ -5,25 +5,16 @@ import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
-const LOCATIONS = ['Store A', 'Store B', 'Store C']
-const ITEMS = [
-  { name: 'Amoxicillin 500mg', batch: 'AMX-2026-045', stock: { 'Store A': 240, 'Store B': 0, 'Store C': 0 } },
-  { name: 'Paracetamol 650mg', batch: 'PCM-2026-088', stock: { 'Store A': 0, 'Store B': 380, 'Store C': 0 } },
-  { name: 'Azithromycin 250mg', batch: 'AZT-2026-012', stock: { 'Store A': 160, 'Store B': 0, 'Store C': 0 } },
-  { name: 'Cetirizine 10mg', batch: 'CTZ-2026-077', stock: { 'Store A': 0, 'Store B': 0, 'Store C': 290 } },
-  { name: 'Metformin 500mg', batch: 'MTF-2026-034', stock: { 'Store A': 0, 'Store B': 150, 'Store C': 0 } },
-]
-
 interface Movement { id: string; itemName: string; batch: string; from: string; to: string; qty: number }
 interface StockOption { name: string; batch: string; stock: Record<string, number> }
 
 export default function StockMovement() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [locations, setLocations] = useState(LOCATIONS)
+  const [locations, setLocations] = useState<string[]>([])
   const [availableItems, setAvailableItems] = useState<StockOption[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
-  const [fromLoc, setFromLoc] = useState('Store A')
-  const [toLoc, setToLoc] = useState('Store B')
+  const [fromLoc, setFromLoc] = useState('')
+  const [toLoc, setToLoc] = useState('')
   const [saving, setSaving] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
 
