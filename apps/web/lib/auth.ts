@@ -86,7 +86,7 @@ export function publicUser(user: User) {
     id: user.id,
     email: user.email ?? '',
     name: user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'ERP user',
-    role: role === 'manager' || role === 'operator' ? role : 'admin',
+    role: role === 'admin' || role === 'manager' ? role : 'operator',
   }
 }
 

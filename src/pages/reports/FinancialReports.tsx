@@ -1,11 +1,18 @@
 import { Download } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect, useMemo, useState } from 'react'
+import { getErp } from '../../lib/erpApi'
 
-const trialBalance: Array<{ ledger:string; group:string; debit:number; credit:number }> = []
-const pnlData: { income:Array<{item:string;amount:number}>; expenses:Array<{item:string;amount:number}> } = { income: [], expenses: [] }
-const balanceSheet: { assets:Array<{item:string;amount:number}>; liabilities:Array<{item:string;amount:number}> } = { assets: [], liabilities: [] }
+type TrialRow = { ledger:string; group:string; debit:number; credit:number; balance?:number }
 
 export default function FinancialReports() {
+  const [trialBalance, setTrialBalance] = useState<TrialRow[]>([])
+  useEffect(() => { getErp<TrialRow[]>('report-financial').then(setTrialBalance) }, [])
+  const { pnlData, balanceSheet } = useMemo(() => {
+    const income: Array<{item:string;amount:number}> = [], expenses: Array<{item:string;amount:number}> = [], assets: Array<{item:string;amount:number}> = [], liabilities: Array<{item:string;amount:number}> = []
+    for (const row of trialBalance) { const group = row.group.toLowerCase(), balance = Number(row.balance ?? row.debit-row.credit); if (/income|sales/.test(group)) income.push({item:row.ledger,amount:Math.abs(balance)}); else if (/expense|purchase/.test(group)) expenses.push({item:row.ledger,amount:Math.abs(balance)}); else if (/liabil|creditor|capital|tax/.test(group)) liabilities.push({item:row.ledger,amount:Math.abs(balance)}); else assets.push({item:row.ledger,amount:Math.abs(balance)}) }
+    return { pnlData:{income,expenses}, balanceSheet:{assets,liabilities} }
+  }, [trialBalance])
   const totalDr = trialBalance.reduce((a, r) => a + r.debit, 0)
   const totalCr = trialBalance.reduce((a, r) => a + r.credit, 0)
   const totalIncome = pnlData.income.reduce((a, i) => a + i.amount, 0)

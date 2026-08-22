@@ -4,8 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
-type FormState = { code: string; name: string; packing: string; manufacturer: string; salt: string; hsn: string; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned' }
-const EMPTY: FormState = { code: '', name: '', packing: '', manufacturer: '', salt: '', hsn: '', mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active' }
+type FormState = { code: string; name: string; packing: string; manufacturer: string; salt: string; hsn: string; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean }
+const EMPTY: FormState = { code: '', name: '', packing: '', manufacturer: '', salt: '', hsn: '', mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false }
 
 export default function ItemForm() {
   const { id } = useParams()
@@ -20,11 +20,11 @@ export default function ItemForm() {
   useEffect(() => {
     Promise.all([getErp<any[]>('manufacturers'), getErp<any[]>('salts'), getErp<any[]>('hsn'), getErp<any[]>('items')]).then(([m, s, h, items]) => {
       setManufacturers(m.map((row) => row.name)); setSalts(s.map((row) => row.name)); setHsnCodes(h.map((row) => row.code))
-      if (id) { const item = items.find((row) => row.id === id); if (item) setForm({ code: item.code ?? '', name: item.name, packing: item.packing ?? '', manufacturer: item.manufacturer ?? '', salt: item.salt ?? '', hsn: item.hsn ?? '', mrp: item.mrp, saleRate: item.saleRate, purchaseRate: item.purchaseRate, status: item.status === 'banned' ? 'banned' : 'active' }) }
+      if (id) { const item = items.find((row) => row.id === id); if (item) setForm({ code: item.code ?? '', name: item.name, packing: item.packing ?? '', manufacturer: item.manufacturer ?? '', salt: item.salt ?? '', hsn: item.hsn ?? '', mrp: item.mrp, saleRate: item.saleRate, purchaseRate: item.purchaseRate, status: item.status === 'banned' ? 'banned' : 'active', scheduleClass:item.scheduleClass ?? 'OTC', prescriptionRequired:Boolean(item.prescriptionRequired), coldChain:Boolean(item.coldChain), controlledSubstance:Boolean(item.controlledSubstance) }) }
     }).catch((e) => showToast(e.message))
   }, [id, showToast])
 
-  const change = (field: keyof FormState, value: string | number) => setForm((current) => ({ ...current, [field]: value }))
+  const change = (field: keyof FormState, value: string | number | boolean) => setForm((current) => ({ ...current, [field]: value }))
   const submit = async (event: React.FormEvent) => { event.preventDefault(); setSaving(true); try { if (id) await patchErp('items', id, form); else await postErp('items', form); showToast(id ? 'Item updated.' : 'Item created.'); navigate('/masters/items') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to save item.') } finally { setSaving(false) } }
 
   return <form onSubmit={submit} className="mx-auto max-w-5xl space-y-5">
@@ -40,6 +40,8 @@ export default function ItemForm() {
       <Field label="Sale rate"><input type="number" min="0" step="0.01" value={form.saleRate} onChange={(e) => change('saleRate', Number(e.target.value))} /></Field>
       <Field label="MRP"><input type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => change('mrp', Number(e.target.value))} /></Field>
       <Field label="Status"><select value={form.status} onChange={(e) => change('status', e.target.value)}><option value="active">Active</option><option value="banned">Blocked / banned</option></select></Field>
+      <Field label="Drug schedule"><select value={form.scheduleClass} onChange={(e) => change('scheduleClass', e.target.value)}><option>OTC</option><option>H</option><option>H1</option><option>X</option><option>NDPS</option></select></Field>
+      <Field label="Compliance controls"><label className="flex gap-2 py-1"><input type="checkbox" checked={form.prescriptionRequired} onChange={(e)=>change('prescriptionRequired',e.target.checked)}/> Prescription required</label><label className="flex gap-2 py-1"><input type="checkbox" checked={form.coldChain} onChange={(e)=>change('coldChain',e.target.checked)}/> Cold chain</label><label className="flex gap-2 py-1"><input type="checkbox" checked={form.controlledSubstance} onChange={(e)=>change('controlledSubstance',e.target.checked)}/> Controlled substance</label></Field>
     </div>
   </form>
 }

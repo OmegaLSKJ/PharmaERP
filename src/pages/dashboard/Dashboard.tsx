@@ -3,11 +3,17 @@ import { Link } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
+import { useEffect, useState } from 'react'
+import { getErp } from '../../lib/erpApi'
 
-const salesData: Array<{ month: string; sale: number; purchase: number }> = []
-const topItems: Array<{ name: string; qty: number; amount: number }> = []
-const recentInvoices: Array<{ id: string; party: string; amount: number; date: string; status: string }> = []
-const expiryAlerts: Array<{ item: string; batch: string; expiry: string; qty: number }> = []
+type DashboardData = {
+  kpis: { sales: number; purchases: number; activeItems: number; pendingInvoices: number }
+  salesData: Array<{ month: string; sale: number; purchase: number }>
+  topItems: Array<{ name: string; qty: number; amount: number }>
+  recentInvoices: Array<{ id: string; party: string; amount: number; date: string; status: string }>
+  expiryAlerts: Array<{ item: string; batch: string; expiry: string; qty: number }>
+}
+const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
 
 function KpiCard({ title, value, change, icon: Icon, trend, className }: {
   title: string; value: string; change: string; icon: React.ElementType; trend: 'up' | 'down'; className?: string
@@ -46,6 +52,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Dashboard() {
+  const [data, setData] = useState<DashboardData>(emptyDashboard)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => { getErp<DashboardData>('dashboard').then(setData).finally(() => setLoading(false)) }, [])
+  const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -55,10 +65,10 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={formatCurrency(0)} change="0" icon={IndianRupee} trend="up" />
-        <KpiCard title="Total Purchases" value={formatCurrency(0)} change="0" icon={Truck} trend="up" />
-        <KpiCard title="Active Items" value="0" change="0" icon={Package} trend="up" />
-        <KpiCard title="Pending Invoices" value="0" change="0" icon={ShoppingCart} trend="down" />
+        <KpiCard title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
+        <KpiCard title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
+        <KpiCard title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
+        <KpiCard title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 
       {/* Charts Row */}
@@ -116,6 +126,7 @@ export default function Dashboard() {
             <a href="/transactions/sale" className="text-xs text-primary hover:underline">View All</a>
           </div>
           <div className="divide-y divide-border">
+            {!loading && recentInvoices.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No sales have been posted yet.</div>}
             {recentInvoices.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between px-4 py-3 table-row-hover">
                 <div>
@@ -141,6 +152,7 @@ export default function Dashboard() {
             <a href="/inventory/expiry" className="text-xs text-primary hover:underline">View All</a>
           </div>
           <div className="divide-y divide-border">
+            {!loading && expiryAlerts.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No batches with expiry dates are in stock.</div>}
             {expiryAlerts.map((item) => {
               const days = daysUntilExpiry(item.expiry)
               return (

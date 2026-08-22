@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export type LedgerEntry = { id: string; party: string; date: string; vType: string; vNo: string; debit: number; credit: number; narration: string }
 type Line = { name: string; batch: string; qty: number; rate: number; amount?: number; expiry?: string; freeQty?: number; discount?: number; gstRate?: number; mrp?: number }
+export type MutationActor = { id?: string; email?: string; requestId?: string }
 const date = () => new Date().toISOString().slice(0, 10)
 const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 function db() {
@@ -51,16 +52,39 @@ async function stock(client: ReturnType<typeof db>, organizationId: string, line
   return { itemId, batchId, warehouseId }
 }
 export async function list(resource: string, partyName?: string) {
-  const { client, organizationId } = await context()
+  const { client, organizationId, financialYearId } = await context()
+  if (resource === 'dashboard') {
+    const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { data: items, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
+      client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name))').eq('organization_id', organizationId).neq('status', 'cancelled').order('invoice_date', { ascending: false }),
+      client.from('purchase_invoices').select('invoice_date,status,grand_total').eq('organization_id', organizationId).neq('status', 'cancelled'),
+      client.from('items').select('id').eq('organization_id', organizationId).eq('is_active', true),
+      client.from('erp_stock_position').select('item_name,batch_number,expiry_on,quantity').eq('organization_id', organizationId).gt('quantity', 0),
+    ])
+    const error = salesError || purchaseError || itemError || stockError; if (error) throw error
+    const monthly = new Map<string, { month: string; sale: number; purchase: number }>()
+    const addMonth = (value: any, kind: 'sale' | 'purchase') => { const key = String(value.invoice_date).slice(0, 7); const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }; row[kind] += Number(value.grand_total); monthly.set(key, row) }
+    ;(sales ?? []).forEach((row: any) => addMonth(row, 'sale')); (purchases ?? []).forEach((row: any) => addMonth(row, 'purchase'))
+    const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
+    ;(sales ?? []).flatMap((row: any) => row.sales_invoice_lines ?? []).forEach((line: any) => { const name = line.items?.name ?? 'Unknown'; const current = itemTotals.get(name) ?? { name, qty: 0, amount: 0 }; current.qty += Number(line.quantity); current.amount += Number(line.line_total); itemTotals.set(name, current) })
+    return {
+      kpis: { sales: (sales ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), purchases: (purchases ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), activeItems: items?.length ?? 0, pendingInvoices: (sales ?? []).filter((x: any) => x.status === 'draft').length },
+      salesData: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
+      topItems: [...itemTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 6),
+      recentInvoices: (sales ?? []).slice(0, 8).map((x: any) => ({ id: x.invoice_number, party: x.parties?.legal_name ?? '', amount: Number(x.grand_total), date: x.invoice_date, status: x.status })),
+      expiryAlerts: (stock ?? []).filter((x: any) => x.expiry_on).sort((a: any, b: any) => String(a.expiry_on).localeCompare(String(b.expiry_on))).slice(0, 8).map((x: any) => ({ item: x.item_name, batch: x.batch_number, expiry: x.expiry_on, qty: Number(x.quantity) })),
+    }
+  }
+  if (resource === 'report-financial') { const { data, error } = await client.from('erp_trial_balance').select('*').eq('organization_id', organizationId).order('name'); if (error) throw error; return (data ?? []).map((x: any) => ({ ledger: x.name, group: x.account_group, debit: Number(x.debit), credit: Number(x.credit), balance: Number(x.balance) })) }
+  if (resource === 'report-stock') { const { data, error } = await client.from('erp_stock_position').select('*').eq('organization_id', organizationId).order('item_name'); if (error) throw error; return (data ?? []).map((x: any) => ({ name: x.item_name, batch: x.batch_number, expiry: x.expiry_on ?? '', qty: Number(x.quantity), reserved: Number(x.reserved_quantity), location: x.warehouse_name, schedule: x.schedule_class, recalled: x.is_recalled })) }
   if (resource === 'parties') {
     const { data, error } = await client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name')
     if (error) throw error
     return (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type, phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
   }
   if (resource === 'items') {
-    const { data, error } = await client.from('items').select('id,code,name,packing,mrp,sale_rate,purchase_rate,is_active,manufacturers(name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId).order('name')
+    const { data, error } = await client.from('items').select('id,code,name,packing,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId).order('name')
     if (error) throw error
-    return (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
+    return (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
   }
   if (resource === 'hsn') { const { data, error } = await client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code'); if (error) throw error; return data }
   if (resource === 'manufacturers') { const { data, error } = await client.from('manufacturers').select('*').eq('organization_id', organizationId).order('name'); if (error) throw error; return data }
@@ -100,14 +124,19 @@ const importNumber = (row: ImportRow, key: string, fallback = 0) => {
   return Number.isFinite(value) ? value : fallback
 }
 
-async function importDataset(type: string, rows: ImportRow[]) {
+async function importDataset(type: string, rows: ImportRow[], actor: MutationActor = {}) {
   if (!importRequired[type]) throw new Error('Unsupported import type.')
   if (!Array.isArray(rows) || rows.length === 0) throw new Error('The import file has no data rows.')
   if (rows.length > 5000) throw new Error('Import files are limited to 5,000 rows per upload.')
   const invalid = rows.flatMap((row, index) => importRequired[type].filter((key) => !importText(row, key)).map((key) => `Row ${index + 2}: ${key} is required`))
   if (invalid.length) throw new Error(invalid.slice(0, 20).join('; '))
 
-  const { client, organizationId } = await context()
+  const { client, organizationId, financialYearId } = await context()
+  if (!['sales', 'purchases'].includes(type)) {
+    const { data, error } = await client.rpc('erp_import_master', { p_type: type, p_organization_id: organizationId, p_rows: rows, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
+    if (error) throw error
+    return data
+  }
   if (type === 'parties') {
     const payload = rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), party_type: importText(row, 'party_type').toLowerCase(), legal_name: importText(row, 'legal_name'), phone: importText(row, 'phone') || null, email: importText(row, 'email') || null, gstin: importText(row, 'gstin') || null, credit_limit: importNumber(row, 'credit_limit'), is_blocked: importText(row, 'status').toLowerCase() === 'blocked' }))
     if (payload.some((row) => !['customer', 'supplier', 'both'].includes(row.party_type))) throw new Error('party_type must be customer, supplier, or both.')
@@ -144,13 +173,17 @@ async function importDataset(type: string, rows: ImportRow[]) {
   const partyMap = new Map((parties ?? []).map((row) => [row.legal_name.toLowerCase(), row.party_type])), itemMap = new Map((items ?? []).map((row) => [row.code.toLowerCase(), row.name]) )
   const groups = new Map<string, ImportRow[]>()
   for (const [index, row] of rows.entries()) { const partyName = importText(row, partyKey), itemName = itemMap.get(importText(row, 'item_code').toLowerCase()); if (!partyMap.has(partyName.toLowerCase()) || !itemName) throw new Error(`Row ${index + 2}: party or item code does not exist in the master data.`); const invoice = importText(row, 'invoice_number'); groups.set(invoice, [...(groups.get(invoice) ?? []), row]) }
-  for (const [invoiceNumber, invoiceRows] of groups) { const first = invoiceRows[0], lines = invoiceRows.map((row) => ({ name: itemMap.get(importText(row, 'item_code').toLowerCase())!, batch: importText(row, 'batch'), expiry: importText(row, 'expiry') || undefined, qty: importNumber(row, 'quantity'), freeQty: importNumber(row, 'free_quantity'), rate: importNumber(row, rateKey), discount: importNumber(row, 'discount_percent'), gstRate: importNumber(row, 'gst_rate'), mrp: importNumber(row, 'mrp'), amount: importNumber(row, 'quantity') * importNumber(row, rateKey) })); const total = lines.reduce((sum, line) => sum + line.amount, 0); await create(type, { id: invoiceNumber, party: importText(first, partyKey), supplierInvoice: importText(first, 'supplier_invoice_number') || invoiceNumber, date: importText(first, 'invoice_date'), lines, total }) }
-  return { type, importedRows: rows.length, records: groups.size }
+  const documents = [...groups].map(([invoiceNumber, invoiceRows]) => { const first = invoiceRows[0]; return { id: invoiceNumber, party: importText(first, partyKey), supplierInvoice: importText(first, 'supplier_invoice_number') || invoiceNumber, date: importText(first, 'invoice_date'), lines: invoiceRows.map((row) => ({ name: itemMap.get(importText(row, 'item_code').toLowerCase())!, itemCode: importText(row, 'item_code'), batch: importText(row, 'batch'), expiry: importText(row, 'expiry') || undefined, qty: importNumber(row, 'quantity'), freeQty: importNumber(row, 'free_quantity'), rate: importNumber(row, rateKey), discount: importNumber(row, 'discount_percent'), gstRate: importNumber(row, 'gst_rate'), mrp: importNumber(row, 'mrp') })) } })
+  const { data, error } = await client.rpc('erp_import_invoices', { p_kind: type, p_organization_id: organizationId, p_financial_year_id: financialYearId, p_documents: documents, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
+  if (error) throw error
+  return { ...data, importedRows: rows.length }
 }
 
-export async function create(resource: string, body: any) {
+export async function create(resource: string, body: any, actor: MutationActor = {}) {
   const { client, organizationId, financialYearId } = await context()
-  if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows)
+  if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows, actor)
+  if (resource === 'cancellations') { if (!['sales','purchases'].includes(body.kind) || !body.id) throw new Error('Invoice kind and database id are required.'); const { error } = await client.rpc('erp_cancel_invoice',{ p_kind:body.kind,p_organization_id:organizationId,p_invoice_id:body.id,p_reason:body.reason ?? '',p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null }); if(error) throw error; return { id:body.id,status:'cancelled' } }
+  if (resource === 'inventory-adjustments') { const { data,error }=await client.rpc('erp_post_inventory_adjustment',{p_organization_id:organizationId,p_document:body,p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null}); if(error) throw error; return data }
   if (resource === 'parties') {
     if (!body.name) throw new Error('Party name is required.')
     const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: body.type || 'customer', legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
@@ -181,7 +214,7 @@ export async function create(resource: string, body: any) {
     const manufacturerId = body.manufacturer ? (await client.from('manufacturers').select('id').eq('organization_id', organizationId).eq('name', body.manufacturer).maybeSingle()).data?.id : null
     const saltId = body.salt ? (await client.from('salts').select('id').eq('organization_id', organizationId).eq('name', body.salt).maybeSingle()).data?.id : null
     const hsnId = body.hsn ? (await client.from('hsn_codes').select('id').eq('organization_id', organizationId).eq('code', body.hsn).maybeSingle()).data?.id : null
-    const { data, error } = await client.from('items').insert({ organization_id: organizationId, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || null, manufacturer_id: manufacturerId ?? null, salt_id: saltId ?? null, hsn_id: hsnId ?? null, mrp: Number(body.mrp || 0), sale_rate: Number(body.saleRate || 0), purchase_rate: Number(body.purchaseRate || 0), is_active: body.status !== 'banned' }).select('id,code').single()
+    const { data, error } = await client.from('items').insert({ organization_id: organizationId, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || null, manufacturer_id: manufacturerId ?? null, salt_id: saltId ?? null, hsn_id: hsnId ?? null, mrp: Number(body.mrp || 0), sale_rate: Number(body.saleRate || 0), purchase_rate: Number(body.purchaseRate || 0), is_active: body.status !== 'banned', schedule_class:body.scheduleClass || 'OTC', prescription_required:Boolean(body.prescriptionRequired), cold_chain:Boolean(body.coldChain), controlled_substance:Boolean(body.controlledSubstance) }).select('id,code').single()
     if (error) throw error
     return { ...body, id: data.id, code: data.code, stock: 0, batchCount: 0, status: body.status ?? 'active' }
   }
@@ -206,6 +239,10 @@ export async function create(resource: string, body: any) {
     return { id: documentNumber, date: body.date || date(), lines: body.lines }
   }
   if (resource === 'sales') {
+    const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'sales', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('SI'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
+    if (error) throw error
+    return data
+    /* Legacy posting retained below temporarily for migration traceability.
     if (!body.party || !body.lines?.length) throw new Error('Party and at least one sale line are required.')
     const invoiceNumber = body.id || number('SI'), invoiceDate = body.date || date(), partyId = await party(client, organizationId, body.party), total = +body.total
     const prepared: Array<Awaited<ReturnType<typeof stock>>> = []
@@ -216,9 +253,13 @@ export async function create(resource: string, body: any) {
     const { data: voucher, error: voucherError } = await client.from('vouchers').insert({ organization_id: organizationId, financial_year_id: financialYearId, voucher_type: 'sale', voucher_number: invoiceNumber, voucher_date: invoiceDate, status: 'posted', narration: `Sales invoice ${invoiceNumber}` }).select('id').single(); if (voucherError) throw voucherError
     const { error: postingError } = await client.from('voucher_lines').insert([{ voucher_id: voucher.id, account_id: partyAccount, debit: total }, { voucher_id: voucher.id, account_id: salesAccount, credit: total }]); if (postingError) throw postingError
     await client.from('sales_invoices').update({ voucher_id: voucher.id }).eq('id', invoice.id)
-    return { id: invoiceNumber, party: body.party, date: invoiceDate, lines: body.lines, total }
+    return { id: invoiceNumber, party: body.party, date: invoiceDate, lines: body.lines, total } */
   }
   if (resource === 'purchases') {
+    const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'purchases', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('PB'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
+    if (error) throw error
+    return data
+    /* Legacy posting retained below temporarily for migration traceability.
     if (!body.party || !body.lines?.length) throw new Error('Supplier and at least one purchase line are required.')
     const invoiceNumber = body.id || number('PB'), invoiceDate = body.date || date(), partyId = await party(client, organizationId, body.party, 'supplier')
     const subtotal = Number(body.subtotal ?? body.lines.reduce((sum: number, line: Line) => sum + Number(line.amount ?? line.qty * line.rate), 0))
@@ -240,7 +281,7 @@ export async function create(resource: string, body: any) {
     if (postingError) throw postingError
     const { error: linkError } = await client.from('purchase_invoices').update({ voucher_id: voucher.id }).eq('id', invoice.id)
     if (linkError) throw linkError
-    return { id: invoiceNumber, party: body.party, supplierInvoice: body.supplierInvoice ?? '', date: invoiceDate, lines: body.lines, total, status: 'posted' }
+    return { id: invoiceNumber, party: body.party, supplierInvoice: body.supplierInvoice ?? '', date: invoiceDate, lines: body.lines, total, status: 'posted' } */
   }
   if (resource === 'challans') {
     if (!body.party || !body.lines?.length) throw new Error('Party and at least one challan line are required.')
@@ -266,7 +307,7 @@ export async function update(resource: string, id: string, body: any) {
   if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'accounts') { const values: any = {}; if ('name' in body) values.name = body.name; if ('group' in body) values.account_group = body.group; if ('openingBalance' in body) values.opening_balance = Number(body.openingBalance); const { data, error } = await client.from('chart_of_accounts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
-  if (resource === 'items') { const values: any = {}; if ('code' in body) values.code = body.code; if ('name' in body) values.name = body.name; if ('packing' in body) values.packing = body.packing; if ('mrp' in body) values.mrp = Number(body.mrp); if ('saleRate' in body) values.sale_rate = Number(body.saleRate); if ('purchaseRate' in body) values.purchase_rate = Number(body.purchaseRate); if ('status' in body) values.is_active = body.status !== 'banned'; const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
+  if (resource === 'items') { const values: any = {}; if ('code' in body) values.code = body.code; if ('name' in body) values.name = body.name; if ('packing' in body) values.packing = body.packing; if ('mrp' in body) values.mrp = Number(body.mrp); if ('saleRate' in body) values.sale_rate = Number(body.saleRate); if ('purchaseRate' in body) values.purchase_rate = Number(body.purchaseRate); if ('status' in body) values.is_active = body.status !== 'banned'; if ('scheduleClass' in body) values.schedule_class=body.scheduleClass; if ('prescriptionRequired' in body) values.prescription_required=Boolean(body.prescriptionRequired); if ('coldChain' in body) values.cold_chain=Boolean(body.coldChain); if ('controlledSubstance' in body) values.controlled_substance=Boolean(body.controlledSubstance); const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   const masterTables: Record<string, string> = { manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { data, error } = await client.from(masterTables[resource]).update(body).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data

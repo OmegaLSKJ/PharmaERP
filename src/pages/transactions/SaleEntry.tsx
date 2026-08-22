@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import Typeahead from '../../components/ui/Typeahead'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { calculateInvoice } from '../../lib/invoiceCalculations'
 
 interface LineItem { id: string; name: string; batch: string; stock: number; qty: number; free: number; rate: number; disc: number; gst: number; amount: number }
 type CustomerOption = { label: string; value: string }
@@ -17,7 +18,11 @@ export default function SaleEntry() {
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [patientName, setPatientName] = useState('')
+  const [prescriberName, setPrescriberName] = useState('')
+  const [prescriptionReference, setPrescriptionReference] = useState('')
   const showToast = useUIStore((s) => s.showToast)
+  const totals = items.length ? calculateInvoice(items.map((item) => ({ qty: item.qty, rate: item.rate, discount: item.disc, gstRate: item.gst }))) : calculateInvoice([])
 
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')]).then(([parties, products]) => {
@@ -40,8 +45,8 @@ export default function SaleEntry() {
     }
     if (e.key === 'F2') setShowItemSearch(true)
   }
-  const saveInvoice = async () => { try { setSaving(true); const total = items.reduce((sum, item) => sum + item.amount, 0); const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst })); const saved = await postErp<{ id: string }>('sales', { party: customer, lines, total }); showToast(`Invoice ${saved.id} saved and posted to the customer ledger.`); setItems([]) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save invoice.') } finally { setSaving(false) } }
-  const updateLine = (id: string, field: 'qty' | 'free' | 'rate' | 'disc', value: number) => setItems((rows) => rows.map((row) => { if (row.id !== id) return row; const next = { ...row, [field]: value }; next.amount = Math.max(0, next.qty * next.rate * (1 - next.disc / 100)); return next }))
+  const saveInvoice = async () => { try { setSaving(true); const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst })); const saved = await postErp<{ id: string }>('sales', { party: customer, lines, grandTotal: totals.grandTotal, patientName, prescriberName, prescriptionReference }); showToast(`Invoice ${saved.id} saved and posted to the customer ledger.`); setItems([]); setPatientName(''); setPrescriberName(''); setPrescriptionReference('') } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save invoice.') } finally { setSaving(false) } }
+  const updateLine = (id: string, field: 'qty' | 'free' | 'rate' | 'disc', value: number) => setItems((rows) => rows.map((row) => { if (row.id !== id) return row; const next = { ...row, [field]: value }; next.amount = calculateInvoice([{ qty: Math.max(next.qty, 0.001), rate: Math.max(next.rate, 0), discount: Math.min(100, Math.max(next.disc, 0)), gstRate: next.gst }]).lines[0].total; return next }))
 
   useEffect(() => { const shortcut = (event: KeyboardEvent) => { if (event.altKey && event.key.toLowerCase() === 's') { event.preventDefault(); if (customer && items.length && !saving) void saveInvoice() } if (event.key === 'F2') { event.preventDefault(); setShowItemSearch(true) } if (event.key === 'Escape') setShowItemSearch(false) }; window.addEventListener('keydown', shortcut); return () => window.removeEventListener('keydown', shortcut) })
 
@@ -58,6 +63,11 @@ export default function SaleEntry() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <label className="text-xs text-slate-400 block mb-1">Customer</label>
         <Typeahead options={customerOptions} value={customer} onChange={setCustomer} placeholder="Search customer (Tab/Enter)..." autoFocus />
+      </div>
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-3">
+        <label className="text-xs text-slate-400">Patient (required for Schedule H/H1/X/NDPS)<input value={patientName} onChange={(e)=>setPatientName(e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white" /></label>
+        <label className="text-xs text-slate-400">Prescriber<input value={prescriberName} onChange={(e)=>setPrescriberName(e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white" /></label>
+        <label className="text-xs text-slate-400">Prescription reference<input value={prescriptionReference} onChange={(e)=>setPrescriptionReference(e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white" /></label>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -76,6 +86,13 @@ export default function SaleEntry() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="ml-auto grid max-w-md grid-cols-2 gap-x-6 gap-y-1 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm">
+        <span className="text-slate-400">Subtotal</span><span className="text-right font-mono">{formatCurrency(totals.subtotal)}</span>
+        <span className="text-slate-400">Discount</span><span className="text-right font-mono">-{formatCurrency(totals.discountTotal)}</span>
+        <span className="text-slate-400">GST</span><span className="text-right font-mono">{formatCurrency(totals.taxTotal)}</span>
+        <span className="text-slate-400">Rounding</span><span className="text-right font-mono">{formatCurrency(totals.roundingAdjustment)}</span>
+        <span className="font-semibold text-white">Grand total</span><span className="text-right font-mono font-semibold text-white">{formatCurrency(totals.grandTotal)}</span>
       </div>
       
       {showItemSearch && (
