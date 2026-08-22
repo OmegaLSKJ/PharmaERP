@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
@@ -9,8 +9,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [inviteTokens, setInviteTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null)
+  const [confirmPassword, setConfirmPassword] = useState('')
   const login = useAuthStore((s) => s.login)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    const type = params.get('type')
+    if (accessToken && refreshToken && (type === 'invite' || type === 'recovery')) {
+      setInviteTokens({ accessToken, refreshToken })
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,6 +35,29 @@ export default function LoginPage() {
       navigate('/')
     } else {
       setError('Invalid email or password')
+    }
+  }
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!inviteTokens) return
+    if (password.length < 12) return setError('Use a password with at least 12 characters')
+    if (password !== confirmPassword) return setError('Passwords do not match')
+    setLoading(true)
+    try {
+      const response = await fetch('/api/auth/accept-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...inviteTokens, password }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload?.error?.message ?? 'Unable to set password')
+      window.location.assign('/')
+    } catch (inviteError) {
+      setError(inviteError instanceof Error ? inviteError.message : 'Unable to set password')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -69,12 +105,14 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-2">Welcome back</h2>
-            <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-semibold mb-2">{inviteTokens ? 'Set your password' : 'Welcome back'}</h2>
+            <p className="text-sm text-muted-foreground">
+              {inviteTokens ? 'Create a secure password to activate your ERP account.' : 'Sign in to your account to continue'}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+          <form onSubmit={inviteTokens ? handleInvite : handleSubmit} className="space-y-4">
+            {!inviteTokens && <div>
               <label className="block text-sm font-medium mb-1.5">Email</label>
               <input
                 type="email"
@@ -86,7 +124,7 @@ export default function LoginPage() {
                 autoFocus
                 required
               />
-            </div>
+            </div>}
             <div>
               <label className="block text-sm font-medium mb-1.5">Password</label>
               <div className="relative">
@@ -96,7 +134,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 pr-10 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Enter password"
-                  autoComplete="current-password"
+                  autoComplete={inviteTokens ? 'new-password' : 'current-password'}
                   required
                 />
                 <button
@@ -109,6 +147,20 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {inviteTokens && <div>
+              <label className="block text-sm font-medium mb-1.5">Confirm password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Repeat password"
+                autoComplete="new-password"
+                required
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 12 characters.</p>
+            </div>}
+
             {error && (
               <div className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-md">{error}</div>
             )}
@@ -118,7 +170,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (inviteTokens ? 'Activating...' : 'Signing in...') : (inviteTokens ? 'Activate account' : 'Sign In')}
               {!loading && <ArrowRight size={16} />}
             </button>
           </form>

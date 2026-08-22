@@ -50,6 +50,19 @@ export async function signIn(email: string, password: string) {
   return { user: data.user, session: data.session }
 }
 
+export async function acceptInvite(accessToken: string, refreshToken: string, password: string) {
+  const client = authClient()
+  const { data: sessionData, error: sessionError } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  })
+  if (sessionError || !sessionData.user || !sessionData.session) throw new Error('This invitation is invalid or has expired.')
+
+  const { data: updateData, error: updateError } = await client.auth.updateUser({ password })
+  if (updateError || !updateData.user) throw new Error(updateError?.message ?? 'Unable to set your password.')
+  return { user: updateData.user, session: sessionData.session }
+}
+
 export async function verifyRequest(request: NextRequest): Promise<AuthenticatedRequest | null> {
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
@@ -101,4 +114,3 @@ export async function revokeRequestSession(request: NextRequest) {
   if (!accessToken) return
   await adminClient().auth.admin.signOut(accessToken, 'local')
 }
-
