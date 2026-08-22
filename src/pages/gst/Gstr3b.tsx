@@ -35,10 +35,10 @@ export default function Gstr3b() {
           <p className="text-sm text-slate-400 mt-1">{month} | Monthly Summary Return</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
             <FileText size={16} /> Preview
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
+          <button onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr3b', { month, sections: SECTIONS, exemptSupply: EXEMPT_SUPPLY }))} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
             <Download size={16} /> Export JSON
           </button>
         </div>
@@ -121,7 +121,7 @@ export default function Gstr3b() {
             <div className="text-sm text-slate-300">Net Tax Payable for {month}</div>
             <div className={cn('text-3xl font-bold mt-1', netLiability > 0 ? 'text-white' : 'text-emerald-400')}>{formatCurrency(netLiability)}</div>
           </div>
-          <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-lg transition">
+          <button disabled title="Connect an authorized GST portal account before filing" className="px-6 py-3 bg-indigo-600 text-white rounded-lg text-sm font-semibold shadow-lg opacity-50 cursor-not-allowed">
             File GSTR-3B
           </button>
         </div>

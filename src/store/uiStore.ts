@@ -12,6 +12,7 @@ interface UIState {
   setTheme: (theme: 'light' | 'dark') => void
   toggleCommandPalette: () => void
   showToast: (message: string) => void
+  addToast: (message: string, type?: 'success' | 'error' | 'info') => void
   clearToast: () => void
 }
 
@@ -31,6 +32,7 @@ export const useUIStore = create<UIState>()(
       },
       toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
       showToast: (toast) => set({ toast }),
+      addToast: (toast) => set({ toast }),
       clearToast: () => set({ toast: null }),
     }),
     { name: 'erp-ui' }

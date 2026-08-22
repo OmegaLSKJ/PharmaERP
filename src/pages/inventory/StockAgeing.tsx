@@ -45,7 +45,7 @@ export default function StockAgeing() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Stock Ageing & Expiry</h1>
           <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><AlertTriangle size={14} className="text-amber-400" /> Near-expiry monitoring for pharma compliance</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"><Download size={16} /> Export</button>
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('stock-ageing'))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"><Download size={16} /> Export</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {summary.map(s => (<div key={s.label} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">

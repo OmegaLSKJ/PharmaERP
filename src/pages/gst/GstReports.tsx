@@ -38,10 +38,10 @@ export default function GstReports() {
           <p className="text-sm text-slate-400 mt-1">GSTR-1 Summary &bull; March 2026</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+          <button onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr1', GSTR_DATA))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
             <FileText size={16} /> GSTR-1 JSON
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
+          <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr1'))} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
             <Download size={16} /> Export Excel
           </button>
         </div>

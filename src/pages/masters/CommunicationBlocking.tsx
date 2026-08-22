@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { Plus, Mail, MessageSquare, Ban, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { useEffect } from 'react'
+import { deleteErp, getErp, postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 interface Block { id:string; type:'email'|'sms'|'whatsapp'; value:string; reason:string; blockedOn:string }
 
@@ -14,15 +17,17 @@ const TYPE_ICON = { email:<Mail size={13}/>, sms:<MessageSquare size={13}/>, wha
 const TYPE_STYLE: Record<string,string> = { email:'bg-blue-500/10 text-blue-400', sms:'bg-emerald-500/10 text-emerald-400', whatsapp:'bg-purple-500/10 text-purple-400' }
 
 export default function CommunicationBlocking() {
-  const [blocks,setBlocks] = useState<Block[]>(INIT)
+  const [blocks,setBlocks] = useState<Block[]>([])
   const [value,setValue] = useState('')
   const [type,setType] = useState<'email'|'sms'|'whatsapp'>('sms')
   const [reason,setReason] = useState('')
-  const add = () => {
+  const addToast = useUIStore((s) => s.addToast)
+  useEffect(() => { getErp<Block[]>('communication-blocks').then(setBlocks).catch((e) => addToast(e.message, 'error')) }, [addToast])
+  const add = async () => {
     if (!value) return
-    setBlocks([...blocks,{id:Date.now().toString(),type,value,reason,blockedOn:new Date().toISOString().slice(0,10)}])
-    setValue(''); setReason('')
+    try { const created = await postErp<Block>('communication-blocks', { type, value, reason }); setBlocks((rows) => [created, ...rows]); setValue(''); setReason(''); addToast('Communication blocked', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to add block', 'error') }
   }
+  const removeBlock = async (block: Block) => { try { await deleteErp('communication-blocks', block.id); setBlocks((rows) => rows.filter((row) => row.id !== block.id)); addToast('Block removed', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to remove block', 'error') } }
   return (
     <div className="p-6 space-y-4">
       <div><h1 className="text-2xl font-bold tracking-tight text-white">Communication Blocking</h1>
@@ -50,7 +55,7 @@ export default function CommunicationBlocking() {
               <td className="px-4 py-3 font-mono text-white">{b.value}</td>
               <td className="px-4 py-3 text-slate-400">{b.reason}</td>
               <td className="px-4 py-3 font-mono text-slate-500">{b.blockedOn}</td>
-              <td className="px-4 py-3 text-right"><button onClick={()=>setBlocks(blocks.filter(x=>x.id!==b.id))} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={13}/></button></td>
+              <td className="px-4 py-3 text-right"><button aria-label={`Remove ${b.value}`} onClick={()=>removeBlock(b)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={13}/></button></td>
             </tr>))}
           </tbody></table>
         </div>

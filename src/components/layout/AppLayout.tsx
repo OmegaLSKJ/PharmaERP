@@ -11,12 +11,16 @@ import { useEffect } from 'react'
 
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const initialized = useAuthStore((s) => s.initialized)
+  const hydrate = useAuthStore((s) => s.hydrate)
   const theme = useUIStore((s) => s.theme)
   const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const location = useLocation()
   useKeyboardShortcuts()
   useKeyboardFormNavigation()
+
+  useEffect(() => { void hydrate() }, [hydrate])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -26,6 +30,7 @@ export default function AppLayout() {
     setMobileSidebarOpen(false)
   }, [location.pathname, setMobileSidebarOpen])
 
+  if (!initialized) return <div className="min-h-screen grid place-items-center bg-background text-sm text-muted-foreground">Checking your secure session…</div>
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
   return (

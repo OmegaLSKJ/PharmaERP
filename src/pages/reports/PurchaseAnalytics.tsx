@@ -26,7 +26,7 @@ export default function PurchaseAnalytics() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Purchase Analytics</h1>
           <p className="text-sm text-slate-400 mt-1">FY 2025-26 | Supplier and purchase intelligence</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics'))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>

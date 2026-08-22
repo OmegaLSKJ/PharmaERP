@@ -1,6 +1,10 @@
 ﻿import { useState } from 'react'
 import { Search, Download, ArrowLeftRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp } from '../../lib/erpApi'
+import { exportVisibleTables } from '../../lib/download'
+import { useUIStore } from '../../store/uiStore'
 
 interface LedgerEntry { id: string; date: string; vType: string; vNo: string; debit: number; credit: number; balance: number; narration: string; balType: string }
 
@@ -23,9 +27,13 @@ const PARTY_LEDGERS: Record<string, LedgerEntry[]> = {
 const ALL_LEDGERS = Object.keys(PARTY_LEDGERS)
 
 export default function LedgerView() {
-  const [selectedLedger, setSelectedLedger] = useState(ALL_LEDGERS[0])
+  const [allEntries, setAllEntries] = useState<Array<LedgerEntry & { party: string }>>([])
+  const [selectedLedger, setSelectedLedger] = useState('')
   const [search, setSearch] = useState('')
-  const entries = PARTY_LEDGERS[selectedLedger] || []
+  const showToast = useUIStore((s) => s.showToast)
+  useEffect(() => { getErp<any[]>('ledgers').then((rows) => { const balances: Record<string, number> = {}; const mapped = rows.map((row) => { balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit); return { ...row, balance: Math.abs(balances[row.party]), balType: balances[row.party] < 0 ? 'Cr' : 'Dr', vType: String(row.vType).replace('_', ' ') } }); setAllEntries(mapped); if (mapped[0]) setSelectedLedger(mapped[0].party) }).catch((e) => showToast(e.message)) }, [showToast])
+  const ledgerNames = [...new Set(allEntries.map((entry) => entry.party))]
+  const entries = allEntries.filter((entry) => entry.party === selectedLedger)
   const filtered = entries.filter(e => e.narration.toLowerCase().includes(search.toLowerCase()) || e.vNo.toLowerCase().includes(search.toLowerCase()))
   const lastBalance = filtered.length > 0 ? filtered[filtered.length - 1] : null
 
@@ -36,7 +44,7 @@ export default function LedgerView() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Ledger View</h1>
           <p className="text-sm text-slate-400 mt-1">{selectedLedger}</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>
@@ -45,7 +53,7 @@ export default function LedgerView() {
         <div className="md:colspan-1 bg-slate-900/50 border border-slate-800 rounded-xl p-4">
           <div className="text-xs text-slate-400 uppercase font-semibold mb-3">Ledgers</div>
           <div className="space-y-1 max-h-80 overflow-y-auto">
-            {ALL_LEDGERS.map(l => (
+            {ledgerNames.map(l => (
               <button key={l} onClick={() => setSelectedLedger(l)} className={cn('w-full text-left px-3 py-2 rounded-lg text-sm transition', selectedLedger === l ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-slate-800')}>
                 {l}
               </button>

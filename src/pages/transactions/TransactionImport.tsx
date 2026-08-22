@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { Upload, FileSpreadsheet, CheckCircle, AlertTriangle } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { downloadCsvTemplate } from '../../lib/download'
 
 const IMPORTS = [
   { id:'1', file:'sales_march_2026.xlsx', type:'Sales Register', rows:1842, valid:1838, errors:4, date:'2026-03-15 09:30', status:'completed' },
@@ -12,6 +13,7 @@ const ST: Record<string,string> = { completed:'bg-emerald-500/10 text-emerald-40
 
 export default function TransactionImport() {
   const [drag,setDrag] = useState(false)
+  const templates: Record<string, string[]> = { 'Sales Register':['invoice_number','invoice_date','customer','item_code','batch','quantity','rate','gst_rate'], 'Purchase Bills':['supplier_invoice','invoice_date','supplier','item_code','batch','expiry','quantity','purchase_rate'], 'Stock Opening':['item_code','batch','expiry','warehouse','quantity','mrp'], 'Party Master':['code','party_type','legal_name','phone','email','gstin','credit_limit','city'] }
   return (
     <div className="p-6 space-y-4">
       <div><h1 className="text-2xl font-bold tracking-tight text-white">Transaction Import</h1>
@@ -24,7 +26,7 @@ export default function TransactionImport() {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {['Sales Register','Purchase Bills','Stock Opening','Party Master'].map(t=>(
-          <button key={t} className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-lg text-xs font-medium text-slate-300 transition"><FileSpreadsheet size={13} className="text-emerald-400"/>Template: {t}</button>))}
+          <button key={t} onClick={() => downloadCsvTemplate(`${t.toLowerCase().replace(/\s+/g, '-')}-template`, templates[t])} className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-lg text-xs font-medium text-slate-300 transition"><FileSpreadsheet size={13} className="text-emerald-400"/>Template: {t}</button>))}
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs">
         <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">

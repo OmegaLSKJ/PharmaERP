@@ -20,7 +20,7 @@ export default function CashFlow() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Cash Flow Statement</h1>
           <p className="text-sm text-slate-400 mt-1">FY 2025-26 | Indirect Method</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('cash-flow'))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
       </div>
       {sections.map(s => (
         <div key={s.title} className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">

@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { Search, Plus, Eye } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp, postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 interface ReturnEntry { id: string; returnNo: string; date: string; party: string; origInvoice: string; items: number; total: number; reason: string; status: string }
 
@@ -16,9 +19,20 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default function SaleReturn() {
+  const [returns, setReturns] = useState<ReturnEntry[]>([])
+  const [showForm, setShowForm] = useState(false)
+  const [party, setParty] = useState('')
+  const [origInvoice, setOrigInvoice] = useState('')
+  const [reason, setReason] = useState('')
+  const [items, setItems] = useState(1)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
-  const filtered = DATA.filter(s => s.party.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase()))
+  const showToast = useUIStore((s) => s.showToast)
+  const load = () => getErp<any[]>('sale-returns').then((rows) => setReturns(rows.map((row) => ({ id:row.id, returnNo:row.number, date:row.date, party:row.party, origInvoice:row.origInvoice ?? '', items:Number(row.items ?? 0), total:Number(row.total), reason:row.reason ?? '', status:row.status })))).catch((e) => showToast(e.message))
+  useEffect(() => { void load() }, [showToast])
+  const filtered = returns.filter(s => s.party.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase()))
   const totalVal = filtered.reduce((a, s) => a + s.total, 0)
+  const saveReturn = async (e: React.FormEvent) => { e.preventDefault(); try { await postErp('sale-returns', { party, origInvoice, reason, items, total, status:'processed' }); setShowForm(false); setParty(''); setOrigInvoice(''); setReason(''); setTotal(0); await load(); showToast('Sale return recorded.') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to save return.') } }
 
   return (
     <div className="p-6 space-y-4">
@@ -27,7 +41,7 @@ export default function SaleReturn() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Sale Returns</h1>
           <p className="text-sm text-slate-400 mt-1">{filtered.length} returns | Total: {formatCurrency(totalVal)}</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
           <Plus size={16} /> New Return
         </button>
       </div>
@@ -63,12 +77,13 @@ export default function SaleReturn() {
                 <td className="px-4 py-3">
                   <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>{s.status}</span>
                 </td>
-                <td className="px-4 py-3 text-right"><button className="p-1 hover:text-white text-slate-400"><Eye size={14} /></button></td>
+                <td className="px-4 py-3 text-right"><button aria-label={`Print ${s.returnNo}`} onClick={() => window.print()} className="p-1 hover:text-white text-slate-400"><Eye size={14} /></button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {showForm && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"><form onSubmit={saveReturn} className="glass-surface w-full max-w-lg space-y-4 rounded-xl p-6"><div className="flex justify-between"><h2 className="text-lg font-semibold">New sale return</h2><button type="button" onClick={() => setShowForm(false)}>Close</button></div><label className="grid gap-1 text-sm">Party<input required autoFocus value={party} onChange={(e) => setParty(e.target.value)} className="rounded-lg border border-input bg-background p-2" /></label><label className="grid gap-1 text-sm">Original invoice<input required value={origInvoice} onChange={(e) => setOrigInvoice(e.target.value)} className="rounded-lg border border-input bg-background p-2" /></label><label className="grid gap-1 text-sm">Reason<input required value={reason} onChange={(e) => setReason(e.target.value)} className="rounded-lg border border-input bg-background p-2" /></label><div className="grid grid-cols-2 gap-3"><label className="grid gap-1 text-sm">Items<input type="number" min="1" value={items} onChange={(e) => setItems(Number(e.target.value))} className="rounded-lg border border-input bg-background p-2" /></label><label className="grid gap-1 text-sm">Return value<input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(Number(e.target.value))} className="rounded-lg border border-input bg-background p-2" /></label></div><button className="w-full rounded-lg bg-blue-700 p-2.5 font-semibold text-white">Post sale return</button></form></div>}
     </div>
   )
 }

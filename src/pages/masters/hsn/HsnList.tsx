@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 
 interface HsnItem { id: string; code: string; description: string; gstRate: number; type: 'Goods' | 'Services' }
 
@@ -12,20 +14,23 @@ const DEFAULT_HSN: HsnItem[] = [
 ]
 
 export default function HsnList() {
-  const [items, setItems] = useState<HsnItem[]>(DEFAULT_HSN)
+  const [items, setItems] = useState<HsnItem[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [gst, setGst] = useState(12)
   const [type, setType] = useState<'Goods' | 'Services'>('Goods')
+  const showToast = useUIStore((state) => state.showToast)
+  useEffect(() => { getErp<any[]>('hsn').then((rows) => setItems(rows.map((row) => ({ id: row.id, code: row.code, description: row.description ?? '', gstRate: Number(row.gst_rate), type: row.code?.startsWith('99') ? 'Services' : 'Goods' })))).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load HSN codes.')) }, [showToast])
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !code) return
-    setItems([...items, { id: Date.now().toString(), code, description: name, gstRate: gst, type }])
-    setName(''); setCode(''); setGst(12); setShowModal(false)
+    try { const row = await postErp<any>('hsn', { code, description: name, gst_rate: gst }); setItems([...items, { id: row.id, code: row.code, description: row.description ?? '', gstRate: Number(row.gst_rate), type }]); setName(''); setCode(''); setGst(12); setShowModal(false); showToast('HSN / SAC saved.') } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save HSN code.') }
   }
+  const removeItem = async (id: string) => { try { await deleteErp('hsn', id); setItems((current) => current.filter((item) => item.id !== id)); showToast('HSN / SAC deleted.') } catch (error) { showToast(error instanceof Error ? error.message : 'Could not delete HSN code.') } }
+  const editItem = async (item: HsnItem) => { const description = window.prompt('HSN / SAC description', item.description); if (!description) return; const rate = Number(window.prompt('GST rate', String(item.gstRate))); if (!Number.isFinite(rate)) return; try { await patchErp('hsn', item.id, { description, gst_rate: rate }); setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, description, gstRate: rate } : row)); showToast('HSN / SAC updated.') } catch (error) { showToast(error instanceof Error ? error.message : 'Could not update HSN code.') } }
 
   const filtered = items.filter(i => i.description.toLowerCase().includes(search.toLowerCase()) || i.code.includes(search))
 
@@ -64,8 +69,8 @@ export default function HsnList() {
                 <td className="p-4 text-emerald-400">{i.gstRate}%</td>
                 <td className="p-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="p-1 hover:text-white text-slate-400 transition"><Edit2 size={16} /></button>
-                    <button className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
+                    <button aria-label={`Edit ${i.code}`} onClick={() => editItem(i)} className="p-1 hover:text-white text-slate-400 transition"><Edit2 size={16} /></button>
+                    <button onClick={() => removeItem(i.id)} className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>

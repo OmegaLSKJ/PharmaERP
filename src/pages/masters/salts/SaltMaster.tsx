@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useEffect } from 'react'
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 
 interface Salt { id: string; name: string; composition: string; itemcount: number; category: string }
 
@@ -24,12 +27,18 @@ const CAT_COLORS: Record<string, string> = {
 }
 
 export default function SaltMaster() {
+  const [salts, setSalts] = useState<Salt[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [comp, setComp] = useState('')
   const [cat, setCat] = useState('Antibiotic')
-  const filtered = DATA.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.composition.toLowerCase().includes(search.toLowerCase()))
+  const addToast = useUIStore((s) => s.addToast)
+  useEffect(() => { getErp<Salt[]>('salts').then(setSalts).catch((e) => addToast(e.message, 'error')) }, [addToast])
+  const filtered = salts.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || (s.composition || '').toLowerCase().includes(search.toLowerCase()))
+  const saveSalt = async (e: React.FormEvent) => { e.preventDefault(); try { const created = await postErp<Salt>('salts', { name, composition: comp, category: cat }); setSalts((rows) => [...rows, created]); setName(''); setComp(''); setShowModal(false); addToast('Salt saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save salt', 'error') } }
+  const editSalt = async (salt: Salt) => { const nextName = window.prompt('Salt name', salt.name); if (!nextName) return; const nextComposition = window.prompt('Composition', salt.composition) ?? salt.composition; try { await patchErp('salts', salt.id, { name: nextName, composition: nextComposition, category: salt.category }); setSalts((rows) => rows.map((row) => row.id === salt.id ? { ...row, name: nextName, composition: nextComposition } : row)); addToast('Salt updated', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to update salt', 'error') } }
+  const removeSalt = async (salt: Salt) => { if (!window.confirm(`Delete ${salt.name}?`)) return; try { await deleteErp('salts', salt.id); setSalts((rows) => rows.filter((row) => row.id !== salt.id)); addToast('Salt deleted', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to delete salt', 'error') } }
 
   return (
     <div className="p-6 space-y-4">
@@ -52,14 +61,14 @@ export default function SaltMaster() {
               <td className="px-4 py-3 text-slate-400">{s.composition}</td>
               <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', CAT_COLORS[s.category])}>{s.category}</span></td>
               <td className="px-4 py-3 text-right">{s.itemcount}</td>
-              <td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><button className="p-1 hover:text-white text-slate-400"><Edit2 size={14} /></button><button className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={14} /></button></div></td>
+              <td className="px-4 py-3 text-right"><div className="flex justify-end gap-1"><button aria-label={`Edit ${s.name}`} onClick={() => editSalt(s)} className="p-1 hover:text-white text-slate-400"><Edit2 size={14} /></button><button aria-label={`Delete ${s.name}`} onClick={() => removeSalt(s)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={14} /></button></div></td>
             </tr>))}
           </tbody>
         </table>
       </div>
       {showModal && (<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50"><div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6">
         <h3 className="text-lg font-bold text-white mb-4">Add Salt / Composition</h3>
-        <form onSubmit={(e) => { e.preventDefault(); setShowModal(false) }} className="space-y-4">
+        <form onSubmit={saveSalt} className="space-y-4">
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Salt Name</label>
             <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Composition</label>

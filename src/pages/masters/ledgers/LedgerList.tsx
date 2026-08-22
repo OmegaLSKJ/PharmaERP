@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 
 interface Ledger { id: string; name: string; group: string; balance: number; type: 'Dr' | 'Cr' }
 
@@ -18,20 +21,25 @@ const DEFAULT_LEDGERS: Ledger[] = [
 ]
 
 export default function LedgerList() {
-  const [ledgers, setLedgers] = useState<Ledger[]>(DEFAULT_LEDGERS)
+  const [ledgers, setLedgers] = useState<Ledger[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [group, setGroup] = useState('Sundry Debtors')
+  const addToast = useUIStore((s) => s.addToast)
+
+  useEffect(() => { getErp<Ledger[]>('accounts').then(setLedgers).catch((e) => addToast(e.message, 'error')) }, [addToast])
 
   const groups = ['Sundry Debtors', 'Sundry Creditors', 'Tax - CGST', 'Tax - SGST', 'Tax - IGST', 'Sales Account', 'Purchase Account', 'Cash', 'Bank', 'Suspense Account']
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name) return
-    setLedgers([...ledgers, { id: Date.now().toString(), name, group, balance: 0, type: 'Dr' }])
-    setName(''); setShowModal(false)
+    try { const created = await postErp<Ledger>('accounts', { name, group }); setLedgers((rows) => [...rows, created]); setName(''); setShowModal(false); addToast('Ledger saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save ledger', 'error') }
   }
+
+  const editLedger = async (ledger: Ledger) => { const nextName = window.prompt('Ledger name', ledger.name); if (!nextName) return; try { await patchErp('accounts', ledger.id, { name: nextName, group: ledger.group }); setLedgers((rows) => rows.map((row) => row.id === ledger.id ? { ...row, name: nextName } : row)); addToast('Ledger updated', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to update ledger', 'error') } }
+  const removeLedger = async (ledger: Ledger) => { if (!window.confirm(`Delete ${ledger.name}?`)) return; try { await deleteErp('accounts', ledger.id); setLedgers((rows) => rows.filter((row) => row.id !== ledger.id)); addToast('Ledger deleted', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'This ledger may already be used in posted entries.', 'error') } }
 
   const filtered = ledgers.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.group.toLowerCase().includes(search.toLowerCase()))
 
@@ -72,8 +80,8 @@ export default function LedgerList() {
                 <td className="p-4">{l.type}</td>
                 <td className="p-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="p-1 hover:text-white text-slate-400 transition"><Edit2 size={16} /></button>
-                    <button className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
+                    <button aria-label={`Edit ${l.name}`} onClick={() => editLedger(l)} className="p-1 hover:text-white text-slate-400 transition"><Edit2 size={16} /></button>
+                    <button aria-label={`Delete ${l.name}`} onClick={() => removeLedger(l)} className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>

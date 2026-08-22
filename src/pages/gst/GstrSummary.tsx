@@ -20,7 +20,7 @@ export default function GstrSummary() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">GSTR-1 Summary</h1>
           <p className="text-sm text-slate-400 mt-1">March 2026 | Outward supply breakdown by category</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"><Download size={16}/> Export JSON</button>
+        <button onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr-summary', ROWS))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"><Download size={16}/> Export JSON</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[{l:'Total Invoices',v:String(totalCount),c:'text-white'},{l:'Total Taxable',v:formatCurrency(totalTaxable),c:'text-blue-400'},{l:'Total Tax',v:formatCurrency(totalTax),c:'text-emerald-400'}].map(s=>(

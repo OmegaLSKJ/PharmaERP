@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { Plus, Hash, Save } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 interface Series { id:string; doc:string; prefix:string; suffix:string; nextNo:number; padding:number; fyReset:boolean; active:boolean }
 
@@ -16,17 +19,21 @@ const INIT: Series[] = [
 ]
 
 export default function SeriesMaster() {
-  const [series,setSeries] = useState<Series[]>(INIT)
+  const [series,setSeries] = useState<Series[]>([])
+  const [saving, setSaving] = useState(false)
+  const addToast = useUIStore((s) => s.addToast)
+  useEffect(() => { getErp<Series[]>('series').then(setSeries).catch((e) => addToast(e.message, 'error')) }, [addToast])
   const update = (id:string, field:keyof Series, value:any) => setSeries(series.map(s=>s.id===id?{...s,[field]:value}:s))
   const preview = (s:Series) => `${s.prefix}${String(s.nextNo).padStart(s.padding,'0')}${s.suffix}`
+  const saveAll = async () => { setSaving(true); try { const saved = await Promise.all(series.map((s) => s.id.startsWith('new-') ? postErp<Series>('series', s) : patchErp<Series>('series', s.id, s).then(() => s))); setSeries(saved); addToast('Document series saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save series', 'error') } finally { setSaving(false) } }
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Series / Document Numbering</h1>
           <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Hash size={14} className="text-indigo-400"/>Dynamic numbering for every document type</p></div>
         <div className="flex gap-2">
-          <button onClick={()=>setSeries([...series,{id:Date.now().toString(),doc:'New Doc',prefix:'ND-',suffix:'',nextNo:1,padding:4,fyReset:true,active:true}])} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Plus size={16}/> Add Series</button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md"><Save size={16}/> Save All</button>
+          <button onClick={()=>setSeries([...series,{id:`new-${Date.now()}`,doc:'New Document',prefix:'ND-',suffix:'',nextNo:1,padding:4,fyReset:true,active:true}])} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Plus size={16}/> Add Series</button>
+          <button onClick={saveAll} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md"><Save size={16}/> {saving ? 'Saving…' : 'Save All'}</button>
         </div>
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs">

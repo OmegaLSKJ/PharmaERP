@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Plus, Trash2, Save, Printer } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { getErp, postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 interface LineItem {
   id: string; itemName: string; packing: string; batch: string; expiry: string;
@@ -25,10 +27,12 @@ const ITEM_OPTIONS = [
 ]
 
 export default function PurchaseEntry() {
+  const [supplierOptions, setSupplierOptions] = useState(SUPPLIER_OPTIONS)
+  const [itemOptions, setItemOptions] = useState(ITEM_OPTIONS)
   const [supplier, setSupplier] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
-  const [entryDate, setEntryDate] = useState('2026-03-16')
+  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [items, setItems] = useState<LineItem[]>([])
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [showSupplierSearch, setShowSupplierSearch] = useState(false)
@@ -36,6 +40,15 @@ export default function PurchaseEntry() {
   const [supplierQuery, setSupplierQuery] = useState('')
   const itemRef = useRef<HTMLInputElement>(null)
   const supplierRef = useRef<HTMLInputElement>(null)
+  const [saving, setSaving] = useState(false)
+  const addToast = useUIStore((s) => s.addToast)
+
+  useEffect(() => {
+    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')]).then(([parties, products]) => {
+      setSupplierOptions(parties.filter((p) => p.type === 'supplier' || p.type === 'both').map((p) => ({ name: p.name, gstin: p.gstin ?? '', outstanding: Math.abs(Number(p.balance ?? 0)) })))
+      setItemOptions(products.map((p) => ({ name: p.name, packing: p.packing ?? '', mrp: Number(p.mrp), purchaseRate: Number(p.purchaseRate), saleRate: Number(p.saleRate), gstRate: Number(p.gstRate) })))
+    }).catch((error) => addToast(error.message, 'error'))
+  }, [addToast])
 
   useEffect(() => {
     if (showItemSearch && itemRef.current) itemRef.current.focus()
@@ -66,8 +79,17 @@ export default function PurchaseEntry() {
   const grandTotal = subtotal + totalGst
   const totalValue = items.reduce((sum, i) => sum + i.mrp * (i.qty + i.freeQty), 0)
 
-  const filteredItems = ITEM_OPTIONS.filter(i => i.name.toLowerCase().includes(itemQuery.toLowerCase()))
-  const filteredSuppliers = SUPPLIER_OPTIONS.filter(s => s.name.toLowerCase().includes(supplierQuery.toLowerCase()))
+  const filteredItems = itemOptions.filter(i => i.name.toLowerCase().includes(itemQuery.toLowerCase()))
+  const filteredSuppliers = supplierOptions.filter(s => s.name.toLowerCase().includes(supplierQuery.toLowerCase()))
+  const savePurchase = async () => {
+    if (!supplier || !items.length || !invoiceNo || !invoiceDate) { addToast('Supplier, invoice details and at least one item are required.', 'error'); return }
+    if (items.some((item) => !item.batch || !item.expiry || item.qty <= 0)) { addToast('Batch, expiry and a positive quantity are required for every item.', 'error'); return }
+    setSaving(true)
+    try {
+      const saved = await postErp<{ id: string }>('purchases', { party: supplier, supplierInvoice: invoiceNo, date: invoiceDate, subtotal, taxTotal: totalGst, total: grandTotal, lines: items.map((item) => ({ name: item.itemName, batch: item.batch, expiry: item.expiry, qty: item.qty, freeQty: item.freeQty, rate: item.purchaseRate, discount: item.discount, gstRate: item.gstRate, mrp: item.mrp, amount: item.amount })) })
+      addToast(`Purchase ${saved.id} posted`, 'success'); setItems([]); setSupplier(''); setInvoiceNo(''); setInvoiceDate('')
+    } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to post purchase', 'error') } finally { setSaving(false) }
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -77,11 +99,11 @@ export default function PurchaseEntry() {
           <p className="text-sm text-slate-400 mt-1">Inward stock from supplier &bull; Batch + Expiry mandatory</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
             <Printer size={16} /> Print
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
-            <Save size={16} /> Save Challan
+          <button onClick={savePurchase} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md transition">
+            <Save size={16} /> {saving ? 'Posting…' : 'Post Purchase'}
           </button>
         </div>
       </div>

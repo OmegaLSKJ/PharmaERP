@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Filter, Download, MoreHorizontal, Package, AlertTriangle } from 'lucide-react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
+import { getErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
+import { exportVisibleTables } from '../../lib/download'
 
 interface Item {
   id: string; name: string; packing: string; manufacturer: string; salt: string;
@@ -25,10 +28,15 @@ const ITEMS: Item[] = [
 export default function ItemList() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [items, setItems] = useState<Item[]>([])
+  const [loading, setLoading] = useState(true)
+  const showToast = useUIStore((state) => state.showToast)
 
-  const categories = ['all', ...new Set(ITEMS.map((i) => i.category))]
+  useEffect(() => { getErp<Item[]>('items').then(setItems).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load items.')).finally(() => setLoading(false)) }, [showToast])
 
-  const filtered = ITEMS.filter((i) => {
+  const categories = ['all', ...new Set(items.map((i) => i.category))]
+
+  const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) || i.id.toLowerCase().includes(search.toLowerCase()) || i.salt.toLowerCase().includes(search.toLowerCase())
     const matchCat = categoryFilter === 'all' || i.category === categoryFilter
     return matchSearch && matchCat
@@ -70,13 +78,14 @@ export default function ItemList() {
             <option key={c} value={c}>{c === 'all' ? 'All Categories' : c}</option>
           ))}
         </select>
-        <button className="p-2 rounded-md border border-input hover:bg-muted text-muted-foreground">
+        <button aria-label="Export filtered items" onClick={() => exportVisibleTables('items')} className="p-2 rounded-md border border-input hover:bg-muted text-muted-foreground">
           <Download size={16} />
         </button>
       </div>
 
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {loading && <div className="p-6 text-sm text-muted-foreground">Loading items…</div>}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -133,9 +142,9 @@ export default function ItemList() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="p-1 rounded hover:bg-muted text-muted-foreground">
+                    <Link aria-label={`Edit ${item.name}`} to={`/masters/items/${item.id}`} className="inline-flex p-1 rounded hover:bg-muted text-muted-foreground">
                       <MoreHorizontal size={14} />
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}

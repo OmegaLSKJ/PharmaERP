@@ -18,7 +18,7 @@ export default function Gstr9() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">GSTR-9 (Annual Return)</h1>
           <p className="text-sm text-slate-400 mt-1">FY 2025-26 | Consolidated annual GST return</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md"><Download size={16}/> Prepare Filing</button>
+        <button onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr9-filing', TABLES))} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md"><Download size={16}/> Prepare Filing</button>
       </div>
       <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 flex items-center gap-3">
         <FileText size={18} className="text-amber-400 shrink-0" />

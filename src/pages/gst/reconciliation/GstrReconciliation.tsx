@@ -22,7 +22,7 @@ export default function GstrReconciliation() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">GSTR-2A / 2B Reconciliation</h1>
         <p className="text-sm text-slate-400 mt-1">Match purchase books with portal data</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"><Download size={16}/> Export</button>
+        <button onClick={() => import('../../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr-reconciliation'))} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"><Download size={16}/> Export</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[{l:'Total',v:DATA.length,c:'text-white'},{l:'Matched',v:m,c:'text-emerald-400'},{l:'Mismatched',v:mm,c:'text-amber-400'},{l:'Rate',v:Math.round((m/DATA.length)*100)+'%',c:'text-white'}].map(s=>(

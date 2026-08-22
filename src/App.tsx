@@ -5,6 +5,7 @@ import Dashboard from './pages/dashboard/Dashboard'
 import PartyList from './pages/masters/PartyList'
 import Party360 from './pages/masters/Party360'
 import ItemList from './pages/masters/ItemList'
+import ItemForm from './pages/masters/ItemForm'
 import ManufacturerList from './pages/masters/manufacturers/ManufacturerList'
 import LedgerList from './pages/masters/ledgers/LedgerList'
 import HsnList from './pages/masters/hsn/HsnList'
@@ -67,7 +68,9 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/masters/parties" element={<PartyList />} />
           <Route path="/masters/parties/:id" element={<Party360 />} />
-          <Route path="/masters/items" element={<ItemList />} />
+<Route path="/masters/items" element={<ItemList />} />
+<Route path="/masters/items/new" element={<ItemForm />} />
+<Route path="/masters/items/:id" element={<ItemForm />} />
           <Route path="/masters/manufacturers" element={<ManufacturerList />} />
           <Route path="/masters/ledgers" element={<LedgerList />} />
           <Route path="/masters/hsn" element={<HsnList />} />

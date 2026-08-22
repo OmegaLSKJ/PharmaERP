@@ -69,7 +69,7 @@ export default function Topbar() {
           <div className="text-[13px] font-semibold text-white">{user?.name || 'User'}</div>
           <div className="text-[10px] text-slate-500 capitalize">{user?.role || 'admin'}</div>
         </div>
-        <button onClick={logout}
+        <button onClick={async () => { await logout(); navigate('/login', { replace: true }) }}
           className="ml-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
           Logout
         </button>

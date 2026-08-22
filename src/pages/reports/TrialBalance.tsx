@@ -10,7 +10,7 @@ export default function TrialBalance() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Trial Balance</h1>
           <p className="text-sm text-slate-400 mt-1">FY 2025-26 | As on 31st March 2026</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('trial-balance'))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
         <table className="w-full text-xs">

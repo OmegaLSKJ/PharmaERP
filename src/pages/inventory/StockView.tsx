@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { Search, Download, Filter } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp } from '../../lib/erpApi'
+import { exportVisibleTables } from '../../lib/download'
+import { useUIStore } from '../../store/uiStore'
 
 interface StockItem {
   id: string; name: string; packing: string; manufacturer: string; batch: string;
@@ -21,11 +25,14 @@ const STOCK_DATA: StockItem[] = [
 ]
 
 export default function StockView() {
+  const [stockData, setStockData] = useState<StockItem[]>([])
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('all')
-  const locations = ['all', ...new Set(STOCK_DATA.map((s) => s.location))]
+  const showToast = useUIStore((s) => s.showToast)
+  useEffect(() => { getErp<any[]>('items').then((items) => setStockData(items.flatMap((item) => (item.batches ?? []).map((batch: any) => ({ id: batch.id, name: item.name, packing: item.packing, manufacturer: item.manufacturer, batch: batch.batch, expiry: batch.expiry ?? '', mrp: batch.mrp || item.mrp, purchaseRate: item.purchaseRate, stock: batch.stock, location: 'Main Warehouse' }))))).catch((e) => showToast(e.message)) }, [showToast])
+  const locations = ['all', ...new Set(stockData.map((s) => s.location))]
 
-  const filtered = STOCK_DATA.filter((s) => {
+  const filtered = stockData.filter((s) => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.batch.toLowerCase().includes(search.toLowerCase())
     const matchLoc = locationFilter === 'all' || s.location === locationFilter
     return matchSearch && matchLoc
@@ -41,7 +48,7 @@ export default function StockView() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Stock View</h1>
           <p className="text-sm text-slate-400 mt-1">Batch-wise inventory &bull; {filtered.length} entries</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('batch-stock')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>

@@ -12,7 +12,7 @@ export default function ProfitLoss() {
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Profit &amp; Loss Statement</h1>
           <p className="text-sm text-slate-400 mt-1">FY 2025-26 | 01 Apr 2025 - 31 Mar 2026</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('profit-and-loss'))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><Download size={16} /> Export</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[{l:'Gross Profit',v:formatCurrency(grossProfit),c:'text-blue-400'},{l:'Net Profit',v:formatCurrency(netProfit),c:'text-emerald-400'},{l:'Net Margin',v:(netProfit/totalIncome*100).toFixed(1)+'%',c:'text-emerald-400'},{l:'Total Income',v:formatCurrency(totalIncome),c:'text-white'}].map(s=>(

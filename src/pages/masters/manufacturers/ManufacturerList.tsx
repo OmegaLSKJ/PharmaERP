@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi';
+import { useUIStore } from '../../../store/uiStore';
 
 interface Manufacturer {
   id: string;
@@ -10,34 +12,22 @@ interface Manufacturer {
 }
 
 export default function ManufacturerList() {
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([
-    { id: '1', name: 'Cipla Ltd', code: 'CIPL', productCount: 45, status: 'Active' },
-    { id: '2', name: 'Sun Pharmaceutical Industries', code: 'SUNP', productCount: 78, status: 'Active' },
-    { id: '3', name: 'Dr. Reddy\'s Laboratories', code: 'DRRD', productCount: 32, status: 'Active' },
-    { id: '4', name: 'Abbott India', code: 'ABBT', productCount: 19, status: 'Active' },
-    { id: '5', name: 'Lupin Ltd', code: 'LUPI', productCount: 25, status: 'Active' },
-  ]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const showToast = useUIStore((state) => state.showToast);
+  useEffect(() => { getErp<any[]>('manufacturers').then((rows) => setManufacturers(rows.map((row) => ({ id: row.id, name: row.name, code: row.name.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase(), productCount: 0, status: 'Active' })))).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load manufacturers.')) }, [showToast]);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !code) return;
-    const newMfg: Manufacturer = {
-      id: Date.now().toString(),
-      name,
-      code: code.toUpperCase(),
-      productCount: 0,
-      status: 'Active'
-    };
-    setManufacturers([...manufacturers, newMfg]);
-    setName('');
-    setCode('');
-    setShowModal(false);
+    try { const row = await postErp<any>('manufacturers', { name }); setManufacturers([...manufacturers, { id: row.id, name: row.name, code: code.toUpperCase(), productCount: 0, status: 'Active' }]); setName(''); setCode(''); setShowModal(false); showToast('Manufacturer saved.'); } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save manufacturer.'); }
   };
+  const removeManufacturer = async (id: string) => { try { await deleteErp('manufacturers', id); setManufacturers((current) => current.filter((item) => item.id !== id)); showToast('Manufacturer deleted.'); } catch (error) { showToast(error instanceof Error ? error.message : 'Could not delete manufacturer.'); } };
+  const editManufacturer = async (manufacturer: Manufacturer) => { const name = window.prompt('Manufacturer name', manufacturer.name); if (!name) return; const code = window.prompt('Manufacturer code', manufacturer.code) || manufacturer.code; try { await patchErp('manufacturers', manufacturer.id, { name, code }); setManufacturers((rows) => rows.map((row) => row.id === manufacturer.id ? { ...row, name, code } : row)); showToast('Manufacturer updated.'); } catch (error) { showToast(error instanceof Error ? error.message : 'Could not update manufacturer.'); } };
 
   const filtered = manufacturers.filter(m =>
     m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,10 +85,10 @@ export default function ManufacturerList() {
                 </td>
                 <td className="p-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="p-1 hover:text-white text-slate-400 transition">
+                    <button aria-label={`Edit ${m.name}`} onClick={() => editManufacturer(m)} className="p-1 hover:text-white text-slate-400 transition">
                       <Edit2 size={16} />
                     </button>
-                    <button className="p-1 hover:text-rose-400 text-slate-400 transition">
+                    <button onClick={() => removeManufacturer(m.id)} className="p-1 hover:text-rose-400 text-slate-400 transition">
                       <Trash2 size={16} />
                     </button>
                   </div>

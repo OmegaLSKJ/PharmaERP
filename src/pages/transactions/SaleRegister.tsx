@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { Search, Plus, Eye, Edit2 } from 'lucide-react'
+import { Search, Plus, Eye, Printer } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 interface SaleInv { id: string; invoiceNo: string; date: string; customer: string; items: number; total: number; status: string }
 
@@ -18,14 +21,18 @@ const DATA: SaleInv[] = [
 ]
 
 const STATUS_STYLE: Record<string, string> = {
-  paid: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400',
+  paid: 'bg-emerald-500/10 text-emerald-400', posted: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400',
   overdue: 'bg-rose-500/10 text-rose-400', partial: 'bg-blue-500/10 text-blue-400',
 }
 
 export default function SaleRegister() {
+  const [sales, setSales] = useState<SaleInv[]>([])
+  const [selected, setSelected] = useState<SaleInv | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const filtered = DATA.filter(s => {
+  const addToast = useUIStore((s) => s.addToast)
+  useEffect(() => { getErp<any[]>('sales').then((rows) => setSales(rows.map((row) => ({ id: row.dbId, invoiceNo: row.id, date: row.date, customer: row.party, items: row.items, total: row.total, status: row.status })))).catch((e) => addToast(e.message, 'error')) }, [addToast])
+  const filtered = sales.filter(s => {
     const ms = s.customer.toLowerCase().includes(search.toLowerCase()) || s.invoiceNo.toLowerCase().includes(search.toLowerCase())
     const mf = statusFilter === 'all' || s.status === statusFilter
     return ms && mf
@@ -80,8 +87,8 @@ export default function SaleRegister() {
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>{s.status}</span></td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
-                    <button className="p-1 hover:text-white text-slate-400"><Eye size={14} /></button>
-                    <button className="p-1 hover:text-white text-slate-400"><Edit2 size={14} /></button>
+                    <button aria-label={`View ${s.invoiceNo}`} onClick={() => setSelected(s)} className="p-1 hover:text-white text-slate-400"><Eye size={14} /></button>
+                    <button aria-label={`Print ${s.invoiceNo}`} onClick={() => { setSelected(s); setTimeout(() => window.print(), 0) }} className="p-1 hover:text-white text-slate-400"><Printer size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -89,6 +96,7 @@ export default function SaleRegister() {
           </tbody>
         </table>
       </div>
+      {selected && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setSelected(null)}><div className="glass-surface w-full max-w-lg rounded-xl p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><h2 className="text-lg font-semibold">Invoice {selected.invoiceNo}</h2><p className="text-sm text-muted-foreground">Posted {selected.date}</p></div><button onClick={() => setSelected(null)} className="text-sm text-muted-foreground">Close</button></div><dl className="mt-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-muted-foreground">Customer</dt><dd>{selected.customer}</dd></div><div><dt className="text-muted-foreground">Status</dt><dd className="capitalize">{selected.status}</dd></div><div><dt className="text-muted-foreground">Line items</dt><dd>{selected.items}</dd></div><div><dt className="text-muted-foreground">Invoice total</dt><dd>{formatCurrency(selected.total)}</dd></div></dl><button onClick={() => window.print()} className="mt-6 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Print invoice summary</button></div></div>}
     </div>
   )
 }

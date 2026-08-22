@@ -4,8 +4,8 @@ import { useAuthStore } from '../../store/authStore'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@pharmaerp.com')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,7 +21,7 @@ export default function LoginPage() {
     if (ok) {
       navigate('/')
     } else {
-      setError('Invalid credentials')
+      setError('Invalid email or password')
     }
   }
 
@@ -82,6 +82,9 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="admin@pharmaerp.com"
+                autoComplete="username"
+                autoFocus
+                required
               />
             </div>
             <div>
@@ -93,6 +96,8 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 pr-10 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Enter password"
+                  autoComplete="current-password"
+                  required
                 />
                 <button
                   type="button"
@@ -118,11 +123,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-3 rounded-md bg-muted/50 text-xs text-muted-foreground">
-            <div className="font-medium mb-1">Demo credentials:</div>
-            <div>Email: admin@pharmaerp.com</div>
-            <div>Password: admin123</div>
-          </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground">Authorized PharmaERP users only.</p>
         </div>
       </div>
     </div>

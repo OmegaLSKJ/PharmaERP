@@ -1,6 +1,8 @@
 ﻿import { useState } from 'react'
 import { Save, ArrowLeftRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
+import { postErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 
 interface Line { id: string; name: string; batch: string; qty: number; rate: number; type: 'issue' | 'receive' }
 
@@ -12,10 +14,12 @@ const ITEMS = [
 
 export default function ReplacementEntry() {
   const [mode, setMode] = useState<'issue' | 'receive'>('issue')
-  const [date, setDate] = useState('2026-03-16')
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [party, setParty] = useState('')
   const [lines, setLines] = useState<Line[]>([])
   const [remark, setRemark] = useState('')
+  const [saving, setSaving] = useState(false)
+  const showToast = useUIStore((s) => s.showToast)
 
   const addItem = (item: typeof ITEMS[0]) => {
     setLines([...lines, { id: Date.now().toString(), name: item.name, batch: item.batch, qty: 1, rate: item.rate, type: mode }])
@@ -24,13 +28,14 @@ export default function ReplacementEntry() {
     setLines(lines.map(l => l.id === id ? { ...l, [field]: value } : l))
   }
   const totalValue = lines.reduce((a, l) => a + l.qty * l.rate, 0)
+  const saveReplacement = async () => { if (!party || !lines.length) { showToast('Party and at least one item are required.'); return } setSaving(true); try { const saved = await postErp<{number:string}>('replacements', { party, mode, date, remark, total:totalValue, lines }); showToast(`Replacement ${saved.number} saved.`); setLines([]); setRemark('') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to save replacement.') } finally { setSaving(false) } }
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Replacement Entry</h1>
           <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Issue or receive replacement stock</p></div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"><Save size={16} /> Save</button>
+        <button onClick={saveReplacement} disabled={saving || !party || !lines.length} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md transition"><Save size={16} /> {saving ? 'Saving…' : 'Save'}</button>
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

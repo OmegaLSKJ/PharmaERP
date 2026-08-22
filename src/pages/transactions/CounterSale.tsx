@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { ShoppingCart, Trash2, Banknote, Smartphone } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp, postErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 const ITEMS = [
   { name:'Dolo 650', rate:45 }, { name:'Cetirizine 10mg', rate:28 }, { name:'Paracetamol 650mg', rate:35 },
@@ -9,21 +12,26 @@ const ITEMS = [
 ]
 
 export default function CounterSale() {
-  const [cart,setCart] = useState<{name:string;qty:number;rate:number}[]>([])
+  const [available, setAvailable] = useState<Array<{name:string;rate:number;batch:string;stock:number;gst:number}>>([])
+  const [cart,setCart] = useState<Array<{name:string;qty:number;rate:number;batch:string;stock:number;gst:number}>>([])
   const [pay,setPay] = useState<'cash'|'upi'>('cash')
-  const add = (i:typeof ITEMS[0]) => {
-    const ex = cart.find(c=>c.name===i.name)
-    if (ex) setCart(cart.map(c=>c.name===i.name?{...c,qty:c.qty+1}:c))
-    else setCart([...cart,{name:i.name,qty:1,rate:i.rate}])
+  const [saving, setSaving] = useState(false)
+  const showToast = useUIStore((s) => s.showToast)
+  useEffect(() => { getErp<any[]>('items').then((items) => setAvailable(items.flatMap((item) => (item.batches ?? []).filter((b:any) => b.stock > 0).map((b:any) => ({ name:item.name, rate:item.saleRate, batch:b.batch, stock:b.stock, gst:item.gstRate }))))).catch((e) => showToast(e.message)) }, [showToast])
+  const add = (i:{name:string;rate:number;batch:string;stock:number;gst:number}) => {
+    const ex = cart.find(c=>c.name===i.name && c.batch===i.batch)
+    if (ex) setCart(cart.map(c=>c.name===i.name&&c.batch===i.batch?{...c,qty:Math.min(c.qty+1,c.stock)}:c))
+    else setCart([...cart,{...i,qty:1}])
   }
   const total = cart.reduce((a,c)=>a+c.qty*c.rate,0)
+  const complete = async () => { setSaving(true); try { const invoice = await postErp<{id:string}>('sales', { party:'Walk-in Customer', total, paymentMode:pay, lines:cart.map((line) => ({ ...line, freeQty:0, discount:0, gstRate:line.gst, amount:line.qty*line.rate })) }); showToast(`Counter invoice ${invoice.id} posted.`); setCart([]); setTimeout(() => window.print(), 0) } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to complete counter sale.') } finally { setSaving(false) } }
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
       <div className="lg:col-span-2 space-y-3">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Counter Sale (POS)</h1>
           <p className="text-sm text-slate-400 mt-1">Walk-in customer | Quick billing</p></div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {ITEMS.map(i=>(<button key={i.name} onClick={()=>add(i)} className="bg-slate-900/50 border border-slate-800 hover:border-indigo-500 rounded-xl p-4 text-left transition">
+          {available.map(i=>(<button key={`${i.name}-${i.batch}`} onClick={()=>add(i)} className="bg-slate-900/50 border border-slate-800 hover:border-indigo-500 rounded-xl p-4 text-left transition">
             <div className="text-sm font-medium text-white truncate">{i.name}</div>
             <div className="text-xs text-slate-400 mt-1">{formatCurrency(i.rate)}</div>
           </button>))}
@@ -48,7 +56,7 @@ export default function CounterSale() {
             <button onClick={()=>setPay('cash')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='cash'?'bg-emerald-600 text-white':'bg-slate-950 text-slate-400')}><Banknote size={14}/>Cash</button>
             <button onClick={()=>setPay('upi')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='upi'?'bg-indigo-600 text-white':'bg-slate-950 text-slate-400')}><Smartphone size={14}/>UPI</button>
           </div>
-          <button disabled={cart.length===0} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-lg text-sm font-semibold shadow-md">Print Bill &amp; Complete</button>
+          <button onClick={complete} disabled={cart.length===0 || saving} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-lg text-sm font-semibold shadow-md">{saving ? 'Posting…' : 'Print Bill & Complete'}</button>
         </div>
       </div>
     </div>

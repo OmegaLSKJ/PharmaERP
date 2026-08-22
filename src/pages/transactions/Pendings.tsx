@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { Clock, CheckCircle, XCircle, ArrowRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useNavigate } from 'react-router-dom'
 
 const PENDING = [
   { id:'1', type:'Sales Order', ref:'SO-2026-034', party:'MediCare Pharma', date:'2026-03-14', amount:45600, status:'awaiting-stock', items:8 },
@@ -14,6 +15,7 @@ const ST: Record<string,string> = {
   'convert-pending':'bg-purple-500/10 text-purple-400','partially-received':'bg-cyan-500/10 text-cyan-400' }
 
 export default function Pendings() {
+  const navigate = useNavigate()
   const [f,setF] = useState('all')
   const fl = f==='all'?PENDING:PENDING.filter(p=>p.type===f)
   return (
@@ -35,7 +37,7 @@ export default function Pendings() {
           </div>
           <div className="flex items-center gap-4">
             <span className="font-mono text-emerald-400">{formatCurrency(p.amount)}</span>
-            <button className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition',p.type==='Purchase Order'?'bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40':'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40')}>
+            <button onClick={() => navigate(p.type === 'Purchase Order' ? '/transactions/purchase/new' : '/transactions/sale/new')} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition',p.type==='Purchase Order'?'bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40':'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40')}>
               {p.type==='Purchase Order'?'Receive':p.type==='Challan to Invoice'?'Convert':'Fulfill'} <ArrowRight size={12}/>
             </button>
           </div>

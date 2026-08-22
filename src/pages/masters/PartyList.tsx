@@ -1,9 +1,10 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Filter, Download, MoreHorizontal, Phone, MapPin, CreditCard } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
 import { useUIStore } from '../../store/uiStore'
+import { getErp, patchErp, postErp } from '../../lib/erpApi'
 
 interface Party {
   id: string; name: string; type: 'customer' | 'supplier'; phone: string; city: string;
@@ -26,10 +27,13 @@ const PARTIES: Party[] = [
 export default function PartyList() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all')
-  const [parties, setParties] = useState(PARTIES)
+  const [parties, setParties] = useState<Party[]>([])
+  const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
+
+  useEffect(() => { getErp<Party[]>('parties').then(setParties).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load parties.')).finally(() => setLoading(false)) }, [showToast])
 
   const filtered = parties.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()) || p.gstin.includes(search)
@@ -50,19 +54,19 @@ export default function PartyList() {
     showToast(`${filtered.length} parties exported to CSV.`)
   }
 
-  const createParty = (event: FormEvent<HTMLFormElement>) => {
+  const createParty = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const name = String(data.get('name') || '').trim()
     const phone = String(data.get('phone') || '').trim()
     if (!name || !phone) return
-    setParties((current) => [...current, { id: `P${String(current.length + 1).padStart(3, '0')}`, name, type: String(data.get('type')) as Party['type'], phone, city: String(data.get('city') || '—'), gstin: String(data.get('gstin') || '—'), balance: 0, creditLimit: Number(data.get('creditLimit')) || 0, lastSale: new Date().toISOString().slice(0, 10), status: 'active' }])
-    setShowCreate(false)
-    showToast(`${name} was added to Party Master.`)
+    try { const created = await postErp<Party>('parties', { name, type: String(data.get('type')), phone, city: String(data.get('city') || ''), gstin: String(data.get('gstin') || ''), creditLimit: Number(data.get('creditLimit')) || 0 }); setParties((current) => [...current, created]); setShowCreate(false); showToast(`${name} was added to Party Master.`) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not create party.') }
   }
 
-  const togglePartyStatus = (id: string) => {
-    setParties((current) => current.map((party) => party.id === id ? { ...party, status: party.status === 'active' ? 'blocked' : 'active' } : party))
+  const togglePartyStatus = async (id: string) => {
+    const selected = parties.find((party) => party.id === id); if (!selected) return
+    const status = selected.status === 'active' ? 'blocked' : 'active'
+    try { await patchErp('parties', id, { status }); setParties((current) => current.map((party) => party.id === id ? { ...party, status } : party)); showToast(`Party ${status}.`) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not update party.') }
     setActiveMenu(null)
   }
 
@@ -109,6 +113,7 @@ export default function PartyList() {
 
       {/* Table */}
       <div className="glass-surface rounded-lg overflow-hidden">
+        {loading && <div className="p-6 text-sm text-muted-foreground">Loading parties…</div>}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

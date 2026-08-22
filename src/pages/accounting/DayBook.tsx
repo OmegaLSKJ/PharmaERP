@@ -1,6 +1,10 @@
 ﻿import { useState } from 'react'
 import { Search, Download, Filter, Eye } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { useEffect } from 'react'
+import { getErp } from '../../lib/erpApi'
+import { exportVisibleTables } from '../../lib/download'
+import { useUIStore } from '../../store/uiStore'
 
 interface DayBookEntry { id: string; date: string; vType: string; vNo: string; ledger: string; debit: number; credit: number; narration: string }
 
@@ -26,11 +30,14 @@ const TYPE_STYLE: Record<string, string> = {
 }
 
 export default function DayBook() {
+  const [entries, setEntries] = useState<DayBookEntry[]>([])
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra']
 
-  const filtered = DATA.filter(d => {
+  const showToast = useUIStore((s) => s.showToast)
+  useEffect(() => { getErp<any[]>('ledgers').then((rows) => setEntries(rows.map((row) => ({ id: row.id, date: row.date, vType: String(row.vType).replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()), vNo: row.vNo, ledger: row.party, debit: Number(row.debit), credit: Number(row.credit), narration: row.narration })))).catch((e) => showToast(e.message)) }, [showToast])
+  const filtered = entries.filter(d => {
     const ms = d.ledger.toLowerCase().includes(search.toLowerCase()) || d.vNo.toLowerCase().includes(search.toLowerCase()) || d.narration.toLowerCase().includes(search.toLowerCase())
     return ms && (typeFilter === 'all' || d.vType === typeFilter)
   })
@@ -45,7 +52,7 @@ export default function DayBook() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Day Book</h1>
           <p className="text-sm text-slate-400 mt-1">{filtered.length} entries | March 2026</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('day-book')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>

@@ -21,8 +21,8 @@ export default function EInvoice() {
         <div><h1 className="text-2xl font-bold tracking-tight text-white">e-Invoice (IRN Generation)</h1>
           <p className="text-sm text-slate-400 mt-1">Generate IRN for B2B invoices | NIC Portal</p></div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium border border-slate-700"><RefreshCw size={16} /> Sync Status</button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md"><Zap size={16} /> Generate IRN ({sel.length})</button>
+          <button disabled title="Configure NIC e-Invoice credentials to sync IRN status" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium border border-slate-700 opacity-50 cursor-not-allowed"><RefreshCw size={16} /> Sync Status</button>
+          <button disabled title="Configure NIC e-Invoice credentials before generating an IRN" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold shadow-md opacity-50 cursor-not-allowed"><Zap size={16} /> Generate IRN ({sel.length})</button>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

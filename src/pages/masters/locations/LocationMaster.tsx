@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react'
 import { Plus, Search, Edit2, Trash2, Warehouse } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useEffect } from 'react'
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 
 interface Location { id: string; name: string; type: string; address: string; capacity: number; used: number; status: string }
 
@@ -18,9 +21,19 @@ const TYPE_STYLE: Record<string, string> = {
 }
 
 export default function LocationMaster() {
+  const [locations, setLocations] = useState<Location[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const filtered = DATA.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.type.toLowerCase().includes(search.toLowerCase()))
+  const [name, setName] = useState('')
+  const [type, setType] = useState('Store Room')
+  const [address, setAddress] = useState('')
+  const [capacity, setCapacity] = useState(0)
+  const addToast = useUIStore((s) => s.addToast)
+  useEffect(() => { getErp<Location[]>('warehouses').then(setLocations).catch((e) => addToast(e.message, 'error')) }, [addToast])
+  const filtered = locations.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.type.toLowerCase().includes(search.toLowerCase()))
+  const saveLocation = async (e: React.FormEvent) => { e.preventDefault(); try { const created = await postErp<Location>('warehouses', { name, type, address, capacity }); setLocations((rows) => [...rows, created]); setName(''); setAddress(''); setCapacity(0); setShowModal(false); addToast('Location saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save location', 'error') } }
+  const editLocation = async (location: Location) => { const nextName = window.prompt('Location name', location.name); if (!nextName) return; try { await patchErp('warehouses', location.id, { name: nextName }); setLocations((rows) => rows.map((row) => row.id === location.id ? { ...row, name: nextName } : row)); addToast('Location updated', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to update location', 'error') } }
+  const removeLocation = async (location: Location) => { if (!window.confirm(`Delete ${location.name}?`)) return; try { await deleteErp('warehouses', location.id); setLocations((rows) => rows.filter((row) => row.id !== location.id)); addToast('Location deleted', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to delete location', 'error') } }
 
   return (
     <div className="p-6 space-y-4">
@@ -43,19 +56,19 @@ export default function LocationMaster() {
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className={cn('h-full rounded-full transition-all', pct > 80 ? 'bg-rose-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: pct + '%' }} /></div>
             </div>
             <div className="flex items-center justify-between text-xs"><span className={cn('font-semibold', pct > 80 ? 'text-rose-400' : pct > 60 ? 'text-amber-400' : 'text-emerald-400')}>{pct}% utilized</span>
-              <div className="flex gap-1"><button className="p-1 hover:text-white text-slate-400"><Edit2 size={12} /></button><button className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={12} /></button></div>
+              <div className="flex gap-1"><button aria-label={`Edit ${l.name}`} onClick={() => editLocation(l)} className="p-1 hover:text-white text-slate-400"><Edit2 size={12} /></button><button aria-label={`Delete ${l.name}`} onClick={() => removeLocation(l)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={12} /></button></div>
             </div>
           </div>)
         })}
       </div>
       {showModal && (<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50"><div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6">
         <h3 className="text-lg font-bold text-white mb-4">Add Location</h3>
-        <form onSubmit={(e) => { e.preventDefault(); setShowModal(false) }} className="space-y-4">
-          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Name</label><input type="text" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
+        <form onSubmit={saveLocation} className="space-y-4">
+          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Name</label><input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Type</label>
-            <select className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"><option>Store Room</option><option>Godown</option><option>Block Room</option></select></div>
-          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Address</label><input type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
-          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Capacity (units)</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
+            <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"><option>Store Room</option><option>Godown</option><option>Block Room</option></select></div>
+          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Address</label><input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
+          <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Capacity (units)</label><input type="number" min="0" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /></div>
           <div className="flex justify-end gap-3 pt-4"><button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
             <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md">Save</button></div>
         </form></div></div>)}
