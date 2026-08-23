@@ -119,7 +119,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="admin@pharmaerp.com"
+                placeholder="you@company.com"
                 autoComplete="username"
                 autoFocus
                 required
