@@ -1,14 +1,14 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Search, Plus, Eye } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect } from 'react'
-import { getErp, postErp } from '../../lib/erpApi'
+import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
 interface ReturnEntry { id: string; returnNo: string; date: string; party: string; origInvoice: string; items: number; total: number; reason: string; status: string }
 
 const STATUS_STYLE: Record<string, string> = {
-  processed: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400', rejected: 'bg-rose-500/10 text-rose-400',
+  processed: 'bg-emerald-500/10 text-emerald-400', posted: 'bg-emerald-500/10 text-emerald-400', pending: 'bg-amber-500/10 text-amber-400', rejected: 'bg-rose-500/10 text-rose-400',
 }
 
 export default function SaleReturn() {
@@ -68,7 +68,28 @@ export default function SaleReturn() {
                 <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
                 <td className="px-4 py-3 text-slate-400">{s.reason}</td>
                 <td className="px-4 py-3">
-                  <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>{s.status}</span>
+                  <select
+                    aria-label={`Change status of ${s.returnNo}`}
+                    value={s.status}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value
+                      try {
+                        await patchErp('sale-returns', s.id, { status: newStatus })
+                        showToast('Status updated successfully.')
+                        await load()
+                      } catch (err: any) {
+                        showToast(err.message || 'Failed to update status.')
+                      }
+                    }}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[10px] font-semibold capitalize border border-transparent bg-slate-950 text-white outline-none focus:border-indigo-500 cursor-pointer',
+                      STATUS_STYLE[s.status]
+                    )}
+                  >
+                    <option value="pending" className="bg-slate-900 text-amber-400 font-semibold">Pending</option>
+                    <option value="processed" className="bg-slate-900 text-emerald-400 font-semibold">Processed</option>
+                    <option value="rejected" className="bg-slate-900 text-rose-400 font-semibold">Rejected</option>
+                  </select>
                 </td>
                 <td className="px-4 py-3 text-right"><button aria-label={`Print ${s.returnNo}`} onClick={() => window.print()} className="p-1 hover:text-white text-slate-400"><Eye size={14} /></button></td>
               </tr>

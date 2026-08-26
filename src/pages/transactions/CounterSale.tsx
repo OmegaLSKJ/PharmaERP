@@ -1,9 +1,11 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { ShoppingCart, Trash2, Banknote, Smartphone } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import Typeahead from '../../components/ui/Typeahead'
 import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import PrintHeader from '../../components/layout/PrintHeader'
 
 export default function CounterSale() {
   const [available, setAvailable] = useState<Array<{name:string;rate:number;batch:string;stock:number;gst:number}>>([])
@@ -21,9 +23,31 @@ export default function CounterSale() {
   const complete = async () => { setSaving(true); try { const invoice = await postErp<{id:string}>('sales', { party:'Walk-in Customer', total, paymentMode:pay, lines:cart.map((line) => ({ ...line, freeQty:0, discount:0, gstRate:line.gst, amount:line.qty*line.rate })) }); showToast(`Counter invoice ${invoice.id} posted.`); setCart([]); setTimeout(() => window.print(), 0) } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to complete counter sale.') } finally { setSaving(false) } }
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+      <div className="lg:col-span-3">
+        <PrintHeader title="Counter Sale Receipt" />
+      </div>
       <div className="lg:col-span-2 space-y-3">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Counter Sale (POS)</h1>
           <p className="text-sm text-slate-400 mt-1">Walk-in customer | Quick billing</p></div>
+        
+        <div className="relative z-20 bg-slate-900/40 p-4 border border-slate-800 rounded-xl space-y-2">
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Search & Add Medicine</label>
+          <Typeahead
+            options={available.map(i => ({
+              label: i.name,
+              sub: `Batch: ${i.batch} | Stock: ${i.stock}`,
+              right: formatCurrency(i.rate)
+            }))}
+            value=""
+            onSelect={(opt) => {
+              const selectedItem = available.find(i => i.name === opt.label && `Batch: ${i.batch} | Stock: ${i.stock}` === opt.sub)
+              if (selectedItem) add(selectedItem)
+            }}
+            placeholder="Type medicine name to quickly add to cart..."
+          />
+        </div>
+
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Quick Add Items</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {available.map(i=>(<button key={`${i.name}-${i.batch}`} onClick={()=>add(i)} className="bg-slate-900/50 border border-slate-800 hover:border-indigo-500 rounded-xl p-4 text-left transition">
             <div className="text-sm font-medium text-white truncate">{i.name}</div>
@@ -50,6 +74,25 @@ export default function CounterSale() {
             <button onClick={()=>setPay('cash')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='cash'?'bg-emerald-600 text-white':'bg-slate-950 text-slate-400')}><Banknote size={14}/>Cash</button>
             <button onClick={()=>setPay('upi')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='upi'?'bg-indigo-600 text-white':'bg-slate-950 text-slate-400')}><Smartphone size={14}/>UPI</button>
           </div>
+
+          {pay === 'upi' && total > 0 && (
+            <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-center space-y-2.5">
+              <div className="text-xs font-semibold text-indigo-400">Scan to Pay via UPI</div>
+              <div className="bg-white p-2.5 rounded-lg inline-block shadow-sm">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
+                    `upi://pay?pa=pay@borgang.upi&pn=Borgang%20Drug%20Distributors&am=${total.toFixed(2)}&cu=INR&tn=POS-Payment`
+                  )}`}
+                  alt="UPI Payment QR Code"
+                  className="w-[140px] h-[140px] object-contain"
+                />
+              </div>
+              <div className="text-[10px] text-slate-400">
+                Locked Amount: <span className="font-mono font-bold text-white">{formatCurrency(total)}</span>
+              </div>
+            </div>
+          )}
+
           <button onClick={complete} disabled={cart.length===0 || saving} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-lg text-sm font-semibold shadow-md">{saving ? 'Posting…' : 'Print Bill & Complete'}</button>
         </div>
       </div>

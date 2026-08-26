@@ -10,7 +10,7 @@ const tasks = [
 export default function MobileHome() {
   return (
     <SafeAreaView style={styles.screen}>
-      <Text style={styles.eyebrow}>PHARMAERP · FIELD OPERATIONS</Text>
+      <Text style={styles.eyebrow}>BORGANG DRUG DISTRIBUTORS · FIELD OPERATIONS</Text>
       <Text style={styles.title}>Good morning</Text>
       <Text style={styles.copy}>Fast, focused work for the warehouse and delivery teams.</Text>
       <View style={styles.list}>

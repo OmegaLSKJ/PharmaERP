@@ -33,7 +33,7 @@ export async function listManagedUsers() {
   const client = adminClient()
   const { data, error } = await client.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (error) throw new Error('Unable to load users.')
-  return data.users.map(view).sort((a, b) => a.email.localeCompare(b.email))
+  return data.users.map(view).sort((a: any, b: any) => a.email.localeCompare(b.email))
 }
 
 export async function inviteManagedUser(input: { email: string; name: string; role: ManagedUserRole; redirectTo: string }) {
@@ -60,7 +60,7 @@ export async function updateManagedUser(id: string, input: { role?: ManagedUserR
   if (currentError || !currentData.user) throw new Error('User was not found.')
   if (currentData.user.app_metadata?.role === 'admin' && (input.role && input.role !== 'admin' || input.active === false)) {
     const users = await listManagedUsers()
-    if (users.filter((user) => user.role === 'admin' && user.status !== 'disabled').length <= 1) throw new Error('At least one active administrator is required.')
+    if (users.filter((user: any) => user.role === 'admin' && user.status !== 'disabled').length <= 1) throw new Error('At least one active administrator is required.')
   }
   const attributes: any = {}
   if (input.role) attributes.app_metadata = { ...currentData.user.app_metadata, role: input.role }
@@ -77,7 +77,7 @@ export async function removeManagedUser(id: string, actorId: string) {
   if (currentError || !currentData.user) throw new Error('User was not found.')
   if (currentData.user.app_metadata?.role === 'admin') {
     const users = await listManagedUsers()
-    if (users.filter((user) => user.role === 'admin' && user.status !== 'disabled').length <= 1) throw new Error('The last active administrator cannot be removed.')
+    if (users.filter((user: any) => user.role === 'admin' && user.status !== 'disabled').length <= 1) throw new Error('The last active administrator cannot be removed.')
   }
   const { error } = await client.auth.admin.deleteUser(id, false)
   if (error) throw new Error(error.message)

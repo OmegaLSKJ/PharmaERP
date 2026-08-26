@@ -6,18 +6,75 @@ type Line = { name: string; batch: string; qty: number; rate: number; amount?: n
 export type MutationActor = { id?: string; email?: string; requestId?: string }
 const date = () => new Date().toISOString().slice(0, 10)
 const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
+
+// OPTION B: In-memory mock database state for local offline development
+const mockStore: Record<string, any[]> = {
+  parties: [
+    { id: 'p1', code: 'PTY-001', name: 'Apollo Pharmacy', type: 'customer', phone: '9876543210', email: 'apollo@pharmacy.com', city: 'Mumbai', gstin: '27AAAAA1111A1Z1', balance: 12500, creditLimit: 50000, lastSale: '2026-08-25', status: 'active' },
+    { id: 'p2', code: 'PTY-002', name: 'MedPlus Chemist', type: 'customer', phone: '9876543211', email: 'medplus@chemist.com', city: 'Delhi', gstin: '07BBBBB2222B2Z2', balance: 8450, creditLimit: 40000, lastSale: '2026-08-25', status: 'active' },
+    { id: 'p3', code: 'PTY-003', name: 'Cipla Logistics', type: 'supplier', phone: '9876543212', email: 'cipla@logistics.com', city: 'Pune', gstin: '27CCCCC3333C3Z3', balance: -35000, creditLimit: 200000, lastSale: '2026-08-20', status: 'active' }
+  ],
+  items: [
+    { id: 'i1', code: 'ITM-001', name: 'Paracetamol 650mg', packing: '10x15 Tabs', manufacturer: 'Cipla Ltd', salt: 'Paracetamol', hsn: '30049011', gstRate: 12, mrp: 20, saleRate: 15, purchaseRate: 12, scheduleClass: 'OTC', prescriptionRequired: false, coldChain: false, controlledSubstance: false, recalled: false, stock: 120, batches: [{ id: 'b1', batch: 'PCT-0192', expiry: '2026-09-30', mrp: 20, stock: 120, stockByLocation: { 'Main Warehouse': 120 } }], batchCount: 1, category: 'Analgesic', status: 'active' },
+    { id: 'i2', code: 'ITM-002', name: 'Amoxicillin 500mg', packing: '10x10 Caps', manufacturer: 'GlaxoSmithKline', salt: 'Amoxicillin', hsn: '30041010', gstRate: 18, mrp: 60, saleRate: 48, purchaseRate: 38, scheduleClass: 'Rx', prescriptionRequired: true, coldChain: false, controlledSubstance: false, recalled: false, stock: 45, batches: [{ id: 'b2', batch: 'AMX-8821', expiry: '2026-09-15', mrp: 60, stock: 45, stockByLocation: { 'Main Warehouse': 45 } }], batchCount: 1, category: 'Antibiotic', status: 'active' }
+  ],
+  hsn: [
+    { id: 'h1', code: '30049011', description: 'Formulations of Paracetamol', gst_rate: 12 },
+    { id: 'h2', code: '30041010', description: 'Penicillins / Amoxicillin', gst_rate: 18 }
+  ],
+  manufacturers: [
+    { id: 'm1', name: 'Cipla Ltd', code: 'CIPLA', is_active: true },
+    { id: 'm2', name: 'GlaxoSmithKline', code: 'GSK', is_active: true }
+  ],
+  salts: [
+    { id: 's1', code: 'SALT-001', name: 'Paracetamol', composition: 'N-(4-hydroxyphenyl)acetamide', category: 'Analgesic', itemcount: 1 },
+    { id: 's2', code: 'SALT-002', name: 'Amoxicillin', composition: 'Amoxicillin Trihydrate', category: 'Antibiotic', itemcount: 1 }
+  ],
+  warehouses: [
+    { id: 'w1', code: 'MAIN', name: 'Main Warehouse', type: 'Distribution Center', address: 'Bldg 4, Sector 2, MIDC', capacity: 10000, used: 165, status: 'active' }
+  ],
+  accounts: [
+    { id: 'a1', code: 'ACC-CASH', name: 'Cash Account', group: 'Cash-in-hand', balance: 45000, type: 'Dr', active: true },
+    { id: 'a2', code: 'ACC-HDFC', name: 'HDFC Bank', group: 'Bank Accounts', balance: 280000, type: 'Dr', active: true }
+  ],
+  series: [
+    { id: 'se1', doc: 'Sale Invoice', prefix: 'SI-', suffix: '', nextNo: 5, padding: 4, fyReset: true, active: true }
+  ],
+  'communication-blocks': [
+    { id: 'cb1', type: 'email', value: 'spammer@unreliable.com', reason: 'Bounced multiple times', blockedOn: '2026-08-20' }
+  ],
+  vouchers: [
+    { id: 'v1', voucher_type: 'journal', voucher_number: 'VCH-2026-0001', voucher_date: '2026-08-25', status: 'posted', narration: 'Daily sales transfer' }
+  ],
+  ledgers: [
+    { id: 'l1', party: 'Apollo Pharmacy', date: '2026-08-25', vType: 'sale', vNo: 'SI-2026-0001', debit: 12500, credit: 0, narration: 'Sales posted' }
+  ],
+  sales: [
+    { id: 's1', number: 'SI-2026-0002', party: 'MedPlus Chemist', date: '2026-08-25', status: 'pending', items: 2, total: 8450 },
+    { id: 's2', number: 'SI-2026-0003', party: 'Apollo Pharmacy', date: '2026-08-26', status: 'posted', items: 1, total: 3200 }
+  ],
+  purchases: [
+    { id: 'pu1', number: 'PB-2026-0001', party: 'Cipla Logistics', date: '2026-08-20', status: 'received', items: 5, total: 35000 }
+  ],
+  challans: [
+    { id: 'ch1', number: 'CH-2026-0001', party: 'Apollo Pharmacy', date: '2026-08-24', transport: 'Express Cargo', status: 'delivered' }
+  ],
+  orders: []
+}
+
 function db() {
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error('Supabase server credentials are not configured.')
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
+
 async function context() {
   const client = db()
-  const { data: found, error } = await client.from('organizations').select('id').eq('name', 'PharmaERP').maybeSingle()
+  const { data: found, error } = await client.from('organizations').select('id').eq('name', 'Borgang Drug Distributors').maybeSingle()
   if (error) throw error
-  const organizationId = found?.id ?? (await client.from('organizations').insert({ name: 'PharmaERP' }).select('id').single()).data?.id
-  if (!organizationId) throw new Error('Unable to initialize PharmaERP.')
+  const organizationId = found?.id ?? (await client.from('organizations').insert({ name: 'Borgang Drug Distributors' }).select('id').single()).data?.id
+  if (!organizationId) throw new Error('Unable to initialize Borgang Drug Distributors.')
   const year = new Date().getFullYear()
   const { data: fy, error: fyError } = await client.from('financial_years').upsert({ organization_id: organizationId, starts_on: `${year}-04-01`, ends_on: `${year + 1}-03-31` }, { onConflict: 'organization_id,starts_on' }).select('id').single()
   if (fyError) throw fyError
@@ -26,6 +83,7 @@ async function context() {
   if (seriesError) throw seriesError
   return { client, organizationId, financialYearId: fy.id }
 }
+
 async function party(client: ReturnType<typeof db>, organizationId: string, name: string, partyType: 'customer' | 'supplier' = 'customer') {
   const { data } = await client.from('parties').select('id').eq('organization_id', organizationId).eq('legal_name', name).maybeSingle()
   if (data) return data.id
@@ -33,6 +91,7 @@ async function party(client: ReturnType<typeof db>, organizationId: string, name
   if (error) throw error
   return created.id
 }
+
 async function account(client: ReturnType<typeof db>, organizationId: string, name: string, partyId?: string) {
   const { data } = await client.from('chart_of_accounts').select('id').eq('organization_id', organizationId).eq('name', name).maybeSingle()
   if (data) return data.id
@@ -40,6 +99,7 @@ async function account(client: ReturnType<typeof db>, organizationId: string, na
   if (error) throw error
   return created.id
 }
+
 async function stock(client: ReturnType<typeof db>, organizationId: string, line: Line) {
   const { data: i } = await client.from('items').select('id').eq('organization_id', organizationId).eq('name', line.name).maybeSingle()
   const itemId = i?.id ?? (await client.from('items').insert({ organization_id: organizationId, code: `ITM-${Date.now()}`, name: line.name, mrp: +line.rate, sale_rate: +line.rate }).select('id').single()).data?.id
@@ -51,8 +111,119 @@ async function stock(client: ReturnType<typeof db>, organizationId: string, line
   if (!itemId || !batchId || !warehouseId) throw new Error('Unable to create inventory data.')
   return { itemId, batchId, warehouseId }
 }
+
 export async function list(resource: string, partyName?: string) {
-  const { client, organizationId, financialYearId } = await context()
+  // Option B: Fallback when Supabase env variables are missing
+  if (!process.env.SUPABASE_URL) {
+    if (resource === 'dashboard') {
+      const activeItems = mockStore.items.filter((x: any) => x.status === 'active').length
+      const salesVal = mockStore.sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0) + 482000
+      const purchasesVal = mockStore.purchases.reduce((sum: number, p: any) => sum + (p.total || 0), 0) + 320000
+      const pendingInvoices = mockStore.sales.filter((s: any) => s.status === 'pending' || s.status === 'draft').length + 2
+
+      const salesData = [
+        { month: '2026-01', sale: 32000, purchase: 25000 },
+        { month: '2026-02', sale: 45000, purchase: 28000 },
+        { month: '2026-03', sale: 60000, purchase: 35000 },
+        { month: '2026-04', sale: 55000, purchase: 30000 },
+        { month: '2026-05', sale: 72000, purchase: 42000 },
+        { month: '2026-06', sale: 90000, purchase: 50000 },
+        { month: '2026-07', sale: 85000, purchase: 48000 },
+        { month: '2026-08', sale: salesVal, purchase: purchasesVal }
+      ]
+
+      return {
+        kpis: { sales: salesVal, purchases: purchasesVal, activeItems, pendingInvoices },
+        salesData,
+        topItems: [
+          { name: 'Paracetamol 650mg', qty: 1200, amount: 24000 },
+          { name: 'Amoxicillin 500mg', qty: 800, amount: 48000 }
+        ],
+        recentInvoices: (() => {
+          const fromSales = mockStore.sales.map((s: any) => ({ id: s.number || s.id, party: s.party, amount: s.total, date: s.date, status: s.status }))
+          const extras = [
+            { id: 'SI-2026-0001', party: 'Apollo Pharmacy', amount: 12500, date: '2026-08-25', status: 'paid' },
+            { id: 'SI-2026-0003', party: 'MedPlus Chemist', amount: 8450, date: '2026-08-25', status: 'pending' }
+          ]
+          const seen = new Set(fromSales.map((s: any) => s.id))
+          return [...fromSales, ...extras.filter((e) => !seen.has(e.id))]
+        })(),
+        expiryAlerts: [
+          { item: 'Amoxicillin 500mg', batch: 'AMX-8821', expiry: '2026-09-15', qty: 45 },
+          { item: 'Paracetamol 650mg', batch: 'PCT-0192', expiry: '2026-09-30', qty: 120 }
+        ]
+      }
+    }
+    if (resource === 'report-financial') return mockStore.accounts.map((a: any) => ({ ledger: a.name, group: a.group, debit: a.type === 'Dr' ? a.balance : 0, credit: a.type === 'Cr' ? a.balance : 0, balance: a.type === 'Cr' ? -a.balance : a.balance }))
+    if (resource === 'report-stock') return mockStore.items.flatMap((i: any) => (i.batches || []).map((b: any) => ({ name: i.name, batch: b.batch, expiry: b.expiry, qty: b.stock, reserved: 0, location: Object.keys(b.stockByLocation || {})[0] || 'Main Warehouse', schedule: i.scheduleClass, recalled: i.recalled, mrp: b.mrp, rate: i.purchaseRate })))
+    if (resource === 'report-sales') return { monthlySales: [{ month: '2026-08', value: 482000 }], topParties: [{ name: 'Apollo Pharmacy', sales: 482000, growth: 5 }], topItems: [{ name: 'Paracetamol 650mg', qty: 1200, revenue: 24000, margin: 40 }], categories: [{ name: 'Analgesic', value: 24000 }], units: 1200 }
+    if (resource === 'report-purchases') return { monthlyPurchases: [{ month: '2026-08', value: 320000 }], topSuppliers: [{ name: 'Cipla Logistics', purchases: 320000, growth: 0 }], activeSuppliers: 1 }
+
+    if (resource === 'ledgers') {
+      const mappedVls = (mockStore.ledgers ?? []).map((v: any) => ({
+        id: v.id,
+        party: v.party,
+        date: v.date,
+        vType: v.vType,
+        vNo: v.vNo,
+        debit: +v.debit,
+        credit: +v.credit,
+        narration: v.narration ?? 'Voucher posted'
+      }))
+
+      const mappedSales = (mockStore.sales ?? []).map((s: any) => ({
+        id: s.id || s.number,
+        party: s.party,
+        date: s.date,
+        vType: 'sale',
+        vNo: s.number || s.id,
+        debit: Number(s.total || s.grand_total || 0),
+        credit: 0,
+        narration: s.narration || `Sales Invoice - Status: ${s.status || 'posted'}`
+      }))
+
+      const mappedPurchases = (mockStore.purchases ?? []).map((p: any) => ({
+        id: p.id || p.number,
+        party: p.party,
+        date: p.date,
+        vType: 'purchase',
+        vNo: p.number || p.id,
+        debit: 0,
+        credit: Number(p.total || p.grand_total || 0),
+        narration: p.narration || `Purchase Invoice - Status: ${p.status || 'posted'}`
+      }))
+
+      const mappedChallans = (mockStore.challans ?? []).map((ch: any) => ({
+        id: ch.id || ch.number,
+        party: ch.party,
+        date: ch.date,
+        vType: 'challan',
+        vNo: ch.number || ch.id,
+        debit: 0,
+        credit: 0,
+        narration: ch.narration || `Delivery Challan - Status: ${ch.status || 'posted'}`
+      }))
+
+      const all = [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]
+      return all.filter((v) => !partyName || v.party === partyName)
+    }
+
+    if (mockStore[resource]) {
+      return mockStore[resource]
+    }
+
+    const specialKeys: Record<string, string> = {
+      'sale-returns': 'sales',
+      'purchase-returns': 'purchases',
+      'communication-blocks': 'communication-blocks'
+    }
+    if (specialKeys[resource] && mockStore[specialKeys[resource]]) {
+      return mockStore[specialKeys[resource]]
+    }
+    return []
+  }
+
+  const { client, organizationId } = await context()
   if (resource === 'dashboard') {
     const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { data: items, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
       client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name))').eq('organization_id', organizationId).neq('status', 'cancelled').order('invoice_date', { ascending: false }),
@@ -101,7 +272,66 @@ export async function list(resource: string, partyName?: string) {
   if (resource === 'purchases') { const { data, error } = await client.from('purchase_invoices').select('id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(count)').eq('organization_id', organizationId).order('invoice_date', { ascending: false }); if (error) throw error; return (data ?? []).map((v: any) => ({ id: v.invoice_number, dbId: v.id, supplierInvoice: v.supplier_invoice_number ?? '', party: v.parties?.legal_name ?? '', date: v.invoice_date, status: v.status === 'posted' ? 'received' : v.status, items: Number(v.purchase_invoice_lines?.[0]?.count ?? 0), total: Number(v.grand_total) })) }
   if (resource === 'challans') { const { data, error } = await client.from('delivery_challans').select('id,challan_number,challan_date,transport_name,status,parties(legal_name)').eq('organization_id', organizationId).order('challan_date', { ascending: false }); if (error) throw error; return (data ?? []).map((v: any) => ({ id: v.challan_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.challan_date, transport: v.transport_name ?? '', status: v.status })) }
   if (resource === 'vouchers') { const { data, error } = await client.from('vouchers').select('*').order('voucher_date', { ascending: false }); if (error) throw error; return data }
-  if (resource === 'ledgers') { const { data, error } = await client.from('voucher_lines').select('id,debit,credit,narration,vouchers!inner(voucher_date,voucher_number,voucher_type),chart_of_accounts!inner(name)'); if (error) throw error; return (data ?? []).filter((v: any) => !partyName || v.chart_of_accounts.name === partyName).map((v: any) => ({ id: v.id, party: v.chart_of_accounts.name, date: v.vouchers.voucher_date, vType: v.vouchers.voucher_type, vNo: v.vouchers.voucher_number, debit: +v.debit, credit: +v.credit, narration: v.narration ?? '' })) }
+  if (resource === 'ledgers') {
+    const { data: voucherLines, error: vlError } = await client.from('voucher_lines').select('id,debit,credit,narration,vouchers!inner(voucher_date,voucher_number,voucher_type),chart_of_accounts!inner(name)')
+    if (vlError) throw vlError
+
+    const { data: sales, error: sError } = await client.from('sales_invoices').select('id,invoice_number,invoice_date,grand_total,status,parties(legal_name)').neq('status', 'cancelled')
+    if (sError) throw sError
+
+    const { data: purchases, error: pError } = await client.from('purchase_invoices').select('id,invoice_number,invoice_date,grand_total,status,parties(legal_name)').neq('status', 'cancelled')
+    if (pError) throw pError
+
+    const { data: challans, error: cError } = await client.from('delivery_challans').select('id,challan_number,challan_date,status,parties(legal_name)').neq('status', 'cancelled')
+    if (cError) throw cError
+
+    const mappedVls = (voucherLines ?? []).map((v: any) => ({
+      id: v.id,
+      party: v.chart_of_accounts.name,
+      date: v.vouchers.voucher_date,
+      vType: v.vouchers.voucher_type,
+      vNo: v.vouchers.voucher_number,
+      debit: +v.debit,
+      credit: +v.credit,
+      narration: v.narration ?? 'Voucher posted'
+    }))
+
+    const mappedSales = (sales ?? []).map((s: any) => ({
+      id: s.id,
+      party: s.parties?.legal_name ?? 'Unknown Customer',
+      date: s.invoice_date,
+      vType: 'sale',
+      vNo: s.invoice_number,
+      debit: +s.grand_total,
+      credit: 0,
+      narration: `Sales Invoice - Status: ${s.status}`
+    }))
+
+    const mappedPurchases = (purchases ?? []).map((p: any) => ({
+      id: p.id,
+      party: p.parties?.legal_name ?? 'Unknown Supplier',
+      date: p.invoice_date,
+      vType: 'purchase',
+      vNo: p.invoice_number,
+      debit: 0,
+      credit: +p.grand_total,
+      narration: `Purchase Invoice - Status: ${p.status}`
+    }))
+
+    const mappedChallans = (challans ?? []).map((ch: any) => ({
+      id: ch.id,
+      party: ch.parties?.legal_name ?? 'Unknown Party',
+      date: ch.challan_date,
+      vType: 'challan',
+      vNo: ch.challan_number,
+      debit: 0,
+      credit: 0,
+      narration: `Delivery Challan - Status: ${ch.status}`
+    }))
+
+    const all = [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]
+    return all.filter((v) => !partyName || v.party === partyName)
+  }
   throw new Error('Unknown ERP resource.')
 }
 
@@ -182,9 +412,100 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
 }
 
 export async function create(resource: string, body: any, actor: MutationActor = {}) {
+  // Option B: Fallback when Supabase env variables are missing
+  if (!process.env.SUPABASE_URL) {
+    const id = `MOCK-${Date.now()}`
+    const record = { ...body, id, code: body.code || `C-${Date.now()}`, status: 'active', balance: 0, created_at: date() }
+
+    if (resource === 'cancellations') {
+      const kind = String(body.kind || 'sales')
+      const targetId = String(body.id)
+      const reason = String(body.reason || '')
+      const storeKey = kind === 'sales' ? 'sales' : kind === 'purchases' ? 'purchases' : kind === 'challans' ? 'challans' : ''
+      if (storeKey && mockStore[storeKey]) {
+        const found = mockStore[storeKey].find((x: any) => x.id === targetId || x.number === targetId || x.dbId === targetId)
+        if (found) {
+          found.status = 'cancelled'
+          found.narration = `Cancelled - Reason: ${reason}`
+        }
+      }
+      return { id: targetId, status: 'cancelled' }
+    }
+
+    if (resource === 'parties') {
+      const party = { id, code: body.code || `PTY-${Date.now()}`, name: body.name, type: body.type || 'customer', phone: body.phone || '', email: body.email || '', city: body.city || '', gstin: body.gstin || '', balance: 0, creditLimit: Number(body.creditLimit || 0), lastSale: '', status: 'active' }
+      mockStore.parties.push(party)
+      return party
+    }
+    if (resource === 'items') {
+      const item = { id, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || '', manufacturer: body.manufacturer || '', salt: body.salt || '', hsn: body.hsn || '', gstRate: Number(body.gstRate || 0), mrp: Number(body.mrp || 0), saleRate: Number(body.saleRate || 0), purchaseRate: Number(body.purchaseRate || 0), scheduleClass: body.scheduleClass || 'OTC', prescriptionRequired: Boolean(body.prescriptionRequired), coldChain: Boolean(body.coldChain), controlledSubstance: Boolean(body.controlledSubstance), recalled: false, stock: 0, batches: [], batchCount: 0, category: 'Medicine', status: 'active' }
+      mockStore.items.push(item)
+      return item
+    }
+    if (resource === 'hsn') {
+      const hsn = { id, code: body.code, description: body.description || '', gst_rate: Number(body.gstRate || 0) }
+      mockStore.hsn.push(hsn)
+      return hsn
+    }
+    if (resource === 'manufacturers') {
+      const mfr = { id, name: body.name, code: body.code || '', is_active: body.status !== 'inactive' }
+      mockStore.manufacturers.push(mfr)
+      return mfr
+    }
+    if (resource === 'salts') {
+      const salt = { id, code: body.code || `SALT-${Date.now()}`, name: body.name, composition: body.composition || '', category: body.category || '', itemcount: 0 }
+      mockStore.salts.push(salt)
+      return salt
+    }
+    if (resource === 'warehouses') {
+      const wh = { id, code: body.code || `WH-${Date.now()}`, name: body.name, type: body.type || 'Store Room', address: body.address || '', capacity: Number(body.capacity || 0), used: 0, status: 'active' }
+      mockStore.warehouses.push(wh)
+      return wh
+    }
+    if (resource === 'accounts') {
+      const acc = { id, code: body.code || `ACC-${Date.now()}`, name: body.name, group: body.group || 'General', balance: Number(body.openingBalance || 0), type: Number(body.openingBalance || 0) < 0 ? 'Cr' : 'Dr', active: true }
+      mockStore.accounts.push(acc)
+      return acc
+    }
+    if (resource === 'series') {
+      const ser = { id, doc: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', nextNo: Number(body.nextNo || 1), padding: Number(body.padding || 4), fyReset: body.fyReset !== false, active: body.active !== false }
+      mockStore.series.push(ser)
+      return ser
+    }
+
+    const specialKeys: Record<string, string> = {
+      'sale-returns': 'sales',
+      'purchase-returns': 'purchases',
+      'communication-blocks': 'communication-blocks',
+      sales: 'sales',
+      purchases: 'purchases',
+      challans: 'challans',
+      orders: 'orders',
+      vouchers: 'vouchers'
+    }
+    const storeKey = specialKeys[resource] || resource
+    if (mockStore[storeKey]) {
+      const doc = { ...body, id, number: body.number || body.id || number('MOCK'), date: body.date || date(), status: body.status || 'posted', total: Number(body.total || 0) }
+      mockStore[storeKey].unshift(doc)
+      return doc
+    }
+
+    return record
+  }
+
   const { client, organizationId, financialYearId } = await context()
   if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows, actor)
-  if (resource === 'cancellations') { if (!['sales','purchases'].includes(body.kind) || !body.id) throw new Error('Invoice kind and database id are required.'); const { error } = await client.rpc('erp_cancel_invoice',{ p_kind:body.kind,p_organization_id:organizationId,p_invoice_id:body.id,p_reason:body.reason ?? '',p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null }); if(error) throw error; return { id:body.id,status:'cancelled' } }
+  if (resource === 'cancellations') {
+    if (body.kind === 'challans') {
+      const { error } = await client.from('delivery_challans').update({ status: 'cancelled' }).eq('id', body.id).eq('organization_id', organizationId)
+      if (error) throw error
+      return { id: body.id, status: 'cancelled' }
+    }
+    if (!['sales','purchases'].includes(body.kind) || !body.id) throw new Error('Invoice kind and database id are required.');
+    const { error } = await client.rpc('erp_cancel_invoice',{ p_kind:body.kind,p_organization_id:organizationId,p_invoice_id:body.id,p_reason:body.reason ?? '',p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null });
+    if(error) throw error;
+    return { id:body.id,status:'cancelled' }
+  }
   if (resource === 'inventory-adjustments') { const { data,error }=await client.rpc('erp_post_inventory_adjustment',{p_organization_id:organizationId,p_document:body,p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null}); if(error) throw error; return data }
   if (resource === 'parties') {
     if (!body.name) throw new Error('Party name is required.')
@@ -206,7 +527,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const prepared: Array<{ batchId: string; warehouseId: string; qty: number; name: string }> = []
     for (const line of body.lines) { const resolved = await stock(client, organizationId, { ...line, rate: line.rate ?? 0 }); const { data: movements, error: movementError } = await client.from('stock_movements').select('quantity').eq('item_batch_id', resolved.batchId).eq('warehouse_id', resolved.warehouseId); if (movementError) throw movementError; const available = (movements ?? []).reduce((sum, movement) => sum + Number(movement.quantity), 0); if (available < Number(line.qty)) throw new Error(`Only ${available} units of ${line.name} are available.`); prepared.push({ batchId: resolved.batchId, warehouseId: resolved.warehouseId, qty: Number(line.qty), name: line.name }) }
     const { data: document, error: documentError } = await client.from('business_documents').insert({ organization_id: organizationId, document_type: 'breakage', document_number: documentNumber, document_date: body.date || date(), status: 'posted', total: Number(body.total || 0), details: body }).select('id').single(); if (documentError) throw documentError
-    for (const row of prepared) { const { error } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: row.batchId, warehouse_id: row.warehouseId, movement_type: body.entryType === 'expiry' ? 'expiry' : 'breakage', quantity: -Math.abs(row.qty), source_type: 'breakage', source_id: document.id, remarks: body.remark || null }); if (error) throw error }
+    for (const row of prepared) { const { error } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: row.batchId, warehouse_id: row.warehouseId, movement_type: body.entryType === 'expiry' ? 'expiry' : 'breakage', quantity: -Math.abs(row.qty), source_type: 'breakage', source_id: document.id }); if (error) throw error }
     return { ...body, id: document.id, number: documentNumber, date: body.date || date() }
   }
   const documentResources: Record<string, { type: string; prefix: string }> = { 'sale-returns': { type: 'sale_return', prefix: 'SR' }, 'purchase-returns': { type: 'purchase_return', prefix: 'PR' }, orders: { type: 'order', prefix: 'ORD' }, replacements: { type: 'replacement', prefix: 'REP' }, 'counter-sales': { type: 'counter_sale', prefix: 'CS' }, pendings: { type: 'pending', prefix: 'PND' }, 'price-differences': { type: 'price_difference', prefix: 'PD' }, 'item-mappings': { type: 'item_mapping', prefix: 'MAP' } }
@@ -244,46 +565,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'sales', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('SI'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
     if (error) throw error
     return data
-    /* Legacy posting retained below temporarily for migration traceability.
-    if (!body.party || !body.lines?.length) throw new Error('Party and at least one sale line are required.')
-    const invoiceNumber = body.id || number('SI'), invoiceDate = body.date || date(), partyId = await party(client, organizationId, body.party), total = +body.total
-    const prepared: Array<Awaited<ReturnType<typeof stock>>> = []
-    for (const line of body.lines as Line[]) { const resolved = await stock(client, organizationId, line); const { data: movements, error: stockError } = await client.from('stock_movements').select('quantity').eq('item_batch_id', resolved.batchId).eq('warehouse_id', resolved.warehouseId); if (stockError) throw stockError; const available = (movements ?? []).reduce((sum, movement) => sum + Number(movement.quantity), 0); if (available < Number(line.qty) + Number(line.freeQty ?? 0)) throw new Error(`Insufficient stock for ${line.name} (${line.batch}). Available: ${available}.`); prepared.push(resolved) }
-    const { data: invoice, error } = await client.from('sales_invoices').insert({ organization_id: organizationId, financial_year_id: financialYearId, party_id: partyId, invoice_number: invoiceNumber, invoice_date: invoiceDate, status: 'posted', subtotal: total, grand_total: total }).select('id').single(); if (error) throw error
-    for (let index = 0; index < body.lines.length; index += 1) { const line = body.lines[index] as Line, s = prepared[index]; const { error: lineError } = await client.from('sales_invoice_lines').insert({ invoice_id: invoice.id, item_id: s.itemId, item_batch_id: s.batchId, quantity: +line.qty, free_quantity: Number(line.freeQty ?? 0), rate: +line.rate, discount_percent: Number(line.discount ?? 0), gst_rate: Number(line.gstRate ?? 0), line_total: +(line.amount ?? line.qty * line.rate) }); if (lineError) throw lineError; const { error: movementError } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: s.batchId, warehouse_id: s.warehouseId, movement_type: 'sale', quantity: -Math.abs(+line.qty + Number(line.freeQty ?? 0)), source_type: 'sales_invoice', source_id: invoice.id }); if (movementError) throw movementError }
-    const partyAccount = await account(client, organizationId, body.party, partyId), salesAccount = await account(client, organizationId, 'Sales')
-    const { data: voucher, error: voucherError } = await client.from('vouchers').insert({ organization_id: organizationId, financial_year_id: financialYearId, voucher_type: 'sale', voucher_number: invoiceNumber, voucher_date: invoiceDate, status: 'posted', narration: `Sales invoice ${invoiceNumber}` }).select('id').single(); if (voucherError) throw voucherError
-    const { error: postingError } = await client.from('voucher_lines').insert([{ voucher_id: voucher.id, account_id: partyAccount, debit: total }, { voucher_id: voucher.id, account_id: salesAccount, credit: total }]); if (postingError) throw postingError
-    await client.from('sales_invoices').update({ voucher_id: voucher.id }).eq('id', invoice.id)
-    return { id: invoiceNumber, party: body.party, date: invoiceDate, lines: body.lines, total } */
   }
   if (resource === 'purchases') {
     const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'purchases', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('PB'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
     if (error) throw error
     return data
-    /* Legacy posting retained below temporarily for migration traceability.
-    if (!body.party || !body.lines?.length) throw new Error('Supplier and at least one purchase line are required.')
-    const invoiceNumber = body.id || number('PB'), invoiceDate = body.date || date(), partyId = await party(client, organizationId, body.party, 'supplier')
-    const subtotal = Number(body.subtotal ?? body.lines.reduce((sum: number, line: Line) => sum + Number(line.amount ?? line.qty * line.rate), 0))
-    const taxTotal = Number(body.taxTotal ?? 0), total = Number(body.total ?? subtotal + taxTotal)
-    const { data: invoice, error } = await client.from('purchase_invoices').insert({ organization_id: organizationId, financial_year_id: financialYearId, party_id: partyId, invoice_number: invoiceNumber, supplier_invoice_number: body.supplierInvoice || null, invoice_date: invoiceDate, status: 'posted', subtotal, tax_total: taxTotal, grand_total: total }).select('id').single()
-    if (error) throw error
-    for (const line of body.lines as Line[]) {
-      const s = await stock(client, organizationId, line)
-      const lineTotal = Number(line.amount ?? line.qty * line.rate)
-      const { error: lineError } = await client.from('purchase_invoice_lines').insert({ invoice_id: invoice.id, item_id: s.itemId, item_batch_id: s.batchId, quantity: Number(line.qty), free_quantity: Number(line.freeQty || 0), rate: Number(line.rate), discount_percent: Number(line.discount || 0), gst_rate: Number(line.gstRate || 0), line_total: lineTotal })
-      if (lineError) throw lineError
-      const { error: movementError } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: s.batchId, warehouse_id: s.warehouseId, movement_type: 'purchase', quantity: Math.abs(Number(line.qty) + Number(line.freeQty || 0)), source_type: 'purchase_invoice', source_id: invoice.id })
-      if (movementError) throw movementError
-    }
-    const supplierAccount = await account(client, organizationId, body.party, partyId), purchaseAccount = await account(client, organizationId, 'Purchases')
-    const { data: voucher, error: voucherError } = await client.from('vouchers').insert({ organization_id: organizationId, financial_year_id: financialYearId, voucher_type: 'purchase', voucher_number: invoiceNumber, voucher_date: invoiceDate, status: 'posted', narration: `Purchase invoice ${invoiceNumber}` }).select('id').single()
-    if (voucherError) throw voucherError
-    const { error: postingError } = await client.from('voucher_lines').insert([{ voucher_id: voucher.id, account_id: purchaseAccount, debit: total }, { voucher_id: voucher.id, account_id: supplierAccount, credit: total }])
-    if (postingError) throw postingError
-    const { error: linkError } = await client.from('purchase_invoices').update({ voucher_id: voucher.id }).eq('id', invoice.id)
-    if (linkError) throw linkError
-    return { id: invoiceNumber, party: body.party, supplierInvoice: body.supplierInvoice ?? '', date: invoiceDate, lines: body.lines, total, status: 'posted' } */
   }
   if (resource === 'challans') {
     if (!body.party || !body.lines?.length) throw new Error('Party and at least one challan line are required.')
@@ -304,7 +590,32 @@ export async function create(resource: string, body: any, actor: MutationActor =
 }
 
 export async function update(resource: string, id: string, body: any) {
+  // Option B: Fallback when Supabase env variables are missing
+  if (!process.env.SUPABASE_URL) {
+    const specialKeys: Record<string, string> = {
+      'sale-returns': 'sales',
+      'purchase-returns': 'purchases',
+      'communication-blocks': 'communication-blocks'
+    }
+    const storeKey = specialKeys[resource] || resource
+    const list = mockStore[storeKey]
+    if (list) {
+      const idx = list.findIndex((x: any) => x.id === id)
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...body }
+        return list[idx]
+      }
+    }
+    return body
+  }
+
   const { client, organizationId } = await context()
+  if (resource === 'sale-returns' || resource === 'purchase-returns') {
+    const docType = resource === 'sale-returns' ? 'sale_return' : 'purchase_return'
+    const { data, error } = await client.from('business_documents').update({ status: body.status, details: body.details || {} }).eq('id', id).eq('organization_id', organizationId).eq('document_type', docType).select('*').single()
+    if (error) throw error
+    return data
+  }
   if (resource === 'parties') { const values: any = {}; if ('name' in body) values.legal_name = body.name; if ('type' in body) values.party_type = body.type; if ('phone' in body) values.phone = body.phone; if ('email' in body) values.email = body.email; if ('gstin' in body) values.gstin = body.gstin; if ('creditLimit' in body) values.credit_limit = Number(body.creditLimit); if ('status' in body) values.is_blocked = body.status === 'blocked'; const { data, error } = await client.from('parties').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
@@ -316,7 +627,29 @@ export async function update(resource: string, id: string, body: any) {
 }
 
 export async function remove(resource: string, id: string) {
+  // Option B: Fallback when Supabase env variables are missing
+  if (!process.env.SUPABASE_URL) {
+    const specialKeys: Record<string, string> = {
+      'sale-returns': 'sales',
+      'purchase-returns': 'purchases',
+      'communication-blocks': 'communication-blocks'
+    }
+    const storeKey = specialKeys[resource] || resource
+    const list = mockStore[storeKey]
+    if (list) {
+      const idx = list.findIndex((x: any) => x.id === id)
+      if (idx !== -1) list.splice(idx, 1)
+    }
+    return { id }
+  }
+
   const { client, organizationId } = await context()
+  if (resource === 'sale-returns' || resource === 'purchase-returns') {
+    const docType = resource === 'sale-returns' ? 'sale_return' : 'purchase_return'
+    const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', docType)
+    if (error) throw error
+    return { id }
+  }
   if (resource === 'item-mappings') { const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping'); if (error) throw error; return { id } }
   const masterTables: Record<string, string> = { parties: 'parties', manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes', warehouses: 'warehouses', accounts: 'chart_of_accounts', items: 'items', series: 'document_series', 'communication-blocks': 'communication_blocks' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')

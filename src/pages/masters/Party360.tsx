@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Phone, MapPin } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -42,7 +42,16 @@ export default function Party360() {
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div className="flex items-center gap-2 text-slate-300"><Phone size={14} className="text-slate-500" />{PARTY.phone}</div>
           <div className="flex items-center gap-2 text-slate-300"><MapPin size={14} className="text-slate-500" />{PARTY.city}, {PARTY.state}</div>
-          <div className="text-slate-300 font-mono text-xs">GSTIN: {PARTY.gstin}</div>
+          <div className="text-foreground font-mono text-xs flex items-center gap-2">
+            <span>GSTIN:</span>
+            {PARTY.gstin ? (
+              <span className="font-mono text-xs font-bold tracking-wider text-foreground select-all">
+                {PARTY.gstin}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </div>
         </div></div>
       <div className="flex gap-1 bg-slate-900/50 border border-slate-800 rounded-lg p-1">
         {(['overview', 'transactions', 'items'] as const).map(t => (

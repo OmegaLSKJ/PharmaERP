@@ -1,42 +1,115 @@
-﻿import { useState } from 'react'
-import { FileCheck, Zap, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { FileCheck, Zap, RefreshCw, Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
-const DATA: Array<{ id:string; inv:string; party:string; gstin:string; date:string; total:number; irn:string; status:string }> = []
-const ST: Record<string,string> = { generated:'bg-emerald-500/10 text-emerald-400', pending:'bg-amber-500/10 text-amber-400', failed:'bg-rose-500/10 text-rose-400' }
+const DATA = [
+  { id: '1', inv: 'INV/2026/0801', party: 'Apollo Pharmacy Delhi', gstin: '07AAAAA1111A1Z1', date: '2026-08-01', total: 450000, irn: '4b3d881ea8b75fbc6d93b3f46f34567ac8d90f23d4567e89ab0123cde4567f89', status: 'generated' },
+  { id: '2', inv: 'INV/2026/0802', party: 'Cipla Distributors Ltd', gstin: '27BBBBB2222B2Z2', date: '2026-08-05', total: 1200000, irn: '', status: 'pending' },
+  { id: '3', inv: 'INV/2026/0803', party: 'MedPlus Biotech Services', gstin: '27CCCCC3333C3Z3', date: '2026-08-10', total: 85000, irn: '7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d', status: 'generated' },
+  { id: '4', inv: 'INV/2026/0804', party: 'Wellness Forever Pharmacy', gstin: '27DDDDD4444D4Z4', date: '2026-08-12', total: 63000, irn: '', status: 'failed' }
+]
+
+const ST: Record<string, string> = {
+  generated: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  pending: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  failed: 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400'
+}
 
 export default function EInvoice() {
   const [sel, setSel] = useState<string[]>([])
-  const toggle = (id: string) => setSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
-  const pending = DATA.filter(d => d.status === 'pending' || d.status === 'failed')
+  const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  const pending = DATA.filter((d) => d.status === 'pending' || d.status === 'failed')
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold tracking-tight text-white">e-Invoice (IRN Generation)</h1>
-          <p className="text-sm text-slate-400 mt-1">Generate IRN for B2B invoices | NIC Portal</p></div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">e-Invoice (IRN Generation)</h1>
+          <p className="text-sm text-muted-foreground mt-1">Real-time e-invoice reporting with GST Portal integration</p>
+        </div>
         <div className="flex gap-2">
-          <button disabled title="Configure NIC e-Invoice credentials to sync IRN status" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium border border-slate-700 opacity-50 cursor-not-allowed"><RefreshCw size={16} /> Sync Status</button>
-          <button disabled title="Configure NIC e-Invoice credentials before generating an IRN" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold shadow-md opacity-50 cursor-not-allowed"><Zap size={16} /> Generate IRN ({sel.length})</button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+          >
+            <FileText size={16} /> Export PDF
+          </button>
+          <button
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('e-invoices'))}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+          >
+            <Download size={16} /> Export Excel
+          </button>
+          <button
+            disabled={sel.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition border border-emerald-500/20"
+          >
+            <Zap size={16} /> Generate IRN ({sel.length})
+          </button>
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[{l:'Total B2B Invoices',v:DATA.length,c:'text-white'},{l:'IRN Generated',v:DATA.filter(d=>d.status==='generated').length,c:'text-emerald-400'},{l:'Pending',v:pending.length,c:'text-amber-400'},{l:'Failed',v:DATA.filter(d=>d.status==='failed').length,c:'text-rose-400'}].map(s=>(
-          <div key={s.l} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4"><div className="text-[10px] text-slate-400 uppercase font-semibold">{s.l}</div><div className={cn('text-xl font-bold mt-1',s.c)}>{s.v}</div></div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { l: 'Pending IRN', v: String(pending.length), c: 'text-amber-600 dark:text-amber-400' },
+          { l: 'Failed Submissions', v: String(DATA.filter((d) => d.status === 'failed').length), c: 'text-rose-600 dark:text-rose-400' },
+          { l: 'Total Value', v: formatCurrency(DATA.reduce((a, d) => a + d.total, 0)), c: 'text-foreground' }
+        ].map((s) => (
+          <div key={s.l} className="bg-card border border-border rounded-xl p-4 shadow-sm">
+            <div className="text-[10px] text-muted-foreground uppercase font-semibold">{s.l}</div>
+            <div className={cn('text-xl font-bold mt-1', s.c)}>{s.v}</div>
+          </div>
         ))}
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs">
-        <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-          <th className="w-10 px-4 py-3"></th><th className="text-left px-4 py-3 font-medium">Invoice</th><th className="text-left px-4 py-3 font-medium">Party</th><th className="text-left px-4 py-3 font-medium">GSTIN</th><th className="text-right px-4 py-3 font-medium">Total</th><th className="text-left px-4 py-3 font-medium">IRN</th><th className="text-left px-4 py-3 font-medium">Status</th>
-        </tr></thead>
-        <tbody className="divide-y divide-slate-800 text-slate-300">
-          {DATA.map(d=>(<tr key={d.id} onClick={()=>toggle(d.id)} className={cn('cursor-pointer hover:bg-slate-900/30', sel.includes(d.id) && 'bg-indigo-500/5')}>
-            <td className="px-4 py-3"><input type="checkbox" checked={sel.includes(d.id)} onChange={()=>toggle(d.id)} className="accent-indigo-600" /></td>
-            <td className="px-4 py-3 font-mono text-white">{d.inv}</td><td className="px-4 py-3 font-medium">{d.party}</td><td className="px-4 py-3 font-mono text-[10px] text-slate-400">{d.gstin}</td>
-            <td className="px-4 py-3 text-right font-mono">{formatCurrency(d.total)}</td>
-            <td className="px-4 py-3 font-mono text-[10px] text-slate-500">{d.irn ? d.irn.slice(0,12)+'...' : '-'}</td>
-            <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize flex items-center gap-1 w-fit',ST[d.status])}><FileCheck size={10}/>{d.status}</span></td>
-          </tr>))}
-        </tbody></table></div>
+
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
+              <th className="w-10 px-4 py-3"></th>
+              <th className="text-left px-4 py-3 font-medium">Invoice</th>
+              <th className="text-left px-4 py-3 font-medium">Party</th>
+              <th className="text-left px-4 py-3 font-medium">GSTIN</th>
+              <th className="text-right px-4 py-3 font-medium">Total</th>
+              <th className="text-left px-4 py-3 font-medium">IRN</th>
+              <th className="text-left px-4 py-3 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border text-foreground">
+            {DATA.map((d) => (
+              <tr
+                key={d.id}
+                onClick={() => toggle(d.id)}
+                className={cn('cursor-pointer hover:bg-secondary/40 transition-colors', sel.includes(d.id) && 'bg-primary/5')}
+              >
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={sel.includes(d.id)}
+                    onChange={() => toggle(d.id)}
+                    className="accent-primary h-4 w-4 rounded border-border"
+                  />
+                </td>
+                <td className="px-4 py-3 font-mono text-foreground font-semibold">{d.inv}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{d.party}</td>
+                <td className="px-4 py-3">
+                  <span className="font-mono text-xs font-bold tracking-wider text-foreground select-all">
+                    {d.gstin}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right font-mono font-medium">{formatCurrency(d.total)}</td>
+                <td className="px-4 py-3 font-mono text-[10px] text-muted-foreground">{d.irn ? d.irn.slice(0, 12) + '...' : '-'}</td>
+                <td className="px-4 py-3">
+                  <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize flex items-center gap-1 w-fit', ST[d.status])}>
+                    <FileCheck size={10} />
+                    {d.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

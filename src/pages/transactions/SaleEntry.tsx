@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Plus, Save, Printer, ArrowLeft } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead from '../../components/ui/Typeahead'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -52,6 +53,7 @@ export default function SaleEntry() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Tax Invoice" />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Sale Invoice (Alt+N)</h1>
         <div className="flex gap-2">

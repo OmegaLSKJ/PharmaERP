@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import '../../../src/index.css'
 
 export const metadata: Metadata = {
-  title: 'PharmaERP',
-  description: 'Pharmaceutical distribution operations',
+  title: 'Borgang Drug Distributors',
+  description: 'Borgang Drug Distributors operations',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

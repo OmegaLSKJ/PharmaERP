@@ -1,10 +1,11 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Search, Download, Filter, Eye } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
+import PrintHeader from '../../components/layout/PrintHeader'
 
 interface DayBookEntry { id: string; date: string; vType: string; vNo: string; ledger: string; debit: number; credit: number; narration: string }
 
@@ -32,6 +33,7 @@ export default function DayBook() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Day Book" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Day Book</h1>

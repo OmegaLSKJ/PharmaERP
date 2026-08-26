@@ -1,9 +1,10 @@
-﻿import { useState } from 'react'
-import { Save, Truck, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Save, Truck, Trash2, Printer } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import PrintHeader from '../../components/layout/PrintHeader'
 
 interface AvailableItem { name:string; batch:string; rate:number; stock:number }
 interface Line { id:string; name:string; batch:string; qty:number; rate:number }
@@ -22,10 +23,14 @@ export default function ChallanEntry() {
   const saveChallan = async () => { try { setSaving(true); const saved = await postErp<{ id: string }>('challans', { party, transport, lines }); showToast(`Challan ${saved.id} saved.`); setLines([]) } catch (error) { showToast(error instanceof Error ? error.message : 'Could not save challan.') } finally { setSaving(false) } }
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Delivery Challan" />
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Delivery Challan</h1>
           <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Truck size={14} className="text-cyan-400"/>Goods without invoice | CH-0113</p></div>
-        <button onClick={saveChallan} disabled={saving || !party || !lines.length} className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md"><Save size={16}/>{saving ? 'Saving…' : 'Save Challan'}</button>
+        <div className="flex gap-2">
+          <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-white font-medium no-print"><Printer size={16} /></button>
+          <button onClick={saveChallan} disabled={saving || !party || !lines.length} className="flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md no-print"><Save size={16}/>{saving ? 'Saving…' : 'Save Challan'}</button>
+        </div>
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Party</label>

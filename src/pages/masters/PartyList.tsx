@@ -136,7 +136,15 @@ export default function PartyList() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{p.phone}</td>
                   <td className="px-4 py-3 text-muted-foreground">{p.city}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.gstin}</td>
+                  <td className="px-4 py-3">
+                    {p.gstin ? (
+                      <span className="font-mono text-xs font-bold tracking-wider text-foreground select-all">
+                        {p.gstin}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
                   <td className={cn('px-4 py-3 text-right font-medium', p.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                     {formatCurrency(p.balance)}
                   </td>

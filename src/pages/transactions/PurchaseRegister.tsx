@@ -1,9 +1,10 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Search, Plus, Eye, Printer } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import PrintHeader from '../../components/layout/PrintHeader'
 
 interface PurchaseInv { id: string; challanNo: string; invoiceNo: string; date: string; supplier: string; items: number; total: number; status: string }
 
@@ -74,7 +75,48 @@ export default function PurchaseRegister() {
           </tbody>
         </table>
       </div>
-      {selected && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setSelected(null)}><div className="glass-surface w-full max-w-lg rounded-xl p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><h2 className="text-lg font-semibold">Purchase {selected.challanNo}</h2><p className="text-sm text-muted-foreground">Supplier invoice {selected.invoiceNo || '—'}</p></div><button onClick={() => setSelected(null)} className="text-sm text-muted-foreground">Close</button></div><dl className="mt-5 grid grid-cols-2 gap-4 text-sm"><div><dt className="text-muted-foreground">Supplier</dt><dd>{selected.supplier}</dd></div><div><dt className="text-muted-foreground">Date</dt><dd>{selected.date}</dd></div><div><dt className="text-muted-foreground">Line items</dt><dd>{selected.items}</dd></div><div><dt className="text-muted-foreground">Total</dt><dd>{formatCurrency(selected.total)}</dd></div></dl><button onClick={() => window.print()} className="mt-6 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Print purchase summary</button></div></div>}
+      {selected && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setSelected(null)}>
+          <div className="glass-surface w-full max-w-lg rounded-xl p-6 print:bg-white print:border-none print:shadow-none" onClick={(e) => e.stopPropagation()}>
+            <PrintHeader title="Purchase Invoice Summary" />
+            <div className="flex items-start justify-between no-print">
+              <div>
+                <h2 className="text-lg font-semibold">Purchase {selected.challanNo}</h2>
+                <p className="text-sm text-muted-foreground">Supplier invoice {selected.invoiceNo || '—'}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-sm text-muted-foreground">Close</button>
+            </div>
+            
+            <div className="hidden print:block mb-4">
+              <h2 className="text-md font-bold text-black">Purchase Challan: {selected.challanNo}</h2>
+              <p className="text-xs text-slate-500">Supplier Invoice: {selected.invoiceNo || '—'}</p>
+            </div>
+
+            <dl className="mt-5 grid grid-cols-2 gap-4 text-sm print:text-black">
+              <div>
+                <dt className="text-muted-foreground print:text-slate-500">Supplier</dt>
+                <dd className="font-semibold">{selected.supplier}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground print:text-slate-500">Date</dt>
+                <dd className="font-semibold">{selected.date}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground print:text-slate-500">Line items</dt>
+                <dd className="font-semibold">{selected.items}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground print:text-slate-500">Total</dt>
+                <dd className="font-mono text-emerald-600 font-bold print:text-black">{formatCurrency(selected.total)}</dd>
+              </div>
+            </dl>
+            
+            <button onClick={() => window.print()} className="mt-6 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white w-full no-print">
+              Print purchase summary
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

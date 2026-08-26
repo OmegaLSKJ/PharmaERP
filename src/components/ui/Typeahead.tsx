@@ -96,7 +96,7 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
               onClick={() => pick(o)}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors',
-                i === active ? 'bg-indigo-500/15 text-white' : 'text-slate-300'
+                i === active ? 'bg-slate-200/80 dark:bg-slate-800 text-foreground font-semibold' : 'text-slate-300'
               )}
             >
               <span className="flex-1 truncate">
@@ -104,7 +104,7 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
                 {o.sub && <span className="ml-2 text-xs text-slate-500">{o.sub}</span>}
               </span>
               {o.right && <span className="font-mono text-xs text-emerald-400">{o.right}</span>}
-              {i === active && <span className="text-[9px] font-mono text-indigo-400">ENTER</span>}
+              {i === active && <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 font-medium">ENTER</span>}
             </button>
           ))}
         </div>

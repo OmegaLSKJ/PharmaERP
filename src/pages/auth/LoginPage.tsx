@@ -68,25 +68,23 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
-            </div>
+            <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-10 h-10 object-contain rounded-xl" />
             <div>
-              <div className="text-lg font-semibold">PharmaERP</div>
+              <div className="text-lg font-semibold">Borgang Drug Distributors</div>
               <div className="text-xs text-muted-foreground">Distribution Management System</div>
             </div>
           </div>
         </div>
         <div className="relative z-10">
           <h1 className="text-4xl font-bold leading-tight mb-4">
-            Complete Pharma<br />Distribution ERP
+            Smart Pharma<br />Distribution
           </h1>
-          <p className="text-muted-foreground text-lg max-w-md">
-            Batch tracking • Expiry management • GST compliance • Real-time inventory
+          <p className="text-muted-foreground text-lg max-w-md leading-relaxed text-balance">
+            Powering pharmaceutical supply chains with <span className="whitespace-nowrap">end-to-end</span> batch tracking, automated compliance, and <span className="whitespace-nowrap">real-time</span> inventory visibility.
           </p>
         </div>
-        <div className="relative z-10 text-xs text-muted-foreground">
-          Powered by MARG ERP architecture
+        <div className="relative z-10 text-sm font-semibold text-muted-foreground">
+          ERP by The Alpha and Omega
         </div>
       </div>
 
@@ -95,11 +93,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
-            </div>
+            <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-10 h-10 object-contain rounded-xl" />
             <div>
-              <div className="text-lg font-semibold">PharmaERP</div>
+              <div className="text-lg font-semibold">Borgang Drug Distributors</div>
               <div className="text-xs text-muted-foreground">Distribution Management System</div>
             </div>
           </div>
@@ -175,7 +171,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">Authorized PharmaERP users only.</p>
+          <p className="mt-6 text-center text-xs text-muted-foreground">Authorized Borgang Drug Distributors users only.</p>
         </div>
       </div>
     </div>
