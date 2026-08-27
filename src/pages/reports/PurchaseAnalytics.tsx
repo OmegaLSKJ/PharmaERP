@@ -199,7 +199,7 @@ export default function PurchaseAnalytics() {
             ))}
           </div>
         </div>
-        <div className="h-64">
+        <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <defs>

@@ -88,7 +88,7 @@ export default function ManufacturerList() {
                     <button aria-label={`Edit ${m.name}`} onClick={() => editManufacturer(m)} className="p-1 hover:text-white text-slate-400 transition">
                       <Edit2 size={16} />
                     </button>
-                    <button onClick={() => removeManufacturer(m.id)} className="p-1 hover:text-rose-400 text-slate-400 transition">
+                    <button aria-label={`Delete ${m.name}`} onClick={() => removeManufacturer(m.id)} className="p-1 hover:text-rose-400 text-slate-400 transition">
                       <Trash2 size={16} />
                     </button>
                   </div>

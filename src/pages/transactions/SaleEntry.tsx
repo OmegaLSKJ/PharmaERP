@@ -98,8 +98,8 @@ export default function SaleEntry() {
       </div>
       
       {showItemSearch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-slate-900 w-96 rounded-xl border border-slate-800 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-900 w-full max-w-md mx-4 rounded-xl border border-slate-800 p-4">
             <h3 className="text-sm font-semibold mb-3">Add Item</h3>
             {itemOptions.map((item, i) => (
               <button key={item.label} onClick={() => addRow(item)} className={cn("w-full p-2 text-left rounded-lg text-sm", activeIndex === i ? "bg-indigo-900" : "hover:bg-slate-800")}>

@@ -58,16 +58,19 @@ export default function CounterSale() {
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-white"><ShoppingCart size={16} className="text-indigo-400"/>Cart ({cart.reduce((a,c)=>a+c.qty,0)})</div>
         {cart.length===0 ? <div className="flex-1 flex items-center justify-center text-xs text-slate-500">Tap items to add</div> :
-          cart.map(c=>(<div key={c.name} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-800/50">
-            <span className="text-slate-300 truncate">{c.name}</span>
-            <div className="flex items-center gap-2">
-              <button onClick={()=>setCart(cart.map(x=>x.name===c.name&&x.qty>1?{...x,qty:x.qty-1}:x.name===c.name?{...x,qty:0}:x).filter(Boolean) as typeof cart)} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">-</button>
-              <span className="font-mono w-6 text-right text-white">{c.qty}</span>
-              <button onClick={()=>setCart(cart.map(x=>x.name===c.name?{...x,qty:x.qty+1}:x))} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">+</button>
-              <span className="font-mono w-14 text-right text-emerald-400">{formatCurrency(c.qty*c.rate)}</span>
-              <button onClick={()=>setCart(cart.filter(x=>x.name!==c.name))} className="p-0.5 text-slate-500 hover:text-rose-400"><Trash2 size={12}/></button>
-            </div>
-          </div>))}
+          <div className="flex-1 overflow-y-auto max-h-[300px] lg:max-h-[calc(100vh-320px)] space-y-1 pr-1">
+            {cart.map(c=>(<div key={c.name} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-800/50">
+              <span className="text-slate-300 truncate">{c.name}</span>
+              <div className="flex items-center gap-2">
+                <button onClick={()=>setCart(cart.map(x=>x.name===c.name&&x.qty>1?{...x,qty:x.qty-1}:x.name===c.name?{...x,qty:0}:x).filter(Boolean) as typeof cart)} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">-</button>
+                <span className="font-mono w-6 text-right text-white">{c.qty}</span>
+                <button onClick={()=>setCart(cart.map(x=>x.name===c.name?{...x,qty:x.qty+1}:x))} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">+</button>
+                <span className="font-mono w-14 text-right text-emerald-400">{formatCurrency(c.qty*c.rate)}</span>
+                <button onClick={()=>setCart(cart.filter(x=>x.name!==c.name))} className="p-0.5 text-slate-500 hover:text-rose-400"><Trash2 size={12}/></button>
+              </div>
+            </div>))}
+          </div>
+        }
         <div className="mt-auto pt-3 border-t border-slate-700 space-y-3">
           <div className="flex justify-between text-xl font-bold"><span className="text-white">Total</span><span className="font-mono text-emerald-400">{formatCurrency(total)}</span></div>
           <div className="flex rounded-lg border border-slate-800 overflow-hidden">

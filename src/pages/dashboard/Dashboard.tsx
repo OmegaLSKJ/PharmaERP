@@ -82,7 +82,7 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-muted-foreground/30" />Purchases</span>
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={salesData}>
                 <defs>
@@ -104,7 +104,7 @@ export default function Dashboard() {
         {/* Top Selling Items */}
         <div className="data-surface p-4">
           <h3 className="text-sm font-semibold mb-4">Top Selling Items</h3>
-          <div className="h-64">
+          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topItems} layout="vertical" margin={{ left: 0 }}>
                 <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />

@@ -167,6 +167,8 @@ export default function Sidebar() {
                       <button
                         onClick={() => toggle(item.label)}
                         title={collapsed ? item.label : undefined}
+                        aria-expanded={expanded[item.label]}
+                        aria-label={collapsed ? item.label : undefined}
                         className={cn(
                           'group w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
                           collapsed ? 'justify-center' : '',
@@ -197,6 +199,7 @@ export default function Sidebar() {
                     </>
                   ) : (
                     <NavLink to={item.path} title={collapsed ? item.label : undefined}
+                      aria-label={collapsed ? item.label : undefined}
                       className={({ isActive }) => cn(
                         'relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
                         collapsed ? 'justify-center' : '',
@@ -220,6 +223,7 @@ export default function Sidebar() {
       {/* Sidebar Footer Controls */}
       <div className="border-t border-border/80 p-2 space-y-0.5 shrink-0">
         <NavLink to="/settings" title={collapsed ? 'Settings' : undefined}
+          aria-label={collapsed ? 'Settings' : undefined}
           className={({ isActive }) => cn(
             'flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
             collapsed ? 'justify-center' : '',

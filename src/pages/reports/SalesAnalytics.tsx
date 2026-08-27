@@ -214,7 +214,7 @@ export default function SalesAnalytics() {
             ))}
           </div>
         </div>
-        <div className="h-64">
+        <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <defs>
@@ -237,7 +237,7 @@ export default function SalesAnalytics() {
 
       <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-foreground mb-4">By Category</h3>
-        <div className="h-48">
+        <div className="h-48 sm:h-56 lg:h-64 xl:h-72 min-h-[180px] max-h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={catData.length > 0 ? catData.map(c => ({ name: c.name, value: c.value * dateScaleFactor })) : [{ name: 'Analgesic', value: 24000 * dateScaleFactor }]} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3}>

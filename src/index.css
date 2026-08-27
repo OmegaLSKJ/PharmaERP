@@ -204,6 +204,12 @@
     filter: invert(0.5);
     cursor: pointer;
   }
+
+  /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
+  div:has(> table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @layer components {
