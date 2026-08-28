@@ -1,5 +1,8 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import fs from 'node:fs'
+import path from 'node:path'
+
 
 export type LedgerEntry = { id: string; party: string; date: string; vType: string; vNo: string; debit: number; credit: number; narration: string }
 type Line = { name: string; batch: string; qty: number; rate: number; amount?: number; expiry?: string; freeQty?: number; discount?: number; gstRate?: number; mrp?: number }
@@ -60,6 +63,23 @@ const mockStore: Record<string, any[]> = {
     { id: 'ch1', number: 'CH-2026-0001', party: 'Apollo Pharmacy', date: '2026-08-24', transport: 'Express Cargo', status: 'delivered' }
   ],
   orders: []
+}
+
+// Load dynamic mock stock data from Excel backup if it exists
+try {
+  const rootMockPath = path.resolve(process.cwd(), 'apps/web/lib/mock-stock-data.json')
+  const localMockPath = path.resolve(process.cwd(), 'lib/mock-stock-data.json')
+  const finalPath = fs.existsSync(rootMockPath) ? rootMockPath : fs.existsSync(localMockPath) ? localMockPath : null
+  
+  if (finalPath) {
+    const raw = fs.readFileSync(finalPath, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (parsed.items) mockStore.items = parsed.items
+    if (parsed.manufacturers) mockStore.manufacturers = parsed.manufacturers
+    if (parsed.warehouses) mockStore.warehouses = parsed.warehouses
+  }
+} catch (e) {
+  // Silent catch for production environments where this file won't exist
 }
 
 function db() {
