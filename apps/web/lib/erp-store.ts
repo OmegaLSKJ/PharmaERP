@@ -6,6 +6,7 @@ type Line = { name: string; batch: string; qty: number; rate: number; amount?: n
 export type MutationActor = { id?: string; email?: string; requestId?: string }
 const date = () => new Date().toISOString().slice(0, 10)
 const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
+const organizationName = process.env.ERP_ORGANIZATION_NAME ?? 'Borgang Drug Distributors'
 function db() {
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -14,10 +15,10 @@ function db() {
 }
 async function context() {
   const client = db()
-  const { data: found, error } = await client.from('organizations').select('id').eq('name', 'PharmaERP').maybeSingle()
+  const { data: found, error } = await client.from('organizations').select('id').eq('name', organizationName).maybeSingle()
   if (error) throw error
-  const organizationId = found?.id ?? (await client.from('organizations').insert({ name: 'PharmaERP' }).select('id').single()).data?.id
-  if (!organizationId) throw new Error('Unable to initialize PharmaERP.')
+  const organizationId = found?.id ?? (await client.from('organizations').insert({ name: organizationName }).select('id').single()).data?.id
+  if (!organizationId) throw new Error(`Unable to initialize ${organizationName}.`)
   const year = new Date().getFullYear()
   const { data: fy, error: fyError } = await client.from('financial_years').upsert({ organization_id: organizationId, starts_on: `${year}-04-01`, ends_on: `${year + 1}-03-31` }, { onConflict: 'organization_id,starts_on' }).select('id').single()
   if (fyError) throw fyError
@@ -92,10 +93,37 @@ export async function list(resource: string, partyName?: string) {
   if (resource === 'manufacturers') { const { data, error } = await client.from('manufacturers').select('*').eq('organization_id', organizationId).order('name'); if (error) throw error; return data }
   if (resource === 'salts') { const { data, error } = await client.from('salts').select('id,code,name,composition,category,items(count)').eq('organization_id', organizationId).order('name'); if (error) throw error; return (data ?? []).map((s: any) => ({ ...s, itemcount: Number(s.items?.[0]?.count ?? 0), items: undefined })) }
   if (resource === 'warehouses') { const { data, error } = await client.from('warehouses').select('*').eq('organization_id', organizationId).order('name'); if (error) throw error; return (data ?? []).map((w: any) => ({ id: w.id, code: w.code, name: w.name, type: w.warehouse_type, address: w.address ?? '', capacity: Number(w.capacity), used: 0, status: w.is_active ? 'active' : 'inactive' })) }
+  if (resource === 'item-mappings') {
+    const [{ data: imported, error: importError }, { data: manual, error: manualError }] = await Promise.all([
+      client.from('stock_import_rows').select('id,source_file,source_row,item_code,product_name,unit,current_stock,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,cost_price,reported_value,mrp,purchase_price,sale_price,company,manufacturer,received_on,batch_number,manufactured_on,expiry_on,supplier_name,invoice_number,invoice_date,rack_number').eq('organization_id', organizationId).order('product_name').order('source_row'),
+      client.from('business_documents').select('id,status,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', 'item_mapping').order('document_date', { ascending: false }),
+    ])
+    if (importError || manualError) throw importError || manualError
+    const importedRows = (imported ?? []).map((row: any) => ({
+      id: row.id, source: 'import' as const, sourceFile: row.source_file, sourceRow: Number(row.source_row),
+      supplier: row.supplier_name ?? '', supplierItem: row.item_code ?? '', canonicalItem: row.product_name ?? '',
+      company: row.company ?? row.manufacturer ?? '', unit: row.unit ?? '', batch: row.batch_number ?? '',
+      stock: Number(row.current_stock ?? 0), mrp: Number(row.mrp ?? 0), costPrice: Number(row.cost_price ?? 0),
+      purchasePrice: Number(row.purchase_price ?? 0), salePrice: Number(row.sale_price ?? 0), reportedValue: Number(row.reported_value ?? 0),
+      salesSchemeDeal: Number(row.sales_scheme_deal ?? 0), salesSchemeFree: Number(row.sales_scheme_free ?? 0),
+      purchaseSchemeDeal: Number(row.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(row.purchase_scheme_free ?? 0),
+      receivedOn: row.received_on ?? '', manufacturedOn: row.manufactured_on ?? '', expiryOn: row.expiry_on ?? '',
+      invoiceNumber: row.invoice_number ?? '', invoiceDate: row.invoice_date ?? '', rackNumber: row.rack_number ?? '', status: 'imported' as const,
+    }))
+    const manualRows = (manual ?? []).map((row: any) => ({
+      id: row.id, source: 'manual' as const, supplier: row.details?.supplier ?? row.parties?.legal_name ?? '',
+      supplierItem: row.details?.supplierItem ?? '', canonicalItem: row.details?.canonicalItem ?? '',
+      company: '', unit: '', batch: '', stock: 0, mrp: Number(row.details?.mrp ?? 0), costPrice: 0, purchasePrice: 0,
+      salePrice: 0, reportedValue: 0, salesSchemeDeal: 0, salesSchemeFree: 0, purchaseSchemeDeal: 0,
+      purchaseSchemeFree: 0, receivedOn: '', manufacturedOn: '', expiryOn: '', invoiceNumber: '', invoiceDate: '', rackNumber: '',
+      status: row.status === 'posted' ? 'active' : row.status,
+    }))
+    return [...importedRows, ...manualRows]
+  }
   if (resource === 'accounts') { const { data, error } = await client.from('chart_of_accounts').select('id,code,name,account_type,account_group,opening_balance,is_active,voucher_lines(debit,credit)').eq('organization_id', organizationId).order('name'); if (error) throw error; return (data ?? []).map((a: any) => { const balance = Number(a.opening_balance) + (a.voucher_lines ?? []).reduce((sum: number, line: any) => sum + Number(line.debit) - Number(line.credit), 0); return { id: a.id, code: a.code, name: a.name, group: a.account_group, balance: Math.abs(balance), type: balance < 0 ? 'Cr' : 'Dr', active: a.is_active } }) }
   if (resource === 'series') { const { data, error } = await client.from('document_series').select('*').eq('organization_id', organizationId).order('document_type'); if (error) throw error; return (data ?? []).map((s: any) => ({ id: s.id, doc: s.document_type, prefix: s.prefix, suffix: s.suffix, nextNo: Number(s.next_number), padding: s.padding, fyReset: s.financial_year_reset, active: s.is_active })) }
   if (resource === 'communication-blocks') { const { data, error } = await client.from('communication_blocks').select('*').eq('organization_id', organizationId).order('blocked_on', { ascending: false }); if (error) throw error; return (data ?? []).map((b: any) => ({ id: b.id, type: b.channel, value: b.destination, reason: b.reason ?? '', blockedOn: b.blocked_on })) }
-  const documentResources: Record<string, string> = { 'sale-returns': 'sale_return', 'purchase-returns': 'purchase_return', orders: 'order', breakages: 'breakage', replacements: 'replacement', 'counter-sales': 'counter_sale', pendings: 'pending', 'price-differences': 'price_difference', 'item-mappings': 'item_mapping' }
+  const documentResources: Record<string, string> = { 'sale-returns': 'sale_return', 'purchase-returns': 'purchase_return', orders: 'order', breakages: 'breakage', replacements: 'replacement', 'counter-sales': 'counter_sale', pendings: 'pending', 'price-differences': 'price_difference' }
   if (documentResources[resource]) { const { data, error } = await client.from('business_documents').select('id,document_number,document_date,status,total,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', documentResources[resource]).order('document_date', { ascending: false }); if (error) throw error; return (data ?? []).map((row: any) => ({ id: row.id, number: row.document_number, date: row.document_date, status: row.status, total: Number(row.total), party: row.parties?.legal_name ?? '', ...row.details })) }
   if (resource === 'sales') { const { data, error } = await client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(count)').eq('organization_id', organizationId).order('invoice_date', { ascending: false }); if (error) throw error; return (data ?? []).map((v: any) => ({ id: v.invoice_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.invoice_date, status: v.status, items: Number(v.sales_invoice_lines?.[0]?.count ?? 0), total: Number(v.grand_total) })) }
   if (resource === 'purchases') { const { data, error } = await client.from('purchase_invoices').select('id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(count)').eq('organization_id', organizationId).order('invoice_date', { ascending: false }); if (error) throw error; return (data ?? []).map((v: any) => ({ id: v.invoice_number, dbId: v.id, supplierInvoice: v.supplier_invoice_number ?? '', party: v.parties?.legal_name ?? '', date: v.invoice_date, status: v.status === 'posted' ? 'received' : v.status, items: Number(v.purchase_invoice_lines?.[0]?.count ?? 0), total: Number(v.grand_total) })) }
