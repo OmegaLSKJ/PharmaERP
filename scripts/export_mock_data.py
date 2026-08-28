@@ -82,15 +82,39 @@ def main():
             item_stock += qty
             total_stock_all += qty
             
+            rec_date = parse_expiry_date(row['Rec.Date']) if 'Rec.Date' in row and pd.notna(row['Rec.Date']) else None
+            inv_date = parse_expiry_date(row['Inv.Date']) if 'Inv.Date' in row and pd.notna(row['Inv.Date']) else None
+            mfg_date = parse_expiry_date(row['MFG']) if 'MFG' in row and pd.notna(row['MFG']) else None
+            exp_date = parse_expiry_date(row['EXP']) if 'EXP' in row and pd.notna(row['EXP']) else None
+            
+            sales_deal = str(row['Sales Scheme - Deal']).strip() if pd.notna(row['Sales Scheme - Deal']) else "0"
+            sales_free = str(row['Sales Scheme - Free']).strip() if pd.notna(row['Sales Scheme - Free']) else "0"
+            purc_deal = str(row['Purc.Scheme - Deal']).strip() if pd.notna(row['Purc.Scheme - Deal']) else "0"
+            purc_free = str(row['Purc.Scheme - Free']).strip() if pd.notna(row['Purc.Scheme - Free']) else "0"
+
             batches.append({
                 "id": f"b-{code_str}-{b_idx+1}",
                 "batch": str(row['Batch']).strip() if pd.notna(row['Batch']) else "UNSPECIFIED",
-                "expiry": parse_expiry_date(row['EXP']),
+                "expiry": exp_date or (str(row['EXP']).strip() if pd.notna(row['EXP']) else ""),
                 "mrp": float(row['M.R.P.']) if pd.notna(row['M.R.P.']) else 0.0,
                 "stock": qty,
                 "stockByLocation": {
                     "Main Warehouse": qty
-                }
+                },
+                "costPrice": float(row['Cost Price']) if pd.notna(row['Cost Price']) else 0.0,
+                "purchasePrice": float(row['Purchase Price']) if pd.notna(row['Purchase Price']) else 0.0,
+                "salePrice": float(row['Sales Price']) if pd.notna(row['Sales Price']) else 0.0,
+                "salesSchemeDeal": float(sales_deal),
+                "salesSchemeFree": float(sales_free),
+                "purchaseSchemeDeal": float(purc_deal),
+                "purchaseSchemeFree": float(purc_free),
+                "receivedOn": rec_date or (str(row['Rec.Date']).strip() if pd.notna(row['Rec.Date']) else ""),
+                "manufacturedOn": mfg_date or "—",
+                "supplier": str(row['Supplier']).strip() if pd.notna(row['Supplier']) else "",
+                "invoiceNumber": str(row['Inv.No']).strip() if pd.notna(row['Inv.No']) else "",
+                "invoiceDate": inv_date or (str(row['Inv.Date']).strip() if pd.notna(row['Inv.Date']) else ""),
+                "rackNumber": str(row['Rack No.']).strip() if 'Rack No.' in row and pd.notna(row['Rack No.']) else "",
+                "reportedValue": float(row['Value']) if pd.notna(row['Value']) else 0.0
             })
             
         items.append({
