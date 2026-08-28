@@ -180,7 +180,7 @@ export async function list(resource: string, partyName?: string) {
     if (resource === 'report-stock') return mockStore.items.flatMap((i: any) => (i.batches || []).map((b: any) => ({ name: i.name, batch: b.batch, expiry: b.expiry, qty: b.stock, reserved: 0, location: Object.keys(b.stockByLocation || {})[0] || 'Main Warehouse', schedule: i.scheduleClass, recalled: i.recalled, mrp: b.mrp, rate: i.purchaseRate })))
     if (resource === 'report-sales') return { monthlySales: [{ month: '2026-08', value: 482000 }], topParties: [{ name: 'Apollo Pharmacy', sales: 482000, growth: 5 }], topItems: [{ name: 'Paracetamol 650mg', qty: 1200, revenue: 24000, margin: 40 }], categories: [{ name: 'Analgesic', value: 24000 }], units: 1200 }
   if (resource === 'report-purchases') return { monthlyPurchases: [{ month: '2026-08', value: 320000 }], topSuppliers: [{ name: 'Cipla Logistics', purchases: 320000, growth: 0 }], activeSuppliers: 1 }
-    if (resource === 'item-mappings') return []
+    if (resource === 'item-mappings') return mockStore['item-mappings'] || []
 
     if (resource === 'ledgers') {
       const mappedVls = (mockStore.ledgers ?? []).map((v: any) => ({

@@ -49,31 +49,31 @@ export default function ItemMapping() {
               return undefined;
             };
 
-            const product = getVal('product', ['Product Name', 'productName']) ?? row.supplierItem ?? '';
-            const code = getVal('code', ['Code']) ?? '';
+            const product = row.canonicalItem ?? getVal('product', ['Product Name', 'productName']) ?? row.supplierItem ?? '';
+            const code = row.supplierItem ?? getVal('code', ['Code']) ?? '';
             const company = getVal('company', ['Company']) ?? '';
             const batch = getVal('batch', ['Batch']) ?? '';
             const unit = getVal('unit', ['Unit']) ?? row.packing ?? '';
             const stock = Number(getVal('stock', ['Current Stock']) ?? 0);
-            const cost = Number(getVal('cost', ['Cost Price', 'Cost Price - Rate']) ?? 0);
-            const purchase = Number(getVal('purchase', ['Purchase Price', 'Purchase Price - Rate']) ?? 0);
-            const sale = Number(getVal('sale', ['Sales Price', 'Sales Price - Rate']) ?? 0);
+            const cost = Number(row.costPrice ?? getVal('cost', ['Cost Price', 'Cost Price - Rate']) ?? 0);
+            const purchase = Number(row.purchasePrice ?? getVal('purchase', ['Purchase Price', 'Purchase Price - Rate']) ?? 0);
+            const sale = Number(row.salePrice ?? getVal('sale', ['Sales Price', 'Sales Price - Rate']) ?? 0);
             const mrp = Number(getVal('mrp', ['M.R.P.', 'M.R.P. - Rate']) ?? 0);
-            const value = Number(getVal('value', ['Value', 'Value - At Cost']) ?? 0);
+            const value = Number(row.reportedValue ?? getVal('value', ['Value', 'Value - At Cost']) ?? 0);
 
             // Scheme formatting
-            const salesDeal = row.sales_scheme?.split('+')[0] ?? getVal('', ['Sales Scheme - Deal']) ?? '0';
-            const salesFree = row.sales_scheme?.split('+')[1] ?? getVal('', ['Sales Scheme - Free', 'nan - Free']) ?? '0';
-            const purcDeal = row.purchase_scheme?.split('+')[0] ?? getVal('', ['Purc.Scheme - Deal', 'Purchase Scheme - Deal']) ?? '0';
-            const purcFree = row.purchase_scheme?.split('+')[1] ?? getVal('', ['Purc.Scheme - Free', 'Purchase Scheme - Free']) ?? '0';
+            const salesDeal = row.salesSchemeDeal ?? row.sales_scheme?.split('+')[0] ?? getVal('', ['Sales Scheme - Deal']) ?? '0';
+            const salesFree = row.salesSchemeFree ?? row.sales_scheme?.split('+')[1] ?? getVal('', ['Sales Scheme - Free', 'nan - Free']) ?? '0';
+            const purcDeal = row.purchaseSchemeDeal ?? row.purchase_scheme?.split('+')[0] ?? getVal('', ['Purc.Scheme - Deal', 'Purchase Scheme - Deal']) ?? '0';
+            const purcFree = row.purchaseSchemeFree ?? row.purchase_scheme?.split('+')[1] ?? getVal('', ['Purc.Scheme - Free', 'Purchase Scheme - Free']) ?? '0';
 
-            const received = getVal('received', ['Rec.Date', 'Received Date', 'received_date']) ?? '';
-            const mfg = getVal('mfg', ['MFG', 'MFG - Date']) ?? '—';
-            const exp = getVal('exp', ['EXP', 'EXP - Date']) ?? '';
+            const received = row.receivedOn ?? getVal('received', ['Rec.Date', 'Received Date', 'received_date']) ?? '';
+            const mfg = row.manufacturedOn ?? getVal('mfg', ['MFG', 'MFG - Date']) ?? '—';
+            const exp = row.expiryOn ?? getVal('exp', ['EXP', 'EXP - Date']) ?? '';
             const supplier = getVal('supplier', ['Supplier', 'Supplier - Name']) ?? row.party ?? '';
-            const invoice_no = getVal('invoice_no', ['Inv.No', 'Invoice No', 'invoiceNo']) ?? '';
-            const invoice_date = getVal('invoice_date', ['Inv.Date', 'Invoice Date', 'invoiceDate']) ?? '';
-            const rack = getVal('rack', ['Rack No.', 'Rack No']) ?? '';
+            const invoice_no = row.invoiceNumber ?? getVal('invoice_no', ['Inv.No', 'Invoice No', 'invoiceNo']) ?? '';
+            const invoice_date = row.invoiceDate ?? getVal('invoice_date', ['Inv.Date', 'Invoice Date', 'invoiceDate']) ?? '';
+            const rack = row.rackNumber ?? getVal('rack', ['Rack No.', 'Rack No']) ?? '';
 
             return {
               id: row.id,

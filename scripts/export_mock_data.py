@@ -152,26 +152,28 @@ def main():
 
         item_mappings.append({
             "id": f"map-{idx+1}",
-            "product": p_name,
-            "code": code,
+            "canonicalItem": p_name,
+            "supplierItem": code,
             "company": str(row['Company']).strip() if pd.notna(row['Company']) else "",
             "batch": str(row['Batch']).strip() if pd.notna(row['Batch']) else "",
             "unit": str(row['Unit']).strip() if pd.notna(row['Unit']) else "",
             "stock": float(row['Current Stock']) if pd.notna(row['Current Stock']) else 0.0,
-            "cost": float(row['Cost Price']) if pd.notna(row['Cost Price']) else 0.0,
-            "purchase": float(row['Purchase Price']) if pd.notna(row['Purchase Price']) else 0.0,
-            "sale": float(row['Sales Price']) if pd.notna(row['Sales Price']) else 0.0,
+            "costPrice": float(row['Cost Price']) if pd.notna(row['Cost Price']) else 0.0,
+            "purchasePrice": float(row['Purchase Price']) if pd.notna(row['Purchase Price']) else 0.0,
+            "salePrice": float(row['Sales Price']) if pd.notna(row['Sales Price']) else 0.0,
             "mrp": float(row['M.R.P.']) if pd.notna(row['M.R.P.']) else 0.0,
-            "value": float(row['Value']) if pd.notna(row['Value']) else 0.0,
-            "sales_scheme": f"{sales_deal}+{sales_free}",
-            "purchase_scheme": f"{purc_deal}+{purc_free}",
-            "received": rec_date or (str(row['Rec.Date']).strip() if pd.notna(row['Rec.Date']) else ""),
-            "mfg": mfg_date or "—",
-            "exp": exp_date or (str(row['EXP']).strip() if pd.notna(row['EXP']) else ""),
+            "reportedValue": float(row['Value']) if pd.notna(row['Value']) else 0.0,
+            "salesSchemeDeal": float(sales_deal),
+            "salesSchemeFree": float(sales_free),
+            "purchaseSchemeDeal": float(purc_deal),
+            "purchaseSchemeFree": float(purc_free),
+            "receivedOn": rec_date or (str(row['Rec.Date']).strip() if pd.notna(row['Rec.Date']) else ""),
+            "manufacturedOn": mfg_date or "—",
+            "expiryOn": exp_date or (str(row['EXP']).strip() if pd.notna(row['EXP']) else ""),
             "supplier": str(row['Supplier']).strip() if pd.notna(row['Supplier']) else "",
-            "invoice_no": str(row['Inv.No']).strip() if pd.notna(row['Inv.No']) else "",
-            "invoice_date": inv_date or (str(row['Inv.Date']).strip() if pd.notna(row['Inv.Date']) else ""),
-            "rack": str(row['Rack No.']).strip() if 'Rack No.' in row and pd.notna(row['Rack No.']) else ""
+            "invoiceNumber": str(row['Inv.No']).strip() if pd.notna(row['Inv.No']) else "",
+            "invoiceDate": inv_date or (str(row['Inv.Date']).strip() if pd.notna(row['Inv.Date']) else ""),
+            "rackNumber": str(row['Rack No.']).strip() if 'Rack No.' in row and pd.notna(row['Rack No.']) else ""
         })
 
     mock_data = {
