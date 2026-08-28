@@ -1,0 +1,228 @@
+{
+  "manufacturers": [
+    {
+      "name": "INDECHEMIC"
+    },
+    {
+      "name": "ALKEM"
+    },
+    {
+      "name": "AMRUTAN"
+    },
+    {
+      "name": "HIMALAYA"
+    },
+    {
+      "name": "LUPIN"
+    },
+    {
+      "name": "HUMAN BIOLOGICAL INSTITUTE"
+    },
+    {
+      "name": "PHARMED"
+    },
+    {
+      "name": "ALEMBIC"
+    },
+    {
+      "name": "ROCHE"
+    },
+    {
+      "name": "ROCH"
+    }
+  ],
+  "items": [
+    {
+      "code": "AD242",
+      "name": "3-NITE  CAP 3",
+      "packing": "NO.",
+      "manufacturer": "INDECHEMIC",
+      "mrp": 186.56,
+      "sale_rate": 142.14,
+      "purchase_rate": 142.14,
+      "status": "active"
+    },
+    {
+      "code": "o0180",
+      "name": "A T0 Z SYP 100ML",
+      "packing": "NO.",
+      "manufacturer": "ALKEM",
+      "mrp": 126.0,
+      "sale_rate": 85.42,
+      "purchase_rate": 29.5,
+      "status": "active"
+    },
+    {
+      "code": "AF286",
+      "name": "A TO Z DROP 30ML",
+      "packing": "NO.",
+      "manufacturer": "ALKEM",
+      "mrp": 150.0,
+      "sale_rate": 101.7,
+      "purchase_rate": 33.56,
+      "status": "active"
+    },
+    {
+      "code": "o0176",
+      "name": "A TO Z GOLD CAP 15",
+      "packing": "NO.",
+      "manufacturer": "ALKEM",
+      "mrp": 219.78,
+      "sale_rate": 167.43,
+      "purchase_rate": 167.43,
+      "status": "active"
+    },
+    {
+      "code": "13635",
+      "name": "A TO Z NS DROPS 30ML",
+      "packing": "PCS",
+      "manufacturer": "ALKEM",
+      "mrp": 133.45,
+      "sale_rate": 101.68,
+      "purchase_rate": 101.68,
+      "status": "active"
+    },
+    {
+      "code": "AE579",
+      "name": "A TO Z SYP 200ML 200ML",
+      "packing": "NO.",
+      "manufacturer": "ALKEM",
+      "mrp": 231.0,
+      "sale_rate": 156.61,
+      "purchase_rate": 128.81,
+      "status": "active"
+    },
+    {
+      "code": "13496",
+      "name": "A.BACK PAIN R.ON 50ML",
+      "packing": "PCS",
+      "manufacturer": "AMRUTAN",
+      "mrp": 94.0,
+      "sale_rate": 79.93,
+      "purchase_rate": 79.93,
+      "status": "active"
+    },
+    {
+      "code": "12698",
+      "name": "AACTARIL SOAP 75GM",
+      "packing": "PCS",
+      "manufacturer": "HIMALAYA",
+      "mrp": 130.0,
+      "sale_rate": 88.15,
+      "purchase_rate": 88.15,
+      "status": "active"
+    },
+    {
+      "code": "13244",
+      "name": "AB-FLO-N TAB 10'S",
+      "packing": "PCS",
+      "manufacturer": "LUPIN",
+      "mrp": 252.0,
+      "sale_rate": 192.0,
+      "purchase_rate": 0.0,
+      "status": "active"
+    },
+    {
+      "code": "AE885",
+      "name": "ABHAYRAB VACCINE 1 VIAL",
+      "packing": "NO.",
+      "manufacturer": "HUMAN BIOLOGICAL INSTITUTE",
+      "mrp": 404.57,
+      "sale_rate": 323.66,
+      "purchase_rate": 323.66,
+      "status": "active"
+    }
+  ],
+  "opening_stock": [
+    {
+      "item_code": "AD242",
+      "warehouse_code": "MAIN",
+      "quantity": 5.0,
+      "batch": "25510235",
+      "expiry": "2026-09-01",
+      "mrp": 186.56,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "AD242",
+      "warehouse_code": "MAIN",
+      "quantity": 3.0,
+      "batch": "25510686",
+      "expiry": "2027-04-01",
+      "mrp": 186.56,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "o0180",
+      "warehouse_code": "MAIN",
+      "quantity": 8.0,
+      "batch": "25490209",
+      "expiry": "2026-08-01",
+      "mrp": 126.0,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "AF286",
+      "warehouse_code": "MAIN",
+      "quantity": 6.0,
+      "batch": "25490738",
+      "expiry": "2026-09-01",
+      "mrp": 150.0,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "o0176",
+      "warehouse_code": "MAIN",
+      "quantity": 0.0,
+      "batch": "25500429",
+      "expiry": "2027-01-01",
+      "mrp": 219.78,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "o0176",
+      "warehouse_code": "MAIN",
+      "quantity": 4.0,
+      "batch": "25500571",
+      "expiry": "2027-03-01",
+      "mrp": 241.1,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "13635",
+      "warehouse_code": "MAIN",
+      "quantity": 6.0,
+      "batch": "25490738",
+      "expiry": "2026-09-01",
+      "mrp": 133.45,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "13635",
+      "warehouse_code": "MAIN",
+      "quantity": 10.0,
+      "batch": "25491277",
+      "expiry": "2027-02-01",
+      "mrp": 133.45,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "AE579",
+      "warehouse_code": "MAIN",
+      "quantity": 23.0,
+      "batch": "25660099",
+      "expiry": "2026-11-01",
+      "mrp": 231.0,
+      "remarks": "Opening stock import from stock_81.xls"
+    },
+    {
+      "item_code": "AE579",
+      "warehouse_code": "MAIN",
+      "quantity": 36.0,
+      "batch": "25660168",
+      "expiry": "2027-01-01",
+      "mrp": 205.55,
+      "remarks": "Opening stock import from stock_81.xls"
+    }
+  ]
+}
