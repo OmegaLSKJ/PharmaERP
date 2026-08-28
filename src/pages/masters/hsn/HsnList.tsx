@@ -62,7 +62,7 @@ export default function HsnList() {
                 <td className="p-4 text-right">
                   <div className="flex justify-end gap-2">
                     <button aria-label={`Edit ${i.code}`} onClick={() => editItem(i)} className="p-1 hover:text-white text-slate-400 transition"><Edit2 size={16} /></button>
-                    <button onClick={() => removeItem(i.id)} className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
+                    <button aria-label={`Delete ${i.code}`} onClick={() => removeItem(i.id)} className="p-1 hover:text-rose-400 text-slate-400 transition"><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>

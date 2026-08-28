@@ -23,3 +23,5 @@ solar_system.blend1
 solar_system_render.png
 public/models/
 public/textures/
+.vercel
+.env*

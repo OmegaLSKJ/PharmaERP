@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "PharmaERP",
-    "slug": "pharma-erp",
-    "scheme": "pharmaerp",
+    "name": "Borgang Drug Distributors",
+    "slug": "borgang-drug-distributors",
+    "scheme": "borgangdrugdistributors",
     "plugins": ["expo-router"],
     "experiments": { "typedRoutes": true }
   }

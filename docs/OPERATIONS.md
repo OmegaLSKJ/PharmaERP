@@ -1,4 +1,4 @@
-# PharmaERP production operations
+# Borgang Drug Distributors production operations
 
 ## Ownership and service levels
 

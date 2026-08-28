@@ -116,7 +116,7 @@ export default function VoucherEntry() {
         <div className="border-t border-slate-800 p-4 flex justify-between items-center">
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Narration</label>
-            <input type="text" value={narration} onChange={(e) => setNarration(e.target.value)} className="w-96 bg-slate-950 border border-slate-800 rounded p-2 text-white text-sm outline-none focus:border-indigo-500" placeholder="Enter narration..." />
+            <input type="text" value={narration} onChange={(e) => setNarration(e.target.value)} className="w-full md:w-96 bg-slate-950 border border-slate-800 rounded p-2 text-white text-sm outline-none focus:border-indigo-500" placeholder="Enter narration..." />
           </div>
           <div className="text-right space-y-1">
             <div className="text-sm text-slate-400">Total Debit: <span className="font-mono text-white">{formatCurrency(totalDebit)}</span></div>

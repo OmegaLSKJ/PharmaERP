@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Plus, Save, Printer, ArrowLeft } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead from '../../components/ui/Typeahead'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -52,6 +53,7 @@ export default function SaleEntry() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Tax Invoice" />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Sale Invoice (Alt+N)</h1>
         <div className="flex gap-2">
@@ -96,8 +98,8 @@ export default function SaleEntry() {
       </div>
       
       {showItemSearch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-slate-900 w-96 rounded-xl border border-slate-800 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-900 w-full max-w-md mx-4 rounded-xl border border-slate-800 p-4">
             <h3 className="text-sm font-semibold mb-3">Add Item</h3>
             {itemOptions.map((item, i) => (
               <button key={item.label} onClick={() => addRow(item)} className={cn("w-full p-2 text-left rounded-lg text-sm", activeIndex === i ? "bg-indigo-900" : "hover:bg-slate-800")}>

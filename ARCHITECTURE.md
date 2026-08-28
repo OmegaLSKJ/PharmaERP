@@ -1,4 +1,4 @@
-# PharmaERP platform structure
+# Borgang Drug Distributors platform structure
 
 - `src/` remains the current, working Vite application and feature tree.
 - `apps/web/` is the Next.js host for the same feature tree during the web-platform migration.

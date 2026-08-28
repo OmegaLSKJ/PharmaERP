@@ -6,11 +6,11 @@ import { useUIStore } from '../../store/uiStore'
 type ManagedUser = { id:string;email:string;name:string;role:'admin'|'manager'|'operator';status:'active'|'invited'|'disabled';createdAt:string;lastSignInAt:string|null }
 
 export default function SettingsPage() {
-  const [companyName, setCompanyName] = useState('Pharma Distribution Co.')
+  const [companyName, setCompanyName] = useState('Borgang Drug Distributors')
   const [gstin, setGstin] = useState('27AABCP1234F1Z5')
   const [fyStart, setFyStart] = useState('2026-04-01')
   const [fyEnd, setFyEnd] = useState('2027-03-31')
-  const [address, setAddress] = useState('123 Medical Market, Mumbai')
+  const [address, setAddress] = useState('Main Road, NH-52, Borgang, Biswanath, Assam')
   const [saved, setSaved] = useState(false)
   const currentUser = useAuthStore((state) => state.user)
   const showToast = useUIStore((state) => state.showToast)

@@ -1,4 +1,4 @@
--- PharmaERP initial PostgreSQL schema. Apply with a privileged migration role.
+-- Borgang Drug Distributors initial PostgreSQL schema. Apply with a privileged migration role.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE party_type AS ENUM ('customer','supplier','both');

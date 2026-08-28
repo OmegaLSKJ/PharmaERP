@@ -15,11 +15,11 @@ type DashboardData = {
 }
 const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
 
-function KpiCard({ title, value, change, icon: Icon, trend, className }: {
-  title: string; value: string; change: string; icon: React.ElementType; trend: 'up' | 'down'; className?: string
+function KpiCard({ title, value, change, icon: Icon, trend, className, to }: {
+  title: string; value: string; change: string; icon: React.ElementType; trend: 'up' | 'down'; className?: string; to: string
 }) {
   return (
-    <div className={cn('glass-surface rounded-xl p-4 transition-transform duration-200 hover:-translate-y-0.5', className)}>
+    <Link to={to} className={cn('glass-surface rounded-xl p-4 transition-transform duration-200 hover:-translate-y-0.5 block cursor-pointer', className)}>
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs text-muted-foreground mb-1">{title}</div>
@@ -34,7 +34,7 @@ function KpiCard({ title, value, change, icon: Icon, trend, className }: {
         <span className={trend === 'up' ? 'text-emerald-500' : 'text-red-500'}>{change}</span>
         <span className="text-muted-foreground">vs last month</span>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -65,10 +65,10 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
-        <KpiCard title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
-        <KpiCard title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
-        <KpiCard title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
+        <KpiCard to="/transactions/sale" title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
+        <KpiCard to="/transactions/purchase" title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
+        <KpiCard to="/inventory/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
+        <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 
       {/* Charts Row */}
@@ -82,7 +82,7 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-muted-foreground/30" />Purchases</span>
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={salesData}>
                 <defs>
@@ -104,7 +104,7 @@ export default function Dashboard() {
         {/* Top Selling Items */}
         <div className="data-surface p-4">
           <h3 className="text-sm font-semibold mb-4">Top Selling Items</h3>
-          <div className="h-64">
+          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topItems} layout="vertical" margin={{ left: 0 }}>
                 <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
@@ -127,8 +127,8 @@ export default function Dashboard() {
           </div>
           <div className="divide-y divide-border">
             {!loading && recentInvoices.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No sales have been posted yet.</div>}
-            {recentInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between px-4 py-3 table-row-hover">
+            {recentInvoices.map((inv, idx) => (
+              <Link to="/transactions/sale" key={`${inv.id}-${idx}`} className="flex items-center justify-between px-4 py-3 table-row-hover hover:bg-secondary/50 transition-colors">
                 <div>
                   <div className="text-sm font-mono font-medium">{inv.id}</div>
                   <div className="text-xs text-muted-foreground">{inv.party}</div>
@@ -137,7 +137,7 @@ export default function Dashboard() {
                   <div className="text-sm font-medium">{formatCurrency(inv.amount)}</div>
                   <StatusBadge status={inv.status} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function Dashboard() {
             {expiryAlerts.map((item) => {
               const days = daysUntilExpiry(item.expiry)
               return (
-                <div key={item.batch} className="flex items-center justify-between px-4 py-3 table-row-hover">
+                <Link to="/inventory/expiry" key={item.batch} className="flex items-center justify-between px-4 py-3 table-row-hover hover:bg-secondary/50 transition-colors">
                   <div>
                     <div className="text-sm font-medium">{item.item}</div>
                     <div className="text-xs text-muted-foreground font-mono">{item.batch}</div>
@@ -170,7 +170,7 @@ export default function Dashboard() {
                       {days} days left
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
