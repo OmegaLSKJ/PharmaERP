@@ -163,13 +163,30 @@ def main():
     print(f"- Stock Movement records prepared: {len(stock_payload)}")
     
     # Check credentials
-    env = load_env(env_path)
-    url = env.get('SUPABASE_URL')
-    key = env.get('SUPABASE_SECRET_KEY')
+    # Priority:
+    # 1. os.environ
+    # 2. .env.production.local
+    # 3. .env.local
+    # 4. .env
+    url = os.environ.get('SUPABASE_URL')
+    key = os.environ.get('SUPABASE_SECRET_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if not url or not key:
+        for path in ['.env.production.local', '.env.local', '.env']:
+            env = load_env(path)
+            if not url and env.get('SUPABASE_URL'):
+                url = env.get('SUPABASE_URL')
+            if not key and (env.get('SUPABASE_SECRET_KEY') or env.get('SUPABASE_SERVICE_ROLE_KEY')):
+                key = env.get('SUPABASE_SECRET_KEY') or env.get('SUPABASE_SERVICE_ROLE_KEY')
+                
+    # Normalize values
+    url = (url or "").strip()
+    key = (key or "").strip()
     
     is_dry_run = True
-    if url and key and url != "[SENSITIVE]" and key != "[SENSITIVE]":
+    if url and key and url != "[SENSITIVE]" and key != "[SENSITIVE]" and url != "" and key != "":
         is_dry_run = False
+
         
     if is_dry_run:
         print("\n>>> Running in DRY-RUN MODE (Supabase environment variables are not configured or are SENSITIVE) <<<")
