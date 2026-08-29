@@ -61,8 +61,8 @@ export default function ManufacturerList() {
         />
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <table className="min-w-[650px] w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               <th className="p-4">Code</th>

@@ -27,22 +27,22 @@ export default function HsnList() {
   const filtered = items.filter(i => i.description.toLowerCase().includes(search.toLowerCase()) || i.code.includes(search))
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">HSN / SAC Master</h1>
-          <p className="text-sm text-slate-400 mt-1">Harmonized System of Nomenclature & Service Accounting Codes</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">HSN / SAC Master</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Harmonized System of Nomenclature & Service Accounting Codes</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
+        <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition">
           <Plus size={16} /> Add HSN / SAC
         </button>
       </div>
-      <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md mb-6">
-        <Search className="text-slate-400" size={18} />
-        <input type="text" placeholder="Search by name or code..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-sm w-full" />
+      <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md shadow-xs">
+        <Search className="text-slate-400 shrink-0" size={18} />
+        <input type="text" placeholder="Search by name or code..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-sm w-full placeholder:text-slate-500" />
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <table className="min-w-[650px] w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               <th className="p-4">HSN / SAC Code</th>

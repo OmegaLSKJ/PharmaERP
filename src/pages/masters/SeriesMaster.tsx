@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Hash, Save } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
@@ -25,7 +25,7 @@ export default function SeriesMaster() {
           <button onClick={saveAll} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md"><Save size={16}/> {saving ? 'Saving…' : 'Save All'}</button>
         </div>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm"><table className="min-w-[700px] w-full text-xs">
         <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
           <th className="text-left px-4 py-3 font-medium">Document</th><th className="text-left px-4 py-3 font-medium">Prefix</th><th className="text-right px-4 py-3 font-medium">Next No.</th><th className="text-right px-4 py-3 font-medium">Padding</th><th className="text-left px-4 py-3 font-medium">Suffix</th><th className="text-center px-4 py-3 font-medium">FY Reset</th><th className="text-center px-4 py-3 font-medium">Active</th><th className="text-left px-4 py-3 font-medium">Live Preview</th>
         </tr></thead>

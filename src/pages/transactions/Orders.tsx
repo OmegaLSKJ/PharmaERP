@@ -56,8 +56,8 @@ export default function Orders() {
           <button key={s} onClick={() => setStatusFilter(s)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition', statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{s}</button>
         ))}
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <table className="min-w-[700px] w-full text-xs">
           <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
             <th className="text-left px-4 py-3 font-medium">Order No</th>
             <th className="text-left px-4 py-3 font-medium">Date</th>

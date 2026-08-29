@@ -51,8 +51,8 @@ export default function SaleRegister() {
           ))}
         </div>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <table className="min-w-[650px] w-full text-xs">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-medium">Invoice No</th>

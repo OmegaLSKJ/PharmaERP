@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useEffect } from 'react'
@@ -36,8 +36,8 @@ export default function SaltMaster() {
       </div>
       <div className="relative max-w-sm"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input type="text" placeholder="Search by salt or composition..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500" /></div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <table className="min-w-[650px] w-full text-xs">
           <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
             <th className="text-left px-4 py-3 font-medium">Code</th><th className="text-left px-4 py-3 font-medium">Salt Name</th><th className="text-left px-4 py-3 font-medium">Composition</th><th className="text-left px-4 py-3 font-medium">Category</th><th className="text-right px-4 py-3 font-medium">Items</th><th className="text-right px-4 py-3 font-medium">Actions</th>
           </tr></thead>
