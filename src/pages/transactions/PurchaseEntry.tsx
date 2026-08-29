@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Plus, Trash2, Save, Printer } from 'lucide-react'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
+import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 
 interface LineItem {
@@ -84,8 +85,8 @@ export default function PurchaseEntry() {
 
   const addItem = (item: ItemOption) => {
     const newId = Date.now().toString()
-    setItems([
-      ...items,
+    setItems((prev) => [
+      ...prev,
       {
         id: newId,
         itemName: item.name,
@@ -106,26 +107,34 @@ export default function PurchaseEntry() {
     setShowItemSearch(false)
     setItemQuery('')
 
-    // Automatically focus the Batch input of the newly added row item
+    // Automatically focus the Batch input of the newly added row item on desktop
     setTimeout(() => {
       const inputs = document.querySelectorAll('input[placeholder="Batch"]') as NodeListOf<HTMLInputElement>
       if (inputs.length > 0) {
         const lastInput = inputs[inputs.length - 1]
         lastInput?.focus()
-        lastInput?.select()
+        lastInput?.select?.()
       }
     }, 80)
   }
 
   const updateItem = (id: string, field: keyof LineItem, value: string | number) => {
-    setItems(
-      items.map((item) => {
+    setItems((prev) =>
+      prev.map((item) => {
         if (item.id !== id) return item
         const updated = { ...item, [field]: value }
-        updated.amount = updated.purchaseRate * (1 - updated.discount / 100) * (1 - updated.scheme / 100) * updated.qty
+        const rate = Number(updated.purchaseRate) || 0
+        const disc = Math.min(100, Math.max(0, Number(updated.discount) || 0))
+        const sch = Math.min(100, Math.max(0, Number(updated.scheme) || 0))
+        const qty = Math.max(0, Number(updated.qty) || 0)
+        updated.amount = rate * (1 - disc / 100) * (1 - sch / 100) * qty
         return updated
       })
     )
+  }
+
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id))
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.amount, 0)
@@ -203,17 +212,14 @@ export default function PurchaseEntry() {
       const index = rowInputs.indexOf(currentInput)
 
       if (index !== -1 && index < rowInputs.length - 1) {
-        // Move to the next input cell in the same row
         rowInputs[index + 1].focus()
         rowInputs[index + 1].select?.()
       } else if (index === rowInputs.length - 1) {
-        // We reached the last input (Scheme). Automatically trigger modal to add the next item!
         setShowItemSearch(true)
       }
     }
   }
 
-  // Keyboard Selection: Modal item selection
   const handleModalItemKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -223,26 +229,39 @@ export default function PurchaseEntry() {
     }
   }
 
+  const quickTypeaheadOptions: TOption[] = itemOptions.map((item) => ({
+    label: item.name,
+    sub: `${item.packing ? item.packing + ' | ' : ''}MRP: ₹${item.mrp}`,
+    right: formatCurrency(item.purchaseRate),
+  }))
+
+  const supplierTypeaheadOptions: TOption[] = supplierOptions.map((s) => ({
+    label: s.name,
+    sub: s.gstin ? `GSTIN: ${s.gstin}` : undefined,
+    right: s.outstanding > 0 ? `Bal: ${formatCurrency(s.outstanding)}` : undefined,
+  }))
+
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
       <PrintHeader title="Purchase Invoice" />
+
       {/* Title Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Purchase Entry</h1>
-          <p className="text-sm text-muted-foreground mt-1">Inward stock from supplier &bull; Batch + Expiry mandatory</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Entry</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Inward stock from supplier &bull; Batch + Expiry mandatory</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border"
           >
-            <Printer size={16} /> Print
+            <Printer size={16} /> <span className="hidden sm:inline">Print</span>
           </button>
           <button
             onClick={savePurchase}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground disabled:opacity-50 rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+            disabled={saving || !supplier || !items.length}
+            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/95 text-primary-foreground disabled:opacity-50 rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Save size={16} /> {saving ? 'Posting…' : 'Post Purchase'}
           </button>
@@ -250,46 +269,19 @@ export default function PurchaseEntry() {
       </div>
 
       {/* Header Fields Panel */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Supplier</label>
-            <div className="relative">
-              <input
-                ref={supplierRef}
-                type="text"
-                value={supplier}
-                onChange={(e) => {
-                  setSupplier(e.target.value)
-                  setSupplierQuery(e.target.value)
-                  setShowSupplierSearch(true)
-                }}
-                onKeyDown={handleSupplierKeyDown}
-                placeholder="Search supplier..."
-                className="w-full bg-card border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-primary transition"
-              />
-              {showSupplierSearch && supplierQuery && (
-                <div className="absolute z-10 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                  {filteredSuppliers.map((s) => (
-                    <button
-                      key={s.name}
-                      onClick={() => {
-                        setSupplier(s.name)
-                        setShowSupplierSearch(false)
-                        invoiceNoRef.current?.focus()
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-secondary text-foreground transition-colors"
-                    >
-                      <div className="font-semibold">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">Outstanding: {formatCurrency(s.outstanding)}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-sm space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Supplier / Vendor *</label>
+            <Typeahead
+              options={supplierTypeaheadOptions}
+              value={supplier}
+              onChange={setSupplier}
+              placeholder="Search supplier name or GSTIN..."
+            />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Supplier Invoice No.</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Invoice No. *</label>
             <input
               ref={invoiceNoRef}
               type="text"
@@ -297,18 +289,18 @@ export default function PurchaseEntry() {
               onChange={(e) => setInvoiceNo(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && invoiceDateRef.current?.focus()}
               placeholder="e.g. SI-2026/045"
-              className="w-full bg-card border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-primary transition font-mono"
+              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition font-mono"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Invoice Date</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Invoice Date *</label>
             <input
               ref={invoiceDateRef}
               type="date"
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && entryDateRef.current?.focus()}
-              className="w-full bg-card border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-primary transition"
+              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition"
             />
           </div>
           <div>
@@ -319,135 +311,365 @@ export default function PurchaseEntry() {
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setShowItemSearch(true)}
-              className="w-full bg-card border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-primary transition"
+              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition"
             />
           </div>
         </div>
       </div>
 
-      {/* Items Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/30">
-          <h3 className="text-sm font-semibold text-foreground">Line Items ({items.length})</h3>
+      {/* Line Items Section */}
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <ShoppingBag size={18} className="text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Line Items ({items.length})</h3>
+          </div>
           <button
             onClick={() => setShowItemSearch(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow transition"
           >
-            <Plus size={14} /> Add Item
+            <Plus size={14} /> Add Item (F2)
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
-                <th className="p-3 text-left w-10">#</th>
-                <th className="p-3 text-left">Item</th>
-                <th className="p-3 text-left w-32">Batch</th>
-                <th className="p-3 text-left w-36">Expiry</th>
-                <th className="p-3 text-right w-20">Qty</th>
-                <th className="p-3 text-right w-16">Free</th>
-                <th className="p-3 text-right w-24">Purc. Rate</th>
-                <th className="p-3 text-right w-16">Disc%</th>
-                <th className="p-3 text-right w-20">Scheme%</th>
-                <th className="p-3 text-right w-16">GST%</th>
-                <th className="p-3 text-right w-28">Amount</th>
-                <th className="p-3 text-center w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-foreground">
-              {items.map((item, idx) => (
-                <tr key={item.id} className="hover:bg-secondary/40 transition-colors">
-                  <td className="p-3 text-muted-foreground">{idx + 1}</td>
-                  <td className="p-3 font-semibold text-foreground">
-                    {item.itemName}
-                    <br />
-                    <span className="text-muted-foreground font-normal">{item.packing}</span>
-                  </td>
-                  <td className="p-3">
-                    <input
-                      type="text"
-                      value={item.batch}
-                      onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
-                      onKeyDown={handleRowKeyDown}
-                      placeholder="Batch"
-                      className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary font-mono text-xs"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <input
-                      type="date"
-                      value={item.expiry}
-                      onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary text-xs"
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    <input
-                      type="number"
-                      value={item.qty}
-                      onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary"
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    <input
-                      type="number"
-                      value={item.freeQty}
-                      onChange={(e) => updateItem(item.id, 'freeQty', Number(e.target.value))}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary"
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    <input
-                      type="number"
-                      value={item.purchaseRate}
-                      onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary"
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    <input
-                      type="number"
-                      value={item.discount}
-                      onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary"
-                    />
-                  </td>
-                  <td className="p-3 text-right">
-                    <input
-                      type="number"
-                      value={item.scheme}
-                      onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
-                      onKeyDown={handleRowKeyDown}
-                      className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary"
-                    />
-                  </td>
-                  <td className="p-3 text-right text-muted-foreground font-mono">{item.gstRate}%</td>
-                  <td className="p-3 text-right font-bold text-foreground font-mono">{formatCurrency(item.amount)}</td>
-                  <td className="p-3 text-center">
-                    <button onClick={() => setItems(items.filter((i) => i.id !== item.id))} className="text-muted-foreground hover:text-rose-600 transition-colors">
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={12} className="p-8 text-center text-muted-foreground">
-                    No items added. Click "Add Item" to begin.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+        {/* Quick Add Medicine Bar (Auto-given on all screens) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-primary flex items-center gap-1">
+            <Plus size={13} /> Quick Add Product to Inward
+          </label>
+          <Typeahead
+            options={quickTypeaheadOptions}
+            value=""
+            onSelect={(selectedOption) => {
+              const matched = itemOptions.find((it) => it.name === selectedOption.label)
+              if (matched) addItem(matched)
+            }}
+            placeholder="Type product name to quickly add to purchase list..."
+          />
         </div>
-        <div className="border-t border-border p-4 flex justify-end">
-          <div className="w-80 space-y-2 text-xs">
+
+        {/* Empty State */}
+        {items.length === 0 ? (
+          <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-3 bg-secondary/10">
+            <div className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mx-auto">
+              <Pill size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">No purchase line items added</p>
+              <p className="text-xs text-muted-foreground mt-1">Use the quick add bar above or click "Add Item"</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowItemSearch(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition"
+            >
+              <Plus size={14} /> Browse Catalog
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Touch-Friendly Responsive Item Cards */}
+            <div className="space-y-3 block md:hidden">
+              {items.map((item, idx) => (
+                <div key={item.id} className="bg-slate-950/90 border border-border rounded-xl p-3.5 space-y-3 shadow-sm">
+                  {/* Card Top */}
+                  <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-2.5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                          #{idx + 1}
+                        </span>
+                        <h4 className="text-sm font-bold text-foreground">{item.itemName}</h4>
+                      </div>
+                      {item.packing && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">Packing: {item.packing}</div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      className="p-1.5 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
+                      aria-label="Remove item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  {/* Batch & Expiry */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Batch *</label>
+                      <input
+                        type="text"
+                        value={item.batch}
+                        onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
+                        placeholder="e.g. B-9012"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs font-mono text-foreground outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Expiry Date *</label>
+                      <input
+                        type="date"
+                        value={item.expiry}
+                        onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs text-foreground outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quantities with Steppers */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Qty</label>
+                      <div className="flex items-center bg-card rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, 'qty', Math.max(1, item.qty - 1))}
+                          className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.qty}
+                          onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
+                          className="w-full text-center bg-transparent text-xs font-mono text-foreground outline-none py-1.5"
+                          inputMode="numeric"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, 'qty', item.qty + 1)}
+                          className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Free Qty</label>
+                      <div className="flex items-center bg-card rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, 'freeQty', Math.max(0, item.freeQty - 1))}
+                          className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.freeQty}
+                          onChange={(e) => updateItem(item.id, 'freeQty', Number(e.target.value))}
+                          className="w-full text-center bg-transparent text-xs font-mono text-foreground outline-none py-1.5"
+                          inputMode="numeric"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, 'freeQty', item.freeQty + 1)}
+                          className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rates */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Purc Rate</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.purchaseRate}
+                        onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
+                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">MRP</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.mrp}
+                        onChange={(e) => updateItem(item.id, 'mrp', Number(e.target.value))}
+                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">GST %</label>
+                      <div className="w-full bg-secondary/50 border border-border rounded-lg px-2 py-1.5 text-xs text-center font-mono text-muted-foreground">
+                        {item.gstRate}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Discounts */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Disc %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={item.discount}
+                        onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
+                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Scheme %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={item.scheme}
+                        onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
+                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card Bottom Total */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
+                    <span className="text-muted-foreground font-medium">Line Amount:</span>
+                    <span className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
+                    <th className="p-3 text-left w-10">#</th>
+                    <th className="p-3 text-left">Item</th>
+                    <th className="p-3 text-left w-32">Batch</th>
+                    <th className="p-3 text-left w-36">Expiry</th>
+                    <th className="p-3 text-right w-20">Qty</th>
+                    <th className="p-3 text-right w-16">Free</th>
+                    <th className="p-3 text-right w-24">Purc. Rate</th>
+                    <th className="p-3 text-right w-16">Disc%</th>
+                    <th className="p-3 text-right w-20">Scheme%</th>
+                    <th className="p-3 text-right w-16">GST%</th>
+                    <th className="p-3 text-right w-28">Amount</th>
+                    <th className="p-3 text-center w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border text-foreground">
+                  {items.map((item, idx) => (
+                    <tr key={item.id} className="hover:bg-secondary/40 transition-colors">
+                      <td className="p-3 text-muted-foreground font-mono">{idx + 1}</td>
+                      <td className="p-3 font-semibold text-foreground">
+                        {item.itemName}
+                        {item.packing && (
+                          <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          value={item.batch}
+                          onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
+                          onKeyDown={handleRowKeyDown}
+                          placeholder="Batch"
+                          className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary font-mono text-xs"
+                        />
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="date"
+                          value={item.expiry}
+                          onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary text-xs"
+                        />
+                      </td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.qty}
+                          onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                        />
+                      </td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.freeQty}
+                          onChange={(e) => updateItem(item.id, 'freeQty', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                        />
+                      </td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.purchaseRate}
+                          onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                        />
+                      </td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.discount}
+                          onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                        />
+                      </td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.scheme}
+                          onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                        />
+                      </td>
+                      <td className="p-3 text-right text-muted-foreground font-mono">{item.gstRate}%</td>
+                      <td className="p-3 text-right font-bold text-emerald-400 font-mono">{formatCurrency(item.amount)}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-muted-foreground hover:text-rose-500 transition-colors p-1"
+                          title="Remove row"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Totals Summary */}
+        <div className="border-t border-border pt-4 flex justify-end">
+          <div className="w-full md:w-80 space-y-2 text-xs bg-slate-950/60 p-4 rounded-xl border border-border">
             <div className="flex justify-between text-muted-foreground">
               <span>Subtotal</span>
               <span className="font-mono">{formatCurrency(subtotal)}</span>
@@ -462,7 +684,7 @@ export default function PurchaseEntry() {
             </div>
             <div className="flex justify-between text-base font-bold text-foreground border-t border-border pt-2">
               <span>Grand Total</span>
-              <span className="font-mono text-lg">{formatCurrency(grandTotal)}</span>
+              <span className="font-mono text-emerald-400 text-base sm:text-lg">{formatCurrency(grandTotal)}</span>
             </div>
           </div>
         </div>
@@ -470,45 +692,103 @@ export default function PurchaseEntry() {
 
       {/* Item Search Modal */}
       {showItemSearch && (
-        <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[15vh] z-50" onClick={() => setShowItemSearch(false)}>
-          <div className="bg-card border border-border rounded-xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-secondary/20">
-              <Search size={16} className="text-muted-foreground" />
-              <input
-                ref={itemRef}
-                type="text"
-                placeholder="Search items..."
-                value={itemQuery}
-                onChange={(e) => setItemQuery(e.target.value)}
-                onKeyDown={handleModalItemKeyDown}
-                className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
-              />
-              <button onClick={() => setShowItemSearch(false)} className="text-[10px] border border-border rounded px-1.5 py-0.5 text-muted-foreground hover:text-foreground">
-                ESC
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4"
+          onClick={() => setShowItemSearch(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/20">
+              <div className="flex items-center gap-2">
+                <Pill size={18} className="text-primary" />
+                <h3 className="text-sm sm:text-base font-semibold text-foreground">Select Product to Inward</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowItemSearch(false)}
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition"
+              >
+                <X size={16} />
               </button>
             </div>
-            <div className="max-h-64 overflow-y-auto p-1 divide-y divide-border/40">
+
+            <div className="p-3 border-b border-border bg-slate-950/60">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  ref={itemRef}
+                  type="text"
+                  placeholder="Search products by name or packing..."
+                  value={itemQuery}
+                  onChange={(e) => setItemQuery(e.target.value)}
+                  onKeyDown={handleModalItemKeyDown}
+                  className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 divide-y divide-border/40">
               {filteredItems.map((item) => (
                 <button
                   key={item.name}
                   onClick={() => addItem(item)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm text-foreground hover:bg-secondary transition text-left"
+                  className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/70 transition text-left group"
                 >
                   <div>
-                    <div className="font-semibold text-foreground">{item.name}</div>
-                    <div className="text-xs text-muted-foreground">{item.packing}</div>
+                    <div className="font-semibold text-sm text-foreground group-hover:text-primary transition">{item.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Packing: {item.packing || 'Standard'}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-medium text-foreground">{formatCurrency(item.purchaseRate)}</div>
-                    <div className="text-xs text-muted-foreground">MRP: {item.mrp}</div>
+                    <div className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.purchaseRate)}</div>
+                    <div className="text-[10px] text-muted-foreground">MRP: ₹{item.mrp}</div>
                   </div>
                 </button>
               ))}
-              {filteredItems.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">No matching items found.</div>}
+              {filteredItems.length === 0 && (
+                <div className="p-8 text-center text-xs text-muted-foreground">No matching products found.</div>
+              )}
+            </div>
+
+            <div className="p-3 bg-slate-950 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
+              <span>{filteredItems.length} products found</span>
+              <button
+                type="button"
+                onClick={() => setShowItemSearch(false)}
+                className="px-3 py-1 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Sticky Bottom Action Bar on Mobile Screen */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total ({items.length} items)</div>
+          <div className="font-mono font-bold text-emerald-400 text-base">{formatCurrency(grandTotal)}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowItemSearch(true)}
+            className="flex items-center gap-1 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border"
+          >
+            <Plus size={14} /> Add Item
+          </button>
+          <button
+            type="button"
+            onClick={savePurchase}
+            disabled={saving || !supplier || !items.length}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground rounded-lg text-xs font-bold shadow-md transition"
+          >
+            <Save size={14} /> {saving ? 'Posting…' : 'Post'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
