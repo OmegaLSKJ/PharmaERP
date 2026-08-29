@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag } from 'lucide-react'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -10,6 +10,7 @@ interface LineItem {
   id: string
   itemName: string
   packing: string
+  hsn: string
   batch: string
   expiry: string
   qty: number
@@ -24,10 +25,20 @@ interface LineItem {
 }
 
 type SupplierOption = { name: string; gstin: string; outstanding: number }
-type ItemOption = { name: string; packing: string; mrp: number; purchaseRate: number; saleRate: number; gstRate: number }
+type HsnOption = { code: string; description: string; gstRate: number }
+type ItemOption = {
+  name: string
+  packing: string
+  hsn: string
+  mrp: number
+  purchaseRate: number
+  saleRate: number
+  gstRate: number
+}
 
 export default function PurchaseEntry() {
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
+  const [hsnList, setHsnList] = useState<HsnOption[]>([])
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [supplier, setSupplier] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
@@ -48,24 +59,41 @@ export default function PurchaseEntry() {
   const [saving, setSaving] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
-  // Fetch initial suppliers & items
+  // Fetch initial suppliers, items, and HSN codes
   useEffect(() => {
-    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
-      .then(([parties, products]) => {
+    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<any[]>('hsn')])
+      .then(([parties, products, hsnData]) => {
         setSupplierOptions(
           parties
             .filter((p) => p.type === 'supplier' || p.type === 'both')
             .map((p) => ({ name: p.name, gstin: p.gstin ?? '', outstanding: Math.abs(Number(p.balance ?? 0)) }))
         )
+
+        const parsedHsn: HsnOption[] = (hsnData ?? []).map((h) => ({
+          code: String(h.code || '').trim(),
+          description: h.description ?? '',
+          gstRate: Number(h.gst_rate ?? h.gstRate ?? 0),
+        }))
+        setHsnList(parsedHsn)
+
         setItemOptions(
-          products.map((p) => ({
-            name: p.name,
-            packing: p.packing ?? '',
-            mrp: Number(p.mrp),
-            purchaseRate: Number(p.purchaseRate),
-            saleRate: Number(p.saleRate),
-            gstRate: Number(p.gstRate)
-          }))
+          products.map((p) => {
+            const hsnCode = String(p.hsn ?? p.hsn_codes?.code ?? '').trim()
+            const matchedHsn = parsedHsn.find((h) => h.code === hsnCode)
+            const resolvedGstRate = matchedHsn
+              ? matchedHsn.gstRate
+              : Number(p.gstRate ?? p.hsn_codes?.gst_rate ?? 12)
+
+            return {
+              name: p.name,
+              packing: p.packing ?? '',
+              hsn: hsnCode,
+              mrp: Number(p.mrp),
+              purchaseRate: Number(p.purchaseRate),
+              saleRate: Number(p.saleRate),
+              gstRate: resolvedGstRate,
+            }
+          })
         )
       })
       .catch((error) => addToast(error.message, 'error'))
@@ -85,12 +113,16 @@ export default function PurchaseEntry() {
 
   const addItem = (item: ItemOption) => {
     const newId = Date.now().toString()
+    // Auto-fill GST% based on product's HSN / master value
+    const initialGstRate = Number(item.gstRate ?? 12)
+
     setItems((prev) => [
       ...prev,
       {
         id: newId,
         itemName: item.name,
         packing: item.packing,
+        hsn: item.hsn || '',
         batch: '',
         expiry: '',
         qty: 1,
@@ -98,11 +130,11 @@ export default function PurchaseEntry() {
         purchaseRate: item.purchaseRate,
         discount: 0,
         scheme: 0,
-        gstRate: item.gstRate,
+        gstRate: initialGstRate,
         amount: item.purchaseRate,
         saleRate: item.saleRate,
-        mrp: item.mrp
-      }
+        mrp: item.mrp,
+      },
     ])
     setShowItemSearch(false)
     setItemQuery('')
@@ -123,6 +155,15 @@ export default function PurchaseEntry() {
       prev.map((item) => {
         if (item.id !== id) return item
         const updated = { ...item, [field]: value }
+
+        // If HSN is changed, auto-update the GST rate if matching HSN is found
+        if (field === 'hsn') {
+          const matchedHsn = hsnList.find((h) => h.code === String(value).trim())
+          if (matchedHsn) {
+            updated.gstRate = matchedHsn.gstRate
+          }
+        }
+
         const rate = Number(updated.purchaseRate) || 0
         const disc = Math.min(100, Math.max(0, Number(updated.discount) || 0))
         const sch = Math.min(100, Math.max(0, Number(updated.scheme) || 0))
@@ -138,11 +179,15 @@ export default function PurchaseEntry() {
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.amount, 0)
-  const totalGst = items.reduce((sum, i) => sum + (i.amount * i.gstRate) / 100, 0)
+  const totalGst = items.reduce((sum, i) => sum + (i.amount * (Number(i.gstRate) || 0)) / 100, 0)
   const grandTotal = subtotal + totalGst
   const totalValue = items.reduce((sum, i) => sum + i.mrp * (i.qty + i.freeQty), 0)
 
-  const filteredItems = itemOptions.filter((i) => i.name.toLowerCase().includes(itemQuery.toLowerCase()))
+  const filteredItems = itemOptions.filter(
+    (i) =>
+      i.name.toLowerCase().includes(itemQuery.toLowerCase()) ||
+      i.hsn.toLowerCase().includes(itemQuery.toLowerCase())
+  )
   const filteredSuppliers = supplierOptions.filter((s) => s.name.toLowerCase().includes(supplierQuery.toLowerCase()))
 
   const savePurchase = async () => {
@@ -165,16 +210,18 @@ export default function PurchaseEntry() {
         total: grandTotal,
         lines: items.map((item) => ({
           name: item.itemName,
+          hsn: item.hsn,
           batch: item.batch,
           expiry: item.expiry,
           qty: item.qty,
           freeQty: item.freeQty,
           rate: item.purchaseRate,
           discount: item.discount,
+          scheme: item.scheme,
           gstRate: item.gstRate,
           mrp: item.mrp,
-          amount: item.amount
-        }))
+          amount: item.amount,
+        })),
       })
       addToast(`Purchase ${saved.id} posted`, 'success')
       setItems([])
@@ -231,7 +278,7 @@ export default function PurchaseEntry() {
 
   const quickTypeaheadOptions: TOption[] = itemOptions.map((item) => ({
     label: item.name,
-    sub: `${item.packing ? item.packing + ' | ' : ''}MRP: ₹${item.mrp}`,
+    sub: `${item.hsn ? 'HSN: ' + item.hsn + ' | ' : ''}GST: ${item.gstRate}% | MRP: ₹${item.mrp}`,
     right: formatCurrency(item.purchaseRate),
   }))
 
@@ -245,11 +292,22 @@ export default function PurchaseEntry() {
     <div className="p-3 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
       <PrintHeader title="Purchase Invoice" />
 
+      {/* Datalist for HSN suggestions */}
+      <datalist id="hsn-list">
+        {hsnList.map((h) => (
+          <option key={h.code} value={h.code}>
+            {h.description ? `${h.description} (${h.gstRate}%)` : `${h.gstRate}% GST`}
+          </option>
+        ))}
+      </datalist>
+
       {/* Title Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Entry</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Inward stock from supplier &bull; Batch + Expiry mandatory</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Inward stock &bull; Auto HSN &amp; GST calculation &bull; Batch + Expiry mandatory
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -344,7 +402,7 @@ export default function PurchaseEntry() {
               const matched = itemOptions.find((it) => it.name === selectedOption.label)
               if (matched) addItem(matched)
             }}
-            placeholder="Type product name to quickly add to purchase list..."
+            placeholder="Type product name or HSN to quickly add..."
           />
         </div>
 
@@ -381,9 +439,16 @@ export default function PurchaseEntry() {
                         </span>
                         <h4 className="text-sm font-bold text-foreground">{item.itemName}</h4>
                       </div>
-                      {item.packing && (
-                        <div className="text-[11px] text-muted-foreground mt-0.5">Packing: {item.packing}</div>
-                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        {item.packing && (
+                          <span className="text-[11px] text-muted-foreground">{item.packing}</span>
+                        )}
+                        {item.hsn && (
+                          <span className="text-[10px] font-mono bg-slate-900 border border-border px-1.5 py-0.5 rounded text-primary">
+                            HSN: {item.hsn}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -477,35 +542,62 @@ export default function PurchaseEntry() {
                   </div>
 
                   {/* Rates */}
-                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
                     <div>
-                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Purc Rate</label>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Purc Rate (₹)</label>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={item.purchaseRate}
                         onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">MRP</label>
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">MRP (₹)</label>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={item.mrp}
                         onChange={(e) => updateItem(item.id, 'mrp', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
+                  </div>
+
+                  {/* HSN & Editable GST% */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
                     <div>
-                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">GST %</label>
-                      <div className="w-full bg-secondary/50 border border-border rounded-lg px-2 py-1.5 text-xs text-center font-mono text-muted-foreground">
-                        {item.gstRate}%
+                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">HSN Code</label>
+                      <input
+                        type="text"
+                        list="hsn-list"
+                        value={item.hsn}
+                        onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
+                        placeholder="HSN code"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-primary block mb-1">
+                        GST % (Editable)
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={item.gstRate}
+                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value))}
+                          className="w-full bg-card border border-primary/40 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                          inputMode="decimal"
+                        />
+                        <span className="text-xs text-muted-foreground font-mono">%</span>
                       </div>
                     </div>
                   </div>
@@ -520,7 +612,7 @@ export default function PurchaseEntry() {
                         max="100"
                         value={item.discount}
                         onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
                         inputMode="numeric"
                       />
                     </div>
@@ -532,7 +624,7 @@ export default function PurchaseEntry() {
                         max="100"
                         value={item.scheme}
                         onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
                         inputMode="numeric"
                       />
                     </div>
@@ -540,8 +632,12 @@ export default function PurchaseEntry() {
 
                   {/* Card Bottom Total */}
                   <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
-                    <span className="text-muted-foreground font-medium">Line Amount:</span>
-                    <span className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
+                    <span className="text-muted-foreground font-medium">
+                      Line Subtotal + GST ({item.gstRate}%):
+                    </span>
+                    <span className="font-mono font-bold text-emerald-400 text-sm">
+                      {formatCurrency(item.amount + (item.amount * Number(item.gstRate || 0)) / 100)}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -553,15 +649,16 @@ export default function PurchaseEntry() {
                 <thead>
                   <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
                     <th className="p-3 text-left w-10">#</th>
-                    <th className="p-3 text-left">Item</th>
-                    <th className="p-3 text-left w-32">Batch</th>
-                    <th className="p-3 text-left w-36">Expiry</th>
-                    <th className="p-3 text-right w-20">Qty</th>
+                    <th className="p-3 text-left">Item / Description</th>
+                    <th className="p-3 text-left w-24">HSN</th>
+                    <th className="p-3 text-left w-28">Batch</th>
+                    <th className="p-3 text-left w-32">Expiry</th>
+                    <th className="p-3 text-right w-16">Qty</th>
                     <th className="p-3 text-right w-16">Free</th>
                     <th className="p-3 text-right w-24">Purc. Rate</th>
                     <th className="p-3 text-right w-16">Disc%</th>
-                    <th className="p-3 text-right w-20">Scheme%</th>
-                    <th className="p-3 text-right w-16">GST%</th>
+                    <th className="p-3 text-right w-16">Scheme%</th>
+                    <th className="p-3 text-right w-20 text-primary">GST% *</th>
                     <th className="p-3 text-right w-28">Amount</th>
                     <th className="p-3 text-center w-10"></th>
                   </tr>
@@ -575,6 +672,18 @@ export default function PurchaseEntry() {
                         {item.packing && (
                           <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
                         )}
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          list="hsn-list"
+                          value={item.hsn}
+                          onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
+                          onKeyDown={handleRowKeyDown}
+                          placeholder="HSN"
+                          className="w-20 bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary font-mono text-xs"
+                          title="HSN Code (changing this updates GST%)"
+                        />
                       </td>
                       <td className="p-3">
                         <input
@@ -648,7 +757,19 @@ export default function PurchaseEntry() {
                           className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
                         />
                       </td>
-                      <td className="p-3 text-right text-muted-foreground font-mono">{item.gstRate}%</td>
+                      <td className="p-3 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={item.gstRate}
+                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          className="w-16 bg-card border border-primary/40 rounded p-1 text-right text-foreground font-mono outline-none focus:border-primary"
+                          title="GST percentage (Auto-filled from HSN, editable)"
+                        />
+                      </td>
                       <td className="p-3 text-right font-bold text-emerald-400 font-mono">{formatCurrency(item.amount)}</td>
                       <td className="p-3 text-center">
                         <button
@@ -671,12 +792,12 @@ export default function PurchaseEntry() {
         <div className="border-t border-border pt-4 flex justify-end">
           <div className="w-full md:w-80 space-y-2 text-xs bg-slate-950/60 p-4 rounded-xl border border-border">
             <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal</span>
+              <span>Subtotal (Excl. Tax)</span>
               <span className="font-mono">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>GST</span>
-              <span className="font-mono">{formatCurrency(totalGst)}</span>
+              <span>Total GST Amount</span>
+              <span className="font-mono text-primary font-semibold">+{formatCurrency(totalGst)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>MRP Value</span>
@@ -720,7 +841,7 @@ export default function PurchaseEntry() {
                 <input
                   ref={itemRef}
                   type="text"
-                  placeholder="Search products by name or packing..."
+                  placeholder="Search products by name or HSN code..."
                   value={itemQuery}
                   onChange={(e) => setItemQuery(e.target.value)}
                   onKeyDown={handleModalItemKeyDown}
@@ -738,7 +859,15 @@ export default function PurchaseEntry() {
                 >
                   <div>
                     <div className="font-semibold text-sm text-foreground group-hover:text-primary transition">{item.name}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Packing: {item.packing || 'Standard'}</div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <span>{item.packing || 'Standard'}</span>
+                      {item.hsn && (
+                        <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-foreground">
+                          HSN: {item.hsn}
+                        </span>
+                      )}
+                      <span className="text-primary font-medium">GST: {item.gstRate}%</span>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.purchaseRate)}</div>
