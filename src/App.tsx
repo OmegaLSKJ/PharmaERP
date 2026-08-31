@@ -81,6 +81,8 @@ export default function App() {
           <Route path="/masters/communication" element={<CommunicationBlocking />} />
           <Route path="/transactions/sale" element={<SaleRegister />} />
           <Route path="/transactions/sale/new" element={<SaleEntry />} />
+          <Route path="/transactions/sale/edit/:id" element={<SaleEntry />} />
+          <Route path="/transactions/sale/:id" element={<SaleEntry />} />
           <Route path="/transactions/sale/challan" element={<ChallanEntry />} />
           <Route path="/transactions/sale/counter" element={<CounterSale />} />
           <Route path="/transactions/sale-return" element={<SaleReturn />} />

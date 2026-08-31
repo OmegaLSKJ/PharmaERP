@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
@@ -23,6 +24,11 @@ type CustomerOption = { label: string; value: string }
 type ItemOption = { label: string; batch: string; stock: number; rate: number; gst: number }
 
 export default function SaleEntry() {
+  const { id: editInvoiceId } = useParams<{ id?: string }>()
+  const navigate = useNavigate()
+  const [existingInvoice, setExistingInvoice] = useState<any>(null)
+  const isEditMode = Boolean(editInvoiceId)
+
   const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([])
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [items, setItems] = useState<LineItem[]>([])
@@ -59,6 +65,46 @@ export default function SaleEntry() {
       })
       .catch((error) => showToast(error.message))
   }, [showToast])
+
+  // Load existing invoice if editInvoiceId is provided
+  useEffect(() => {
+    if (!editInvoiceId) return
+    getErp<any[]>('sales')
+      .then((allSales) => {
+        const decodedId = decodeURIComponent(editInvoiceId)
+        const found = allSales.find(
+          (s) =>
+            s.id === decodedId ||
+            s.invoiceNo === decodedId ||
+            s.dbId === decodedId ||
+            s.number === decodedId
+        )
+        if (found) {
+          setExistingInvoice(found)
+          setCustomer(found.party || found.customer || '')
+          setPatientName(found.patientName || '')
+          setPrescriberName(found.prescriberName || '')
+          setPrescriptionReference(found.prescriptionReference || '')
+          if (found.lines && found.lines.length > 0) {
+            setItems(
+              found.lines.map((l: any, idx: number) => ({
+                id: l.id || String(Date.now() + idx),
+                name: l.name || l.itemName || 'Item',
+                batch: l.batch || 'DEFAULT',
+                stock: Number(l.stock || 100),
+                qty: Number(l.qty || 1),
+                free: Number(l.free || l.freeQty || 0),
+                rate: Number(l.rate || 0),
+                disc: Number(l.disc || l.discount || 0),
+                gst: Number(l.gst || l.gstRate || 0),
+                amount: Number(l.amount || l.qty * l.rate),
+              }))
+            )
+          }
+        }
+      })
+      .catch((err) => showToast(err.message))
+  }, [editInvoiceId, showToast])
 
   useEffect(() => {
     if (showItemSearch) {
@@ -109,19 +155,35 @@ export default function SaleEntry() {
     try {
       setSaving(true)
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
-      const saved = await postErp<{ id: string }>('sales', {
-        party: customer,
-        lines,
-        grandTotal: totals.grandTotal,
-        patientName,
-        prescriberName,
-        prescriptionReference,
-      })
-      showToast(`Invoice ${saved.id} saved and posted to the customer ledger.`)
-      setItems([])
-      setPatientName('')
-      setPrescriberName('')
-      setPrescriptionReference('')
+      const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
+      if (isEditMode && invoiceIdentifier) {
+        await postErp('sales', {
+          id: invoiceIdentifier,
+          party: customer,
+          lines,
+          grandTotal: totals.grandTotal,
+          patientName,
+          prescriberName,
+          prescriptionReference,
+          status: existingInvoice?.status || 'posted',
+        })
+        showToast(`Invoice ${invoiceIdentifier} updated successfully.`)
+        navigate('/transactions/sale')
+      } else {
+        const saved = await postErp<{ id: string }>('sales', {
+          party: customer,
+          lines,
+          grandTotal: totals.grandTotal,
+          patientName,
+          prescriberName,
+          prescriptionReference,
+        })
+        showToast(`Invoice ${saved.id} saved and posted to the customer ledger.`)
+        setItems([])
+        setPatientName('')
+        setPrescriberName('')
+        setPrescriptionReference('')
+      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save invoice.')
     } finally {
@@ -182,9 +244,33 @@ export default function SaleEntry() {
 
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Sale Invoice (Alt+N)</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Wholesale & retail billing with batch tracking</p>
+        <div className="flex items-center gap-3">
+          {isEditMode && (
+            <button
+              onClick={() => navigate('/transactions/sale')}
+              className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition"
+              title="Back to Sale Register"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+              {isEditMode ? (
+                <>
+                  <span>Edit Sale Invoice:</span>
+                  <span className="font-mono text-indigo-400">{existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId}</span>
+                </>
+              ) : (
+                'Sale Invoice (Alt+N)'
+              )}
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isEditMode
+                ? 'Update items, quantities, rates, customer, and prescription metadata'
+                : 'Wholesale & retail billing with batch tracking'}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -201,7 +287,7 @@ export default function SaleEntry() {
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm text-white font-semibold flex items-center gap-1.5 shadow-md shadow-blue-900/30 transition"
           >
             <Save size={16} />
-            <span>{saving ? 'Saving…' : 'Save (Alt+S)'}</span>
+            <span>{saving ? 'Saving…' : isEditMode ? 'Update Invoice (Alt+S)' : 'Save (Alt+S)'}</span>
           </button>
         </div>
       </div>
