@@ -79,6 +79,7 @@ try {
     if (parsed.manufacturers) mockStore.manufacturers = parsed.manufacturers
     if (parsed.warehouses) mockStore.warehouses = parsed.warehouses
     if (parsed.item_mappings) mockStore['item-mappings'] = parsed.item_mappings
+    if (parsed.hsn) mockStore.hsn = parsed.hsn
   }
 } catch (e) {
   // Silent catch for production environments where this file won't exist

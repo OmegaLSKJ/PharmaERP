@@ -7,7 +7,7 @@ import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
 
 interface Item {
-  id: string; name: string; packing: string; manufacturer: string; salt: string;
+  id: string; code?: string; name: string; packing: string; manufacturer: string; salt: string;
   hsn: string; gstRate: number; mrp: number; saleRate: number; purchaseRate: number;
   stock: number; batchCount: number; category: string; status: 'active' | 'banned' | 'slow'
 }
@@ -24,7 +24,14 @@ export default function ItemList() {
   const categories = ['all', ...new Set(items.map((i) => i.category))]
 
   const filtered = items.filter((i) => {
-    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) || i.id.toLowerCase().includes(search.toLowerCase()) || i.salt.toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const matchSearch =
+      i.name.toLowerCase().includes(q) ||
+      i.id.toLowerCase().includes(q) ||
+      (i.code && i.code.toLowerCase().includes(q)) ||
+      (i.manufacturer && i.manufacturer.toLowerCase().includes(q)) ||
+      (i.hsn && i.hsn.toLowerCase().includes(q)) ||
+      (i.salt && i.salt.toLowerCase().includes(q))
     const matchCat = categoryFilter === 'all' || i.category === categoryFilter
     return matchSearch && matchCat
   })
