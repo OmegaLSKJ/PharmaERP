@@ -399,8 +399,17 @@ export default function ItemMapping() {
       </div>
 
       {/* Top Fixed Scroller Wrapped Table */}
-      <TopTableScroller>
-        <table className="w-full text-xs min-w-[1600px]">
+      <TopTableScroller
+        shortcuts={[
+          { label: 'Product', offsetPercent: 0 },
+          { label: 'Batch / Stock', offsetPercent: 0.2 },
+          { label: 'Prices & MRP', offsetPercent: 0.42 },
+          { label: 'Schemes', offsetPercent: 0.65 },
+          { label: 'Supplier & Inv', offsetPercent: 0.85 },
+          { label: 'Rack', offsetPercent: 1.0 }
+        ]}
+      >
+        <table className="w-full text-xs min-w-[2000px]">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
               <th className="text-left px-4 py-3 font-semibold">Product / Code</th>
