@@ -54,8 +54,59 @@ const mockStore: Record<string, any[]> = {
     { id: 'l1', party: 'Apollo Pharmacy', date: '2026-08-25', vType: 'sale', vNo: 'SI-2026-0001', debit: 12500, credit: 0, narration: 'Sales posted' }
   ],
   sales: [
-    { id: 's1', number: 'SI-2026-0002', party: 'MedPlus Chemist', date: '2026-08-25', status: 'pending', items: 2, total: 8450 },
-    { id: 's2', number: 'SI-2026-0003', party: 'Apollo Pharmacy', date: '2026-08-26', status: 'posted', items: 1, total: 3200 }
+    {
+      id: 's1',
+      number: 'SI-2026-427428',
+      party: 'BORGANG MEDICAL HALL',
+      date: '2026-08-29',
+      status: 'posted',
+      items: 2,
+      total: 1858,
+      patientName: 'Rahul Das',
+      prescriberName: 'Dr. S. K. Sarma',
+      prescriptionReference: 'RX-9942',
+      lines: [
+        { id: 'l1', name: 'A TO Z SYP 200ML', batch: '25660899', stock: 23, qty: 10, free: 0, rate: 156.61, disc: 0, gst: 12, amount: 1566.10 },
+        { id: 'l2', name: 'A TO Z DROP 30ML', batch: '25498738', stock: 6, qty: 2, free: 0, rate: 101.70, disc: 0, gst: 12, amount: 203.40 }
+      ]
+    },
+    {
+      id: 's2',
+      number: 'SI-2026-835779',
+      party: 'Bdd',
+      date: '2026-08-29',
+      status: 'posted',
+      items: 1,
+      total: 586,
+      lines: [
+        { id: 'l3', name: '3- NITE CAP 3', batch: '25518235', stock: 5, qty: 4, free: 0, rate: 142.14, disc: 0, gst: 12, amount: 568.56 }
+      ]
+    },
+    {
+      id: 's3',
+      number: 'SI-2026-0002',
+      party: 'MedPlus Chemist',
+      date: '2026-08-25',
+      status: 'pending',
+      items: 2,
+      total: 8450,
+      lines: [
+        { id: 'l4', name: 'A TO Z GOLD CAP 15', batch: '25500429', stock: 8, qty: 40, free: 2, rate: 167.43, disc: 2, gst: 12, amount: 6563.26 },
+        { id: 'l5', name: '3- NITE CAP 3', batch: '25518686', stock: 3, qty: 13, free: 0, rate: 142.14, disc: 0, gst: 12, amount: 1847.82 }
+      ]
+    },
+    {
+      id: 's4',
+      number: 'SI-2026-0003',
+      party: 'Apollo Pharmacy',
+      date: '2026-08-26',
+      status: 'posted',
+      items: 1,
+      total: 3200,
+      lines: [
+        { id: 'l6', name: 'A TO Z NS DROPS 30ML', batch: '25490738', stock: 6, qty: 30, free: 0, rate: 101.68, disc: 0, gst: 12, amount: 3050.40 }
+      ]
+    }
   ],
   purchases: [
     { id: 'pu1', number: 'PB-2026-0001', party: 'Cipla Logistics', date: '2026-08-20', status: 'received', items: 5, total: 35000 }
@@ -369,8 +420,79 @@ export async function list(resource: string, partyName?: string) {
   if (resource === 'communication-blocks') { const data = await fetchAll<any>((from, to) => client.from('communication_blocks').select('*').eq('organization_id', organizationId).order('blocked_on', { ascending: false }).range(from, to)); return (data ?? []).map((b: any) => ({ id: b.id, type: b.channel, value: b.destination, reason: b.reason ?? '', blockedOn: b.blocked_on })) }
   const documentResources: Record<string, string> = { 'sale-returns': 'sale_return', 'purchase-returns': 'purchase_return', orders: 'order', breakages: 'breakage', replacements: 'replacement', 'counter-sales': 'counter_sale', pendings: 'pending', 'price-differences': 'price_difference' }
   if (documentResources[resource]) { const data = await fetchAll<any>((from, to) => client.from('business_documents').select('id,document_number,document_date,status,total,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', documentResources[resource]).order('document_date', { ascending: false }).range(from, to)); return (data ?? []).map((row: any) => ({ id: row.id, number: row.document_number, date: row.document_date, status: row.status, total: Number(row.total), party: row.parties?.legal_name ?? '', ...row.details })) }
-  if (resource === 'sales') { const data = await fetchAll<any>((from, to) => client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(count)').eq('organization_id', organizationId).order('invoice_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.invoice_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.invoice_date, status: v.status, items: Number(v.sales_invoice_lines?.[0]?.count ?? 0), total: Number(v.grand_total) })) }
-  if (resource === 'purchases') { const data = await fetchAll<any>((from, to) => client.from('purchase_invoices').select('id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(count)').eq('organization_id', organizationId).order('invoice_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.invoice_number, dbId: v.id, supplierInvoice: v.supplier_invoice_number ?? '', party: v.parties?.legal_name ?? '', date: v.invoice_date, status: v.status === 'posted' ? 'received' : v.status, items: Number(v.purchase_invoice_lines?.[0]?.count ?? 0), total: Number(v.grand_total) })) }
+  if (resource === 'sales') {
+    const data = await fetchAll<any>((from, to) =>
+      client
+        .from('sales_invoices')
+        .select(
+          'id,invoice_number,invoice_date,status,grand_total,patient_name,prescriber_name,prescription_reference,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,sale_rate,mrp),item_batches(batch_number,expiry_on,mrp))'
+        )
+        .eq('organization_id', organizationId)
+        .order('invoice_date', { ascending: false })
+        .range(from, to)
+    )
+    return (data ?? []).map((v: any) => ({
+      id: v.invoice_number,
+      dbId: v.id,
+      party: v.parties?.legal_name ?? '',
+      date: v.invoice_date,
+      status: v.status,
+      items: Number(v.sales_invoice_lines?.length ?? 0),
+      total: Number(v.grand_total),
+      patientName: v.patient_name ?? '',
+      prescriberName: v.prescriber_name ?? '',
+      prescriptionReference: v.prescription_reference ?? '',
+      lines: (v.sales_invoice_lines ?? []).map((l: any) => ({
+        id: l.id,
+        name: l.items?.name ?? 'Item',
+        code: l.items?.code ?? '',
+        batch: l.item_batches?.batch_number ?? 'DEFAULT',
+        expiry: l.item_batches?.expiry_on ?? '',
+        qty: Number(l.quantity || 0),
+        free: Number(l.free_quantity || 0),
+        rate: Number(l.rate || 0),
+        disc: Number(l.discount_percent || 0),
+        gst: Number(l.gst_rate || 0),
+        amount: Number(l.line_total || 0),
+        stock: 100
+      }))
+    }))
+  }
+  if (resource === 'purchases') {
+    const data = await fetchAll<any>((from, to) =>
+      client
+        .from('purchase_invoices')
+        .select(
+          'id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code),item_batches(batch_number,expiry_on))'
+        )
+        .eq('organization_id', organizationId)
+        .order('invoice_date', { ascending: false })
+        .range(from, to)
+    )
+    return (data ?? []).map((v: any) => ({
+      id: v.invoice_number,
+      dbId: v.id,
+      supplierInvoice: v.supplier_invoice_number ?? '',
+      party: v.parties?.legal_name ?? '',
+      date: v.invoice_date,
+      status: v.status === 'posted' ? 'received' : v.status,
+      items: Number(v.purchase_invoice_lines?.length ?? 0),
+      total: Number(v.grand_total),
+      lines: (v.purchase_invoice_lines ?? []).map((l: any) => ({
+        id: l.id,
+        name: l.items?.name ?? 'Item',
+        code: l.items?.code ?? '',
+        batch: l.item_batches?.batch_number ?? 'DEFAULT',
+        expiry: l.item_batches?.expiry_on ?? '',
+        qty: Number(l.quantity || 0),
+        free: Number(l.free_quantity || 0),
+        rate: Number(l.rate || 0),
+        disc: Number(l.discount_percent || 0),
+        gst: Number(l.gst_rate || 0),
+        amount: Number(l.line_total || 0)
+      }))
+    }))
+  }
   if (resource === 'challans') { const data = await fetchAll<any>((from, to) => client.from('delivery_challans').select('id,challan_number,challan_date,transport_name,status,parties(legal_name)').eq('organization_id', organizationId).order('challan_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.challan_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.challan_date, transport: v.transport_name ?? '', status: v.status })) }
   if (resource === 'vouchers') { return await fetchAll<any>((from, to) => client.from('vouchers').select('*').order('voucher_date', { ascending: false }).range(from, to)) }
   if (resource === 'ledgers') {
