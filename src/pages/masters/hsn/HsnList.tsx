@@ -15,6 +15,7 @@ import {
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
+import TopTableScroller from '../../../components/common/TopTableScroller'
 
 interface HsnItem {
   id: string
@@ -266,54 +267,55 @@ export default function HsnList() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      {/* Table Wrapped in TopTableScroller */}
+      <TopTableScroller className="bg-slate-900/50 border border-slate-800 rounded-b-xl overflow-x-auto shadow-sm">
         <table className="min-w-[650px] w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="p-3.5">HSN / SAC Code</th>
-              <th className="p-3.5">Description</th>
-              <th className="p-3.5">Type</th>
-              <th className="p-3.5">GST Rate</th>
-              <th className="p-3.5 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800 text-sm">
-            {displayedItems.map((i) => (
-              <tr key={i.id} className="hover:bg-slate-900/30 text-slate-300">
-                <td className="p-3.5 font-mono font-medium text-slate-400">{i.code}</td>
-                <td className="p-3.5 font-medium text-white">{i.description}</td>
-                <td className="p-3.5 text-xs text-slate-400">{i.type}</td>
-                <td className="p-3.5 text-emerald-400 font-semibold">{i.gstRate}%</td>
-                <td className="p-3.5 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      aria-label={`Edit ${i.code}`}
-                      onClick={() => editItem(i)}
-                      className="p-1 hover:text-white text-slate-400 transition"
-                    >
-                      <Edit2 size={15} />
-                    </button>
-                    <button
-                      aria-label={`Delete ${i.code}`}
-                      onClick={() => removeItem(i.id)}
-                      className="p-1 hover:text-rose-400 text-slate-400 transition"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
+            <thead>
+              <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th className="p-3.5">HSN / SAC Code</th>
+                <th className="p-3.5">Description</th>
+                <th className="p-3.5">Type</th>
+                <th className="p-3.5">GST Rate</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
-            ))}
-            {displayedItems.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500 text-sm">
-                  No HSN / SAC codes match your search.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-800 text-sm">
+              {displayedItems.map((i) => (
+                <tr key={i.id} className="hover:bg-slate-900/30 text-slate-300">
+                  <td className="p-3.5 font-mono font-medium text-slate-400">{i.code}</td>
+                  <td className="p-3.5 font-medium text-white">{i.description}</td>
+                  <td className="p-3.5 text-xs text-slate-400">{i.type}</td>
+                  <td className="p-3.5 text-emerald-400 font-semibold">{i.gstRate}%</td>
+                  <td className="p-3.5 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        aria-label={`Edit ${i.code}`}
+                        onClick={() => editItem(i)}
+                        className="p-1 hover:text-white text-slate-400 transition"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        aria-label={`Delete ${i.code}`}
+                        onClick={() => removeItem(i.id)}
+                        className="p-1 hover:text-rose-400 text-slate-400 transition"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {displayedItems.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-500 text-sm">
+                    No HSN / SAC codes match your search.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </TopTableScroller>
 
         {/* Continuous Stream "Load Next Chunk" Button */}
         {chunkMode === 'continuous' && continuousCount < totalItems && (
@@ -380,7 +382,6 @@ export default function HsnList() {
             </div>
           </div>
         )}
-      </div>
 
       {/* Modal */}
       {showModal && (
