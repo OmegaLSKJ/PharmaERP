@@ -18,7 +18,6 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
-import TopTableScroller from '../../components/common/TopTableScroller'
 
 interface Item {
   id: string
@@ -269,11 +268,11 @@ export default function ItemList() {
         )}
       </div>
 
-      {/* Table Wrapped with Top Fixed Scroller */}
-      {loading && <div className="p-8 text-center text-sm text-muted-foreground animate-pulse bg-card border border-border rounded-lg">Loading all items…</div>}
-      {!loading && (
-        <TopTableScroller className="bg-card border border-border rounded-b-lg overflow-x-auto shadow-xs">
-          <table className="w-full text-sm min-w-[1200px]">
+      {/* Table */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
+        {loading && <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">Loading all items…</div>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50 text-xs">
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider">Code / ID</th>
@@ -348,7 +347,7 @@ export default function ItemList() {
                   </td>
                 </tr>
               ))}
-              {displayedItems.length === 0 && (
+              {!loading && displayedItems.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
                     No items match the search or filter criteria.
@@ -357,8 +356,7 @@ export default function ItemList() {
               )}
             </tbody>
           </table>
-        </TopTableScroller>
-      )}
+        </div>
 
         {/* Continuous Stream "Load Next Chunk" Button */}
         {chunkMode === 'continuous' && continuousCount < totalItems && (
@@ -425,6 +423,7 @@ export default function ItemList() {
             </div>
           </div>
         )}
+      </div>
     </div>
   )
 }

@@ -19,7 +19,6 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
-import TopTableScroller from '../../components/common/TopTableScroller'
 
 interface SaleLine {
   id?: string
@@ -165,8 +164,8 @@ export default function SaleRegister() {
         </div>
       </div>
 
-      {/* Table Wrapped in Top Fixed Scroller */}
-      <TopTableScroller className="bg-slate-900/50 border border-slate-800 rounded-b-xl overflow-x-auto shadow-sm">
+      {/* Table */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
         <table className="min-w-[700px] w-full text-xs">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
@@ -256,7 +255,7 @@ export default function SaleRegister() {
             )}
           </tbody>
         </table>
-      </TopTableScroller>
+      </div>
 
       {/* Rich Invoice View & Edit Modal */}
       {selected && (

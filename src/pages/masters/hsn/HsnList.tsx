@@ -15,7 +15,6 @@ import {
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
-import TopTableScroller from '../../../components/common/TopTableScroller'
 
 interface HsnItem {
   id: string
@@ -267,8 +266,8 @@ export default function HsnList() {
         )}
       </div>
 
-      {/* Table Wrapped in TopTableScroller */}
-      <TopTableScroller className="bg-slate-900/50 border border-slate-800 rounded-b-xl overflow-x-auto shadow-sm">
+      {/* Table */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
         <table className="min-w-[650px] w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -315,7 +314,7 @@ export default function HsnList() {
               )}
             </tbody>
           </table>
-        </TopTableScroller>
+        </div>
 
         {/* Continuous Stream "Load Next Chunk" Button */}
         {chunkMode === 'continuous' && continuousCount < totalItems && (
