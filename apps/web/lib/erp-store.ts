@@ -916,6 +916,7 @@ export async function remove(resource: string, id: string) {
   if (resource === 'item-mappings') { const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping'); if (error) throw error; return { id } }
   if (resource === 'manufacturers') {
     await client.from('items').update({ manufacturer_id: null }).eq('manufacturer_id', id).eq('organization_id', organizationId)
+    await client.from('product_recalls').update({ manufacturer_id: null }).eq('manufacturer_id', id).eq('organization_id', organizationId)
     const { error } = await client.from('manufacturers').delete().eq('id', id).eq('organization_id', organizationId)
     if (error) throw error
     return { id }
