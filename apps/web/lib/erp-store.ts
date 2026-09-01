@@ -425,7 +425,7 @@ export async function list(resource: string, partyName?: string) {
       client
         .from('sales_invoices')
         .select(
-          'id,invoice_number,invoice_date,status,grand_total,patient_name,prescriber_name,prescription_reference,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,sale_rate,mrp),item_batches(batch_number,expiry_on,mrp))'
+          'id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,sale_rate,mrp),item_batches(batch_number,expiry_on,mrp))'
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
@@ -439,9 +439,6 @@ export async function list(resource: string, partyName?: string) {
       status: v.status,
       items: Number(v.sales_invoice_lines?.length ?? 0),
       total: Number(v.grand_total),
-      patientName: v.patient_name ?? '',
-      prescriberName: v.prescriber_name ?? '',
-      prescriptionReference: v.prescription_reference ?? '',
       lines: (v.sales_invoice_lines ?? []).map((l: any) => ({
         id: l.id,
         name: l.items?.name ?? 'Item',
