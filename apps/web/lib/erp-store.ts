@@ -854,6 +854,36 @@ export async function update(resource: string, id: string, body: any) {
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'accounts') { const values: any = {}; if ('name' in body) values.name = body.name; if ('group' in body) values.account_group = body.group; if ('openingBalance' in body) values.opening_balance = Number(body.openingBalance); const { data, error } = await client.from('chart_of_accounts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'items') { const values: any = {}; if ('code' in body) values.code = body.code; if ('name' in body) values.name = body.name; if ('packing' in body) values.packing = body.packing; if ('mrp' in body) values.mrp = Number(body.mrp); if ('saleRate' in body) values.sale_rate = Number(body.saleRate); if ('purchaseRate' in body) values.purchase_rate = Number(body.purchaseRate); if ('status' in body) values.is_active = body.status !== 'banned'; if ('scheduleClass' in body) values.schedule_class=body.scheduleClass; if ('prescriptionRequired' in body) values.prescription_required=Boolean(body.prescriptionRequired); if ('coldChain' in body) values.cold_chain=Boolean(body.coldChain); if ('controlledSubstance' in body) values.controlled_substance=Boolean(body.controlledSubstance); const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
+  if (resource === 'manufacturers') {
+    const values: any = {}
+    if ('name' in body) values.name = body.name
+    if ('code' in body) values.code = body.code
+    if ('status' in body) values.is_active = body.status === 'Active' || body.status === true || body.status === 'active'
+    if ('is_active' in body) values.is_active = Boolean(body.is_active)
+    const { data, error } = await client.from('manufacturers').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
+  if (resource === 'salts') {
+    const values: any = {}
+    if ('name' in body) values.name = body.name
+    if ('code' in body) values.code = body.code
+    if ('composition' in body) values.composition = body.composition
+    if ('category' in body) values.category = body.category
+    const { data, error } = await client.from('salts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
+  if (resource === 'hsn') {
+    const values: any = {}
+    if ('code' in body) values.code = body.code
+    if ('description' in body) values.description = body.description
+    if ('gst_rate' in body) values.gst_rate = Number(body.gst_rate)
+    if ('gstRate' in body) values.gst_rate = Number(body.gstRate)
+    const { data, error } = await client.from('hsn_codes').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
   const masterTables: Record<string, string> = { manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { data, error } = await client.from(masterTables[resource]).update(body).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data
@@ -884,7 +914,25 @@ export async function remove(resource: string, id: string) {
     return { id }
   }
   if (resource === 'item-mappings') { const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping'); if (error) throw error; return { id } }
-  const masterTables: Record<string, string> = { parties: 'parties', manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes', warehouses: 'warehouses', accounts: 'chart_of_accounts', items: 'items', series: 'document_series', 'communication-blocks': 'communication_blocks' }
+  if (resource === 'manufacturers') {
+    await client.from('items').update({ manufacturer_id: null }).eq('manufacturer_id', id).eq('organization_id', organizationId)
+    const { error } = await client.from('manufacturers').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  if (resource === 'salts') {
+    await client.from('items').update({ salt_id: null }).eq('salt_id', id).eq('organization_id', organizationId)
+    const { error } = await client.from('salts').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  if (resource === 'hsn') {
+    await client.from('items').update({ hsn_id: null }).eq('hsn_id', id).eq('organization_id', organizationId)
+    const { error } = await client.from('hsn_codes').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  const masterTables: Record<string, string> = { parties: 'parties', warehouses: 'warehouses', accounts: 'chart_of_accounts', items: 'items', series: 'document_series', 'communication-blocks': 'communication_blocks' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { error } = await client.from(masterTables[resource]).delete().eq('id', id).eq('organization_id', organizationId); if (error) throw error
   return { id }
