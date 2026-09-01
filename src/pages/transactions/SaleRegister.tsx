@@ -53,7 +53,9 @@ const STATUS_STYLE: Record<string, string> = {
   posted: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
   pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
   overdue: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-  partial: 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+  partial: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  draft: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
+  cancelled: 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
 }
 
 export default function SaleRegister() {
@@ -69,18 +71,18 @@ export default function SaleRegister() {
     getErp<any[]>('sales')
       .then((rows) =>
         setSales(
-          rows.map((row) => ({
-            id: row.dbId || row.id,
-            invoiceNo: row.id || row.invoiceNo || row.number,
-            date: row.date,
-            customer: row.party,
-            items: row.items || row.lines?.length || 1,
-            total: Number(row.total || row.grandTotal || 0),
-            status: row.status || 'posted',
-            lines: row.lines,
-            patientName: row.patientName,
-            prescriberName: row.prescriberName,
-            prescriptionReference: row.prescriptionReference
+          (rows || []).map((row) => ({
+            id: String(row.dbId || row.id || row.number || ''),
+            invoiceNo: String(row.invoiceNo || row.number || row.id || 'INV-UNNAMED'),
+            date: String(row.date || row.invoice_date || ''),
+            customer: String(row.party || row.customer || row.party_name || 'Cash Customer'),
+            items: Number(row.items || row.lines?.length || 1),
+            total: Number(row.total ?? row.grandTotal ?? row.grand_total ?? 0),
+            status: String(row.status || 'posted').toLowerCase(),
+            lines: row.lines || [],
+            patientName: row.patientName || row.patient_name || '',
+            prescriberName: row.prescriberName || row.prescriber_name || '',
+            prescriptionReference: row.prescriptionReference || row.prescription_reference || ''
           }))
         )
       )
@@ -91,13 +93,16 @@ export default function SaleRegister() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
     return sales.filter((s) => {
-      const ms = !q || s.customer.toLowerCase().includes(q) || s.invoiceNo.toLowerCase().includes(q)
-      const mf = statusFilter === 'all' || s.status === statusFilter
+      const cust = (s.customer || '').toLowerCase()
+      const inv = (s.invoiceNo || '').toLowerCase()
+      const ms = !q || cust.includes(q) || inv.includes(q)
+      const st = (s.status || '').toLowerCase()
+      const mf = statusFilter === 'all' || st === statusFilter.toLowerCase()
       return ms && mf
     })
   }, [sales, search, statusFilter])
 
-  const totalVal = useMemo(() => filtered.reduce((a, s) => a + s.total, 0), [filtered])
+  const totalVal = useMemo(() => filtered.reduce((a, s) => a + (Number(s.total) || 0), 0), [filtered])
 
   const openInvoice = (s: SaleInv) => {
     setSelected(s)
@@ -147,7 +152,7 @@ export default function SaleRegister() {
 
         {/* Status Filter Tabs */}
         <div className="flex rounded-lg border border-slate-800 overflow-hidden text-xs bg-slate-900 p-0.5">
-          {['all', 'paid', 'posted', 'pending', 'overdue', 'partial'].map((t) => (
+          {['all', 'paid', 'posted', 'pending', 'overdue', 'partial', 'draft'].map((t) => (
             <button
               key={t}
               onClick={() => setStatusFilter(t)}

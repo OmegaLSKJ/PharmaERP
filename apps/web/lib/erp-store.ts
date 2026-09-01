@@ -708,7 +708,20 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
     const storeKey = specialKeys[resource] || resource
     if (mockStore[storeKey]) {
-      const doc = { ...body, id, number: body.number || body.id || number('MOCK'), date: body.date || date(), status: body.status || 'posted', total: Number(body.total || 0) }
+      const docTotal = Number(body.total ?? body.grandTotal ?? body.grand_total ?? 0)
+      const docItems = Number(body.items ?? body.lines?.length ?? 1)
+      const docParty = body.party || body.customer || body.supplier || 'Cash Customer'
+      const docNumber = body.number || body.invoiceNo || body.id || (resource === 'sales' ? number('SI') : resource === 'purchases' ? number('PB') : number('MOCK'))
+      const doc = {
+        ...body,
+        id,
+        number: docNumber,
+        party: docParty,
+        date: body.date || date(),
+        status: (body.status || 'posted').toLowerCase(),
+        items: docItems,
+        total: docTotal
+      }
       mockStore[storeKey].unshift(doc)
       return doc
     }
