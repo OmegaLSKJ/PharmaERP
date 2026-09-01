@@ -23,8 +23,9 @@ export default function PartyList() {
   useEffect(() => { getErp<Party[]>('parties').then(setParties).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load parties.')).finally(() => setLoading(false)) }, [showToast])
 
   const filtered = parties.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()) || p.gstin.includes(search)
-    const matchType = typeFilter === 'all' || p.type === typeFilter
+    const s = (search || '').toLowerCase().trim()
+    const matchSearch = !s || (p?.name || '').toLowerCase().includes(s) || (p?.id || '').toLowerCase().includes(s) || (p?.gstin || '').toLowerCase().includes(s)
+    const matchType = typeFilter === 'all' || p?.type === typeFilter
     return matchSearch && matchType
   })
 

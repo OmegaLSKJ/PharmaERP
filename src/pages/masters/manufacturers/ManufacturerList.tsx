@@ -37,11 +37,11 @@ export default function ManufacturerList() {
       .then((rows) => {
         setManufacturers(
           (rows || []).map((row) => ({
-            id: String(row.id || ''),
-            name: String(row.name || ''),
-            code: String(row.code || row.name?.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() || 'MFG'),
-            productCount: Number(row.productCount || row.itemcount || 0),
-            status: row.is_active === false || row.status === 'inactive' || row.status === 'Blocked' ? 'Blocked' : 'Active'
+            id: String(row?.id || ''),
+            name: String(row?.name || ''),
+            code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
+            productCount: Number(row?.productCount || row?.itemcount || 0),
+            status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
           }))
         )
       })
@@ -64,15 +64,18 @@ export default function ManufacturerList() {
   const openEditModal = (mfg: Manufacturer) => {
     setModalMode('edit')
     setSelectedMfg(mfg)
-    setFormName(mfg.name)
-    setFormCode(mfg.code)
-    setFormStatus(mfg.status)
+    setFormName(mfg?.name || '')
+    setFormCode(mfg?.code || '')
+    setFormStatus(mfg?.status || 'Active')
   }
 
   const handleNameChange = (val: string) => {
     setFormName(val)
-    if (modalMode === 'add' && (!formCode || formCode === formName.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase())) {
-      setFormCode(val.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase())
+    if (modalMode === 'add') {
+      const generated = val.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase()
+      if (!formCode || formCode === (formName || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase()) {
+        setFormCode(generated)
+      }
     }
   }
 
@@ -95,9 +98,9 @@ export default function ManufacturerList() {
           is_active: isActive
         })
         const newRecord: Manufacturer = {
-          id: String(row.id || Date.now()),
-          name: row.name || formName.trim(),
-          code: row.code || codeToSave,
+          id: String(row?.id || Date.now()),
+          name: row?.name || formName.trim(),
+          code: row?.code || codeToSave,
           productCount: 0,
           status: formStatus
         }
@@ -145,7 +148,10 @@ export default function ManufacturerList() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
     return manufacturers.filter(
-      (m) => !q || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+      (m) =>
+        !q ||
+        (m?.name || '').toLowerCase().includes(q) ||
+        (m?.code || '').toLowerCase().includes(q)
     )
   }, [manufacturers, search])
 

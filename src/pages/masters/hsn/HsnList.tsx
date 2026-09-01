@@ -103,7 +103,7 @@ export default function HsnList() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return items.filter((i) => !q || i.description.toLowerCase().includes(q) || i.code.toLowerCase().includes(q))
+    return items.filter((i) => !q || (i?.description || '').toLowerCase().includes(q) || (i?.code || '').toLowerCase().includes(q))
   }, [items, search])
 
   // Reset page index on search/pageSize changes

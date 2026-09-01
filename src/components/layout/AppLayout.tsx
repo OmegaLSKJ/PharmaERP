@@ -3,6 +3,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import CommandPalette from '../ui/CommandPalette'
 import Toast from '../ui/Toast'
+import ErrorBoundary from '../common/ErrorBoundary'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
@@ -47,9 +48,11 @@ export default function AppLayout() {
         </div>
         <Topbar />
         <main className="flex-1 overflow-auto p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
-          <div key={location.pathname} className="page-enter min-h-full">
-            <Outlet />
-          </div>
+          <ErrorBoundary>
+            <div key={location.pathname} className="page-enter min-h-full">
+              <Outlet />
+            </div>
+          </ErrorBoundary>
         </main>
       </div>
       <CommandPalette />
