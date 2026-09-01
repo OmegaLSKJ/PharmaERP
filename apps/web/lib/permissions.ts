@@ -7,8 +7,11 @@ const accounting = new Set(['ledger', 'vouchers', 'day-book', 'trial-balance', '
 const compliance = new Set(['drug-licenses', 'product-recalls', 'controlled-drug-register'])
 const transactions = new Set(['sales', 'purchases', 'cancellations', 'challans', 'sale-returns', 'purchase-returns', 'orders', 'replacements', 'counter-sales', 'pendings', 'price-differences'])
 
-export function userRole(value: unknown): ErpRole {
-  return value === 'admin' || value === 'manager' ? value : 'operator'
+export function userRole(appRole?: unknown, userRoleVal?: unknown): ErpRole {
+  const role = String(appRole || userRoleVal || '').toLowerCase()
+  if (role === 'admin' || role === 'administrator') return 'admin'
+  if (role === 'manager') return 'manager'
+  return 'operator'
 }
 
 function actionFor(method: ErpMethod, resource: string) {
@@ -24,11 +27,14 @@ function actionFor(method: ErpMethod, resource: string) {
 }
 
 const manager = new Set([
-  'masters.read','masters.write','transactions.read','transactions.write','transactions.cancel',
-  'inventory.read','inventory.adjust','accounting.read','accounting.write','reports.read',
-  'imports.execute','compliance.read','compliance.write',
+  'masters.read','masters.write','masters.delete','transactions.read','transactions.write','transactions.cancel',
+  'inventory.read','inventory.adjust','accounting.read','accounting.write','accounting.delete','reports.read',
+  'imports.execute','compliance.read','compliance.write','compliance.delete',
 ])
-const operator = new Set(['masters.read','transactions.read','transactions.write','inventory.read','accounting.read','reports.read','compliance.read'])
+const operator = new Set([
+  'masters.read','masters.write','masters.delete','transactions.read','transactions.write','transactions.cancel',
+  'inventory.read','accounting.read','accounting.write','reports.read','compliance.read'
+])
 
 export function canAccess(role: ErpRole, method: ErpMethod, resource: string) {
   if (role === 'admin') return true
