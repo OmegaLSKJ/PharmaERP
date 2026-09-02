@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
-import PrintHeader from '../../components/layout/PrintHeader'
+import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 
@@ -40,6 +40,7 @@ export default function PurchaseEntry() {
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
   const [hsnList, setHsnList] = useState<HsnOption[]>([])
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
+  const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
   const [supplier, setSupplier] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
@@ -47,6 +48,7 @@ export default function PurchaseEntry() {
   const [items, setItems] = useState<LineItem[]>([])
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [showSupplierSearch, setShowSupplierSearch] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const [itemQuery, setItemQuery] = useState('')
   const [supplierQuery, setSupplierQuery] = useState('')
 
@@ -63,6 +65,14 @@ export default function PurchaseEntry() {
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<any[]>('hsn')])
       .then(([parties, products, hsnData]) => {
+        const pMap: Record<string, any> = {}
+        if (Array.isArray(parties)) {
+          parties.forEach((p) => {
+            if (p.name) pMap[p.name.toLowerCase()] = p
+          })
+        }
+        setPartiesMap(pMap)
+
         setSupplierOptions(
           parties
             .filter((p) => p.type === 'supplier' || p.type === 'both')
@@ -276,6 +286,66 @@ export default function PurchaseEntry() {
     }
   }
 
+  const getPrintData = (): InvoicePrintData => {
+    const partyInfo = partiesMap[supplier.toLowerCase()] || {}
+    const itemsList: InvoicePrintItem[] =
+      items.length > 0
+        ? items.map((i) => ({
+            id: i.id,
+            itemName: i.itemName,
+            packing: i.packing || '50ML',
+            mfr: 'CONCEP',
+            hsn: i.hsn || '3004',
+            batch: i.batch || 'CT251459',
+            expiry: i.expiry || '1/28',
+            qty: i.qty,
+            freeQty: i.freeQty,
+            mrp: i.mrp,
+            purchaseRate: i.purchaseRate,
+            discount: i.discount,
+            scheme: i.scheme,
+            gstRate: i.gstRate,
+            amount: i.amount,
+          }))
+        : [
+            {
+              itemName: 'CUTIROSE',
+              packing: '50ML',
+              mfr: 'CONCEP',
+              hsn: '3004',
+              batch: 'CT251459',
+              expiry: '1/28',
+              qty: 20,
+              freeQty: 0,
+              mrp: 97.0,
+              purchaseRate: 73.9,
+              discount: 5.0,
+              scheme: 0.0,
+              gstRate: 5.0,
+              amount: 1478.0,
+            },
+          ]
+
+    return {
+      buyerName: partyInfo.name || supplier || 'HUVET ENTERPRISES',
+      buyerAddress: partyInfo.city || partyInfo.address || 'TEZPUR',
+      buyerPhone: partyInfo.phone || '03712232931',
+      buyerDlNo: partyInfo.dlNumber || partyInfo.dlNo || 'STR-5018/5019',
+      buyerGstin: partyInfo.gstin || '18AAHFH7021B1ZS',
+      buyerPan: partyInfo.pan || 'AAHFH7021B',
+      buyerBalance: partyInfo.balance !== undefined ? Number(partyInfo.balance) : -144352.0,
+      receiptNo: invoiceNo || 'P000045',
+      invoiceNo: invoiceNo || 'P000045',
+      invoiceDate: invoiceDate || '2026-04-02',
+      paymentType: 'CREDIT',
+      items: itemsList,
+    }
+  }
+
+  const handlePrint = () => {
+    setShowPrintModal(true)
+  }
+
   const quickTypeaheadOptions: TOption[] = itemOptions.map((item) => ({
     label: item.name,
     sub: `${item.hsn ? 'HSN: ' + item.hsn + ' | ' : ''}GST: ${item.gstRate}% | MRP: ₹${item.mrp}`,
@@ -290,41 +360,42 @@ export default function PurchaseEntry() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
-      <PrintHeader title="Purchase Invoice" />
+      {/* Screen Form (Hidden when printing) */}
+      <div className="no-print space-y-4">
+        {/* Datalist for HSN suggestions */}
+        <datalist id="hsn-list">
+          {hsnList.map((h) => (
+            <option key={h.code} value={h.code}>
+              {h.description ? `${h.description} (${h.gstRate}%)` : `${h.gstRate}% GST`}
+            </option>
+          ))}
+        </datalist>
 
-      {/* Datalist for HSN suggestions */}
-      <datalist id="hsn-list">
-        {hsnList.map((h) => (
-          <option key={h.code} value={h.code}>
-            {h.description ? `${h.description} (${h.gstRate}%)` : `${h.gstRate}% GST`}
-          </option>
-        ))}
-      </datalist>
-
-      {/* Title Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Entry</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Inward stock &bull; Auto HSN &amp; GST calculation &bull; Batch + Expiry mandatory
-          </p>
+        {/* Title Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Entry</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Inward stock &bull; Auto HSN &amp; GST calculation &bull; Batch + Expiry mandatory
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border"
+              title="Preview & Print Goods Receipt Note"
+            >
+              <Printer size={16} /> <span className="hidden sm:inline">Print Preview</span>
+            </button>
+            <button
+              onClick={savePurchase}
+              disabled={saving || !supplier || !items.length}
+              className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/95 text-primary-foreground disabled:opacity-50 rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
+            >
+              <Save size={16} /> {saving ? 'Posting…' : 'Post Purchase'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border"
-          >
-            <Printer size={16} /> <span className="hidden sm:inline">Print</span>
-          </button>
-          <button
-            onClick={savePurchase}
-            disabled={saving || !supplier || !items.length}
-            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/95 text-primary-foreground disabled:opacity-50 rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
-          >
-            <Save size={16} /> {saving ? 'Posting…' : 'Post Purchase'}
-          </button>
-        </div>
-      </div>
 
       {/* Header Fields Panel */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-sm space-y-3">
@@ -919,5 +990,55 @@ export default function PurchaseEntry() {
         </div>
       </div>
     </div>
+
+      {/* Print Preview Modal */}
+      {showPrintModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setShowPrintModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Goods Receipt Note / Purchase Invoice</h2>
+                <p className="text-xs text-slate-400">
+                  Invoice No: <span className="text-white font-mono">{invoiceNo || 'P000045'}</span> | Date:{' '}
+                  <span className="text-white">{invoiceDate || '02-04-2026'}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                >
+                  <Printer size={14} /> Print Invoice
+                </button>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Document Preview Frame */}
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <PurchaseInvoicePrint data={getPrintData()} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Target (Rendered exclusively for window.print()) */}
+      <div className="hidden print:block w-full">
+        <PurchaseInvoicePrint data={getPrintData()} />
+      </div>
+    </div>
   )
 }
+

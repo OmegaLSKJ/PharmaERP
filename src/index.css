@@ -414,6 +414,87 @@
     font-weight: 700 !important;
     padding: 4px 8px !important;
   }
+
+  /* ── Specialized Goods Receipt Note / Purchase Invoice Print Layout ──── */
+  .goods-receipt-note-print {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .goods-receipt-note-print * {
+    box-sizing: border-box !important;
+    color: #000000 !important;
+  }
+
+  .goods-receipt-note-print .grid {
+    display: grid !important;
+  }
+
+  .goods-receipt-note-print .grid-cols-12 {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+
+  .goods-receipt-note-print .col-span-3 {
+    grid-column: span 3 / span 3 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-4 {
+    grid-column: span 4 / span 4 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-5 {
+    grid-column: span 5 / span 5 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-8 {
+    grid-column: span 8 / span 8 !important;
+    width: auto !important;
+    display: block !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .goods-receipt-note-print tr {
+    display: table-row !important;
+  }
+
+  .goods-receipt-note-print th,
+  .goods-receipt-note-print td {
+    display: table-cell !important;
+    padding: 2px 4px !important;
+  }
+
+  .goods-receipt-note-print thead tr {
+    background-color: #d4ebf2 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .goods-receipt-note-print .text-\[\#0c2f66\] {
+    color: #0c2f66 !important;
+  }
 }
 
 /* Global search input layout fixes: resolve overlapping icons and enforce unified theme styles */

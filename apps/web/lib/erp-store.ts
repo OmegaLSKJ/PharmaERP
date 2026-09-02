@@ -653,7 +653,55 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
 
     if (resource === 'parties') {
-      const party = { id, code: body.code || `PTY-${Date.now()}`, name: body.name, type: body.type || 'customer', phone: body.phone || '', email: body.email || '', city: body.city || '', gstin: body.gstin || '', balance: 0, creditLimit: Number(body.creditLimit || 0), lastSale: '', status: 'active' }
+      const opBal = Number(body.openingBalance || 0)
+      const opType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
+      const netBal = opType === 'Cr' ? -Math.abs(opBal) : Math.abs(opBal)
+
+      const party = {
+        id,
+        code: body.code || `PTY-${Date.now()}`,
+        name: body.name,
+        type: body.type || (body.accountGroup === 'Sundry Creditors' ? 'supplier' : 'customer'),
+        station: body.station || '',
+        accountGroup: body.accountGroup || (body.type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors'),
+        balancingMethod: body.balancingMethod || 'On Account',
+        openingBalance: opBal,
+        openingType: opType,
+        mailTo: body.mailTo || body.name,
+        address: body.address || '',
+        addressLine2: body.addressLine2 || '',
+        pincode: body.pincode || '',
+        city: body.city || '',
+        state: body.state || '18-ASSAM',
+        country: body.country || 'INDIA',
+        contactPerson: body.contactPerson || '',
+        designation: body.designation || '',
+        phone: body.phone || body.mobile || '',
+        mobile: body.mobile || body.phone || '',
+        phoneOff: body.phoneOff || '',
+        phoneRes: body.phoneRes || '',
+        fax: body.fax || '',
+        email: body.email || '',
+        website: body.website || '',
+        freezeUpto: body.freezeUpto || '',
+        narcoSchH: body.narcoSchH || 'Allow All',
+        dlNo: body.dlNo || body.dlNumber || '',
+        dlNumber: body.dlNo || body.dlNumber || '',
+        dlExp: body.dlExp || '',
+        gstHeading: body.gstHeading || 'Local',
+        gstin: body.gstin || '',
+        gstinDate: body.gstinDate || '',
+        foodLicenceNo: body.foodLicenceNo || body.fssai || '',
+        foodLicenceExp: body.foodLicenceExp || '',
+        pan: body.pan || (body.gstin && body.gstin.length >= 12 ? body.gstin.slice(2, 12) : ''),
+        ledgerCategory: body.ledgerCategory || 'OTHERS',
+        ledgerType: body.ledgerType || 'REGISTERED',
+        creditLimit: Number(body.creditLimit || 0),
+        creditDays: Number(body.creditDays || 0),
+        balance: netBal,
+        lastSale: '',
+        status: body.status || 'active'
+      }
       mockStore.parties.push(party)
       return party
     }
