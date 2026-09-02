@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Plus,
   Search,
@@ -383,75 +384,77 @@ export default function HsnList() {
         )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 relative">
-            <h3 className="text-lg font-bold text-white mb-4">Add New HSN / SAC</h3>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Code</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 30049011"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Description</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Paracetamol preparations"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+      {showModal &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-md p-6 relative shadow-2xl text-white">
+              <h3 className="text-lg font-bold text-white mb-4">Add New HSN / SAC</h3>
+              <form onSubmit={handleAdd} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Type</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as 'Goods' | 'Services')}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
-                  >
-                    <option value="Goods">Goods</option>
-                    <option value="Services">Services</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">GST Rate (%)</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Code</label>
                   <input
-                    type="number"
+                    type="text"
                     required
-                    value={gst}
-                    onChange={(e) => setGst(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                    placeholder="e.g. 30049011"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
                   />
                 </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md"
-                >
-                  Save HSN / SAC
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Description</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Paracetamol preparations"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Type</label>
+                    <select
+                      value={type}
+                      onChange={(e) => setType(e.target.value as 'Goods' | 'Services')}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                    >
+                      <option value="Goods">Goods</option>
+                      <option value="Services">Services</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">GST Rate (%)</label>
+                    <input
+                      type="number"
+                      required
+                      value={gst}
+                      onChange={(e) => setGst(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md"
+                  >
+                    Save HSN / SAC
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

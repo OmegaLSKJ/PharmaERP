@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Building2, Check } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
@@ -268,153 +269,157 @@ export default function ManufacturerList() {
       </div>
 
       {/* Add / Edit Modal */}
-      {modalMode && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50"
-          onClick={() => setModalMode(null)}
-        >
+      {modalMode &&
+        createPortal(
           <div
-            className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            onClick={() => setModalMode(null)}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">
-                {modalMode === 'add' ? 'Add New Manufacturer' : 'Edit Manufacturer'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalMode(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-4 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
-                  Company Name <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Cipla Ltd"
-                  value={formName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
-                  Company Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. CIPLA"
-                  value={formCode}
-                  onChange={(e) => setFormCode(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm font-mono outline-none focus:border-indigo-500 placeholder:text-slate-600 uppercase"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Status</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormStatus('Active')}
-                    className={cn(
-                      'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
-                      formStatus === 'Active'
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    )}
-                  >
-                    {formStatus === 'Active' && <Check size={13} />} Active
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormStatus('Blocked')}
-                    className={cn(
-                      'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
-                      formStatus === 'Blocked'
-                        ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    )}
-                  >
-                    {formStatus === 'Blocked' && <Check size={13} />} Blocked
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <div
+              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4 text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-bold text-white">
+                  {modalMode === 'add' ? 'Add New Manufacturer' : 'Edit Manufacturer'}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setModalMode(null)}
-                  disabled={isSubmitting}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSave} className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
+                    Company Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cipla Ltd"
+                    value={formName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
+                    Company Code
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CIPLA"
+                    value={formCode}
+                    onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm font-mono outline-none focus:border-indigo-500 placeholder:text-slate-500 uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Status</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormStatus('Active')}
+                      className={cn(
+                        'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
+                        formStatus === 'Active'
+                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      )}
+                    >
+                      {formStatus === 'Active' && <Check size={13} />} Active
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormStatus('Blocked')}
+                      className={cn(
+                        'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
+                        formStatus === 'Blocked'
+                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      )}
+                    >
+                      {formStatus === 'Blocked' && <Check size={13} />} Blocked
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setModalMode(null)}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Manufacturer' : 'Update Manufacturer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingMfg &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            onClick={() => setDeletingMfg(null)}
+          >
+            <div
+              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Delete Manufacturer</h3>
+                  <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300">
+                Are you sure you want to delete <span className="font-semibold text-white">"{deletingMfg.name}"</span>?
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setDeletingMfg(null)}
+                  disabled={isDeleting}
                   className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Manufacturer' : 'Update Manufacturer'}
+                  {isDeleting ? 'Deleting…' : 'Yes, Delete'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deletingMfg && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50"
-          onClick={() => setDeletingMfg(null)}
-        >
-          <div
-            className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Delete Manufacturer</h3>
-                <p className="text-xs text-slate-400">This action cannot be undone.</p>
-              </div>
             </div>
-
-            <p className="text-xs text-slate-300">
-              Are you sure you want to delete <span className="font-semibold text-white">"{deletingMfg.name}"</span>?
-            </p>
-
-            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setDeletingMfg(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
-              >
-                {isDeleting ? 'Deleting…' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Check, FlaskConical } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
@@ -246,137 +247,141 @@ export default function SaltMaster() {
       </div>
 
       {/* Add / Edit Modal */}
-      {modalMode && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50"
-          onClick={() => setModalMode(null)}
-        >
+      {modalMode &&
+        createPortal(
           <div
-            className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            onClick={() => setModalMode(null)}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">
-                {modalMode === 'add' ? 'Add Salt / Composition' : 'Edit Salt / Composition'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalMode(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={saveSalt} className="space-y-4 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
-                  Salt Name <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Paracetamol"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Composition</label>
-                <input
-                  type="text"
-                  placeholder="e.g. N-(4-hydroxyphenyl)acetamide"
-                  value={comp}
-                  onChange={(e) => setComp(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Category</label>
-                <select
-                  value={cat}
-                  onChange={(e) => setCat(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
-                >
-                  {Object.keys(CAT_COLORS).map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                  <option value="General">General</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <div
+              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4 text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-bold text-white">
+                  {modalMode === 'add' ? 'Add Salt / Composition' : 'Edit Salt / Composition'}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setModalMode(null)}
-                  disabled={isSubmitting}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={saveSalt} className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
+                    Salt Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Paracetamol"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Composition</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. N-(4-hydroxyphenyl)acetamide"
+                    value={comp}
+                    onChange={(e) => setComp(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Category</label>
+                  <select
+                    value={cat}
+                    onChange={(e) => setCat(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                  >
+                    {Object.keys(CAT_COLORS).map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                    <option value="General">General</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setModalMode(null)}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Salt' : 'Update Salt'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingSalt &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            onClick={() => setDeletingSalt(null)}
+          >
+            <div
+              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Delete Salt</h3>
+                  <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300">
+                Are you sure you want to delete <span className="font-semibold text-white">"{deletingSalt.name}"</span>?
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setDeletingSalt(null)}
+                  disabled={isDeleting}
                   className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Salt' : 'Update Salt'}
+                  {isDeleting ? 'Deleting…' : 'Yes, Delete'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deletingSalt && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50"
-          onClick={() => setDeletingSalt(null)}
-        >
-          <div
-            className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Delete Salt</h3>
-                <p className="text-xs text-slate-400">This action cannot be undone.</p>
-              </div>
             </div>
-
-            <p className="text-xs text-slate-300">
-              Are you sure you want to delete <span className="font-semibold text-white">"{deletingSalt.name}"</span>?
-            </p>
-
-            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setDeletingSalt(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
-              >
-                {isDeleting ? 'Deleting…' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }
