@@ -130,7 +130,7 @@ export default function PartyList() {
     })
   }
 
-  // Form states matching Marg ERP Ledger specification
+  // Form states matching TAO Solutions Pvt Ltd Ledger specification
   const [formData, setFormData] = useState({
     name: '',
     type: 'customer' as 'customer' | 'supplier' | 'both',
@@ -571,7 +571,7 @@ export default function PartyList() {
         </div>
       </div>
 
-      {/* Comprehensive New Party / Modify Ledger Modal (Matching Marg ERP Ledger Spec) */}
+      {/* Comprehensive New Party / Modify Ledger Modal (Matching TAO Solutions Pvt Ltd Ledger Spec) */}
       {showCreate && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto"
