@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Search, Edit2, Trash2, FileText, Download, Printer, Landmark, ArrowUpRight, ArrowDownLeft, Calendar, Filter, X } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, FileText, Download, Printer, Landmark, ChevronDown, ChevronRight, Calendar, Filter, X } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
@@ -35,6 +35,28 @@ const TYPE_BADGES: Record<string, string> = {
   contra: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
   journal: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   challan: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+}
+
+const Section = ({ title, transactions, children }: { title: string, transactions: any[], children: React.ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(true)
+  const dr = transactions.reduce((acc, t) => acc + t.debit, 0)
+  const cr = transactions.reduce((acc, t) => acc + t.credit, 0)
+  if (transactions.length === 0) return null
+  return (
+    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 bg-slate-900/80 hover:bg-slate-800 transition">
+        <div className="flex items-center gap-2">
+          {isOpen ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+          <span className="font-semibold text-sm text-white">{title} ({transactions.length})</span>
+        </div>
+        <div className="flex gap-4 text-xs font-mono">
+          <span className="text-emerald-400">Dr: {formatCurrency(dr)}</span>
+          <span className="text-rose-400">Cr: {formatCurrency(cr)}</span>
+        </div>
+      </button>
+      {isOpen && <div className="border-t border-slate-800">{children}</div>}
+    </div>
+  )
 }
 
 export default function LedgerList() {
@@ -73,7 +95,6 @@ export default function LedgerList() {
           type: Number(p.balance || 0) < 0 ? 'Cr' : 'Dr'
         }))
 
-        // Merge chart of accounts with parties
         const existingNames = new Set(accounts.map((a) => a.name.toLowerCase()))
         const combined = [
           ...accounts,
@@ -162,7 +183,6 @@ export default function LedgerList() {
     return matchSearch && matchGroup
   })
 
-  // Calculate Party-Wise Statement with Running Balance
   const selectedLedgerObj = ledgers.find((l) => l.name === selectedLedger)
 
   const partyTransactions = useMemo(() => {
@@ -170,10 +190,7 @@ export default function LedgerList() {
     const relevant = statementEntries.filter(
       (e) => (e.party || '').toLowerCase() === selectedLedger.toLowerCase()
     )
-
-    // Sort chronologically
     relevant.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
     let currentBal = 0
     return relevant.map((txn) => {
       const dr = Number(txn.debit) || 0
@@ -189,18 +206,14 @@ export default function LedgerList() {
     })
   }, [statementEntries, selectedLedger])
 
-  // Filter statement transactions by date & type
   const filteredStatementTxns = useMemo(() => {
     return partyTransactions.filter((txn) => {
       const matchSearch =
         txn.vNo.toLowerCase().includes(statementSearch.toLowerCase()) ||
         txn.narration.toLowerCase().includes(statementSearch.toLowerCase()) ||
         txn.vType.toLowerCase().includes(statementSearch.toLowerCase())
-
       const matchType = typeFilter === 'all' || txn.vType.toLowerCase() === typeFilter.toLowerCase()
-
       const matchDate = (!fromDate || txn.date >= fromDate) && (!toDate || txn.date <= toDate)
-
       return matchSearch && matchType && matchDate
     })
   }, [partyTransactions, statementSearch, typeFilter, fromDate, toDate])
@@ -217,359 +230,250 @@ export default function LedgerList() {
       ? filteredStatementTxns[filteredStatementTxns.length - 1].balanceType
       : selectedLedgerObj?.type || 'Dr'
 
+  const TransactionTable = ({ txns }: { txns: any[] }) => (
+    <table className="w-full text-xs text-left min-w-[700px]">
+      <thead>
+        <tr className="bg-slate-950/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider">
+          <th className="px-4 py-3 font-medium w-24">Date</th>
+          <th className="px-4 py-3 font-medium w-28">Type</th>
+          <th className="px-4 py-3 font-medium w-36">Voucher No</th>
+          <th className="px-4 py-3 font-medium">Narration</th>
+          <th className="px-4 py-3 font-medium text-right w-28">Debit (₹)</th>
+          <th className="px-4 py-3 font-medium text-right w-28">Credit (₹)</th>
+          <th className="px-4 py-3 font-medium text-right w-32">Running Bal</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-800 text-slate-300">
+        {txns.length === 0 && (
+          <tr><td colSpan={7} className="p-6 text-center text-slate-500 italic">No records found.</td></tr>
+        )}
+        {txns.map((t, i) => (
+          <tr key={i} className="hover:bg-slate-800/30 transition">
+            <td className="px-4 py-2.5 font-mono text-slate-400 text-[11px]">{t.date}</td>
+            <td className="px-4 py-2.5">
+              <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[t.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>
+                {t.vType}
+              </span>
+            </td>
+            <td className="px-4 py-2.5 font-mono text-white font-medium text-[11px]">{t.vNo}</td>
+            <td className="px-4 py-2.5 text-slate-300 max-w-xs truncate">{t.narration || '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono text-emerald-400 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono text-rose-400 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono font-semibold text-white text-[11px]">
+              {formatCurrency(t.runningBalance)} <span className="text-[9px] text-slate-400">{t.balanceType}</span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
       <PrintHeader title={`Party Statement: ${selectedLedger || 'All Ledgers'}`} />
-
-      {/* Main Top Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <Landmark className="text-indigo-400" size={24} /> Ledger &amp; Party Master
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Chart of accounts, customer/supplier ledgers and party-wise financial statements
-          </p>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Chart of accounts, customer/supplier ledgers and party-wise financial statements</p>
         </div>
-
         <div className="flex items-center gap-2">
           {activeTab === 'statement' ? (
             <>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700"
-              >
+              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700">
                 <Printer size={15} /> Print Statement
               </button>
-              <button
-                onClick={() => exportVisibleTables(`statement-${selectedLedger || 'party'}`)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition"
-              >
+              <button onClick={() => exportVisibleTables(`statement-${selectedLedger || 'party'}`)} className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
                 <Download size={15} /> Export CSV
               </button>
             </>
           ) : (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition"
-            >
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition">
               <Plus size={16} /> New Ledger
             </button>
           )}
         </div>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="flex border-b border-slate-800 gap-2 no-print">
-        <button
-          onClick={() => setActiveTab('masters')}
-          className={cn(
-            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
-            activeTab === 'masters'
-              ? 'border-indigo-500 text-white'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          )}
-        >
-          <Landmark size={15} /> Chart of Accounts / All Ledgers ({ledgers.length})
+        <button onClick={() => setActiveTab('masters')} className={cn('px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2', activeTab === 'masters' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
+          <Landmark size={15} /> Chart of Accounts ({ledgers.length})
         </button>
-        <button
-          onClick={() => setActiveTab('statement')}
-          className={cn(
-            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
-            activeTab === 'statement'
-              ? 'border-indigo-500 text-white'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          )}
-        >
+        <button onClick={() => setActiveTab('statement')} className={cn('px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2', activeTab === 'statement' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
           <FileText size={15} /> Party-Wise Statement {selectedLedger && `(${selectedLedger})`}
         </button>
       </div>
 
-      {/* TAB 1: CHART OF ACCOUNTS / ALL LEDGERS */}
       {activeTab === 'masters' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
               <Search className="text-slate-400 shrink-0" size={16} />
-              <input
-                type="text"
-                placeholder="Search ledgers by name or group..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full placeholder:text-slate-500"
-              />
+              <input type="text" placeholder="Search ledgers..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full placeholder:text-slate-500" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Group:</span>
-              <select
-                value={groupFilter}
-                onChange={(e) => setGroupFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
-              >
-                <option value="ALL">All Account Groups</option>
-                {groups.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+              <option value="ALL">All Groups</option>
+              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
           </div>
-
-          {/* Horizontal Scroller Container */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
             <table className="min-w-[700px] w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  <th className="p-3.5">Ledger / Party Name</th>
+                <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
+                  <th className="p-3.5">Ledger Name</th>
                   <th className="p-3.5">Account Group</th>
-                  <th className="p-3.5 text-right">Current Balance</th>
-                  <th className="p-3.5 text-center">Dr/Cr</th>
-                  <th className="p-3.5 text-right">Actions &amp; Statement</th>
+                  <th className="p-3.5 text-right">Balance</th>
+                  <th className="p-3.5 text-center">Type</th>
+                  <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-sm">
-                {filteredLedgers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-xs text-slate-500">
-                      No ledgers matching &ldquo;{search}&rdquo;
+                {filteredLedgers.map((l) => (
+                  <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300">
+                    <td className="p-3.5">{l.name}</td>
+                    <td className="p-3.5 text-slate-400">{l.group}</td>
+                    <td className={cn('p-3.5 text-right font-mono', l.type === 'Dr' ? 'text-emerald-400' : 'text-amber-400')}>₹{l.balance.toLocaleString()}</td>
+                    <td className="p-3.5 text-center">{l.type}</td>
+                    <td className="p-3.5 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => openPartyStatement(l.name)} className="px-2 py-1 bg-indigo-600/20 text-indigo-300 rounded text-[10px]">View</button>
+                        <button onClick={() => editLedger(l)} className="p-1 text-slate-400"><Edit2 size={12}/></button>
+                        <button onClick={() => removeLedger(l)} className="p-1 text-slate-400"><Trash2 size={12}/></button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredLedgers.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300 transition">
-                      <td className="p-3.5 font-medium text-white">
-                        <div className="flex items-center gap-2">
-                          <span>{l.name}</span>
-                          {['Sundry Debtors', 'Sundry Creditors'].includes(l.group) && (
-                            <span className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-normal">
-                              Party
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3.5 text-slate-400 text-xs">{l.group}</td>
-                      <td
-                        className={cn(
-                          'p-3.5 text-right font-mono font-semibold',
-                          l.type === 'Dr' ? 'text-emerald-400' : 'text-amber-400'
-                        )}
-                      >
-                        ₹{l.balance.toLocaleString('en-IN')}
-                      </td>
-                      <td className="p-3.5 text-center text-xs font-mono">
-                        <span
-                          className={cn(
-                            'px-2 py-0.5 rounded text-[10px] font-bold',
-                            l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                          )}
-                        >
-                          {l.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <div className="flex justify-end items-center gap-2">
-                          <button
-                            onClick={() => openPartyStatement(l.name)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition"
-                            title="View Statement"
-                          >
-                            <FileText size={13} /> Statement
-                          </button>
-                          <button
-                            aria-label={`Edit ${l.name}`}
-                            onClick={() => editLedger(l)}
-                            className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition"
-                            title="Edit"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            aria-label={`Delete ${l.name}`}
-                            onClick={() => removeLedger(l)}
-                            className="p-1.5 hover:text-rose-400 text-slate-400 hover:bg-rose-950/30 rounded transition"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* TAB 2: PARTY-WISE STATEMENT */}
       {activeTab === 'statement' && (
         <div className="space-y-4">
-          {/* Party Selector & Filters Card */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Party / Ledger Dropdown */}
-              <div className="sm:col-span-2 md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
-                  Select Party / Ledger
-                </label>
-                <select
-                  value={selectedLedger}
-                  onChange={(e) => setSelectedLedger(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-semibold"
-                >
+          {/* Filters */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] text-slate-400 uppercase font-semibold">Select Party / Ledger</label>
+                <select value={selectedLedger} onChange={(e) => setSelectedLedger(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold outline-none text-sm mt-1 focus:border-indigo-500">
                   <optgroup label="👥 Customer Ledgers (Sundry Debtors)">
-                    {ledgers
-                      .filter((l) => l.group === 'Sundry Debtors')
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name} (Dr ₹{l.balance.toLocaleString('en-IN')})
-                        </option>
-                      ))}
+                    {ledgers.filter(l => l.group === 'Sundry Debtors').map(l => <option key={l.id} value={l.name}>{l.name} (Dr ₹{l.balance.toLocaleString('en-IN')})</option>)}
                   </optgroup>
                   <optgroup label="🏢 Supplier Ledgers (Sundry Creditors)">
-                    {ledgers
-                      .filter((l) => l.group === 'Sundry Creditors')
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name} (Cr ₹{l.balance.toLocaleString('en-IN')})
-                        </option>
-                      ))}
+                    {ledgers.filter(l => l.group === 'Sundry Creditors').map(l => <option key={l.id} value={l.name}>{l.name} (Cr ₹{l.balance.toLocaleString('en-IN')})</option>)}
                   </optgroup>
-                  <optgroup label="🏦 Bank & Cash Accounts">
-                    {ledgers
-                      .filter((l) => ['Cash', 'Bank', 'Cash-in-hand', 'Bank Accounts'].includes(l.group))
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name}
-                        </option>
-                      ))}
-                  </optgroup>
-                  <optgroup label="📑 General & Nominal Accounts">
-                    {ledgers
-                      .filter(
-                        (l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash', 'Bank', 'Cash-in-hand', 'Bank Accounts'].includes(l.group)
-                      )
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name}
-                        </option>
-                      ))}
+                  <optgroup label="📑 Other Accounts">
+                    {ledgers.filter(l => !['Sundry Debtors','Sundry Creditors'].includes(l.group)).map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                   </optgroup>
                 </select>
               </div>
-
-              {/* From Date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">From Date</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs outline-none focus:border-indigo-500"
-                />
+                <label className="text-[10px] text-slate-400 uppercase font-semibold">From Date</label>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white outline-none text-sm mt-1 focus:border-indigo-500" />
               </div>
-
-              {/* To Date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">To Date</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs outline-none focus:border-indigo-500"
-                />
+                <label className="text-[10px] text-slate-400 uppercase font-semibold">To Date</label>
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white outline-none text-sm mt-1 focus:border-indigo-500" />
               </div>
             </div>
-
-            {/* Filter Row */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+            {/* Type filter + search */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400">Voucher Type:</span>
-                {['all', 'sale', 'purchase', 'receipt', 'payment', 'journal', 'contra'].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTypeFilter(t)}
-                    className={cn(
-                      'px-2.5 py-1 rounded text-xs capitalize font-medium transition',
-                      typeFilter === t
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
-                    )}
-                  >
+                <span className="text-xs text-slate-400">Filter:</span>
+                {['all', 'sale', 'purchase', 'challan', 'receipt', 'payment', 'journal', 'contra'].map(t => (
+                  <button key={t} onClick={() => setTypeFilter(t)}
+                    className={cn('px-2.5 py-1 rounded text-[10px] capitalize font-medium transition border', typeFilter === t ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white')}>
                     {t}
                   </button>
                 ))}
               </div>
-
-              <div className="relative w-64">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search voucher or narration..."
-                  value={statementSearch}
-                  onChange={(e) => setStatementSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs outline-none focus:border-indigo-500"
-                />
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input type="text" placeholder="Search voucher / narration..." value={statementSearch} onChange={e => setStatementSearch(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs outline-none focus:border-indigo-500 w-56" />
               </div>
             </div>
           </div>
 
-          {/* Statement KPI Cards */}
+          {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 shadow-xs">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Debit (Dr)</div>
-              <div className="text-base sm:text-lg font-bold text-emerald-400 mt-1 font-mono">
-                {formatCurrency(totalStatementDr)}
-              </div>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Debit</div>
+              <div className="text-lg font-bold text-emerald-400 font-mono mt-1">{formatCurrency(totalStatementDr)}</div>
             </div>
-
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 shadow-xs">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Credit (Cr)</div>
-              <div className="text-base sm:text-lg font-bold text-rose-400 mt-1 font-mono">
-                {formatCurrency(totalStatementCr)}
-              </div>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Credit</div>
+              <div className="text-lg font-bold text-rose-400 font-mono mt-1">{formatCurrency(totalStatementCr)}</div>
             </div>
-
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 shadow-xs">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Net Movement</div>
-              <div
-                className={cn(
-                  'text-base sm:text-lg font-bold mt-1 font-mono',
-                  netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400'
-                )}
-              >
-                {formatCurrency(Math.abs(netStatementChange))} {netStatementChange >= 0 ? 'Dr' : 'Cr'}
-              </div>
+              <div className={cn('text-lg font-bold font-mono mt-1', netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400')}>{formatCurrency(Math.abs(netStatementChange))} {netStatementChange >= 0 ? 'Dr' : 'Cr'}</div>
             </div>
-
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 shadow-xs">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Closing Balance</div>
-              <div
-                className={cn(
-                  'text-base sm:text-lg font-bold mt-1 font-mono',
-                  closingBalType === 'Dr' ? 'text-white' : 'text-amber-400'
-                )}
-              >
-                {formatCurrency(closingBalance)} {closingBalType}
-              </div>
+              <div className={cn('text-lg font-bold font-mono mt-1', closingBalType === 'Dr' ? 'text-white' : 'text-amber-400')}>{formatCurrency(closingBalance)} {closingBalType}</div>
             </div>
           </div>
 
-          {/* Party Statement Ledger Grid */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-            <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
-              <div className="text-xs font-semibold text-white">
-                Statement for <span className="text-indigo-400">{selectedLedger}</span> &bull;{' '}
-                {filteredStatementTxns.length} transactions
-              </div>
-              <div className="text-xs text-slate-400">
-                Period: {fromDate || 'Start'} to {toDate || 'Present'}
-              </div>
-            </div>
+          {/* Document count summary strip */}
+          <div className="flex flex-wrap gap-2 items-center px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-xs">
+            <span className="text-slate-400 font-semibold">Documents for</span>
+            <span className="text-indigo-400 font-bold">{selectedLedger}</span>
+            <span className="text-slate-600">—</span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-medium">🧾 Invoices: {filteredStatementTxns.filter(t => t.vType === 'sale').length}</span>
+            <span className="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">🏭 Bills: {filteredStatementTxns.filter(t => t.vType === 'purchase').length}</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-500/10 border border-slate-600/30 text-slate-300 font-medium">🚚 Challans: {filteredStatementTxns.filter(t => t.vType === 'challan').length}</span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">💰 Receipts/Pmts: {filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType)).length}</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-medium">📋 Vouchers: {filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType)).length}</span>
+            <span className="ml-auto text-slate-500">Total: <strong className="text-white">{filteredStatementTxns.length}</strong></span>
+          </div>
 
+          {/* Sub-sections */}
+          <div className="space-y-3">
+            <Section title="🧾 Sales Invoices" transactions={filteredStatementTxns.filter(t => t.vType === 'sale')}>
+              <div className="overflow-x-auto">
+                <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'sale')} />
+              </div>
+            </Section>
+
+            <Section title="🏭 Purchase Bills" transactions={filteredStatementTxns.filter(t => t.vType === 'purchase')}>
+              <div className="overflow-x-auto">
+                <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'purchase')} />
+              </div>
+            </Section>
+
+            <Section title="🚚 Delivery Challans" transactions={filteredStatementTxns.filter(t => t.vType === 'challan')}>
+              <div className="overflow-x-auto">
+                <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'challan')} />
+              </div>
+            </Section>
+
+            <Section title="💰 Receipts & Payments" transactions={filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType))}>
+              <div className="overflow-x-auto">
+                <TransactionTable txns={filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType))} />
+              </div>
+            </Section>
+
+            <Section title="📋 Accounting Vouchers (Journal / Contra / Notes)" transactions={filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType))}>
+              <div className="overflow-x-auto">
+                <TransactionTable txns={filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType))} />
+              </div>
+            </Section>
+          </div>
+
+          {/* Full Chronological Ledger View */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 bg-slate-900/80 border-b border-slate-800">
+              <div className="text-xs font-semibold text-white flex items-center gap-2">
+                <span className="text-base">📒</span> Full Chronological Ledger —
+                <span className="text-indigo-400">{selectedLedger}</span>
+                <span className="text-slate-500">·</span>
+                <span className="text-slate-400">{filteredStatementTxns.length} entries</span>
+              </div>
+              <div className="text-xs text-slate-500">Period: {fromDate || 'Start'} → {toDate || 'Present'}</div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[750px]">
                 <thead>
@@ -588,58 +492,25 @@ export default function LedgerList() {
                     <tr key={txn.id || idx} className="hover:bg-slate-900/40 transition">
                       <td className="px-4 py-3 font-mono text-slate-400">{txn.date}</td>
                       <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'px-2 py-0.5 rounded text-[10px] font-semibold uppercase border',
-                            TYPE_BADGES[txn.vType.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700'
-                          )}
-                        >
-                          {txn.vType}
-                        </span>
+                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>{txn.vType}</span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="font-mono text-white font-medium">{txn.vNo}</div>
-                        {txn.physicalVchNo && (
-                          <div className="text-[10px] text-indigo-400 font-mono">
-                            Phys: {txn.physicalVchNo}
-                          </div>
-                        )}
-                      </td>
+                      <td className="px-4 py-3 font-mono text-white font-medium">{txn.vNo}</td>
                       <td className="px-4 py-3 text-slate-300 max-w-sm truncate">{txn.narration || '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-400 font-medium">
-                        {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-rose-400 font-medium">
-                        {txn.credit > 0 ? formatCurrency(txn.credit) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-white">
-                        {formatCurrency(txn.runningBalance)}{' '}
-                        <span className="text-[10px] text-slate-400">{txn.balanceType}</span>
-                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-emerald-400 font-medium">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono text-rose-400 font-medium">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono font-semibold text-white">{formatCurrency(txn.runningBalance)} <span className="text-[10px] text-slate-400">{txn.balanceType}</span></td>
                     </tr>
                   ))}
                   {filteredStatementTxns.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="p-10 text-center text-slate-500">
-                        No transactions found for {selectedLedger} within the selected date range and filters.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={7} className="p-10 text-center text-slate-500">No transactions found for {selectedLedger} in the selected period.</td></tr>
                   )}
                 </tbody>
                 <tfoot>
                   <tr className="bg-slate-900/90 border-t border-slate-700 text-white font-bold text-xs">
-                    <td colSpan={4} className="px-4 py-3 uppercase">
-                      Total Transaction Movement
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-400">
-                      {formatCurrency(totalStatementDr)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-rose-400">
-                      {formatCurrency(totalStatementCr)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-amber-400">
-                      {formatCurrency(closingBalance)} {closingBalType}
-                    </td>
+                    <td colSpan={4} className="px-4 py-3 uppercase">Total Movement</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(totalStatementDr)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-rose-400">{formatCurrency(totalStatementCr)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -648,7 +519,6 @@ export default function LedgerList() {
         </div>
       )}
 
-      {/* Modal: Create New Ledger */}
       {showModal &&
         createPortal(
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
@@ -657,44 +527,17 @@ export default function LedgerList() {
               <form onSubmit={handleAdd} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger Name *</label>
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. ABC Pharma Distributors"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
-                  />
+                  <input type="text" required autoFocus value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account Group *</label>
-                  <select
-                    value={group}
-                    onChange={(e) => setGroup(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
-                  >
-                    {groups.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
+                  <select value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500">
+                    {groups.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-sm text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md transition"
-                  >
-                    Save Ledger
-                  </button>
+                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Save</button>
                 </div>
               </form>
             </div>
@@ -704,4 +547,3 @@ export default function LedgerList() {
     </div>
   )
 }
-
