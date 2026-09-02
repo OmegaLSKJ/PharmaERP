@@ -371,10 +371,10 @@ export default function LedgerList() {
       <PrintHeader title={`Party Statement: ${selectedLedger || 'All Ledgers'}`} />
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Landmark className="text-indigo-400" size={24} /> Ledger &amp; Party Master
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground dark:text-white flex items-center gap-2">
+            <Landmark className="text-indigo-600 dark:text-indigo-400" size={24} /> Ledger &amp; Party Master
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Chart of accounts, customer/supplier ledgers and party-wise financial statements</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Chart of accounts, customer/supplier ledgers and party-wise financial statements</p>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'statement' ? (
@@ -394,11 +394,27 @@ export default function LedgerList() {
         </div>
       </div>
 
-      <div className="flex border-b border-slate-800 gap-2 no-print">
-        <button onClick={() => setActiveTab('masters')} className={cn('px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2', activeTab === 'masters' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
+      <div className="flex border-b border-border gap-2 no-print">
+        <button
+          onClick={() => setActiveTab('masters')}
+          className={cn(
+            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
+            activeTab === 'masters'
+              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-white'
+              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-foreground'
+          )}
+        >
           <Landmark size={15} /> Chart of Accounts ({ledgers.length})
         </button>
-        <button onClick={() => setActiveTab('statement')} className={cn('px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2', activeTab === 'statement' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
+        <button
+          onClick={() => setActiveTab('statement')}
+          className={cn(
+            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
+            activeTab === 'statement'
+              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-white'
+              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-foreground'
+          )}
+        >
           <FileText size={15} /> Party-Wise Statement {selectedLedger && `(${selectedLedger})`}
         </button>
       </div>
