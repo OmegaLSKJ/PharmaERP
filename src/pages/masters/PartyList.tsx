@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus,
   Search,
@@ -93,14 +93,42 @@ const GST_STATES = [
 ]
 
 export default function PartyList() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlType = searchParams.get('type')?.toLowerCase()
+  const initialType: 'all' | 'customer' | 'supplier' =
+    urlType === 'customer' || urlType === 'supplier' ? urlType : 'all'
+
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>(initialType)
   const [parties, setParties] = useState<Party[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'address' | 'licenses' | 'gst' | 'credit'>('general')
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
+
+  // Keep typeFilter in sync when URL changes (e.g. clicking sidebar Customers or Suppliers)
+  useEffect(() => {
+    const nextType = searchParams.get('type')?.toLowerCase()
+    if (nextType === 'customer' || nextType === 'supplier') {
+      setTypeFilter(nextType)
+    } else {
+      setTypeFilter('all')
+    }
+  }, [searchParams])
+
+  const handleTypeFilterChange = (newType: 'all' | 'customer' | 'supplier') => {
+    setTypeFilter(newType)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (newType === 'all') {
+        next.delete('type')
+      } else {
+        next.set('type', newType)
+      }
+      return next
+    })
+  }
 
   // Form states matching Marg ERP Ledger specification
   const [formData, setFormData] = useState({
@@ -159,7 +187,21 @@ export default function PartyList() {
       (p?.gstin || '').toLowerCase().includes(s) ||
       (p?.dlNo || p?.dlNumber || '').toLowerCase().includes(s) ||
       (p?.phone || '').includes(s)
-    const matchType = typeFilter === 'all' || p?.type === typeFilter
+
+    const isCustomer =
+      p?.type === 'customer' ||
+      p?.type === 'both' ||
+      (p?.accountGroup || '').toLowerCase().includes('debtor')
+    const isSupplier =
+      p?.type === 'supplier' ||
+      p?.type === 'both' ||
+      (p?.accountGroup || '').toLowerCase().includes('creditor')
+
+    const matchType =
+      typeFilter === 'all' ||
+      (typeFilter === 'customer' && isCustomer) ||
+      (typeFilter === 'supplier' && isSupplier)
+
     return matchSearch && matchType
   })
 
@@ -390,13 +432,13 @@ export default function PartyList() {
           {(['all', 'customer', 'supplier'] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTypeFilter(t)}
+              onClick={() => handleTypeFilterChange(t)}
               className={cn(
                 'px-3 py-1.5 text-sm capitalize transition-colors',
                 typeFilter === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               )}
             >
-              {t}
+              {t === 'all' ? 'All Parties' : t === 'customer' ? 'Customers' : 'Suppliers'}
             </button>
           ))}
         </div>
