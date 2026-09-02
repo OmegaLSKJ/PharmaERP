@@ -706,8 +706,31 @@ export async function create(resource: string, body: any, actor: MutationActor =
       return party
     }
     if (resource === 'items') {
-      const item = { id, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || '', manufacturer: body.manufacturer || '', salt: body.salt || '', hsn: body.hsn || '', gstRate: Number(body.gstRate || 0), mrp: Number(body.mrp || 0), saleRate: Number(body.saleRate || 0), purchaseRate: Number(body.purchaseRate || 0), scheduleClass: body.scheduleClass || 'OTC', prescriptionRequired: Boolean(body.prescriptionRequired), coldChain: Boolean(body.coldChain), controlledSubstance: Boolean(body.controlledSubstance), recalled: false, stock: 0, batches: [], batchCount: 0, category: 'Medicine', status: 'active' }
-      mockStore.items.push(item)
+      const code = body.code || `ITM-${Date.now().toString().slice(-6)}`
+      const item = {
+        id,
+        code,
+        name: body.name,
+        packing: body.packing || '',
+        manufacturer: body.manufacturer || '',
+        salt: body.salt || '',
+        hsn: body.hsn || '',
+        gstRate: Number(body.gstRate || 0),
+        mrp: Number(body.mrp || 0),
+        saleRate: Number(body.saleRate || 0),
+        purchaseRate: Number(body.purchaseRate || 0),
+        scheduleClass: body.scheduleClass || 'OTC',
+        prescriptionRequired: Boolean(body.prescriptionRequired),
+        coldChain: Boolean(body.coldChain),
+        controlledSubstance: Boolean(body.controlledSubstance),
+        recalled: false,
+        stock: 0,
+        batches: [],
+        batchCount: 0,
+        category: body.category || 'Medicine',
+        status: body.status || 'active'
+      }
+      mockStore.items.unshift(item)
       return item
     }
     if (resource === 'hsn') {
