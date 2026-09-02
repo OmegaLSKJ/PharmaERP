@@ -124,6 +124,7 @@ export default function Sidebar() {
   const collapsed = useUIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
+  const company = useUIStore((s) => s.company)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const toggle = (label: string) => setExpanded((prev) => ({ ...prev, [label]: !prev[label] }))
 
@@ -137,12 +138,14 @@ export default function Sidebar() {
       {/* Brand Logo Header */}
       <div className={cn('flex items-center gap-3 px-4 h-14 border-b border-border/80 shrink-0', collapsed && 'justify-center px-0')}>
         <div className="relative">
-          <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-8 h-8 object-contain rounded" />
+          <img src="/favicon.png" alt={`${company.companyName} Logo`} className="w-8 h-8 object-contain rounded" />
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-[hsl(var(--sidebar))]" />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <div className="text-[14px] font-bold text-foreground leading-tight tracking-tight">Borgang Drug Distributors</div>
+            <div className="text-[13px] font-bold text-foreground leading-tight tracking-tight truncate" title={company.companyName}>
+              {company.companyName}
+            </div>
             <div className="text-[9px] text-muted-foreground/60 font-semibold tracking-wider uppercase">Distribution Suite</div>
           </div>
         )}

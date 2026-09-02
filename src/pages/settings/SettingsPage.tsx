@@ -6,14 +6,22 @@ import { useUIStore } from '../../store/uiStore'
 type ManagedUser = { id:string;email:string;name:string;role:'admin'|'manager'|'operator';status:'active'|'invited'|'disabled';createdAt:string;lastSignInAt:string|null }
 
 export default function SettingsPage() {
-  const [companyName, setCompanyName] = useState('Borgang Drug Distributors')
-  const [gstin, setGstin] = useState('27AABCP1234F1Z5')
-  const [fyStart, setFyStart] = useState('2026-04-01')
-  const [fyEnd, setFyEnd] = useState('2027-03-31')
-  const [address, setAddress] = useState('Main Road, NH-52, Borgang, Biswanath, Assam')
+  const company = useUIStore((state) => state.company)
+  const setCompanyProfile = useUIStore((state) => state.setCompanyProfile)
+  const [form, setForm] = useState(company)
   const [saved, setSaved] = useState(false)
   const currentUser = useAuthStore((state) => state.user)
   const showToast = useUIStore((state) => state.showToast)
+
+  // Keep in sync with store
+  useEffect(() => {
+    setForm(company)
+  }, [company])
+
+  const handleFieldChange = (field: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
   const [users,setUsers]=useState<ManagedUser[]>([])
   const [usersLoading,setUsersLoading]=useState(false)
   const [userBusy,setUserBusy]=useState<string|null>(null)
@@ -28,16 +36,18 @@ export default function SettingsPage() {
   const removeUser=async(user:ManagedUser)=>{if(!window.confirm(`Remove ${user.email} from the ERP? This cannot be undone.`))return;setUserBusy(user.id);try{await readResponse(await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`,{method:'DELETE',credentials:'include'}));setUsers((rows)=>rows.filter((row)=>row.id!==user.id));showToast(`${user.email} was removed.`)}catch(error){showToast(error instanceof Error?error.message:'Unable to remove user.')}finally{setUserBusy(null)}}
 
   const handleSave = () => {
+    setCompanyProfile(form)
     setSaved(true)
+    showToast('Company profile & preferences updated.')
     setTimeout(() => setSaved(false), 2000)
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div className="p-6 space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
-          <p className="text-sm text-slate-400 mt-1">Company profile, financial year, and preferences</p>
+          <p className="text-sm text-slate-400 mt-1">Company profile, statutory licences, financial year, and users</p>
         </div>
         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
           <Save size={16} /> {saved ? 'Saved!' : 'Save Changes'}
@@ -48,22 +58,107 @@ export default function SettingsPage() {
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
           <Building2 size={16} className="text-indigo-400" />
-          <h3 className="text-sm font-semibold text-white">Company Information</h3>
+          <h3 className="text-sm font-semibold text-white">Company Profile &amp; Statutory Licences</h3>
         </div>
         <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Company Name</label>
-              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" />
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Company / Legal Name</label>
+              <input
+                type="text"
+                value={form.companyName}
+                onChange={(e) => handleFieldChange('companyName', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-semibold"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">GSTIN</label>
-              <input type="text" value={gstin} onChange={(e) => setGstin(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono" />
+              <input
+                type="text"
+                value={form.gstin}
+                onChange={(e) => handleFieldChange('gstin', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono tracking-wider"
+              />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">I.T. PAN No.</label>
+              <input
+                type="text"
+                value={form.pan}
+                onChange={(e) => handleFieldChange('pan', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">D.L. No. (Drug Licence)</label>
+              <input
+                type="text"
+                value={form.dlNo}
+                onChange={(e) => handleFieldChange('dlNo', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Official Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => handleFieldChange('email', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Address</label>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" />
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Registered Address</label>
+            <input
+              type="text"
+              value={form.address}
+              onChange={(e) => handleFieldChange('address', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">City / Station</label>
+              <input
+                type="text"
+                value={form.city}
+                onChange={(e) => handleFieldChange('city', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Pin Code</label>
+              <input
+                type="text"
+                value={form.pincode}
+                onChange={(e) => handleFieldChange('pincode', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">State</label>
+              <input
+                type="text"
+                value={form.state}
+                onChange={(e) => handleFieldChange('state', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Country</label>
+              <input
+                type="text"
+                value={form.country}
+                onChange={(e) => handleFieldChange('country', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -78,11 +173,21 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Opening Date</label>
-              <input type="date" value={fyStart} onChange={(e) => setFyStart(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" />
+              <input
+                type="date"
+                value={form.fyStart}
+                onChange={(e) => handleFieldChange('fyStart', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Closing Date</label>
-              <input type="date" value={fyEnd} onChange={(e) => setFyEnd(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" />
+              <input
+                type="date"
+                value={form.fyEnd}
+                onChange={(e) => handleFieldChange('fyEnd', e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
             </div>
           </div>
         </div>

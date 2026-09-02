@@ -1,4 +1,8 @@
+import { useUIStore } from '../../store/uiStore'
+
 export default function PrintHeader({ title }: { title: string }) {
+  const company = useUIStore((s) => s.company)
+
   return (
     <div className="hidden print:block w-full mb-3" style={{ borderBottom: '2px solid #111', paddingBottom: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -7,14 +11,16 @@ export default function PrintHeader({ title }: { title: string }) {
           <img src="/favicon.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           <div>
             <div style={{ fontSize: '16px', fontWeight: '900', color: '#000', letterSpacing: '-0.02em', lineHeight: '1.1', textTransform: 'uppercase' }}>
-              Borgang Drug Distributors
+              {company.companyName}
             </div>
             <div style={{ fontSize: '9px', color: '#444', marginTop: '2px', lineHeight: '1.4' }}>
-              Main Road, NH-52, Borgang, Biswanath, Assam
+              {company.address} {company.pincode && `- ${company.pincode}`}
               &nbsp;&nbsp;|&nbsp;&nbsp;
-              <strong>GSTIN:</strong> <span style={{ fontFamily: 'monospace' }}>27AABCP1234F1Z5</span>
+              <strong>GSTIN:</strong> <span style={{ fontFamily: 'monospace' }}>{company.gstin}</span>
               &nbsp;&nbsp;|&nbsp;&nbsp;
-              admin@borgangdrugdistributors.com
+              <strong>D.L. No:</strong> <span style={{ fontFamily: 'monospace' }}>{company.dlNo}</span>
+              &nbsp;&nbsp;|&nbsp;&nbsp;
+              <strong>PAN:</strong> <span style={{ fontFamily: 'monospace' }}>{company.pan}</span>
             </div>
           </div>
         </div>
