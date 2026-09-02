@@ -1,12 +1,6 @@
 {
   "manufacturers": [
     {
-      "id": "m-1",
-      "name": "**",
-      "code": "",
-      "is_active": true
-    },
-    {
       "id": "m-2",
       "name": "AAHAR",
       "code": "AAHA",
