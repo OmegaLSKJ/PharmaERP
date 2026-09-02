@@ -20,9 +20,36 @@ export default function DayBook() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra']
-
   const showToast = useUIStore((s) => s.showToast)
-  useEffect(() => { getErp<any[]>('ledgers').then((rows) => setEntries(rows.map((row) => ({ id: row.id, date: row.date, vType: String(row.vType).replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()), vNo: row.vNo, ledger: row.party, debit: Number(row.debit), credit: Number(row.credit), narration: row.narration })))).catch((e) => showToast(e.message)) }, [showToast])
+
+  useEffect(() => {
+    getErp<any[]>('ledgers')
+      .then((rows) => {
+        const seenKeys = new Set<string>()
+        const deduped = (rows || []).filter((r) => {
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${Number(r.debit || 0)}_${Number(r.credit || 0)}`
+          if (seenKeys.has(key)) return false
+          seenKeys.add(key)
+          return true
+        })
+
+        setEntries(
+          deduped.map((row) => ({
+            id: row.id,
+            date: row.date,
+            vType: String(row.vType)
+              .replace('_', ' ')
+              .replace(/\b\w/g, (c) => c.toUpperCase()),
+            vNo: row.vNo,
+            ledger: row.party,
+            debit: Number(row.debit),
+            credit: Number(row.credit),
+            narration: row.narration
+          }))
+        )
+      })
+      .catch((e) => showToast(e.message))
+  }, [showToast])
   const filtered = entries.filter(d => {
     const ms = d.ledger.toLowerCase().includes(search.toLowerCase()) || d.vNo.toLowerCase().includes(search.toLowerCase()) || d.narration.toLowerCase().includes(search.toLowerCase())
     return ms && (typeFilter === 'all' || d.vType === typeFilter)

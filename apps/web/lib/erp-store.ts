@@ -260,41 +260,58 @@ export async function list(resource: string, partyName?: string) {
         narration: v.narration ?? 'Voucher posted'
       }))
 
-      const mappedSales = (mockStore.sales ?? []).map((s: any) => ({
-        id: s.id || s.number,
-        party: s.party,
-        date: s.date,
-        vType: 'sale',
-        vNo: s.number || s.id,
-        debit: Number(s.total || s.grand_total || 0),
-        credit: 0,
-        narration: s.narration || `Sales Invoice - Status: ${s.status || 'posted'}`
-      }))
+      const existingVNos = new Set(mappedVls.map((v: any) => (v.vNo || v.id || '').trim()))
 
-      const mappedPurchases = (mockStore.purchases ?? []).map((p: any) => ({
-        id: p.id || p.number,
-        party: p.party,
-        date: p.date,
-        vType: 'purchase',
-        vNo: p.number || p.id,
-        debit: 0,
-        credit: Number(p.total || p.grand_total || 0),
-        narration: p.narration || `Purchase Invoice - Status: ${p.status || 'posted'}`
-      }))
+      const mappedSales = (mockStore.sales ?? [])
+        .filter((s: any) => !existingVNos.has((s.number || s.id || '').trim()))
+        .map((s: any) => ({
+          id: s.id || s.number,
+          party: s.party,
+          date: s.date,
+          vType: 'sale',
+          vNo: s.number || s.id,
+          debit: Number(s.total || s.grand_total || 0),
+          credit: 0,
+          narration: s.narration || `Invoice ${s.number || s.id}`
+        }))
 
-      const mappedChallans = (mockStore.challans ?? []).map((ch: any) => ({
-        id: ch.id || ch.number,
-        party: ch.party,
-        date: ch.date,
-        vType: 'challan',
-        vNo: ch.number || ch.id,
-        debit: 0,
-        credit: 0,
-        narration: ch.narration || `Delivery Challan - Status: ${ch.status || 'posted'}`
-      }))
+      const mappedPurchases = (mockStore.purchases ?? [])
+        .filter((p: any) => !existingVNos.has((p.number || p.id || '').trim()))
+        .map((p: any) => ({
+          id: p.id || p.number,
+          party: p.party,
+          date: p.date,
+          vType: 'purchase',
+          vNo: p.number || p.id,
+          debit: 0,
+          credit: Number(p.total || p.grand_total || 0),
+          narration: p.narration || `Bill ${p.number || p.id}`
+        }))
 
-      const all = [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]
-      return all.filter((v) => !partyName || v.party === partyName)
+      const mappedChallans = (mockStore.challans ?? [])
+        .filter((ch: any) => !existingVNos.has((ch.number || ch.id || '').trim()))
+        .map((ch: any) => ({
+          id: ch.id || ch.number,
+          party: ch.party,
+          date: ch.date,
+          vType: 'challan',
+          vNo: ch.number || ch.id,
+          debit: 0,
+          credit: 0,
+          narration: ch.narration || `Delivery Challan ${ch.number || ch.id}`
+        }))
+
+      const seen = new Set<string>()
+      const uniqueEntries: any[] = []
+      for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]) {
+        const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
+        if (!seen.has(key)) {
+          seen.add(key)
+          uniqueEntries.push(row)
+        }
+      }
+
+      return uniqueEntries.filter((v) => !partyName || v.party === partyName)
     }
 
     if (mockStore[resource]) {
@@ -516,41 +533,58 @@ export async function list(resource: string, partyName?: string) {
       narration: v.narration ?? 'Voucher posted'
     }))
 
-    const mappedSales = (sales ?? []).map((s: any) => ({
-      id: s.id,
-      party: s.parties?.legal_name ?? 'Unknown Customer',
-      date: s.invoice_date,
-      vType: 'sale',
-      vNo: s.invoice_number,
-      debit: +s.grand_total,
-      credit: 0,
-      narration: `Sales Invoice - Status: ${s.status}`
-    }))
+    const existingVNos = new Set(mappedVls.map((v: any) => (v.vNo || '').trim()))
 
-    const mappedPurchases = (purchases ?? []).map((p: any) => ({
-      id: p.id,
-      party: p.parties?.legal_name ?? 'Unknown Supplier',
-      date: p.invoice_date,
-      vType: 'purchase',
-      vNo: p.invoice_number,
-      debit: 0,
-      credit: +p.grand_total,
-      narration: `Purchase Invoice - Status: ${p.status}`
-    }))
+    const mappedSales = (sales ?? [])
+      .filter((s: any) => !existingVNos.has((s.invoice_number || '').trim()))
+      .map((s: any) => ({
+        id: s.id,
+        party: s.parties?.legal_name ?? 'Unknown Customer',
+        date: s.invoice_date,
+        vType: 'sale',
+        vNo: s.invoice_number,
+        debit: +s.grand_total,
+        credit: 0,
+        narration: `Invoice ${s.invoice_number}`
+      }))
 
-    const mappedChallans = (challans ?? []).map((ch: any) => ({
-      id: ch.id,
-      party: ch.parties?.legal_name ?? 'Unknown Party',
-      date: ch.challan_date,
-      vType: 'challan',
-      vNo: ch.challan_number,
-      debit: 0,
-      credit: 0,
-      narration: `Delivery Challan - Status: ${ch.status}`
-    }))
+    const mappedPurchases = (purchases ?? [])
+      .filter((p: any) => !existingVNos.has((p.invoice_number || '').trim()))
+      .map((p: any) => ({
+        id: p.id,
+        party: p.parties?.legal_name ?? 'Unknown Supplier',
+        date: p.invoice_date,
+        vType: 'purchase',
+        vNo: p.invoice_number,
+        debit: 0,
+        credit: +p.grand_total,
+        narration: `Bill ${p.invoice_number}`
+      }))
 
-    const all = [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]
-    return all.filter((v) => !partyName || v.party === partyName)
+    const mappedChallans = (challans ?? [])
+      .filter((ch: any) => !existingVNos.has((ch.challan_number || '').trim()))
+      .map((ch: any) => ({
+        id: ch.id,
+        party: ch.parties?.legal_name ?? 'Unknown Party',
+        date: ch.challan_date,
+        vType: 'challan',
+        vNo: ch.challan_number,
+        debit: 0,
+        credit: 0,
+        narration: `Delivery Challan ${ch.challan_number}`
+      }))
+
+    const seen = new Set<string>()
+    const uniqueEntries: any[] = []
+    for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]) {
+      const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        uniqueEntries.push(row)
+      }
+    }
+
+    return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
   throw new Error('Unknown ERP resource.')
 }

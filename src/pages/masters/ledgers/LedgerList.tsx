@@ -79,7 +79,14 @@ export default function LedgerList() {
         ]
         setLedgers(combined)
 
-        setStatementEntries(ledgerRows || [])
+        const seenStatementKeys = new Set<string>()
+        const dedupedRows = (ledgerRows || []).filter((r) => {
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${Number(r.debit || 0)}_${Number(r.credit || 0)}`
+          if (seenStatementKeys.has(key)) return false
+          seenStatementKeys.add(key)
+          return true
+        })
+        setStatementEntries(dedupedRows)
 
         if (combined.length > 0 && !selectedLedger) {
           setSelectedLedger(combined[0].name)

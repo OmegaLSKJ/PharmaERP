@@ -69,8 +69,16 @@ export default function LedgerView() {
   useEffect(() => {
     getErp<any[]>('ledgers')
       .then((rows) => {
+        const seenKeys = new Set<string>()
+        const deduped = (rows || []).filter((r) => {
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${Number(r.debit || 0)}_${Number(r.credit || 0)}`
+          if (seenKeys.has(key)) return false
+          seenKeys.add(key)
+          return true
+        })
+
         const balances: Record<string, number> = {}
-        const mapped = rows.map((row) => {
+        const mapped = deduped.map((row) => {
           balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit)
           return {
             ...row,
