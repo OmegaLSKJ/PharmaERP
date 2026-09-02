@@ -1,6 +1,32 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Search, Edit2, Trash2, FileText, Download, Printer, Landmark, ChevronDown, ChevronRight, Calendar, Filter, X } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  FileText,
+  Download,
+  Printer,
+  Landmark,
+  ChevronDown,
+  ChevronRight,
+  Receipt,
+  ShoppingBag,
+  Truck,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  FileCheck,
+  BookOpen,
+  Users,
+  Building2,
+  Wallet,
+  FolderTree,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  Scale
+} from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
@@ -40,21 +66,39 @@ const TYPE_BADGES: Record<string, string> = {
   challan: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
 }
 
-const Section = ({ title, transactions, children }: { title: string, transactions: any[], children: React.ReactNode }) => {
+interface SectionProps {
+  title: string
+  icon: React.ElementType
+  iconColor: string
+  badgeBg: string
+  transactions: any[]
+  children: React.ReactNode
+}
+
+const Section = ({ title, icon: Icon, iconColor, badgeBg, transactions, children }: SectionProps) => {
   const [isOpen, setIsOpen] = useState(true)
   const dr = transactions.reduce((acc, t) => acc + t.debit, 0)
   const cr = transactions.reduce((acc, t) => acc + t.credit, 0)
   if (transactions.length === 0) return null
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 bg-slate-900/80 hover:bg-slate-800 transition">
-        <div className="flex items-center gap-2">
+    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-slate-900/80 hover:bg-slate-800/80 transition"
+      >
+        <div className="flex items-center gap-2.5">
           {isOpen ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
-          <span className="font-semibold text-sm text-white">{title} ({transactions.length})</span>
+          <div className={cn('p-1.5 rounded-lg border flex items-center justify-center', badgeBg)}>
+            <Icon size={16} className={iconColor} />
+          </div>
+          <span className="font-semibold text-sm text-white tracking-tight">{title}</span>
+          <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] font-mono text-slate-300">
+            {transactions.length}
+          </span>
         </div>
-        <div className="flex gap-4 text-xs font-mono">
-          <span className="text-emerald-400">Dr: {formatCurrency(dr)}</span>
-          <span className="text-rose-400">Cr: {formatCurrency(cr)}</span>
+        <div className="flex items-center gap-3 sm:gap-4 text-xs font-mono">
+          {dr > 0 && <span className="text-emerald-400">Dr: {formatCurrency(dr)}</span>}
+          {cr > 0 && <span className="text-rose-400">Cr: {formatCurrency(cr)}</span>}
         </div>
       </button>
       {isOpen && <div className="border-t border-slate-800">{children}</div>}
@@ -472,13 +516,13 @@ export default function LedgerList() {
               <div className="col-span-2">
                 <label className="text-[10px] text-slate-400 uppercase font-semibold">Select Party / Ledger</label>
                 <select value={selectedLedger} onChange={(e) => setSelectedLedger(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold outline-none text-sm mt-1 focus:border-indigo-500">
-                  <optgroup label="👥 Customer Ledgers (Sundry Debtors)">
+                  <optgroup label="Customer Ledgers (Sundry Debtors)">
                     {ledgers.filter(l => l.group === 'Sundry Debtors').map(l => <option key={l.id} value={l.name}>{l.name} (Dr ₹{l.balance.toLocaleString('en-IN')})</option>)}
                   </optgroup>
-                  <optgroup label="🏢 Supplier Ledgers (Sundry Creditors)">
+                  <optgroup label="Supplier Ledgers (Sundry Creditors)">
                     {ledgers.filter(l => l.group === 'Sundry Creditors').map(l => <option key={l.id} value={l.name}>{l.name} (Cr ₹{l.balance.toLocaleString('en-IN')})</option>)}
                   </optgroup>
-                  <optgroup label="📑 Other Accounts">
+                  <optgroup label="Other Accounts">
                     {ledgers.filter(l => !['Sundry Debtors','Sundry Creditors'].includes(l.group)).map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                   </optgroup>
                 </select>
@@ -514,19 +558,31 @@ export default function LedgerList() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Debit</div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                <span>Total Debit</span>
+                <TrendingUp size={14} className="text-emerald-400" />
+              </div>
               <div className="text-lg font-bold text-emerald-400 font-mono mt-1">{formatCurrency(totalStatementDr)}</div>
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Credit</div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                <span>Total Credit</span>
+                <TrendingDown size={14} className="text-rose-400" />
+              </div>
               <div className="text-lg font-bold text-rose-400 font-mono mt-1">{formatCurrency(totalStatementCr)}</div>
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Net Movement</div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                <span>Net Movement</span>
+                <Scale size={14} className={netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400'} />
+              </div>
               <div className={cn('text-lg font-bold font-mono mt-1', netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400')}>{formatCurrency(Math.abs(netStatementChange))} {netStatementChange >= 0 ? 'Dr' : 'Cr'}</div>
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Closing Balance</div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+                <span>Closing Balance</span>
+                <Wallet size={14} className={closingBalType === 'Dr' ? 'text-indigo-400' : 'text-amber-400'} />
+              </div>
               <div className={cn('text-lg font-bold font-mono mt-1', closingBalType === 'Dr' ? 'text-white' : 'text-amber-400')}>{formatCurrency(closingBalance)} {closingBalType}</div>
             </div>
           </div>
@@ -536,41 +592,86 @@ export default function LedgerList() {
             <span className="text-slate-400 font-semibold">Documents for</span>
             <span className="text-indigo-400 font-bold">{selectedLedger}</span>
             <span className="text-slate-600">—</span>
-            <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-medium">🧾 Invoices: {filteredStatementTxns.filter(t => t.vType === 'sale').length}</span>
-            <span className="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">🏭 Bills: {filteredStatementTxns.filter(t => t.vType === 'purchase').length}</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-500/10 border border-slate-600/30 text-slate-300 font-medium">🚚 Challans: {filteredStatementTxns.filter(t => t.vType === 'challan').length}</span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">💰 Receipts/Pmts: {filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType)).length}</span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-medium">📋 Vouchers: {filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType)).length}</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-medium">
+              <Receipt size={13} />
+              <span>Invoices: {filteredStatementTxns.filter(t => t.vType === 'sale').length}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">
+              <ShoppingBag size={13} />
+              <span>Bills: {filteredStatementTxns.filter(t => t.vType === 'purchase').length}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-500/10 border border-slate-600/30 text-slate-300 font-medium">
+              <Truck size={13} />
+              <span>Challans: {filteredStatementTxns.filter(t => t.vType === 'challan').length}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">
+              <CreditCard size={13} />
+              <span>Receipts/Pmts: {filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType)).length}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-medium">
+              <FileCheck size={13} />
+              <span>Vouchers: {filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType)).length}</span>
+            </span>
             <span className="ml-auto text-slate-500">Total: <strong className="text-white">{filteredStatementTxns.length}</strong></span>
           </div>
 
           {/* Sub-sections */}
           <div className="space-y-3">
-            <Section title="🧾 Sales Invoices" transactions={filteredStatementTxns.filter(t => t.vType === 'sale')}>
+            <Section
+              title="Sales Invoices"
+              icon={Receipt}
+              iconColor="text-blue-400"
+              badgeBg="bg-blue-500/10 border-blue-500/20"
+              transactions={filteredStatementTxns.filter(t => t.vType === 'sale')}
+            >
               <div className="overflow-x-auto">
                 <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'sale')} />
               </div>
             </Section>
 
-            <Section title="🏭 Purchase Bills" transactions={filteredStatementTxns.filter(t => t.vType === 'purchase')}>
+            <Section
+              title="Purchase Bills"
+              icon={ShoppingBag}
+              iconColor="text-purple-400"
+              badgeBg="bg-purple-500/10 border-purple-500/20"
+              transactions={filteredStatementTxns.filter(t => t.vType === 'purchase')}
+            >
               <div className="overflow-x-auto">
                 <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'purchase')} />
               </div>
             </Section>
 
-            <Section title="🚚 Delivery Challans" transactions={filteredStatementTxns.filter(t => t.vType === 'challan')}>
+            <Section
+              title="Delivery Challans"
+              icon={Truck}
+              iconColor="text-slate-300"
+              badgeBg="bg-slate-500/10 border-slate-600/30"
+              transactions={filteredStatementTxns.filter(t => t.vType === 'challan')}
+            >
               <div className="overflow-x-auto">
                 <TransactionTable txns={filteredStatementTxns.filter(t => t.vType === 'challan')} />
               </div>
             </Section>
 
-            <Section title="💰 Receipts & Payments" transactions={filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType))}>
+            <Section
+              title="Receipts & Payments"
+              icon={CreditCard}
+              iconColor="text-emerald-400"
+              badgeBg="bg-emerald-500/10 border-emerald-500/20"
+              transactions={filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType))}
+            >
               <div className="overflow-x-auto">
                 <TransactionTable txns={filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType))} />
               </div>
             </Section>
 
-            <Section title="📋 Accounting Vouchers (Journal / Contra / Notes)" transactions={filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType))}>
+            <Section
+              title="Accounting Vouchers (Journal / Contra / Notes)"
+              icon={FileCheck}
+              iconColor="text-amber-400"
+              badgeBg="bg-amber-500/10 border-amber-500/20"
+              transactions={filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType))}
+            >
               <div className="overflow-x-auto">
                 <TransactionTable txns={filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType))} />
               </div>
@@ -578,11 +679,14 @@ export default function LedgerList() {
           </div>
 
           {/* Full Chronological Ledger View */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
             <div className="flex items-center justify-between p-3.5 bg-slate-900/80 border-b border-slate-800">
               <div className="text-xs font-semibold text-white flex items-center gap-2">
-                <span className="text-base">📒</span> Full Chronological Ledger —
-                <span className="text-indigo-400">{selectedLedger}</span>
+                <div className="p-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <BookOpen size={14} className="text-indigo-400" />
+                </div>
+                <span>Full Chronological Ledger —</span>
+                <span className="text-indigo-400 font-bold">{selectedLedger}</span>
                 <span className="text-slate-500">·</span>
                 <span className="text-slate-400">{filteredStatementTxns.length} entries</span>
               </div>
