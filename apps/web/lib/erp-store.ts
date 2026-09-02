@@ -314,10 +314,10 @@ export async function list(resource: string, partyName?: string) {
 
   const { client, organizationId } = await context()
   if (resource === 'dashboard') {
-    const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { data: items, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
+    const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { count: activeItemsCount, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
       client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name))').eq('organization_id', organizationId).neq('status', 'cancelled').order('invoice_date', { ascending: false }),
       client.from('purchase_invoices').select('invoice_date,status,grand_total').eq('organization_id', organizationId).neq('status', 'cancelled'),
-      client.from('items').select('id').eq('organization_id', organizationId).eq('is_active', true),
+      client.from('items').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('is_active', true),
       client.from('erp_stock_position').select('item_name,batch_number,expiry_on,quantity').eq('organization_id', organizationId).gt('quantity', 0),
     ])
     const error = salesError || purchaseError || itemError || stockError; if (error) throw error
@@ -327,7 +327,7 @@ export async function list(resource: string, partyName?: string) {
     const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
     ;(sales ?? []).flatMap((row: any) => row.sales_invoice_lines ?? []).forEach((line: any) => { const name = line.items?.name ?? 'Unknown'; const current = itemTotals.get(name) ?? { name, qty: 0, amount: 0 }; current.qty += Number(line.quantity); current.amount += Number(line.line_total); itemTotals.set(name, current) })
     return {
-      kpis: { sales: (sales ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), purchases: (purchases ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), activeItems: items?.length ?? 0, pendingInvoices: (sales ?? []).filter((x: any) => x.status === 'draft').length },
+      kpis: { sales: (sales ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), purchases: (purchases ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), activeItems: activeItemsCount ?? 0, pendingInvoices: (sales ?? []).filter((x: any) => x.status === 'draft').length },
       salesData: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
       topItems: [...itemTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 6),
       recentInvoices: (sales ?? []).slice(0, 8).map((x: any) => ({ id: x.invoice_number, party: x.parties?.legal_name ?? '', amount: Number(x.grand_total), date: x.invoice_date, status: x.status })),

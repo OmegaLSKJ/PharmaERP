@@ -68,9 +68,10 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/masters/parties" element={<PartyList />} />
           <Route path="/masters/parties/:id" element={<Party360 />} />
-<Route path="/masters/items" element={<ItemList />} />
-<Route path="/masters/items/new" element={<ItemForm />} />
-<Route path="/masters/items/:id" element={<ItemForm />} />
+          <Route path="/masters/items" element={<ItemList />} />
+          <Route path="/inventory/items" element={<ItemList />} />
+          <Route path="/masters/items/new" element={<ItemForm />} />
+          <Route path="/masters/items/:id" element={<ItemForm />} />
           <Route path="/masters/manufacturers" element={<ManufacturerList />} />
           <Route path="/masters/ledgers" element={<LedgerList />} />
           <Route path="/masters/hsn" element={<HsnList />} />

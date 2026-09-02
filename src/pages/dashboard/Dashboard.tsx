@@ -67,7 +67,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard to="/transactions/sale" title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
         <KpiCard to="/transactions/purchase" title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
-        <KpiCard to="/inventory/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
+        <KpiCard to="/masters/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
         <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 
