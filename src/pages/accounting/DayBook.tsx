@@ -7,7 +7,7 @@ import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 
-interface DayBookEntry { id: string; date: string; vType: string; vNo: string; ledger: string; debit: number; credit: number; narration: string }
+interface DayBookEntry { id: string; date: string; vType: string; vNo: string; physicalVchNo?: string; ledger: string; debit: number; credit: number; narration: string }
 
 const TYPE_STYLE: Record<string, string> = {
   Receipt: 'bg-emerald-500/10 text-emerald-400', Payment: 'bg-rose-500/10 text-rose-400',
@@ -41,6 +41,7 @@ export default function DayBook() {
               .replace('_', ' ')
               .replace(/\b\w/g, (c) => c.toUpperCase()),
             vNo: row.vNo,
+            physicalVchNo: row.physicalVchNo || '',
             ledger: row.party,
             debit: Number(row.debit),
             credit: Number(row.credit),
@@ -51,7 +52,11 @@ export default function DayBook() {
       .catch((e) => showToast(e.message))
   }, [showToast])
   const filtered = entries.filter(d => {
-    const ms = d.ledger.toLowerCase().includes(search.toLowerCase()) || d.vNo.toLowerCase().includes(search.toLowerCase()) || d.narration.toLowerCase().includes(search.toLowerCase())
+    const ms =
+      d.ledger.toLowerCase().includes(search.toLowerCase()) ||
+      d.vNo.toLowerCase().includes(search.toLowerCase()) ||
+      (d.physicalVchNo && d.physicalVchNo.toLowerCase().includes(search.toLowerCase())) ||
+      d.narration.toLowerCase().includes(search.toLowerCase())
     return ms && (typeFilter === 'all' || d.vType === typeFilter)
   })
 
@@ -101,7 +106,10 @@ export default function DayBook() {
               <tr key={d.id} className="hover:bg-slate-900/30">
                 <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', TYPE_STYLE[d.vType])}>{d.vType}</span></td>
-                <td className="px-4 py-3 font-mono text-white">{d.vNo}</td>
+                <td className="px-4 py-3">
+                  <div className="font-mono text-white">{d.vNo}</div>
+                  {d.physicalVchNo && <div className="text-[10px] text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
+                </td>
                 <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>
                 <td className="px-4 py-3 text-right font-mono">{d.debit > 0 ? formatCurrency(d.debit) : '-'}</td>
                 <td className="px-4 py-3 text-right font-mono">{d.credit > 0 ? formatCurrency(d.credit) : '-'}</td>

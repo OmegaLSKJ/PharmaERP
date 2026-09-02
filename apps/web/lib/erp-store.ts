@@ -850,15 +850,17 @@ export async function create(resource: string, body: any, actor: MutationActor =
           if (!line.ledger) return
           const deb = Number(line.debit || 0)
           const cred = Number(line.credit || 0)
+          const physNo = line.physicalVchNo || body.physicalVoucherNo || body.physical_voucher_no || ''
           mockStore.ledgers.unshift({
             id: `vch-line-${Date.now()}-${idx}`,
             party: line.ledger,
             date: docDate,
             vType: (body.type || 'journal').toLowerCase(),
             vNo: docNumber,
+            physicalVchNo: physNo,
             debit: deb,
             credit: cred,
-            narration: line.narration || body.narration || `${body.type || 'Voucher'} Entry - ${docNumber}`
+            narration: line.narration || body.narration || `${body.type || 'Voucher'} Entry - ${docNumber}${physNo ? ` (Phys: ${physNo})` : ''}`
           })
 
           // Update party balance if ledger matches party

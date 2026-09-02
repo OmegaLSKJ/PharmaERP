@@ -21,6 +21,7 @@ interface StatementEntry {
   date: string
   vType: string
   vNo: string
+  physicalVchNo?: string
   debit: number
   credit: number
   narration: string
@@ -596,7 +597,14 @@ export default function LedgerList() {
                           {txn.vType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-white font-medium">{txn.vNo}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-mono text-white font-medium">{txn.vNo}</div>
+                        {txn.physicalVchNo && (
+                          <div className="text-[10px] text-indigo-400 font-mono">
+                            Phys: {txn.physicalVchNo}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-slate-300 max-w-sm truncate">{txn.narration || '-'}</td>
                       <td className="px-4 py-3 text-right font-mono text-emerald-400 font-medium">
                         {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}

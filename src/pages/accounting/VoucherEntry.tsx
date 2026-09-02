@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/uiStore'
 interface VoucherLine {
   id: string
   ledger: string
+  physicalVchNo?: string
   debit: number
   credit: number
   narration: string
@@ -27,6 +28,7 @@ const DEFAULT_BANK_ACCOUNTS = ['HDFC Bank', 'State Bank of India (SBI)', 'ICICI 
 export default function VoucherEntry() {
   const [vType, setVType] = useState('Receipt')
   const [vNo, setVNo] = useState(() => `VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
+  const [physicalVoucherNo, setPhysicalVoucherNo] = useState('')
   const [vDate, setVDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [payMode, setPayMode] = useState<'all' | 'cash' | 'bank'>('all')
   const [cashBankLedger, setCashBankLedger] = useState('Cash Account')
@@ -98,6 +100,7 @@ export default function VoucherEntry() {
       {
         id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
         ledger: defaultLedger,
+        physicalVchNo: physicalVoucherNo || '',
         debit: defaultDebit,
         credit: defaultCredit,
         narration: ''
@@ -127,26 +130,27 @@ export default function VoucherEntry() {
     }
     const accLedger = cashBankLedger || cashAccounts[0]
     const pLedger = partyLedger || (vType === 'Payment' ? supplierLedgers[0] : customerLedgers[0]) || 'General Party'
+    const docRef = physicalVoucherNo || ''
 
     if (vType === 'Receipt') {
       // Debit Cash/Bank, Credit Party
       setLines([
-        { id: Date.now().toString() + '1', ledger: accLedger, debit: amt, credit: 0, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Received via Cash/Bank' },
-        { id: Date.now().toString() + '2', ledger: pLedger, debit: 0, credit: amt, narration: 'Received against invoice/account' }
+        { id: Date.now().toString() + '1', ledger: accLedger, physicalVchNo: docRef, debit: amt, credit: 0, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Received via Cash/Bank' },
+        { id: Date.now().toString() + '2', ledger: pLedger, physicalVchNo: docRef, debit: 0, credit: amt, narration: 'Received against invoice/account' }
       ])
       if (!narration) setNarration(`Received ${formatCurrency(amt)} from ${pLedger} via ${accLedger}`)
     } else if (vType === 'Payment') {
       // Debit Party, Credit Cash/Bank
       setLines([
-        { id: Date.now().toString() + '1', ledger: pLedger, debit: amt, credit: 0, narration: 'Payment made' },
-        { id: Date.now().toString() + '2', ledger: accLedger, debit: 0, credit: amt, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Paid via Cash/Bank' }
+        { id: Date.now().toString() + '1', ledger: pLedger, physicalVchNo: docRef, debit: amt, credit: 0, narration: 'Payment made' },
+        { id: Date.now().toString() + '2', ledger: accLedger, physicalVchNo: docRef, debit: 0, credit: amt, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Paid via Cash/Bank' }
       ])
       if (!narration) setNarration(`Paid ${formatCurrency(amt)} to ${pLedger} from ${accLedger}`)
     } else if (vType === 'Contra') {
       // Transfer
       setLines([
-        { id: Date.now().toString() + '1', ledger: bankAccounts[0] || 'HDFC Bank', debit: amt, credit: 0, narration: 'Contra Deposit' },
-        { id: Date.now().toString() + '2', ledger: cashAccounts[0] || 'Cash Account', debit: 0, credit: amt, narration: 'Contra Withdrawal' }
+        { id: Date.now().toString() + '1', ledger: bankAccounts[0] || 'HDFC Bank', physicalVchNo: docRef, debit: amt, credit: 0, narration: 'Contra Deposit' },
+        { id: Date.now().toString() + '2', ledger: cashAccounts[0] || 'Cash Account', physicalVchNo: docRef, debit: 0, credit: amt, narration: 'Contra Withdrawal' }
       ])
       if (!narration) setNarration(`Contra transfer of ${formatCurrency(amt)}`)
     }
@@ -279,12 +283,14 @@ export default function VoucherEntry() {
       const saved = await postErp<{ id: string }>('vouchers', {
         id: vNo,
         number: vNo,
+        physical_voucher_no: physicalVoucherNo || '',
+        physicalVoucherNo: physicalVoucherNo || '',
         type: vType,
         voucher_type: vType.toLowerCase(),
         date: vDate,
         voucher_date: vDate,
         party: primaryParty,
-        narration: narration || `${vType} voucher ${vNo}`,
+        narration: narration || (physicalVoucherNo ? `${vType} voucher ${vNo} (Phys: ${physicalVoucherNo})` : `${vType} voucher ${vNo}`),
         total: deb,
         lines: currentLines
       })
@@ -294,6 +300,7 @@ export default function VoucherEntry() {
       setQuickAmount('')
       setBankRefNo('')
       setPartyLedger('')
+      setPhysicalVoucherNo('')
       setVNo(`VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save voucher.')
@@ -338,7 +345,7 @@ export default function VoucherEntry() {
 
       {/* Main Voucher Parameters Card */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
           {/* Voucher Type */}
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Voucher Type</label>
@@ -355,7 +362,7 @@ export default function VoucherEntry() {
             </select>
           </div>
 
-          {/* Voucher Number */}
+          {/* Voucher Number (System Auto) */}
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Voucher No.</label>
             <input
@@ -363,6 +370,21 @@ export default function VoucherEntry() {
               value={vNo}
               onChange={(e) => setVNo(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+            />
+          </div>
+
+          {/* Physical Voucher Number (Optional) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-400 uppercase">Physical Vch No.</label>
+              <span className="text-[10px] text-indigo-400 font-medium lowercase">optional</span>
+            </div>
+            <input
+              type="text"
+              placeholder="e.g. PV-0492 / Book #1"
+              value={physicalVoucherNo}
+              onChange={(e) => setPhysicalVoucherNo(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono placeholder:text-slate-600"
             />
           </div>
 
@@ -597,14 +619,15 @@ export default function VoucherEntry() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs min-w-[700px]">
+          <table className="w-full text-xs min-w-[800px]">
             <thead>
               <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
                 <th className="text-left px-4 py-3 font-semibold w-10">#</th>
-                <th className="text-left px-4 py-3 font-semibold w-72">Ledger Account (Cash / Bank / Party)</th>
+                <th className="text-left px-4 py-3 font-semibold w-64">Ledger Account (Cash / Bank / Party)</th>
                 <th className="text-left px-2 py-3 font-semibold w-24">Type</th>
-                <th className="text-right px-4 py-3 font-semibold w-36">Debit (Dr ₹)</th>
-                <th className="text-right px-4 py-3 font-semibold w-36">Credit (Cr ₹)</th>
+                <th className="text-left px-3 py-3 font-semibold w-36">Physical Vch No.</th>
+                <th className="text-right px-4 py-3 font-semibold w-32">Debit (Dr ₹)</th>
+                <th className="text-right px-4 py-3 font-semibold w-32">Credit (Cr ₹)</th>
                 <th className="text-left px-4 py-3 font-semibold">Line Narration</th>
                 <th className="w-10 text-center"></th>
               </tr>
@@ -668,6 +691,15 @@ export default function VoucherEntry() {
                         <span className="text-slate-600 text-[10px]">-</span>
                       )}
                     </td>
+                    <td className="px-3 py-2.5">
+                      <input
+                        type="text"
+                        placeholder="e.g. PV-101"
+                        value={line.physicalVchNo || ''}
+                        onChange={(e) => updateLine(line.id, 'physicalVchNo', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-white font-mono text-xs outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                      />
+                    </td>
                     <td className="px-4 py-2.5 text-right">
                       <input
                         type="number"
@@ -710,7 +742,7 @@ export default function VoucherEntry() {
               })}
               {lines.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     <p className="font-medium text-slate-300">No voucher lines entered yet.</p>
                     {Number(quickAmount) > 0 ? (
                       <div className="mt-3 space-y-2">
