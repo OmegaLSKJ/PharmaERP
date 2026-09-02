@@ -43,18 +43,57 @@ export default function Party360() {
 
   useEffect(() => {
     if (!id) return
-    getErp<any[]>('parties')
-      .then((parties) => {
-        const found = parties.find((p) => String(p.id).toLowerCase() === id.toLowerCase() || String(p.code || '').toLowerCase() === id.toLowerCase())
+    Promise.all([
+      getErp<any[]>('parties').catch(() => []),
+      getErp<any[]>('ledgers').catch(() => [])
+    ])
+      .then(([parties, allLedgerEntries]) => {
+        const found = parties.find(
+          (p) =>
+            String(p.id).toLowerCase() === id.toLowerCase() ||
+            String(p.code || '').toLowerCase() === id.toLowerCase() ||
+            String(p.name || '').toLowerCase() === id.toLowerCase()
+        )
         if (found) {
+          const partyName = (found.name || '').toLowerCase()
+          const partyCode = (found.code || '').toLowerCase()
+
+          // Find all transactions where party matches
+          const partyTxns = (allLedgerEntries || []).filter((l: any) => {
+            const p = (l.party || '').toLowerCase()
+            return p === partyName || (partyCode && p === partyCode)
+          })
+
+          const totalDr = partyTxns.reduce((sum: number, l: any) => sum + (Number(l.debit) || 0), 0)
+          const totalCr = partyTxns.reduce((sum: number, l: any) => sum + (Number(l.credit) || 0), 0)
+          const opBal = Number(found.openingBalance || 0)
+
+          let running = found.openingType === 'Cr' ? -opBal : opBal
+          const formattedTxns = partyTxns.map((t: any) => {
+            const deb = Number(t.debit) || 0
+            const cred = Number(t.credit) || 0
+            running += deb - cred
+            return {
+              date: t.date,
+              type: String(t.vType || 'Voucher').replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+              ref: t.vNo || t.id,
+              debit: deb,
+              credit: cred,
+              balance: Math.abs(running),
+              balType: running < 0 ? 'Cr' : 'Dr',
+              narration: t.narration || ''
+            }
+          })
+
           setPartyData((prev: any) => ({
             ...prev,
             ...found,
-            outstanding: Math.abs(Number(found.balance || 0)),
+            outstanding: Math.abs(Number(found.balance ?? (running || 0))),
             creditLimit: Number(found.creditLimit || 0),
-            openingBalance: Number(found.openingBalance || 0),
-            totalDebit: Number(found.totalDebit || 0),
-            totalCredit: Number(found.totalCredit || 0),
+            openingBalance: opBal,
+            totalDebit: totalDr,
+            totalCredit: totalCr,
+            recentTxns: formattedTxns
           }))
         }
       })

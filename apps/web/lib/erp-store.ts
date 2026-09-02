@@ -684,23 +684,25 @@ export async function create(resource: string, body: any, actor: MutationActor =
         email: body.email || '',
         website: body.website || '',
         freezeUpto: body.freezeUpto || '',
-        narcoSchH: body.narcoSchH || 'Allow All',
+        narcoSchH: body.narcoSchH || 'No',
         dlNo: body.dlNo || body.dlNumber || '',
         dlNumber: body.dlNo || body.dlNumber || '',
         dlExp: body.dlExp || '',
-        gstHeading: body.gstHeading || 'Local',
+        gstHeading: body.gstHeading || '',
         gstin: body.gstin || '',
         gstinDate: body.gstinDate || '',
-        foodLicenceNo: body.foodLicenceNo || body.fssai || '',
+        foodLicenceNo: body.foodLicenceNo || '',
         foodLicenceExp: body.foodLicenceExp || '',
-        pan: body.pan || (body.gstin && body.gstin.length >= 12 ? body.gstin.slice(2, 12) : ''),
-        ledgerCategory: body.ledgerCategory || 'OTHERS',
-        ledgerType: body.ledgerType || 'REGISTERED',
+        pan: body.pan || '',
+        ledgerCategory: body.ledgerCategory || '',
+        ledgerType: body.ledgerType || '',
         creditLimit: Number(body.creditLimit || 0),
         creditDays: Number(body.creditDays || 0),
         balance: netBal,
+        totalDebit: opType === 'Dr' ? opBal : 0,
+        totalCredit: opType === 'Cr' ? opBal : 0,
         lastSale: '',
-        status: body.status || 'active'
+        status: 'active'
       }
       mockStore.parties.push(party)
       return party
@@ -754,25 +756,112 @@ export async function create(resource: string, body: any, actor: MutationActor =
       return wh
     }
     if (resource === 'accounts') {
-      const acc = { id, code: body.code || `ACC-${Date.now()}`, name: body.name, group: body.group || 'General', balance: Number(body.openingBalance || 0), type: Number(body.openingBalance || 0) < 0 ? 'Cr' : 'Dr', active: true }
+      const acc = { id, code: body.code || `ACC-${Date.now()}`, name: body.name, group: body.group || 'General', balance: Number(body.openingBalance || 0), type: 'Dr', active: true }
       mockStore.accounts.push(acc)
       return acc
     }
     if (resource === 'series') {
-      const ser = { id, doc: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', nextNo: Number(body.nextNo || 1), padding: Number(body.padding || 4), fyReset: body.fyReset !== false, active: body.active !== false }
-      mockStore.series.push(ser)
-      return ser
+      const s = { id, doc: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', nextNo: Number(body.nextNo || 1), padding: Number(body.padding || 4), fyReset: body.fyReset !== false, active: body.active !== false }
+      mockStore.series.push(s)
+      return s
+    }
+    if (resource === 'communication-blocks') {
+      const cb = { id, type: body.type, value: body.value, reason: body.reason || '', blockedOn: date() }
+      mockStore['communication-blocks'].push(cb)
+      return cb
+    }
+    if (resource === 'breakages') {
+      const docTotal = Number(body.total || 0)
+      const doc = { id, number: body.number || number('BRK'), date: body.date || date(), status: 'posted', total: docTotal, lines: body.lines || [] }
+      if (!mockStore.breakages) mockStore.breakages = []
+      mockStore.breakages.unshift(doc)
+      return doc
+    }
+    if (resource === 'inventory-adjustments') {
+      const doc = { id, date: body.date || date(), reason: body.reason || 'Physical Count Adjustment', lines: body.lines || [] }
+      if (!mockStore.adjustments) mockStore.adjustments = []
+      mockStore.adjustments.unshift(doc)
+      return doc
+    }
+    if (resource === 'stock-transfers') {
+      const doc = { id, number: body.number || number('TRF'), date: body.date || date(), lines: body.lines || [] }
+      if (!mockStore['stock-transfers']) mockStore['stock-transfers'] = []
+      mockStore['stock-transfers'].unshift(doc)
+      return doc
+    }
+
+    if (resource === 'vouchers') {
+      const docTotal = Number(body.total ?? body.lines?.reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0) ?? 0)
+      const docParty = body.party || 'General Voucher'
+      const docNumber = body.number || body.id || number('VCH')
+      const docDate = body.date || body.voucher_date || date()
+      const doc = {
+        ...body,
+        id: body.id || id,
+        number: docNumber,
+        party: docParty,
+        date: docDate,
+        voucher_date: docDate,
+        voucher_number: docNumber,
+        voucher_type: (body.type || 'Journal').toLowerCase(),
+        status: 'posted',
+        total: docTotal,
+        lines: body.lines || []
+      }
+      mockStore.vouchers.unshift(doc)
+
+      // Post each line to mockStore.ledgers so it appears in Ledger View, Master Ledger, DayBook, and Party 360
+      if (Array.isArray(body.lines)) {
+        body.lines.forEach((line: any, idx: number) => {
+          if (!line.ledger) return
+          const deb = Number(line.debit || 0)
+          const cred = Number(line.credit || 0)
+          mockStore.ledgers.unshift({
+            id: `vch-line-${Date.now()}-${idx}`,
+            party: line.ledger,
+            date: docDate,
+            vType: (body.type || 'journal').toLowerCase(),
+            vNo: docNumber,
+            debit: deb,
+            credit: cred,
+            narration: line.narration || body.narration || `${body.type || 'Voucher'} Entry - ${docNumber}`
+          })
+
+          // Update party balance if ledger matches party
+          const pMatch = mockStore.parties.find(
+            (p: any) => p.name.toLowerCase() === line.ledger.toLowerCase() || (p.code && p.code.toLowerCase() === line.ledger.toLowerCase())
+          )
+          if (pMatch) {
+            pMatch.balance = (pMatch.balance || 0) + deb - cred
+            pMatch.totalDebit = (pMatch.totalDebit || 0) + deb
+            pMatch.totalCredit = (pMatch.totalCredit || 0) + cred
+            pMatch.lastSale = docDate
+          }
+
+          // Update account balance if ledger matches account
+          const aMatch = mockStore.accounts.find((a: any) => a.name.toLowerCase() === line.ledger.toLowerCase())
+          if (aMatch) {
+            aMatch.balance = (aMatch.balance || 0) + (aMatch.type === 'Dr' ? deb - cred : cred - deb)
+          }
+        })
+      }
+
+      return doc
     }
 
     const specialKeys: Record<string, string> = {
-      'sale-returns': 'sales',
-      'purchase-returns': 'purchases',
+      'sale-returns': 'sale-returns',
+      'purchase-returns': 'purchase-returns',
+      orders: 'orders',
+      replacements: 'replacements',
+      'counter-sales': 'counter-sales',
+      pendings: 'pendings',
+      'price-differences': 'price-differences',
+      'item-mappings': 'item-mappings',
       'communication-blocks': 'communication-blocks',
       sales: 'sales',
       purchases: 'purchases',
-      challans: 'challans',
-      orders: 'orders',
-      vouchers: 'vouchers'
+      challans: 'challans'
     }
     const storeKey = specialKeys[resource] || resource
     if (mockStore[storeKey]) {
@@ -834,8 +923,37 @@ export async function create(resource: string, body: any, actor: MutationActor =
     for (const row of prepared) { const { error } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: row.batchId, warehouse_id: row.warehouseId, movement_type: body.entryType === 'expiry' ? 'expiry' : 'breakage', quantity: -Math.abs(row.qty), source_type: 'breakage', source_id: document.id }); if (error) throw error }
     return { ...body, id: document.id, number: documentNumber, date: body.date || date() }
   }
-  const documentResources: Record<string, { type: string; prefix: string }> = { 'sale-returns': { type: 'sale_return', prefix: 'SR' }, 'purchase-returns': { type: 'purchase_return', prefix: 'PR' }, orders: { type: 'order', prefix: 'ORD' }, replacements: { type: 'replacement', prefix: 'REP' }, 'counter-sales': { type: 'counter_sale', prefix: 'CS' }, pendings: { type: 'pending', prefix: 'PND' }, 'price-differences': { type: 'price_difference', prefix: 'PD' }, 'item-mappings': { type: 'item_mapping', prefix: 'MAP' }, vouchers: { type: 'voucher', prefix: 'VCH' } }
-  if (documentResources[resource]) { const config = documentResources[resource]; const partyId = body.party ? await party(client, organizationId, body.party, body.partyType === 'supplier' ? 'supplier' : 'customer') : null; const documentNumber = body.number || number(config.prefix); const { data, error } = await client.from('business_documents').insert({ organization_id: organizationId, document_type: config.type, document_number: documentNumber, document_date: body.date || date(), party_id: partyId, status: body.status || 'posted', total: Number(body.total || 0), details: body }).select('id').single(); if (error) throw error; return { ...body, id: data.id, number: documentNumber, date: body.date || date() } }
+  const documentResources: Record<string, { type: string; prefix: string }> = {
+    'sale-returns': { type: 'sale_return', prefix: 'SR' },
+    'purchase-returns': { type: 'purchase_return', prefix: 'PR' },
+    orders: { type: 'order', prefix: 'ORD' },
+    replacements: { type: 'replacement', prefix: 'REP' },
+    'counter-sales': { type: 'counter_sale', prefix: 'CS' },
+    pendings: { type: 'pending', prefix: 'PND' },
+    'price-differences': { type: 'price_difference', prefix: 'PD' },
+    'item-mappings': { type: 'item_mapping', prefix: 'MAP' }
+  }
+  if (documentResources[resource]) {
+    const config = documentResources[resource]
+    const partyId = body.party ? await party(client, organizationId, body.party, body.partyType === 'supplier' ? 'supplier' : 'customer') : null
+    const documentNumber = body.number || number(config.prefix)
+    const { data, error } = await client
+      .from('business_documents')
+      .insert({
+        organization_id: organizationId,
+        document_type: config.type,
+        document_number: documentNumber,
+        document_date: body.date || date(),
+        party_id: partyId,
+        status: body.status || 'posted',
+        total: Number(body.total || 0),
+        details: body
+      })
+      .select('id')
+      .single()
+    if (error) throw error
+    return { ...body, id: data.id, number: documentNumber, date: body.date || date() }
+  }
   if (resource === 'items') {
     if (!body.name) throw new Error('Item name is required.')
     const manufacturerId = body.manufacturer ? (await client.from('manufacturers').select('id').eq('organization_id', organizationId).eq('name', body.manufacturer).maybeSingle()).data?.id : null
@@ -883,11 +1001,36 @@ export async function create(resource: string, body: any, actor: MutationActor =
     return { id: challanNumber, party: body.party, transport: body.transport ?? '', date: challanDate, lines: body.lines }
   }
   if (resource === 'vouchers') {
-    const debit = body.lines?.reduce((sum: number, v: any) => sum + +(v.debit || 0), 0) ?? 0, credit = body.lines?.reduce((sum: number, v: any) => sum + +(v.credit || 0), 0) ?? 0
-    if (!body.lines?.length || debit <= 0 || debit !== credit) throw new Error('Voucher must contain balanced debit and credit lines.')
-    const voucherNumber = body.id || number('VCH'), voucherDate = body.date || date()
-    const { data: voucher, error } = await client.from('vouchers').insert({ organization_id: organizationId, financial_year_id: financialYearId, voucher_type: 'journal', voucher_number: voucherNumber, voucher_date: voucherDate, status: 'posted', narration: body.narration ?? null }).select('id').single(); if (error) throw error
-    for (const line of body.lines) { const accountId = await account(client, organizationId, line.ledger); const { error: lineError } = await client.from('voucher_lines').insert({ voucher_id: voucher.id, account_id: accountId, debit: +(line.debit || 0), credit: +(line.credit || 0), narration: line.narration ?? body.narration ?? null }); if (lineError) throw lineError }
+    const debit = body.lines?.reduce((sum: number, v: any) => sum + +(v.debit || 0), 0) ?? 0
+    const credit = body.lines?.reduce((sum: number, v: any) => sum + +(v.credit || 0), 0) ?? 0
+    if (!body.lines?.length || debit <= 0 || Math.abs(debit - credit) > 0.001) throw new Error('Voucher must contain balanced debit and credit lines.')
+    const voucherNumber = body.id || body.number || number('VCH')
+    const voucherDate = body.date || body.voucher_date || date()
+    const { data: voucher, error } = await client
+      .from('vouchers')
+      .insert({
+        organization_id: organizationId,
+        financial_year_id: financialYearId,
+        voucher_type: (body.type || 'journal').toLowerCase(),
+        voucher_number: voucherNumber,
+        voucher_date: voucherDate,
+        status: 'posted',
+        narration: body.narration ?? null
+      })
+      .select('id')
+      .single()
+    if (error) throw error
+    for (const line of body.lines) {
+      const accountId = await account(client, organizationId, line.ledger)
+      const { error: lineError } = await client.from('voucher_lines').insert({
+        voucher_id: voucher.id,
+        account_id: accountId,
+        debit: +(line.debit || 0),
+        credit: +(line.credit || 0),
+        narration: line.narration ?? body.narration ?? null
+      })
+      if (lineError) throw lineError
+    }
     return { id: voucherNumber, type: body.type ?? 'Journal', date: voucherDate, narration: body.narration ?? '', lines: body.lines }
   }
   throw new Error('Unknown ERP resource.')
