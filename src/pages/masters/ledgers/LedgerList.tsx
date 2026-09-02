@@ -556,10 +556,27 @@ export default function LedgerList() {
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-slate-400">Filter:</span>
-                {['all', 'sale', 'purchase', 'challan', 'receipt', 'payment', 'journal', 'contra'].map(t => (
-                  <button key={t} onClick={() => setTypeFilter(t)}
-                    className={cn('px-2.5 py-1 rounded text-[10px] capitalize font-medium transition border', typeFilter === t ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white')}>
-                    {t}
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'sale', label: 'Sale' },
+                  { key: 'purchase', label: 'Purchase' },
+                  { key: 'challan', label: 'Challan' },
+                  { key: 'receipt', label: 'Receipt' },
+                  { key: 'payment', label: 'Payment' },
+                  { key: 'journal', label: 'Journal' },
+                  { key: 'contra', label: 'Cash/Bank Transfer' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setTypeFilter(key)}
+                    className={cn(
+                      'px-2.5 py-1 rounded text-[10px] font-medium transition border',
+                      typeFilter === key
+                        ? 'bg-indigo-600 text-white border-indigo-500'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    )}
+                  >
+                    {label}
                   </button>
                 ))}
               </div>
@@ -682,7 +699,7 @@ export default function LedgerList() {
             </Section>
 
             <Section
-              title="Accounting Vouchers (Journal / Contra / Notes)"
+              title="Accounting Vouchers (Journal / Cash-Bank Transfer / Notes)"
               icon={FileCheck}
               iconColor="text-amber-400"
               badgeBg="bg-amber-500/10 border-amber-500/20"
