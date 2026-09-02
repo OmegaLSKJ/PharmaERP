@@ -27,12 +27,12 @@ function actionFor(method: ErpMethod, resource: string) {
 }
 
 const manager = new Set([
-  'masters.read','masters.write','masters.delete','transactions.read','transactions.write','transactions.cancel',
+  'masters.read','masters.write','transactions.read','transactions.write','transactions.cancel',
   'inventory.read','inventory.adjust','accounting.read','accounting.write','accounting.delete','reports.read',
   'imports.execute','compliance.read','compliance.write','compliance.delete',
 ])
 const operator = new Set([
-  'masters.read','masters.write','masters.delete','transactions.read','transactions.write','transactions.cancel',
+  'masters.read','masters.write','transactions.read','transactions.write',
   'inventory.read','accounting.read','accounting.write','reports.read','compliance.read'
 ])
 
