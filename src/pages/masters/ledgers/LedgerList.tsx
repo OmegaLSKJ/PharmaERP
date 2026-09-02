@@ -103,13 +103,18 @@ export default function LedgerList() {
         setLedgers(combined)
 
         const seenStatementKeys = new Set<string>()
-        const dedupedRows = (ledgerRows || []).filter((r) => {
-          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${Number(r.debit || 0)}_${Number(r.credit || 0)}`
+        const validRows = (ledgerRows || []).filter((r) => {
+          const dr = Number(r.debit || 0)
+          const cr = Number(r.credit || 0)
+          // Filter out unnecessary transactions with 0 debit and 0 credit
+          if (dr === 0 && cr === 0) return false
+
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
           if (seenStatementKeys.has(key)) return false
           seenStatementKeys.add(key)
           return true
         })
-        setStatementEntries(dedupedRows)
+        setStatementEntries(validRows)
 
         if (combined.length > 0 && !selectedLedger) {
           setSelectedLedger(combined[0].name)
@@ -177,10 +182,13 @@ export default function LedgerList() {
     setActiveTab('statement')
   }
 
+  const [hideZeroBalances, setHideZeroBalances] = useState(false)
+
   const filteredLedgers = ledgers.filter((l) => {
     const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.group.toLowerCase().includes(search.toLowerCase())
     const matchGroup = groupFilter === 'ALL' || l.group.toLowerCase() === groupFilter.toLowerCase()
-    return matchSearch && matchGroup
+    const matchBalance = !hideZeroBalances || (Number(l.balance) || 0) > 0
+    return matchSearch && matchGroup && matchBalance
   })
 
   const selectedLedgerObj = ledgers.find((l) => l.name === selectedLedger)
@@ -188,7 +196,11 @@ export default function LedgerList() {
   const partyTransactions = useMemo(() => {
     if (!selectedLedger) return []
     const relevant = statementEntries.filter(
-      (e) => (e.party || '').toLowerCase() === selectedLedger.toLowerCase()
+      (e) => {
+        const matchesParty = (e.party || '').toLowerCase() === selectedLedger.toLowerCase()
+        const hasAmount = (Number(e.debit) || 0) > 0 || (Number(e.credit) || 0) > 0
+        return matchesParty && hasAmount
+      }
     )
     relevant.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     let currentBal = 0
@@ -312,10 +324,21 @@ export default function LedgerList() {
               <Search className="text-slate-400 shrink-0" size={16} />
               <input type="text" placeholder="Search ledgers..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full placeholder:text-slate-500" />
             </div>
-            <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
-              <option value="ALL">All Groups</option>
-              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 hover:border-slate-700">
+                <input
+                  type="checkbox"
+                  checked={hideZeroBalances}
+                  onChange={(e) => setHideZeroBalances(e.target.checked)}
+                  className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                />
+                <span>Hide Zero Balance (₹0)</span>
+              </label>
+              <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+                <option value="ALL">All Groups</option>
+                {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
           </div>
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
             <table className="min-w-[700px] w-full text-left border-collapse text-xs">

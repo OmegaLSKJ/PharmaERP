@@ -27,7 +27,10 @@ export default function DayBook() {
       .then((rows) => {
         const seenKeys = new Set<string>()
         const deduped = (rows || []).filter((r) => {
-          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${Number(r.debit || 0)}_${Number(r.credit || 0)}`
+          const dr = Number(r.debit || 0)
+          const cr = Number(r.credit || 0)
+          if (dr === 0 && cr === 0) return false
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
           if (seenKeys.has(key)) return false
           seenKeys.add(key)
           return true
