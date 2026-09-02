@@ -13,6 +13,9 @@ interface Ledger {
   group: string
   balance: number
   type: 'Dr' | 'Cr'
+  txnCount?: number
+  totalDr?: number
+  totalCr?: number
 }
 
 interface StatementEntry {
@@ -100,7 +103,6 @@ export default function LedgerList() {
           ...accounts,
           ...partyLedgers.filter((p) => !existingNames.has(p.name.toLowerCase()))
         ]
-        setLedgers(combined)
 
         const seenStatementKeys = new Set<string>()
         const validRows = (ledgerRows || []).filter((r) => {
@@ -116,8 +118,48 @@ export default function LedgerList() {
         })
         setStatementEntries(validRows)
 
-        if (combined.length > 0 && !selectedLedger) {
-          setSelectedLedger(combined[0].name)
+        // Compute balances and totals directly connected to all real transactions for each ledger
+        const ledgerTxnTotals: Record<string, { dr: number; cr: number; net: number; count: number }> = {}
+        validRows.forEach((row) => {
+          const partyKey = (row.party || '').trim().toLowerCase()
+          if (!partyKey) return
+          if (!ledgerTxnTotals[partyKey]) ledgerTxnTotals[partyKey] = { dr: 0, cr: 0, net: 0, count: 0 }
+          const drVal = Number(row.debit) || 0
+          const crVal = Number(row.credit) || 0
+          ledgerTxnTotals[partyKey].dr += drVal
+          ledgerTxnTotals[partyKey].cr += crVal
+          ledgerTxnTotals[partyKey].net += drVal - crVal
+          ledgerTxnTotals[partyKey].count += 1
+        })
+
+        const updatedCombined = combined.map((ledger) => {
+          const key = ledger.name.trim().toLowerCase()
+          const txnData = ledgerTxnTotals[key]
+          if (txnData && txnData.count > 0) {
+            // Incorporate transaction movement into balance
+            const initialNet = (ledger.type === 'Cr' ? -1 : 1) * Number(ledger.balance || 0)
+            const finalNet = (initialNet || 0) + txnData.net
+            return {
+              ...ledger,
+              balance: Math.abs(finalNet),
+              type: finalNet < 0 ? ('Cr' as const) : ('Dr' as const),
+              txnCount: txnData.count,
+              totalDr: txnData.dr,
+              totalCr: txnData.cr,
+            }
+          }
+          return {
+            ...ledger,
+            txnCount: 0,
+            totalDr: 0,
+            totalCr: 0,
+          }
+        })
+
+        setLedgers(updatedCombined)
+
+        if (updatedCombined.length > 0 && !selectedLedger) {
+          setSelectedLedger(updatedCombined[0].name)
         }
       })
       .catch((e) => addToast(e.message, 'error'))
@@ -341,32 +383,81 @@ export default function LedgerList() {
             </div>
           </div>
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-            <table className="min-w-[700px] w-full text-left border-collapse text-xs">
+            <table className="min-w-[850px] w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
+                <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   <th className="p-3.5">Ledger Name</th>
                   <th className="p-3.5">Account Group</th>
-                  <th className="p-3.5 text-right">Balance</th>
+                  <th className="p-3.5 text-center">Connected Txns</th>
+                  <th className="p-3.5 text-right">Total Debit</th>
+                  <th className="p-3.5 text-right">Total Credit</th>
+                  <th className="p-3.5 text-right">Current Balance</th>
                   <th className="p-3.5 text-center">Type</th>
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-sm">
-                {filteredLedgers.map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300">
-                    <td className="p-3.5">{l.name}</td>
-                    <td className="p-3.5 text-slate-400">{l.group}</td>
-                    <td className={cn('p-3.5 text-right font-mono', l.type === 'Dr' ? 'text-emerald-400' : 'text-amber-400')}>₹{l.balance.toLocaleString()}</td>
-                    <td className="p-3.5 text-center">{l.type}</td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => openPartyStatement(l.name)} className="px-2 py-1 bg-indigo-600/20 text-indigo-300 rounded text-[10px]">View</button>
-                        <button onClick={() => editLedger(l)} className="p-1 text-slate-400"><Edit2 size={12}/></button>
-                        <button onClick={() => removeLedger(l)} className="p-1 text-slate-400"><Trash2 size={12}/></button>
-                      </div>
+                {filteredLedgers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-xs text-slate-500">
+                      No ledgers found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredLedgers.map((l) => (
+                    <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300 transition group">
+                      <td className="p-3.5 font-medium text-white">
+                        <button
+                          onClick={() => openPartyStatement(l.name)}
+                          className="hover:text-indigo-400 hover:underline transition text-left flex items-center gap-1.5"
+                          title="Click to view all connected transactions"
+                        >
+                          <span>{l.name}</span>
+                        </button>
+                      </td>
+                      <td className="p-3.5 text-slate-400 text-xs">{l.group}</td>
+                      <td className="p-3.5 text-center">
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded-full text-[10px] font-semibold',
+                            (l.txnCount || 0) > 0
+                              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                              : 'text-slate-500'
+                          )}
+                        >
+                          {l.txnCount || 0} txn{(l.txnCount || 0) !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-xs text-emerald-400">
+                        {(l.totalDr || 0) > 0 ? formatCurrency(l.totalDr || 0) : '-'}
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-xs text-rose-400">
+                        {(l.totalCr || 0) > 0 ? formatCurrency(l.totalCr || 0) : '-'}
+                      </td>
+                      <td className={cn('p-3.5 text-right font-mono font-semibold', l.type === 'Dr' ? 'text-emerald-400' : 'text-amber-400')}>
+                        ₹{l.balance.toLocaleString()}
+                      </td>
+                      <td className="p-3.5 text-center text-xs">
+                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold', l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400')}>
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex justify-end items-center gap-2">
+                          <button
+                            onClick={() => openPartyStatement(l.name)}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition"
+                            title="View Statement & Transactions"
+                          >
+                            <FileText size={12} /> Statement
+                          </button>
+                          <button onClick={() => editLedger(l)} className="p-1 text-slate-400 hover:text-white transition" title="Edit"><Edit2 size={12}/></button>
+                          <button onClick={() => removeLedger(l)} className="p-1 text-slate-400 hover:text-rose-400 transition" title="Delete"><Trash2 size={12}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
