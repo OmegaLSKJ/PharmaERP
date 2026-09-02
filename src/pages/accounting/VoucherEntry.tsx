@@ -204,20 +204,96 @@ export default function VoucherEntry() {
   }
 
   const saveVoucher = async () => {
+    let currentLines = [...lines]
+
+    // If no lines in table, but user entered details in Quick Entry Helper
+    if (currentLines.length === 0) {
+      const amt = Number(quickAmount)
+      if (amt > 0) {
+        const accLedger = cashBankLedger || cashAccounts[0] || 'Cash Account'
+        const pLedger = partyLedger || (vType === 'Payment' ? supplierLedgers[0] : customerLedgers[0]) || 'General Party'
+
+        if (vType === 'Receipt') {
+          currentLines = [
+            { id: Date.now().toString() + '1', ledger: accLedger, debit: amt, credit: 0, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Received via Cash/Bank' },
+            { id: Date.now().toString() + '2', ledger: pLedger, debit: 0, credit: amt, narration: 'Received against invoice/account' }
+          ]
+        } else if (vType === 'Payment') {
+          currentLines = [
+            { id: Date.now().toString() + '1', ledger: pLedger, debit: amt, credit: 0, narration: 'Payment made' },
+            { id: Date.now().toString() + '2', ledger: accLedger, debit: 0, credit: amt, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Paid via Cash/Bank' }
+          ]
+        } else if (vType === 'Contra') {
+          currentLines = [
+            { id: Date.now().toString() + '1', ledger: bankAccounts[0] || 'HDFC Bank', debit: amt, credit: 0, narration: 'Contra Deposit' },
+            { id: Date.now().toString() + '2', ledger: cashAccounts[0] || 'Cash Account', debit: 0, credit: amt, narration: 'Contra Withdrawal' }
+          ]
+        } else {
+          currentLines = [
+            { id: Date.now().toString() + '1', ledger: accLedger, debit: amt, credit: 0, narration: 'Journal Debit' },
+            { id: Date.now().toString() + '2', ledger: pLedger, debit: 0, credit: amt, narration: 'Journal Credit' }
+          ]
+        }
+        setLines(currentLines)
+        if (!narration) {
+          setNarration(
+            vType === 'Receipt'
+              ? `Received ${formatCurrency(amt)} from ${pLedger} via ${accLedger}`
+              : `Paid ${formatCurrency(amt)} to ${pLedger} from ${accLedger}`
+          )
+        }
+      } else {
+        showToast('Please enter an amount and add voucher debit & credit lines before saving.')
+        return
+      }
+    }
+
+    // Validate debit vs credit balance
+    const deb = currentLines.reduce((s, l) => s + (Number(l.debit) || 0), 0)
+    const cred = currentLines.reduce((s, l) => s + (Number(l.credit) || 0), 0)
+
+    if (deb <= 0 || cred <= 0) {
+      showToast('Voucher amount must be greater than zero.')
+      return
+    }
+
+    if (Math.abs(deb - cred) > 0.001) {
+      showToast(
+        `Voucher is unbalanced! Total Debit (${formatCurrency(deb)}) does not match Total Credit (${formatCurrency(cred)}). Difference: ${formatCurrency(Math.abs(deb - cred))}`
+      )
+      return
+    }
+
+    const missingLedger = currentLines.some((l) => !l.ledger || !l.ledger.trim())
+    if (missingLedger) {
+      showToast('All voucher lines must have a Ledger Account selected.')
+      return
+    }
+
     try {
       setSaving(true)
+      const primaryParty =
+        currentLines.find((l) => !cashAccounts.includes(l.ledger) && !bankAccounts.includes(l.ledger))?.ledger ||
+        partyLedger ||
+        'General Party'
       const saved = await postErp<{ id: string }>('vouchers', {
         id: vNo,
+        number: vNo,
         type: vType,
+        voucher_type: vType.toLowerCase(),
         date: vDate,
-        narration,
-        lines
+        voucher_date: vDate,
+        party: primaryParty,
+        narration: narration || `${vType} voucher ${vNo}`,
+        total: deb,
+        lines: currentLines
       })
       showToast(`Voucher ${saved.id || vNo} posted successfully!`)
       setLines([])
       setNarration('')
       setQuickAmount('')
       setBankRefNo('')
+      setPartyLedger('')
       setVNo(`VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save voucher.')
@@ -235,7 +311,7 @@ export default function VoucherEntry() {
             <Landmark className="text-indigo-400" size={24} /> Voucher Entry
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Record Cash & Bank transactions &bull; Receipts, Payments, Contra & Journals
+            Record Cash &amp; Bank transactions &bull; Receipts, Payments, Contra &amp; Journals
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -247,12 +323,12 @@ export default function VoucherEntry() {
           </button>
           <button
             onClick={saveVoucher}
-            disabled={!isBalanced || saving}
+            disabled={saving}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition text-white',
-              isBalanced
-                ? 'bg-indigo-600 hover:bg-indigo-500'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+              isBalanced || (lines.length === 0 && Number(quickAmount) > 0)
+                ? 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-indigo-600/30'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
             )}
           >
             <Save size={16} /> {saving ? 'Posting…' : 'Save Voucher'}
@@ -634,11 +710,51 @@ export default function VoucherEntry() {
               })}
               {lines.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-10 text-center text-slate-500">
-                    <p className="font-medium">No voucher lines entered yet.</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Use the Quick Entry helper above or click &ldquo;+ Cash Line&rdquo; / &ldquo;+ Bank Line&rdquo; to begin.
-                    </p>
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                    <p className="font-medium text-slate-300">No voucher lines entered yet.</p>
+                    {Number(quickAmount) > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-indigo-400">
+                          Ready to generate balanced debit/credit lines for {formatCurrency(Number(quickAmount))}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleApplyQuickEntry}
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                        >
+                          Click to Generate Lines ({formatCurrency(Number(quickAmount))})
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-slate-500 space-y-2">
+                        <p>
+                          Enter an Amount above and click &ldquo;Generate Lines&rdquo;, or use quick actions below:
+                        </p>
+                        <div className="flex items-center justify-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => addLine(cashAccounts[0] || 'Cash Account')}
+                            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-xs"
+                          >
+                            + Cash Line
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addLine(bankAccounts[0] || 'HDFC Bank')}
+                            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-xs"
+                          >
+                            + Bank Line
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addLine()}
+                            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-xs"
+                          >
+                            + Custom Line
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}
