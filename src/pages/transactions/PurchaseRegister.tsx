@@ -534,89 +534,89 @@ export default function PurchaseRegister() {
                   <PlusCircle size={13} /> Add Line Item
                 </button>
               </div>
-              <div className="border border-slate-800 rounded-xl overflow-x-auto bg-slate-950/40">
-                <table className="w-full text-xs min-w-[780px]">
+              <div className="border border-slate-700/80 rounded-xl overflow-x-auto bg-slate-950/60 shadow-xs">
+                <table className="w-full text-xs min-w-[980px]">
                   <thead>
-                    <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase text-[10px]">
-                      <th className="text-left px-3 py-2 w-48">Item Description</th>
-                      <th className="text-left px-2 py-2 w-20">Batch</th>
-                      <th className="text-left px-2 py-2 w-16">Expiry</th>
-                      <th className="text-right px-2 py-2 w-16">Qty</th>
-                      <th className="text-right px-2 py-2 w-16">Free</th>
-                      <th className="text-right px-2 py-2 w-20">Rate (₹)</th>
-                      <th className="text-right px-2 py-2 w-16">Disc %</th>
-                      <th className="text-right px-2 py-2 w-16">GST %</th>
-                      <th className="text-right px-3 py-2 w-24">Amount (₹)</th>
-                      <th className="w-10 px-2 py-2"></th>
+                    <tr className="bg-slate-900 border-b border-slate-800 text-slate-300 uppercase text-[10px] font-semibold">
+                      <th className="text-left px-3.5 py-2.5 w-60 min-w-[200px]">Item Description</th>
+                      <th className="text-left px-2.5 py-2.5 w-28 min-w-[100px]">Batch</th>
+                      <th className="text-left px-2.5 py-2.5 w-24 min-w-[85px]">Expiry</th>
+                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Qty</th>
+                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Free</th>
+                      <th className="text-right px-2.5 py-2.5 w-28 min-w-[100px]">Rate (₹)</th>
+                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Disc %</th>
+                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">GST %</th>
+                      <th className="text-right px-3.5 py-2.5 w-28 min-w-[105px]">Amount (₹)</th>
+                      <th className="w-10 px-2 py-2.5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/80">
+                  <tbody className="divide-y divide-slate-800">
                     {editLines.map((line, idx) => (
-                      <tr key={line.id} className="hover:bg-slate-900/40">
-                        <td className="px-2 py-1.5">
+                      <tr key={line.id} className="hover:bg-slate-900/50">
+                        <td className="px-2.5 py-2">
                           <input
                             type="text"
                             value={line.name}
                             onChange={(e) => updateLine(idx, 'name', e.target.value)}
-                            className="w-full px-2 py-1 bg-slate-900 border border-slate-800 rounded text-white font-medium outline-none focus:border-indigo-500"
+                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={line.batch}
                             onChange={(e) => updateLine(idx, 'batch', e.target.value)}
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-slate-200 font-mono outline-none focus:border-indigo-500 uppercase"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 uppercase shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={line.expiry}
                             onChange={(e) => updateLine(idx, 'expiry', e.target.value)}
                             placeholder="MM/YY"
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-slate-200 font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2 text-right">
                           <input
                             type="number"
                             value={line.qty}
                             onChange={(e) => updateLine(idx, 'qty', e.target.value)}
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-white text-right font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2 text-right">
                           <input
                             type="number"
                             value={line.freeQty}
                             onChange={(e) => updateLine(idx, 'freeQty', e.target.value)}
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-slate-300 text-right font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2 text-right">
                           <input
                             type="number"
                             step="0.01"
                             value={line.rate}
                             onChange={(e) => updateLine(idx, 'rate', e.target.value)}
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-white text-right font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2 text-right">
                           <input
                             type="number"
                             step="0.1"
                             value={line.discount}
                             onChange={(e) => updateLine(idx, 'discount', e.target.value)}
-                            className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-slate-300 text-right font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           />
                         </td>
-                        <td className="px-1.5 py-1.5">
+                        <td className="px-2 py-2 text-right">
                           <select
                             value={line.gstRate}
                             onChange={(e) => updateLine(idx, 'gstRate', Number(e.target.value))}
-                            className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-slate-300 text-right font-mono outline-none focus:border-indigo-500"
+                            className="w-full px-1.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
                           >
                             <option value={0}>0%</option>
                             <option value={5}>5%</option>
@@ -625,17 +625,17 @@ export default function PurchaseRegister() {
                             <option value={28}>28%</option>
                           </select>
                         </td>
-                        <td className="px-3 py-1.5 text-right font-mono font-semibold text-emerald-400">
+                        <td className="px-3.5 py-2 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
                           {formatCurrency(line.amount)}
                         </td>
-                        <td className="px-2 py-1.5 text-center">
+                        <td className="px-2 py-2 text-center">
                           <button
                             type="button"
                             onClick={() => removeLine(idx)}
-                            className="text-slate-500 hover:text-rose-400 transition"
+                            className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
                             title="Remove Line"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={14} />
                           </button>
                         </td>
                       </tr>

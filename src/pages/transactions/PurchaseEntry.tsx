@@ -529,7 +529,7 @@ export default function PurchaseEntry() {
               onChange={(e) => setInvoiceNo(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && invoiceDateRef.current?.focus()}
               placeholder="e.g. SI-2026/045"
-              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition font-mono"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs font-mono"
             />
           </div>
           <div>
@@ -540,7 +540,7 @@ export default function PurchaseEntry() {
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && entryDateRef.current?.focus()}
-              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
             />
           </div>
           <div>
@@ -551,7 +551,7 @@ export default function PurchaseEntry() {
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setShowItemSearch(true)}
-              className="w-full bg-slate-950/80 border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-primary transition"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
             />
           </div>
         </div>
@@ -833,36 +833,36 @@ export default function PurchaseEntry() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-border bg-card">
-              <table className="w-full text-xs">
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-800 bg-card shadow-xs">
+              <table className="w-full text-xs min-w-[1260px]">
                 <thead>
-                  <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
-                    <th className="p-2.5 text-left w-10">#</th>
-                    <th className="p-2.5 text-left min-w-[170px]">Item / Description</th>
-                    <th className="p-2.5 text-left w-20">HSN</th>
-                    <th className="p-2.5 text-left w-24">Batch</th>
-                    <th className="p-2.5 text-left w-28">Expiry</th>
-                    <th className="p-2 text-right w-20 min-w-[72px]">Qty</th>
-                    <th className="p-2 text-right w-20 min-w-[72px]">Free</th>
-                    <th className="p-2 text-right w-24 min-w-[88px]">Purc. Rate</th>
-                    <th className="p-2 text-right w-20 min-w-[72px]">Disc%</th>
-                    <th className="p-2 text-right w-20 min-w-[72px]">Scheme%</th>
-                    <th className="p-2 text-right w-20 min-w-[72px] text-primary">GST% *</th>
-                    <th className="p-2.5 text-right w-28 min-w-[96px]">Amount</th>
-                    <th className="p-2.5 text-center w-10"></th>
+                  <tr className="bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 uppercase tracking-wider text-[11px] font-semibold">
+                    <th className="p-3 text-center w-12">#</th>
+                    <th className="p-3 text-left min-w-[220px]">Item / Description</th>
+                    <th className="p-3 text-left w-28 min-w-[105px]">HSN</th>
+                    <th className="p-3 text-left w-32 min-w-[115px]">Batch</th>
+                    <th className="p-3 text-left w-44 min-w-[155px]">Expiry</th>
+                    <th className="p-2.5 text-right w-24 min-w-[85px]">Qty</th>
+                    <th className="p-2.5 text-right w-24 min-w-[85px]">Free</th>
+                    <th className="p-2.5 text-right w-32 min-w-[115px]">Purc. Rate</th>
+                    <th className="p-2.5 text-right w-24 min-w-[85px]">Disc%</th>
+                    <th className="p-2.5 text-right w-24 min-w-[85px]">Scheme%</th>
+                    <th className="p-2.5 text-right w-24 min-w-[85px] text-indigo-600 dark:text-indigo-400">GST% *</th>
+                    <th className="p-3 text-right w-36 min-w-[120px]">Amount</th>
+                    <th className="p-3 text-center w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border text-foreground">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-foreground">
                   {items.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-secondary/40 transition-colors">
-                      <td className="p-2 text-muted-foreground font-mono">{idx + 1}</td>
-                      <td className="p-2 font-semibold text-foreground">
+                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-secondary/30 transition-colors">
+                      <td className="p-3 text-center text-muted-foreground font-mono font-medium">{idx + 1}</td>
+                      <td className="p-3 font-semibold text-foreground">
                         {item.itemName}
                         {item.packing && (
                           <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
                         )}
                       </td>
-                      <td className="p-1.5">
+                      <td className="p-2">
                         <input
                           type="text"
                           list="hsn-list"
@@ -870,30 +870,30 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
                           onKeyDown={handleRowKeyDown}
                           placeholder="HSN"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary font-mono text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium shadow-2xs transition"
                           title="HSN Code (changing this updates GST%)"
                         />
                       </td>
-                      <td className="p-1.5">
+                      <td className="p-2">
                         <input
                           type="text"
                           value={item.batch}
                           onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
                           onKeyDown={handleRowKeyDown}
                           placeholder="Batch"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary font-mono text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium uppercase shadow-2xs transition"
                         />
                       </td>
-                      <td className="p-1.5">
+                      <td className="p-2">
                         <input
                           type="date"
                           value={item.expiry}
                           onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium shadow-2xs transition"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="1"
@@ -901,10 +901,10 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'qty', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="1"
-                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="0"
@@ -912,10 +912,10 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'freeQty', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0"
-                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="0"
@@ -924,10 +924,10 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0.00"
-                          className="w-full min-w-[76px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="0"
@@ -936,10 +936,10 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0"
-                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="0"
@@ -948,10 +948,10 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'scheme', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0"
-                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-1.5 text-right">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           min="0"
@@ -961,18 +961,20 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value) || 0)}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0"
-                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500/60 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           title="GST percentage (Auto-filled from HSN, editable)"
                         />
                       </td>
-                      <td className="p-2.5 text-right font-bold text-emerald-500 dark:text-emerald-400 font-mono text-xs">{formatCurrency(item.amount)}</td>
-                      <td className="p-2.5 text-center">
+                      <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs whitespace-nowrap">
+                        {formatCurrency(item.amount)}
+                      </td>
+                      <td className="p-3 text-center">
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="text-muted-foreground hover:text-rose-500 transition-colors p-1"
+                          className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-500/10 rounded-lg"
                           title="Remove row"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={15} />
                         </button>
                       </td>
                     </tr>
