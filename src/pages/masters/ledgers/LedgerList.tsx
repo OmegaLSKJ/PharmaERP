@@ -129,16 +129,21 @@ export default function LedgerList() {
   const addToast = useUIStore((s) => s.addToast)
 
   const handleForceRemoveZeroValueTxns = async () => {
-    if (!window.confirm('Delete and force remove all accounts and transactions that have no value (0 txns and ₹0 balance) from Chart of Accounts?')) {
-      return
-    }
     setPurging(true)
     try {
       await postErp('purge-zero-transactions', {}).catch(() => deleteErp('ledgers', 'zero-value')).catch(() => {})
+      setLedgers((prev) =>
+        prev.filter((l) => {
+          const hasTxns = (l.txnCount || 0) > 0
+          const hasBalance = (Number(l.balance) || 0) > 0
+          const hasMovement = (l.totalDr || 0) > 0 || (l.totalCr || 0) > 0
+          return hasTxns || hasBalance || hasMovement
+        })
+      )
       loadData()
-      addToast('All zero-value accounts and transactions have been forcefully deleted from Chart of Accounts.', 'success')
+      addToast('All zero-value accounts and transactions have been deleted from Chart of Accounts.', 'success')
     } catch (err: any) {
-      addToast(err?.message || 'Failed to remove zero-value entries.', 'error')
+      addToast(err?.message || 'Failed to delete zero-value entries.', 'error')
     } finally {
       setPurging(false)
     }
@@ -456,14 +461,6 @@ export default function LedgerList() {
 
       {activeTab === 'masters' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-medium">Clean Chart of Accounts: All inactive accounts and transactions with no value (0 txns & ₹0 balance) are forcefully deleted and excluded.</span>
-            </div>
-            <span className="text-[11px] text-emerald-400/80 font-mono hidden sm:inline">Active</span>
-          </div>
-
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
               <Search className="text-slate-400 shrink-0" size={16} />
