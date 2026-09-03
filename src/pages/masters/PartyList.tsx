@@ -17,6 +17,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Layers,
+  Edit2,
+  Pencil,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
@@ -108,6 +110,7 @@ export default function PartyList() {
   const [parties, setParties] = useState<Party[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [editingPartyId, setEditingPartyId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'general' | 'address' | 'licenses' | 'gst' | 'credit'>('general')
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
@@ -357,7 +360,54 @@ export default function PartyList() {
     showToast(`${filtered.length} parties exported to CSV.`)
   }
 
+  const openEditParty = (party: Party) => {
+    setEditingPartyId(party.id)
+    setFormData({
+      name: party.name || '',
+      type: party.type || 'both',
+      station: party.station || party.city || '',
+      accountGroup: party.accountGroup || 'BOTH',
+      balancingMethod: party.balancingMethod || 'On Account',
+      openingBalance: party.openingBalance ? String(party.openingBalance) : '0.00',
+      openingType: party.openingType || 'Dr',
+      mailTo: party.mailTo || party.name || '',
+      address: party.address || '',
+      addressLine2: party.addressLine2 || '',
+      pincode: party.pincode || '',
+      city: party.city || '',
+      state: party.state || '18-ASSAM',
+      country: party.country || 'INDIA',
+      contactPerson: party.contactPerson || '',
+      designation: party.designation || '',
+      phone: party.phone || '',
+      mobile: party.mobile || party.phone || '',
+      phoneOff: party.phoneOff || '',
+      phoneRes: party.phoneRes || '',
+      fax: party.fax || '',
+      email: party.email || '',
+      website: party.website || '',
+      freezeUpto: party.freezeUpto || '',
+      narcoSchH: party.narcoSchH || 'Allow All',
+      dlNo: party.dlNo || party.dlNumber || '',
+      dlExp: party.dlExp || '',
+      gstHeading: party.gstHeading || 'Local',
+      gstin: party.gstin || '',
+      gstinDate: party.gstinDate || '',
+      foodLicenceNo: party.foodLicenceNo || '',
+      foodLicenceExp: party.foodLicenceExp || '',
+      pan: party.pan || '',
+      ledgerCategory: party.ledgerCategory || 'OTHERS',
+      ledgerType: party.ledgerType || 'REGISTERED',
+      creditLimit: party.creditLimit ? String(party.creditLimit) : '0',
+      creditDays: party.creditDays ? String(party.creditDays) : '30',
+    })
+    setActiveTab('general')
+    setShowCreate(true)
+    setActiveMenu(null)
+  }
+
   const resetForm = () => {
+    setEditingPartyId(null)
     setFormData({
       name: '',
       type: 'both',
@@ -410,7 +460,7 @@ export default function PartyList() {
     try {
       const payload = {
         name: formData.name.trim(),
-        type: 'both', // Always set dual role so DB shows them in customers as well as suppliers section
+        type: formData.type || 'both', // Dual role so DB shows them in customers as well as suppliers section
         station: formData.station.trim(),
         accountGroup: formData.accountGroup,
         balancingMethod: formData.balancingMethod,
@@ -449,22 +499,54 @@ export default function PartyList() {
         creditDays: Number(formData.creditDays) || 0,
       }
 
-      const created = await postErp<Party>('parties', payload)
-      // Save locally to localStorage so it permanently persists across browser refresh
-      try {
-        const raw = localStorage.getItem('pharma_erp_custom_parties')
-        const currentLocal = raw ? JSON.parse(raw) : []
-        const updatedLocal = [created, ...currentLocal.filter((p: any) => p.id !== created.id && p.name.toLowerCase() !== created.name.toLowerCase())]
-        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
-      } catch (err) {
-        console.warn('Could not save custom party to localStorage:', err)
+      if (editingPartyId) {
+        // EDIT EXISTING PARTY
+        const updated = await patchErp<Party>('parties', editingPartyId, payload)
+        const existing = parties.find((p) => p.id === editingPartyId)
+        const mergedParty: Party = {
+          ...(existing as Party),
+          ...payload,
+          ...(updated || {})
+        }
+
+        // Update localStorage custom parties
+        try {
+          const raw = localStorage.getItem('pharma_erp_custom_parties')
+          const currentLocal = raw ? JSON.parse(raw) : []
+          const updatedLocal = currentLocal.map((p: any) =>
+            (p.id === editingPartyId || (p.name && p.name.toLowerCase() === mergedParty.name.toLowerCase())) ? mergedParty : p
+          )
+          if (!updatedLocal.some((p: any) => p.id === editingPartyId)) {
+            updatedLocal.unshift(mergedParty)
+          }
+          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
+        } catch (err) {
+          console.warn('Could not update custom party in localStorage:', err)
+        }
+
+        setParties((current) => current.map((p) => (p.id === editingPartyId ? mergedParty : p)))
+        setShowCreate(false)
+        resetForm()
+        showToast(`${mergedParty.name} details updated successfully.`)
+      } else {
+        // CREATE NEW PARTY
+        const created = await postErp<Party>('parties', payload)
+        // Save locally to localStorage so it permanently persists across browser refresh
+        try {
+          const raw = localStorage.getItem('pharma_erp_custom_parties')
+          const currentLocal = raw ? JSON.parse(raw) : []
+          const updatedLocal = [created, ...currentLocal.filter((p: any) => p.id !== created.id && p.name.toLowerCase() !== created.name.toLowerCase())]
+          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
+        } catch (err) {
+          console.warn('Could not save custom party to localStorage:', err)
+        }
+        setParties((current) => [created, ...current.filter((p) => p.id !== created.id)])
+        setShowCreate(false)
+        resetForm()
+        showToast(`${created.name} was added to Party Master.`)
       }
-      setParties((current) => [created, ...current.filter((p) => p.id !== created.id)])
-      setShowCreate(false)
-      resetForm()
-      showToast(`${created.name} was added to Party Master.`)
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not create party.')
+      showToast(error instanceof Error ? error.message : 'Could not save party.')
     }
   }
 
@@ -728,17 +810,36 @@ export default function PartyList() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Actions for ${p.name}`}
-                      className="relative h-7 w-7"
-                      onClick={() => setActiveMenu(activeMenu === p.id ? null : p.id)}
-                    >
-                      <MoreHorizontal size={14} />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={`Edit details for ${p.name}`}
+                        aria-label={`Edit ${p.name}`}
+                        className="h-7 w-7 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40"
+                        onClick={() => openEditParty(p)}
+                      >
+                        <Edit2 size={13} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Actions for ${p.name}`}
+                        className="relative h-7 w-7"
+                        onClick={() => setActiveMenu(activeMenu === p.id ? null : p.id)}
+                      >
+                        <MoreHorizontal size={14} />
+                      </Button>
+                    </div>
                     {activeMenu === p.id && (
-                      <div className="glass-surface absolute right-6 z-20 mt-1 w-40 rounded-lg p-1 text-left border border-border shadow-xl">
+                      <div className="glass-surface absolute right-6 z-20 mt-1 w-44 rounded-lg p-1 text-left border border-border shadow-xl">
+                        <button
+                          type="button"
+                          onClick={() => openEditParty(p)}
+                          className="w-full flex items-center gap-2 rounded px-3 py-1.5 text-xs text-foreground hover:bg-secondary font-medium text-indigo-300"
+                        >
+                          <Edit2 size={12} /> Edit Party Details
+                        </button>
                         <Link
                           to={`/masters/parties/${p.id}`}
                           className="block rounded px-3 py-1.5 text-xs text-foreground hover:bg-secondary"
@@ -794,10 +895,10 @@ export default function PartyList() {
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-secondary/30">
               <div>
                 <h2 id="new-party-title" className="text-base sm:text-lg font-bold text-foreground">
-                  New Party / Modify Ledger
+                  {editingPartyId ? `Edit Party: ${formData.name || 'Customer / Supplier'}` : 'New Party / Create Ledger'}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Complete ledger master with Drug License, GST, Stations, and Credit Controls
+                  {editingPartyId ? 'Modify customer or supplier master details, Drug License, GST, Address, and Credit Controls' : 'Complete ledger master with Drug License, GST, Stations, and Credit Controls'}
                 </p>
               </div>
               <button
@@ -1449,7 +1550,7 @@ export default function PartyList() {
                   Cancel
                 </Button>
                 <Button type="submit">
-                  <Check size={15} /> Save Party / Ledger
+                  <Check size={15} /> {editingPartyId ? 'Update Party Details' : 'Save Party / Ledger'}
                 </Button>
               </div>
             </div>

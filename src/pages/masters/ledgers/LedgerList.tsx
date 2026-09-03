@@ -28,7 +28,7 @@ import {
   Scale,
   ExternalLink
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
@@ -128,6 +128,8 @@ export default function LedgerList() {
   const [showModal, setShowModal] = useState(false)
   const [editModalLedger, setEditModalLedger] = useState<Ledger | null>(null)
   const [editName, setEditName] = useState('')
+  const [editGroup, setEditGroup] = useState('Sundry Debtors')
+  const [editBalance, setEditBalance] = useState('0')
   const [deleteConfirmLedger, setDeleteConfirmLedger] = useState<Ledger | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [purging, setPurging] = useState(false)
@@ -327,14 +329,40 @@ export default function LedgerList() {
   const editLedger = (ledger: Ledger) => {
     setEditModalLedger(ledger)
     setEditName(ledger.name)
+    setEditGroup(ledger.group)
+    setEditBalance(String(ledger.balance || 0))
   }
 
   const confirmEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editModalLedger || !editName.trim()) return
     try {
-      await patchErp('accounts', editModalLedger.id, { name: editName.trim(), group: editModalLedger.group })
-      setLedgers((rows) => rows.map((row) => (row.id === editModalLedger.id ? { ...row, name: editName.trim() } : row)))
+      await patchErp('accounts', editModalLedger.id, {
+        name: editName.trim(),
+        group: editGroup,
+        openingBalance: Number(editBalance) || 0
+      })
+      // Also sync if party exists in custom parties localStorage
+      try {
+        const raw = localStorage.getItem('pharma_erp_custom_parties')
+        if (raw) {
+          const parties = JSON.parse(raw)
+          const updated = parties.map((p: any) =>
+            (p.id === editModalLedger.id || (p.name && p.name.toLowerCase() === editModalLedger.name.toLowerCase()))
+              ? { ...p, name: editName.trim(), accountGroup: editGroup }
+              : p
+          )
+          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updated))
+        }
+      } catch {}
+
+      setLedgers((rows) =>
+        rows.map((row) =>
+          row.id === editModalLedger.id
+            ? { ...row, name: editName.trim(), group: editGroup, balance: Number(editBalance) || row.balance }
+            : row
+        )
+      )
       addToast('Ledger updated', 'success')
       setEditModalLedger(null)
     } catch (error) {
@@ -990,10 +1018,10 @@ export default function LedgerList() {
         createPortal(
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
             <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-              <h3 className="text-base sm:text-lg font-bold text-white">Edit Ledger Name</h3>
-              <form onSubmit={confirmEdit} className="space-y-4">
+              <h3 className="text-base sm:text-lg font-bold text-white">Edit Ledger Account</h3>
+              <form onSubmit={confirmEdit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger Name</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger / Account Name *</label>
                   <input
                     type="text"
                     required
@@ -1003,12 +1031,53 @@ export default function LedgerList() {
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
                   />
                 </div>
-                <div className="text-xs text-slate-400">
-                  Group: <span className="text-slate-200 font-medium">{editModalLedger.group}</span>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account Group *</label>
+                  <select
+                    value={editGroup}
+                    onChange={(e) => setEditGroup(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                  >
+                    <optgroup label="Assets (Cash, Bank, Debtors, Current & Fixed Assets)">
+                      {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Liabilities (Creditors, Loans, Capital, Duties & Taxes)">
+                      {groupedAccountOptions.Liability.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Income (Sales, Revenue, Operating & Other Income)">
+                      {groupedAccountOptions.Income.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Expenses (Purchases, Operating & Administrative Expenses)">
+                      {groupedAccountOptions.Expense.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                  </select>
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Opening Balance (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editBalance}
+                    onChange={(e) => setEditBalance(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+
+                {(editModalLedger.group.toLowerCase().includes('debtor') || editModalLedger.group.toLowerCase().includes('creditor') || editModalLedger.group.toLowerCase().includes('both')) && (
+                  <div className="pt-1">
+                    <Link
+                      to={`/masters/parties?search=${encodeURIComponent(editModalLedger.name)}`}
+                      onClick={() => setEditModalLedger(null)}
+                      className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
+                    >
+                      <ExternalLink size={13} /> Edit Full Customer/Supplier Master (GST, DL, Address, Credit)
+                    </Link>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
                   <button type="button" onClick={() => setEditModalLedger(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Update</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Update Ledger</button>
                 </div>
               </form>
             </div>

@@ -1444,9 +1444,12 @@ export async function update(resource: string, id: string, body: any) {
     const storeKey = specialKeys[resource] || resource
     const list = mockStore[storeKey]
     if (list) {
-      const idx = list.findIndex((x: any) => x.id === id || x.number === id)
+      const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.code === id || (x.name && x.name.toLowerCase() === id.toLowerCase()))
       if (idx !== -1) {
         list[idx] = { ...list[idx], ...body }
+        if (resource === 'parties') {
+          persistCustomParty(list[idx])
+        }
         return list[idx]
       }
     }
@@ -1470,7 +1473,35 @@ export async function update(resource: string, id: string, body: any) {
     if (error) throw error
     return data
   }
-  if (resource === 'parties') { const values: any = {}; if ('name' in body) values.legal_name = body.name; if ('type' in body) values.party_type = body.type; if ('phone' in body) values.phone = body.phone; if ('email' in body) values.email = body.email; if ('gstin' in body) values.gstin = body.gstin; if ('creditLimit' in body) values.credit_limit = Number(body.creditLimit); if ('status' in body) values.is_blocked = body.status === 'blocked'; const { data, error } = await client.from('parties').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
+  if (resource === 'parties') {
+    const values: any = {}
+    if ('name' in body) values.legal_name = body.name
+    if ('type' in body) values.party_type = body.type
+    if ('phone' in body) values.phone = body.phone
+    if ('email' in body) values.email = body.email
+    if ('gstin' in body) values.gstin = body.gstin
+    if ('creditLimit' in body) values.credit_limit = Number(body.creditLimit)
+    if ('status' in body) values.is_blocked = body.status === 'blocked'
+    const { data, error } = await client.from('parties').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    if (body.city || body.address) {
+      try {
+        await client.from('party_addresses').upsert({
+          party_id: id,
+          address_type: 'business',
+          line1: body.address || body.city,
+          city: body.city || '',
+          is_default: true
+        }, { onConflict: 'party_id' })
+      } catch {}
+    }
+    if (body.name) {
+      try {
+        await client.from('chart_of_accounts').update({ name: body.name }).eq('party_id', id).eq('organization_id', organizationId)
+      } catch {}
+    }
+    return { ...body, id: data.id, code: data.code, ...data }
+  }
   if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'accounts') { const values: any = {}; if ('name' in body) values.name = body.name; if ('group' in body) values.account_group = body.group; if ('openingBalance' in body) values.opening_balance = Number(body.openingBalance); const { data, error } = await client.from('chart_of_accounts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
