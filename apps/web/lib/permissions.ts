@@ -3,7 +3,7 @@ export type ErpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 const masters = new Set(['parties', 'items', 'manufacturers', 'salts', 'hsn', 'warehouses', 'accounts', 'series', 'communication-blocks', 'item-mappings'])
 const inventory = new Set(['stock', 'stock-movements', 'stock-transfers', 'breakages', 'reservations', 'inventory-adjustments'])
-const accounting = new Set(['ledger', 'vouchers', 'day-book', 'trial-balance', 'accounting-periods', 'reconciliation'])
+const accounting = new Set(['ledger', 'ledgers', 'vouchers', 'day-book', 'trial-balance', 'accounting-periods', 'reconciliation', 'purge-zero-transactions'])
 const compliance = new Set(['drug-licenses', 'product-recalls', 'controlled-drug-register'])
 const transactions = new Set(['sales', 'purchases', 'cancellations', 'challans', 'sale-returns', 'purchase-returns', 'orders', 'replacements', 'counter-sales', 'pendings', 'price-differences'])
 

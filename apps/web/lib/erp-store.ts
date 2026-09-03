@@ -288,22 +288,14 @@ export async function list(resource: string, partyName?: string) {
           narration: p.narration || `Bill ${p.number || p.id}`
         }))
 
-      const mappedChallans = (mockStore.challans ?? [])
-        .filter((ch: any) => !existingVNos.has((ch.number || ch.id || '').trim()))
-        .map((ch: any) => ({
-          id: ch.id || ch.number,
-          party: ch.party,
-          date: ch.date,
-          vType: 'challan',
-          vNo: ch.number || ch.id,
-          debit: 0,
-          credit: 0,
-          narration: ch.narration || `Delivery Challan ${ch.number || ch.id}`
-        }))
-
       const seen = new Set<string>()
       const uniqueEntries: any[] = []
-      for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]) {
+      // Force remove all transactions which have no monetary value (debit <= 0 and credit <= 0)
+      for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases]) {
+        const dr = Number(row.debit) || 0
+        const cr = Number(row.credit) || 0
+        if (dr <= 0 && cr <= 0) continue
+
         const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
         if (!seen.has(key)) {
           seen.add(key)
@@ -561,22 +553,14 @@ export async function list(resource: string, partyName?: string) {
         narration: `Bill ${p.invoice_number}`
       }))
 
-    const mappedChallans = (challans ?? [])
-      .filter((ch: any) => !existingVNos.has((ch.challan_number || '').trim()))
-      .map((ch: any) => ({
-        id: ch.id,
-        party: ch.parties?.legal_name ?? 'Unknown Party',
-        date: ch.challan_date,
-        vType: 'challan',
-        vNo: ch.challan_number,
-        debit: 0,
-        credit: 0,
-        narration: `Delivery Challan ${ch.challan_number}`
-      }))
-
     const seen = new Set<string>()
     const uniqueEntries: any[] = []
-    for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases, ...mappedChallans]) {
+    // Force remove all transactions which have no monetary value (debit <= 0 and credit <= 0)
+    for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases]) {
+      const dr = Number(row.debit) || 0
+      const cr = Number(row.credit) || 0
+      if (dr <= 0 && cr <= 0) continue
+
       const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
       if (!seen.has(key)) {
         seen.add(key)
@@ -670,6 +654,16 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (!process.env.SUPABASE_URL) {
     const id = `MOCK-${Date.now()}`
     const record = { ...body, id, code: body.code || `C-${Date.now()}`, status: 'active', balance: 0, created_at: date() }
+
+    if (resource === 'purge-zero-transactions') {
+      let removedCount = 0
+      if (mockStore.ledgers) {
+        const init = mockStore.ledgers.length
+        mockStore.ledgers = mockStore.ledgers.filter((x: any) => (Number(x.debit) || 0) > 0 || (Number(x.credit) || 0) > 0)
+        removedCount += init - mockStore.ledgers.length
+      }
+      return { success: true, removedCount }
+    }
 
     if (resource === 'cancellations') {
       const kind = String(body.kind || 'sales')
@@ -850,6 +844,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
           if (!line.ledger) return
           const deb = Number(line.debit || 0)
           const cred = Number(line.credit || 0)
+          if (deb <= 0 && cred <= 0) return
           const physNo = line.physicalVchNo || body.physicalVoucherNo || body.physical_voucher_no || ''
           mockStore.ledgers.unshift({
             id: `vch-line-${Date.now()}-${idx}`,
@@ -923,6 +918,14 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
 
   const { client, organizationId, financialYearId } = await context()
+  if (resource === 'purge-zero-transactions') {
+    const { count, error } = await client
+      .from('voucher_lines')
+      .delete({ count: 'exact' })
+      .or('and(debit.eq.0,credit.eq.0),and(debit.is.null,credit.is.null)')
+    if (error) throw error
+    return { success: true, removedCount: count ?? 0 }
+  }
   if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows, actor)
   if (resource === 'cancellations') {
     if (body.kind === 'challans') {
@@ -1150,13 +1153,25 @@ export async function remove(resource: string, id: string) {
     const storeKey = specialKeys[resource] || resource
     const list = mockStore[storeKey]
     if (list) {
-      const idx = list.findIndex((x: any) => x.id === id)
-      if (idx !== -1) list.splice(idx, 1)
+      if (id === 'zero-value' || id === 'all-zero') {
+        mockStore[storeKey] = list.filter((x: any) => (Number(x.debit) || 0) > 0 || (Number(x.credit) || 0) > 0)
+      } else {
+        const idx = list.findIndex((x: any) => x.id === id)
+        if (idx !== -1) list.splice(idx, 1)
+      }
     }
     return { id }
   }
 
   const { client, organizationId } = await context()
+  if (resource === 'ledgers') {
+    const { count, error } = await client
+      .from('voucher_lines')
+      .delete({ count: 'exact' })
+      .or('and(debit.eq.0,credit.eq.0),and(debit.is.null,credit.is.null)')
+    if (error) throw error
+    return { id, removedCount: count ?? 0 }
+  }
   if (resource === 'sale-returns' || resource === 'purchase-returns') {
     const docType = resource === 'sale-returns' ? 'sale_return' : 'purchase_return'
     const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', docType)

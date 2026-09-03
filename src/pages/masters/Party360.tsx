@@ -61,7 +61,9 @@ export default function Party360() {
           // Find all transactions where party matches
           const partyTxns = (allLedgerEntries || []).filter((l: any) => {
             const p = (l.party || '').toLowerCase()
-            return p === partyName || (partyCode && p === partyCode)
+            const matches = p === partyName || (partyCode && p === partyCode)
+            const hasAmount = (Number(l.debit) || 0) > 0 || (Number(l.credit) || 0) > 0
+            return matches && hasAmount
           })
 
           const totalDr = partyTxns.reduce((sum: number, l: any) => sum + (Number(l.debit) || 0), 0)

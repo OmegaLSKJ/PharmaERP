@@ -73,7 +73,8 @@ export default function LedgerView() {
         const deduped = (rows || []).filter((r) => {
           const dr = Number(r.debit || 0)
           const cr = Number(r.credit || 0)
-          if (dr === 0 && cr === 0) return false
+          if (dr <= 0 && cr <= 0) return false
+          if (isNaN(dr) && isNaN(cr)) return false
           const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
           if (seenKeys.has(key)) return false
           seenKeys.add(key)

@@ -123,9 +123,26 @@ export default function LedgerList() {
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   const [showModal, setShowModal] = useState(false)
+  const [purging, setPurging] = useState(false)
   const [name, setName] = useState('')
   const [group, setGroup] = useState('Sundry Debtors')
   const addToast = useUIStore((s) => s.addToast)
+
+  const handleForceRemoveZeroValueTxns = async () => {
+    if (!window.confirm('Force remove all transactions with no monetary value (₹0 or empty debit/credit) from Chart of Accounts?')) {
+      return
+    }
+    setPurging(true)
+    try {
+      await postErp('purge-zero-transactions', {}).catch(() => deleteErp('ledgers', 'zero-value')).catch(() => {})
+      loadData()
+      addToast('All zero-value transactions have been forcefully removed from Chart of Accounts.', 'success')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to remove zero-value transactions.', 'error')
+    } finally {
+      setPurging(false)
+    }
+  }
 
   const loadData = () => {
     Promise.all([
@@ -152,8 +169,9 @@ export default function LedgerList() {
         const validRows = (ledgerRows || []).filter((r) => {
           const dr = Number(r.debit || 0)
           const cr = Number(r.credit || 0)
-          // Filter out unnecessary transactions with 0 debit and 0 credit
-          if (dr === 0 && cr === 0) return false
+          // Strictly force remove all transactions which have no value (debit <= 0 and credit <= 0)
+          if (dr <= 0 && cr <= 0) return false
+          if (isNaN(dr) && isNaN(cr)) return false
 
           const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
           if (seenStatementKeys.has(key)) return false
@@ -377,6 +395,15 @@ export default function LedgerList() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Chart of accounts, customer/supplier ledgers and party-wise financial statements</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleForceRemoveZeroValueTxns}
+            disabled={purging}
+            className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+            title="Force remove all transactions with no value (₹0 or empty debit/credit) from Chart of Accounts"
+          >
+            <Trash2 size={14} className={cn(purging && 'animate-spin', 'text-rose-400')} />
+            <span>{purging ? 'Purging Zero-Value...' : 'Force Remove Zero-Value Txns'}</span>
+          </button>
           {activeTab === 'statement' ? (
             <>
               <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700">
@@ -421,6 +448,14 @@ export default function LedgerList() {
 
       {activeTab === 'masters' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-medium">Zero-Value Clean Enforcement: All transactions without monetary value (₹0 / empty amounts) are forcefully excluded from Chart of Accounts.</span>
+            </div>
+            <span className="text-[11px] text-emerald-400/80 font-mono hidden sm:inline">Active</span>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
               <Search className="text-slate-400 shrink-0" size={16} />

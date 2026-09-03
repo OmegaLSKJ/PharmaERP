@@ -25,3 +25,4 @@ public/models/
 public/textures/
 .vercel
 .env*
+scratch/
