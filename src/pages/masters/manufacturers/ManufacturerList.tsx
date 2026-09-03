@@ -13,7 +13,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Layers
+  Layers,
+  Truck
 } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
@@ -25,6 +26,9 @@ interface Manufacturer {
   name: string
   code: string
   productCount: number
+  connectedSuppliers?: string[]
+  supplierCount?: number
+  primarySupplier?: string
   status: 'Active' | 'Blocked'
 }
 
@@ -35,11 +39,15 @@ export default function ManufacturerList() {
       name: String(row?.name || ''),
       code: String(row?.code || 'MFG'),
       productCount: Number(row?.productCount || row?.itemcount || 0),
+      connectedSuppliers: Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0 ? row.connectedSuppliers : [row?.name || 'Self'],
+      supplierCount: Number(row?.supplierCount || 1),
+      primarySupplier: String(row?.primarySupplier || row?.name || ''),
       status: row?.is_active === false || row?.status === 'Blocked' ? 'Blocked' : 'Active'
     }))
   )
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [supplierFilter, setSupplierFilter] = useState('ALL')
 
   // Chunking controls
   const [pageSize, setPageSize] = useState<number>(50)
@@ -62,21 +70,28 @@ export default function ManufacturerList() {
   const showToast = useUIStore((state) => state.showToast)
 
   const loadData = () => {
-    const defaultCountMap = new Map<string, number>(
-      (defaultManufacturerMaster as any[]).map((m) => [m.name.toUpperCase().trim(), Number(m.productCount || 0)])
+    const defaultMfgMap = new Map<string, any>(
+      (defaultManufacturerMaster as any[]).map((m) => [m.name.toUpperCase().trim(), m])
     )
     getErp<any[]>('manufacturers')
       .then((rows) => {
-        if (Array.isArray(rows) && rows.length > 0) {
+        if (Array.isArray(rows) && rows.length >= defaultManufacturerMaster.length) {
           setManufacturers(
             rows.map((row) => {
               const nameKey = String(row?.name || '').toUpperCase().trim()
-              const count = Number(row?.productCount ?? row?.itemcount ?? defaultCountMap.get(nameKey) ?? 0) || (defaultCountMap.get(nameKey) ?? 0)
+              const defaultEntry = defaultMfgMap.get(nameKey)
+              const count = Number(row?.productCount ?? row?.itemcount ?? defaultEntry?.productCount ?? 0) || (defaultEntry?.productCount ?? 0)
+              const sups = (Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0)
+                ? row.connectedSuppliers
+                : (defaultEntry?.connectedSuppliers || [row?.name || 'Self'])
               return {
-                id: String(row?.id || ''),
-                name: String(row?.name || ''),
-                code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
+                id: String(row?.id || defaultEntry?.id || ''),
+                name: String(row?.name || defaultEntry?.name || ''),
+                code: String(row?.code || defaultEntry?.code || 'MFG'),
                 productCount: count,
+                connectedSuppliers: sups,
+                supplierCount: Number(row?.supplierCount || defaultEntry?.supplierCount || sups.length),
+                primarySupplier: String(row?.primarySupplier || defaultEntry?.primarySupplier || sups[0] || row?.name || ''),
                 status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
               }
             })
@@ -184,21 +199,40 @@ export default function ManufacturerList() {
     }
   }
 
+  const allSuppliers = useMemo(() => {
+    const set = new Set<string>()
+    manufacturers.forEach((m) => {
+      ;(m.connectedSuppliers || []).forEach((s) => {
+        if (s && s.trim()) set.add(s.trim())
+      })
+    })
+    return Array.from(set).sort()
+  }, [manufacturers])
+
+  const totalCatalogProducts = useMemo(() => {
+    return manufacturers.reduce((acc, m) => acc + (Number(m.productCount) || 0), 0)
+  }, [manufacturers])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return manufacturers.filter(
-      (m) =>
+    return manufacturers.filter((m) => {
+      const matchSearch =
         !q ||
         (m?.name || '').toLowerCase().includes(q) ||
-        (m?.code || '').toLowerCase().includes(q)
-    )
-  }, [manufacturers, search])
+        (m?.code || '').toLowerCase().includes(q) ||
+        (m?.connectedSuppliers || []).some((s) => s.toLowerCase().includes(q))
+      const matchSupplier =
+        supplierFilter === 'ALL' ||
+        (m?.connectedSuppliers || []).includes(supplierFilter)
+      return matchSearch && matchSupplier
+    })
+  }, [manufacturers, search, supplierFilter])
 
-  // Reset page index on search/pageSize changes
+  // Reset page index on search/pageSize/supplierFilter changes
   useEffect(() => {
     setCurrentPage(1)
     setContinuousCount(pageSize || 50)
-  }, [search, pageSize])
+  }, [search, pageSize, supplierFilter])
 
   const totalItems = filtered.length
   const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / (pageSize || 50)) || 1
@@ -229,13 +263,19 @@ export default function ManufacturerList() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Manufacturer Master</h1>
             <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
-              {totalItems.toLocaleString()} Brands
+              {manufacturers.length.toLocaleString()} Manufacturers Total
+            </span>
+            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+              {totalCatalogProducts.toLocaleString()} Associated Products
+            </span>
+            <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+              {allSuppliers.length} Connected Suppliers
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Manage pharmaceutical brands, companies and supplier codes</p>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Manage pharmaceutical brands, companies and supplier party connections</p>
         </div>
         <button
           onClick={openAddModal}
@@ -260,6 +300,24 @@ export default function ManufacturerList() {
         </div>
 
         <div className="flex items-center flex-wrap gap-2 justify-end">
+          {/* Supplier Filter */}
+          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-md px-2.5 py-1 text-xs text-slate-300">
+            <Truck size={13} className="text-indigo-400 shrink-0" />
+            <select
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="bg-transparent text-slate-200 text-xs outline-none max-w-[180px] sm:max-w-[220px] truncate cursor-pointer"
+              title="Filter by connected supplier or party"
+            >
+              <option value="ALL">All Suppliers ({allSuppliers.length})</option>
+              {allSuppliers.map((sup) => (
+                <option key={sup} value={sup}>
+                  {sup}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Mode Toggle */}
           <div className="flex items-center bg-slate-950 p-0.5 rounded-md border border-slate-800 text-xs">
             <button
@@ -355,11 +413,12 @@ export default function ManufacturerList() {
 
       {/* Table */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-        <table className="min-w-[650px] w-full text-left border-collapse text-xs">
+        <table className="min-w-[750px] w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
               <th className="px-4 py-3 font-semibold">Code</th>
               <th className="px-4 py-3 font-semibold">Manufacturer Name</th>
+              <th className="px-4 py-3 font-semibold">Connected Suppliers / Parties</th>
               <th className="px-4 py-3 font-semibold">Associated Products</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
@@ -368,14 +427,14 @@ export default function ManufacturerList() {
           <tbody className="divide-y divide-slate-800 text-slate-300">
             {loading && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500 animate-pulse">
+                <td colSpan={6} className="p-8 text-center text-slate-500 animate-pulse">
                   Loading manufacturers…
                 </td>
               </tr>
             )}
             {!loading && totalItems === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">
+                <td colSpan={6} className="p-8 text-center text-slate-500">
                   No manufacturers found matching your search.
                 </td>
               </tr>
@@ -389,6 +448,28 @@ export default function ManufacturerList() {
                   <td className="px-4 py-3 font-medium text-white flex items-center gap-2">
                     <Building2 size={14} className="text-slate-500" />
                     {m.name}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-1 max-w-xs">
+                      {(m.connectedSuppliers && m.connectedSuppliers.length > 0 ? m.connectedSuppliers : [m.name]).slice(0, 2).map((sup) => (
+                        <span
+                          key={sup}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800/90 text-slate-300 border border-slate-700/80 text-[10px] font-medium truncate max-w-[135px]"
+                          title={sup}
+                        >
+                          <Truck size={10} className="text-indigo-400 shrink-0" />
+                          <span className="truncate">{sup}</span>
+                        </span>
+                      ))}
+                      {(m.connectedSuppliers || []).length > 2 && (
+                        <span
+                          className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-semibold"
+                          title={(m.connectedSuppliers || []).join(', ')}
+                        >
+                          +{(m.connectedSuppliers || []).length - 2} more
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 font-mono text-slate-400">{m.productCount} items</td>
                   <td className="px-4 py-3">

@@ -133,6 +133,7 @@ try {
     if (parsed.hsn) mockStore.hsn = parsed.hsn
     if (parsed.account_groups) mockStore['account-groups'] = parsed.account_groups
     if (parsed.accounts) mockStore.accounts = parsed.accounts
+    if (parsed.parties) mockStore.parties = parsed.parties
   }
 } catch (e) {
   // Silent catch for production environments where this file won't exist
@@ -375,7 +376,9 @@ export async function list(resource: string, partyName?: string) {
     const data = await fetchAll<any>((from, to) =>
       client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
     )
-    return (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type, phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
+    const dbParties = (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type, phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
+    if (dbParties.length >= (mockStore.parties?.length || 0)) return dbParties
+    return mockStore.parties && mockStore.parties.length > 0 ? mockStore.parties : dbParties
   }
   if (resource === 'items') {
     const data = await fetchAll<any>((from, to) =>
@@ -390,12 +393,14 @@ export async function list(resource: string, partyName?: string) {
     const data = await fetchAll<any>((from, to) =>
       client.from('manufacturers').select('id,name,code,is_active,items(count)').eq('organization_id', organizationId).order('name').range(from, to)
     )
-    return (data ?? []).map((m: any) => ({
+    const dbMfgs = (data ?? []).map((m: any) => ({
       ...m,
       productCount: Number(m.items?.[0]?.count ?? 0),
       itemcount: Number(m.items?.[0]?.count ?? 0),
       items: undefined
     }))
+    if (dbMfgs.length >= (mockStore.manufacturers?.length || 0)) return dbMfgs
+    return mockStore.manufacturers && mockStore.manufacturers.length > 0 ? mockStore.manufacturers : dbMfgs
   }
   if (resource === 'salts') { const data = await fetchAll<any>((from, to) => client.from('salts').select('id,code,name,composition,category,items(count)').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((s: any) => ({ ...s, itemcount: Number(s.items?.[0]?.count ?? 0), items: undefined })) }
   if (resource === 'warehouses') { const data = await fetchAll<any>((from, to) => client.from('warehouses').select('*').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((w: any) => ({ id: w.id, code: w.code, name: w.name, type: w.warehouse_type, address: w.address ?? '', capacity: Number(w.capacity), used: 0, status: w.is_active ? 'active' : 'inactive' })) }
