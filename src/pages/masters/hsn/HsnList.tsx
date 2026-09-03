@@ -16,6 +16,7 @@ import {
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
+import defaultHsnMaster from '../../../data/hsnMasterData.json'
 
 interface HsnItem {
   id: string
@@ -26,7 +27,15 @@ interface HsnItem {
 }
 
 export default function HsnList() {
-  const [items, setItems] = useState<HsnItem[]>([])
+  const [items, setItems] = useState<HsnItem[]>(() =>
+    (defaultHsnMaster as any[]).map((row) => ({
+      id: row.id || `hsn-${row.code}`,
+      code: row.code,
+      description: row.description ?? '',
+      gstRate: Number(row.gst_rate ?? row.gstRate ?? 12),
+      type: row.code?.startsWith('99') ? 'Services' : 'Goods'
+    }))
+  )
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
@@ -43,19 +52,23 @@ export default function HsnList() {
 
   useEffect(() => {
     getErp<any[]>('hsn')
-      .then((rows) =>
-        setItems(
-          (rows || []).map((row) => ({
-            id: row.id || `hsn-${row.code}`,
-            code: row.code,
-            description: row.description ?? '',
-            gstRate: Number(row.gst_rate ?? row.gstRate ?? 12),
-            type: row.code?.startsWith('99') ? 'Services' : 'Goods'
-          }))
-        )
-      )
-      .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load HSN codes.'))
-  }, [showToast])
+      .then((rows) => {
+        if (Array.isArray(rows) && rows.length > 0) {
+          setItems(
+            rows.map((row) => ({
+              id: row.id || `hsn-${row.code}`,
+              code: row.code,
+              description: row.description ?? '',
+              gstRate: Number(row.gst_rate ?? row.gstRate ?? 12),
+              type: row.code?.startsWith('99') ? 'Services' : 'Goods'
+            }))
+          )
+        }
+      })
+      .catch(() => {
+        // Keeps the 197 default HSN master records safely loaded
+      })
+  }, [])
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()

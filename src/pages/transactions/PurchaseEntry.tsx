@@ -6,6 +6,7 @@ import { getErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
+import defaultHsnMaster from '../../data/hsnMasterData.json'
 
 interface LineItem {
   id: string
@@ -43,7 +44,13 @@ export default function PurchaseEntry() {
   const isEditMode = Boolean(editPurchaseId)
 
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
-  const [hsnList, setHsnList] = useState<HsnOption[]>([])
+  const [hsnList, setHsnList] = useState<HsnOption[]>(() =>
+    (defaultHsnMaster as any[]).map((h) => ({
+      code: String(h.code || '').trim(),
+      description: h.description ?? '',
+      gstRate: Number(h.gst_rate ?? h.gstRate ?? 0),
+    }))
+  )
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
   const [supplier, setSupplier] = useState('')
@@ -84,7 +91,8 @@ export default function PurchaseEntry() {
             .map((p) => ({ name: p.name, gstin: p.gstin ?? '', outstanding: Math.abs(Number(p.balance ?? 0)) }))
         )
 
-        const parsedHsn: HsnOption[] = (hsnData ?? []).map((h) => ({
+        const rawHsn = Array.isArray(hsnData) && hsnData.length > 0 ? hsnData : (defaultHsnMaster as any[])
+        const parsedHsn: HsnOption[] = rawHsn.map((h) => ({
           code: String(h.code || '').trim(),
           description: h.description ?? '',
           gstRate: Number(h.gst_rate ?? h.gstRate ?? 0),

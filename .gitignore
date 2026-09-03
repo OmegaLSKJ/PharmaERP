@@ -3,7 +3,8 @@
 .next
 node_modules
 dist
-data/
+/data/
+!src/data/
 *.log
 *.tsbuildinfo
 playwright-report/
