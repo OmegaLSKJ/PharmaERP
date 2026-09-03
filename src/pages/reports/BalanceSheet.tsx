@@ -1,10 +1,17 @@
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { balanceSheet } from '../../lib/financialData'
+import { fetchLiveFinancialData, type BalanceSheetData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 
 export default function BalanceSheet() {
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData>({ assets: [], liabilities: [] })
+
+  useEffect(() => {
+    fetchLiveFinancialData().then((res) => setBalanceSheet(res.balanceSheet))
+  }, [])
+
   const totalAssets = balanceSheet.assets.reduce((a, i) => a + i.amount, 0)
   const totalLiabilities = balanceSheet.liabilities.reduce((a, i) => a + i.amount, 0)
   return (

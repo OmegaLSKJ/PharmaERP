@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, Percent, FileText, Upload } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
+import { getErp } from '../../lib/erpApi'
 
 type TaxRow = {
   id: string
@@ -16,21 +17,86 @@ type TaxRow = {
   status: 'paid' | 'due'
 }
 
-const TDS: TaxRow[] = [
-  { id: 'TDS01', type: '194C - Contractors', party: 'Astra Biotech Services', gstin: '27AAAAA1111A1Z1', amount: 450000, rate: 2, tax: 9000, date: '2026-08-01', status: 'paid' },
-  { id: 'TDS02', type: '194J - Professional Services', party: 'Dr. Mehta Diagnostics', gstin: '27BBBBB2222B2Z2', amount: 120000, rate: 10, tax: 12000, date: '2026-08-05', status: 'due' },
-  { id: 'TDS03', type: '194I - Rent', party: 'Narayana Realty Corp', gstin: '27CCCCC3333C3Z3', amount: 80000, rate: 10, tax: 8000, date: '2026-08-10', status: 'paid' },
-  { id: 'TDS04', type: '194Q - Purchase of Goods', party: 'Cipla Wholesales Inc', gstin: '27DDDDD4444D4Z4', amount: 1500000, rate: 0.1, tax: 1500, date: '2026-08-12', status: 'due' }
-]
-
-const TCS: TaxRow[] = [
-  { id: 'TCS01', type: '206C(1H) - Sale of Goods', party: 'Apollo Pharmacies Ltd', gstin: '27EEEEE5555E5Z5', amount: 2800000, rate: 0.1, tax: 2800, date: '2026-08-02', status: 'paid' },
-  { id: 'TCS02', type: '206C(1) - Alcoholic Liquor', party: 'Alpha Distributors Ltd', gstin: '27FFFFF6666F6Z6', amount: 350000, rate: 1, tax: 3500, date: '2026-08-07', status: 'due' }
-]
-
 export default function TdsTcs() {
   const [tab, setTab] = useState<'tds' | 'tcs'>('tds')
-  const rows = tab === 'tds' ? TDS : TCS
+  const [tdsRows, setTdsRows] = useState<TaxRow[]>([])
+  const [tcsRows, setTcsRows] = useState<TaxRow[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      getErp<any[]>('sales').catch(() => []),
+      getErp<any[]>('purchases').catch(() => []),
+      getErp<any[]>('parties').catch(() => []),
+      getErp<any[]>('ledgers').catch(() => [])
+    ]).then(([sales, purchases, parties, ledgers]) => {
+      const partyMap = new Map((parties || []).map((p: any) => [p.name, p.gstin || '']))
+
+      // Deduce real TDS entries from purchases or vouchers
+      const realTds: TaxRow[] = []
+      ;(purchases || []).forEach((p: any, idx: number) => {
+        const tot = Number(p.total || p.grand_total || 0)
+        // 194Q applies to high-volume purchases or if marked
+        if (tot >= 100000 || p.tdsRate) {
+          const rate = Number(p.tdsRate || 0.1)
+          const tax = Math.round((tot * rate) / 100)
+          realTds.push({
+            id: `TDS-${idx + 1}`,
+            type: '194Q - Purchase of Goods',
+            party: p.party || p.supplier || 'Supplier',
+            gstin: p.gstin || partyMap.get(p.party) || '27AAAAA0000A1Z5',
+            amount: tot,
+            rate,
+            tax,
+            date: p.date || new Date().toISOString().slice(0, 10),
+            status: 'due'
+          })
+        }
+      })
+
+      // Also check ledger entries for TDS
+      ;(ledgers || []).forEach((l: any, idx: number) => {
+        if (/tds/i.test(l.narration || '') || /tds/i.test(l.party || '')) {
+          realTds.push({
+            id: `TDS-VCH-${idx + 1}`,
+            type: '194C/J - Deductions',
+            party: l.party || 'Tax Authority',
+            gstin: partyMap.get(l.party) || '',
+            amount: Number(l.debit || l.credit || 0),
+            rate: 2,
+            tax: Number(l.debit || l.credit || 0),
+            date: l.date || new Date().toISOString().slice(0, 10),
+            status: 'paid'
+          })
+        }
+      })
+
+      // Deduce real TCS entries from sales
+      const realTcs: TaxRow[] = []
+      ;(sales || []).forEach((s: any, idx: number) => {
+        const tot = Number(s.total || s.grand_total || 0)
+        if (tot >= 100000 || s.tcsRate) {
+          const rate = Number(s.tcsRate || 0.1)
+          const tax = Math.round((tot * rate) / 100)
+          realTcs.push({
+            id: `TCS-${idx + 1}`,
+            type: '206C(1H) - Sale of Goods',
+            party: s.party || 'Customer',
+            gstin: s.gstin || partyMap.get(s.party) || '',
+            amount: tot,
+            rate,
+            tax,
+            date: s.date || new Date().toISOString().slice(0, 10),
+            status: 'due'
+          })
+        }
+      })
+
+      setTdsRows(realTds)
+      setTcsRows(realTcs)
+    })
+  }, [])
+
+  const rows = tab === 'tds' ? tdsRows : tcsRows
   const totalTax = rows.reduce((a, r) => a + r.tax, 0)
 
   // Download official Gov Upload text file (NSDL FVU Structure)

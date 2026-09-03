@@ -1,15 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileCheck, Zap, RefreshCw, Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
+import { getErp } from '../../lib/erpApi'
 
-const DATA = [
-  { id: '1', inv: 'INV/2026/0801', party: 'Apollo Pharmacy Delhi', gstin: '07AAAAA1111A1Z1', date: '2026-08-01', total: 450000, irn: '4b3d881ea8b75fbc6d93b3f46f34567ac8d90f23d4567e89ab0123cde4567f89', status: 'generated' },
-  { id: '2', inv: 'INV/2026/0802', party: 'Cipla Distributors Ltd', gstin: '27BBBBB2222B2Z2', date: '2026-08-05', total: 1200000, irn: '', status: 'pending' },
-  { id: '3', inv: 'INV/2026/0803', party: 'MedPlus Biotech Services', gstin: '27CCCCC3333C3Z3', date: '2026-08-10', total: 85000, irn: '7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d', status: 'generated' },
-  { id: '4', inv: 'INV/2026/0804', party: 'Wellness Forever Pharmacy', gstin: '27DDDDD4444D4Z4', date: '2026-08-12', total: 63000, irn: '', status: 'failed' }
-]
+type EInvoiceRow = {
+  id: string
+  inv: string
+  party: string
+  gstin: string
+  date: string
+  total: number
+  irn: string
+  status: 'generated' | 'pending' | 'failed'
+}
 
 const ST: Record<string, string> = {
   generated: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
@@ -18,9 +23,42 @@ const ST: Record<string, string> = {
 }
 
 export default function EInvoice() {
+  const [data, setData] = useState<EInvoiceRow[]>([])
   const [sel, setSel] = useState<string[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      getErp<any[]>('sales').catch(() => []),
+      getErp<any[]>('parties').catch(() => [])
+    ]).then(([sales, parties]) => {
+      const partyMap = new Map((parties || []).map((p: any) => [p.name, p.gstin || '']))
+
+      const rows: EInvoiceRow[] = (sales || []).map((s: any, idx: number) => {
+        const partyGstin = s.gstin || partyMap.get(s.party) || ''
+        const hasIrn = Boolean(s.irn)
+        const isB2B = partyGstin && partyGstin.trim().length >= 10
+        const status: 'generated' | 'pending' | 'failed' = hasIrn
+          ? 'generated'
+          : (isB2B ? 'pending' : 'generated')
+
+        return {
+          id: s.id || String(idx + 1),
+          inv: s.number || s.invoiceNo || `SI-${idx + 1}`,
+          party: s.party || 'Customer',
+          gstin: partyGstin || 'Unregistered',
+          date: s.date || new Date().toISOString().slice(0, 10),
+          total: Number(s.total || s.grand_total || 0),
+          irn: s.irn || (hasIrn ? `IRN-${s.number || idx}` : ''),
+          status
+        }
+      })
+
+      setData(rows)
+    })
+  }, [])
+
   const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
-  const pending = DATA.filter((d) => d.status === 'pending' || d.status === 'failed')
+  const pending = data.filter((d) => d.status === 'pending' || d.status === 'failed')
 
   return (
     <div className="p-6 space-y-4">
@@ -55,8 +93,8 @@ export default function EInvoice() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { l: 'Pending IRN', v: String(pending.length), c: 'text-amber-600 dark:text-amber-400' },
-          { l: 'Failed Submissions', v: String(DATA.filter((d) => d.status === 'failed').length), c: 'text-rose-600 dark:text-rose-400' },
-          { l: 'Total Value', v: formatCurrency(DATA.reduce((a, d) => a + d.total, 0)), c: 'text-foreground' }
+          { l: 'Failed Submissions', v: String(data.filter((d) => d.status === 'failed').length), c: 'text-rose-600 dark:text-rose-400' },
+          { l: 'Total Value', v: formatCurrency(data.reduce((a, d) => a + d.total, 0)), c: 'text-foreground' }
         ].map((s) => (
           <div key={s.l} className="bg-card border border-border rounded-xl p-4 shadow-sm">
             <div className="text-[10px] text-muted-foreground uppercase font-semibold">{s.l}</div>
@@ -79,7 +117,7 @@ export default function EInvoice() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-foreground">
-            {DATA.map((d) => (
+            {data.map((d) => (
               <tr
                 key={d.id}
                 onClick={() => toggle(d.id)}

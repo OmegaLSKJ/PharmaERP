@@ -39,52 +39,18 @@ export default function SalesAnalytics() {
   }, [preset])
 
   const totalSales = useMemo(() => {
-    const originalTotal = monthlySales.reduce((a, m) => a + m.value, 0) || 482000
+    const originalTotal = monthlySales.reduce((a, m) => a + m.value, 0)
     return originalTotal * dateScaleFactor
   }, [monthlySales, dateScaleFactor])
 
-  const avgMonthly = totalSales / 12
+  const avgMonthly = totalSales / (monthlySales.length || 1)
   const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a, { month: 'No data', value: 0 })
 
-  // Dynamic / mock datasets based on selected timeframe & date filters
+  // Datasets strictly from software entered sales
   const chartData = useMemo(() => {
-    if (timeframe === 'daily' || preset === 'Today') {
-      return [
-        { name: '01st', value: 5000 * dateScaleFactor },
-        { name: '05th', value: 12000 * dateScaleFactor },
-        { name: '10th', value: 16000 * dateScaleFactor },
-        { name: '15th', value: 38000 * dateScaleFactor },
-        { name: '20th', value: 24000 * dateScaleFactor },
-        { name: '25th', value: 45000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'weekly') {
-      return [
-        { name: 'Week 1', value: 85000 * dateScaleFactor },
-        { name: 'Week 2', value: 120000 * dateScaleFactor },
-        { name: 'Week 3', value: 165000 * dateScaleFactor },
-        { name: 'Week 4', value: 112000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'yearly') {
-      return [
-        { name: 'FY 2023-24', value: 3600000 * dateScaleFactor },
-        { name: 'FY 2024-25', value: 4200000 * dateScaleFactor },
-        { name: 'FY 2025-26', value: totalSales }
-      ]
-    }
-    // Default: monthly
-    return monthlySales.length > 0 ? monthlySales.map(m => ({ name: m.month, value: m.value * dateScaleFactor })) : [
-      { name: 'Jan 26', value: 32000 * dateScaleFactor },
-      { name: 'Feb 26', value: 45000 * dateScaleFactor },
-      { name: 'Mar 26', value: 60000 * dateScaleFactor },
-      { name: 'Apr 26', value: 55000 * dateScaleFactor },
-      { name: 'May 26', value: 72000 * dateScaleFactor },
-      { name: 'Jun 26', value: 90000 * dateScaleFactor },
-      { name: 'Jul 26', value: 85000 * dateScaleFactor },
-      { name: 'Aug 26', value: 98000 * dateScaleFactor }
-    ]
-  }, [timeframe, preset, monthlySales, totalSales, dateScaleFactor])
+    if (monthlySales.length === 0) return []
+    return monthlySales.map(m => ({ name: m.month, value: m.value * dateScaleFactor }))
+  }, [monthlySales, dateScaleFactor])
 
   return (
     <div className="p-6 space-y-4">

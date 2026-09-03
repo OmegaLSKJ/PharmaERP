@@ -1,14 +1,21 @@
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { pnl } from '../../lib/financialData'
+import { fetchLiveFinancialData, type PnLData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 
 export default function ProfitLoss() {
+  const [pnl, setPnl] = useState<PnLData>({ income: [], expenses: [] })
+
+  useEffect(() => {
+    fetchLiveFinancialData().then((res) => setPnl(res.pnl))
+  }, [])
+
   const totalIncome = pnl.income.reduce((a, i) => a + i.amount, 0)
   const totalExpense = pnl.expenses.reduce((a, i) => a + i.amount, 0)
   const netProfit = totalIncome - totalExpense
-  const grossProfit = 8100000 - 6500000
+  const grossProfit = netProfit
   return (
     <div className="p-6 space-y-4">
       <PrintHeader title="Profit & Loss Statement" subtitle="FY 2025-26 | 01 Apr 2025 - 31 Mar 2026" />

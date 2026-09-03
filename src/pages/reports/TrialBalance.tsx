@@ -1,10 +1,17 @@
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { trialBalance } from '../../lib/financialData'
+import { fetchLiveFinancialData, type TrialBalanceItem } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 
 export default function TrialBalance() {
+  const [trialBalance, setTrialBalance] = useState<TrialBalanceItem[]>([])
+
+  useEffect(() => {
+    fetchLiveFinancialData().then((res) => setTrialBalance(res.trialBalance))
+  }, [])
+
   const totalDr = trialBalance.reduce((a, r) => a + r.debit, 0)
   const totalCr = trialBalance.reduce((a, r) => a + r.credit, 0)
   return (

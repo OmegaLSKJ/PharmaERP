@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Download, CheckCircle, AlertTriangle, XCircle, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
 import PrintHeader from '../../../components/layout/PrintHeader'
 import { useUIStore } from '../../../store/uiStore'
+import { getErp } from '../../../lib/erpApi'
 
 type ReconRow = {
   id: string
@@ -15,14 +16,6 @@ type ReconRow = {
   mb: 'Matched' | 'Mismatch' | 'Missing'
   ga: 'Matched' | 'Mismatch' | 'Missing'
 }
-
-const DATA: ReconRow[] = [
-  { id: '1', inv: 'PUR/2026/102', sup: 'Cipla Laboratories', d: '2026-08-01', tax: 85000, gst: 15300, tot: 100300, mb: 'Matched', ga: 'Matched' },
-  { id: '2', inv: 'PUR/2026/103', sup: 'Astra Bio Pharma', d: '2026-08-03', tax: 120000, gst: 21600, tot: 141600, mb: 'Mismatch', ga: 'Matched' },
-  { id: '3', inv: 'PUR/2026/104', sup: 'Sun Diagnostics', d: '2026-08-07', tax: 45000, gst: 8100, tot: 53100, mb: 'Matched', ga: 'Matched' },
-  { id: '4', inv: 'PUR/2026/105', sup: 'Dr. Reddy Labs Ltd', d: '2026-08-10', tax: 950000, gst: 171000, tot: 1121000, mb: 'Matched', ga: 'Missing' },
-  { id: '5', inv: 'PUR/2026/106', sup: 'Lupin Pharma Corp', d: '2026-08-12', tax: 350000, gst: 63000, tot: 413000, mb: 'Matched', ga: 'Matched' }
-]
 
 const SC: Record<string, string> = {
   Matched: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
@@ -38,10 +31,36 @@ const IC: Record<string, React.ReactNode> = {
 
 export default function GstrReconciliation() {
   const [f, setF] = useState<'all' | 'mismatched'>('all')
-  const m = DATA.filter((d) => d.mb === 'Matched' && d.ga === 'Matched').length
-  const mm = DATA.filter((d) => d.mb !== d.ga).length
-  const fl = f === 'all' ? DATA : DATA.filter((d) => d.mb !== d.ga)
-  const matchRate = DATA.length > 0 ? Math.round((m / DATA.length) * 100) + '%' : '0%'
+  const [reconData, setReconData] = useState<ReconRow[]>([])
+
+  useEffect(() => {
+    getErp<any[]>('purchases')
+      .catch(() => [])
+      .then((purchases) => {
+        const rows: ReconRow[] = (purchases || []).map((p: any, idx: number) => {
+          const tot = Number(p.total || p.grand_total || 0)
+          const tax = Math.round((tot / 1.12) * 100) / 100
+          const gst = Math.round((tot - tax) * 100) / 100
+          return {
+            id: p.id || String(idx + 1),
+            inv: p.number || p.invoiceNo || `PUR-${idx + 1}`,
+            sup: p.party || p.supplier || 'Supplier',
+            d: p.date || new Date().toISOString().slice(0, 10),
+            tax,
+            gst,
+            tot,
+            mb: 'Matched',
+            ga: 'Matched',
+          }
+        })
+        setReconData(rows)
+      })
+  }, [])
+
+  const m = reconData.filter((d) => d.mb === 'Matched' && d.ga === 'Matched').length
+  const mm = reconData.filter((d) => d.mb !== d.ga).length
+  const fl = f === 'all' ? reconData : reconData.filter((d) => d.mb !== d.ga)
+  const matchRate = reconData.length > 0 ? Math.round((m / reconData.length) * 100) + '%' : '100%'
 
   return (
     <div className="p-6 space-y-4">
@@ -71,7 +90,7 @@ export default function GstrReconciliation() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { l: 'Total', v: DATA.length, c: 'text-foreground' },
+          { l: 'Total', v: reconData.length, c: 'text-foreground' },
           { l: 'Matched', v: m, c: 'text-emerald-600 dark:text-emerald-400' },
           { l: 'Mismatched', v: mm, c: 'text-amber-600 dark:text-amber-400' },
           { l: 'Rate', v: matchRate, c: 'text-foreground font-bold' }

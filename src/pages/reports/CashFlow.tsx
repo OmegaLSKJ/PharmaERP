@@ -1,17 +1,29 @@
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { cashFlow } from '../../lib/financialData'
+import { fetchLiveFinancialData, type CashFlowData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 
-const sum = (rows: { inflow: number; outflow: number }[]) => rows.reduce((a, r) => a + r.inflow - r.outflow, 0)
+const sum = (rows: { inflow: number; outflow: number }[]) => (rows || []).reduce((a, r) => a + r.inflow - r.outflow, 0)
 
 export default function CashFlow() {
+  const [cashFlow, setCashFlow] = useState<CashFlowData>({ operating: [], investing: [], financing: [] })
+  const [openingCash, setOpeningCash] = useState(0)
+
+  useEffect(() => {
+    fetchLiveFinancialData().then((res) => {
+      setCashFlow(res.cashFlow)
+      const cashInHand = res.balanceSheet.assets.find(a => a.item === 'Cash in Hand')?.amount || 0
+      const bank = res.balanceSheet.assets.find(a => a.item === 'Bank Balance')?.amount || 0
+      setOpeningCash(cashInHand + bank)
+    })
+  }, [])
+
   const opNet = sum(cashFlow.operating)
   const invNet = sum(cashFlow.investing)
   const finNet = sum(cashFlow.financing)
   const netChange = opNet + invNet + finNet
-  const openingCash = 3190000
   const sections = [
     { title: 'Operating Activities', rows: cashFlow.operating, net: opNet, color: 'text-emerald-600 dark:text-emerald-400' },
     { title: 'Investing Activities', rows: cashFlow.investing, net: invNet, color: 'text-blue-600 dark:text-blue-400' },

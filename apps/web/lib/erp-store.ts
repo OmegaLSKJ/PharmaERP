@@ -263,8 +263,64 @@ function listMock(resource: string, partyName?: string) {
   }
   if (resource === 'report-financial') return mockStore.accounts.map((a: any) => ({ ledger: a.name, group: a.group, debit: a.type === 'Dr' ? a.balance : 0, credit: a.type === 'Cr' ? a.balance : 0, balance: a.type === 'Cr' ? -a.balance : a.balance }))
   if (resource === 'report-stock') return mockStore.items.flatMap((i: any) => (i.batches || []).map((b: any) => ({ name: i.name, batch: b.batch, expiry: b.expiry, qty: b.stock, reserved: 0, location: Object.keys(b.stockByLocation || {})[0] || 'Main Warehouse', schedule: i.scheduleClass, recalled: i.recalled, mrp: b.mrp, rate: i.purchaseRate })))
-  if (resource === 'report-sales') return { monthlySales: [{ month: '2026-08', value: 482000 }], topParties: [{ name: 'Apollo Pharmacy', sales: 482000, growth: 5 }], topItems: [{ name: 'Paracetamol 650mg', qty: 1200, revenue: 24000, margin: 40 }], categories: [{ name: 'Analgesic', value: 24000 }], units: 1200 }
-  if (resource === 'report-purchases') return { monthlyPurchases: [{ month: '2026-08', value: 320000 }], topSuppliers: [{ name: 'Cipla Logistics', purchases: 320000, growth: 0 }], activeSuppliers: 1 }
+  if (resource === 'report-sales') {
+    const salesList = mockStore.sales || []
+    const months = new Map<string, number>()
+    const parties = new Map<string, number>()
+    const items = new Map<string, { name: string; qty: number; revenue: number; margin: number }>()
+    const categories = new Map<string, number>()
+    let totalUnits = 0
+
+    for (const s of salesList) {
+      const month = String(s.date || '').slice(0, 7) || new Date().toISOString().slice(0, 7)
+      const total = Number(s.total || s.grand_total || 0)
+      months.set(month, (months.get(month) || 0) + total)
+      const party = s.party || 'Customer'
+      parties.set(party, (parties.get(party) || 0) + total)
+
+      for (const line of (s.lines || [])) {
+        const name = line.name || 'Item'
+        const qty = Number(line.qty || line.quantity || 0)
+        const revenue = Number(line.amount || line.line_total || (qty * (line.rate || 0)))
+        totalUnits += qty
+        const current = items.get(name) || { name, qty: 0, revenue: 0, margin: 25 }
+        current.qty += qty
+        current.revenue += revenue
+        items.set(name, current)
+
+        const category = line.category || 'Pharmaceuticals'
+        categories.set(category, (categories.get(category) || 0) + revenue)
+      }
+    }
+
+    return {
+      monthlySales: [...months].sort().map(([month, value]) => ({ month, value })),
+      topParties: [...parties].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, sales]) => ({ name, sales, growth: 0 })),
+      topItems: [...items.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+      categories: [...categories].map(([name, value]) => ({ name, value })),
+      units: totalUnits
+    }
+  }
+
+  if (resource === 'report-purchases') {
+    const purchasesList = mockStore.purchases || []
+    const months = new Map<string, number>()
+    const suppliers = new Map<string, number>()
+
+    for (const p of purchasesList) {
+      const month = String(p.date || '').slice(0, 7) || new Date().toISOString().slice(0, 7)
+      const total = Number(p.total || p.grand_total || 0)
+      months.set(month, (months.get(month) || 0) + total)
+      const sup = p.party || p.supplier || 'Supplier'
+      suppliers.set(sup, (suppliers.get(sup) || 0) + total)
+    }
+
+    return {
+      monthlyPurchases: [...months].sort().map(([month, value]) => ({ month, value })),
+      topSuppliers: [...suppliers].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, purchases]) => ({ name, purchases, growth: 0 })),
+      activeSuppliers: suppliers.size
+    }
+  }
   if (resource === 'item-mappings') return mockStore['item-mappings'] || []
 
   if (resource === 'ledgers') {

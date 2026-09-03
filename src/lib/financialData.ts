@@ -1,66 +1,210 @@
-﻿export const trialBalance = [
-  { ledger: 'Cash in Hand', group: 'Cash', debit: 350000, credit: 0 },
-  { ledger: 'HDFC Bank Current', group: 'Bank', debit: 2840000, credit: 0 },
-  { ledger: 'MediCare Pharma', group: 'Sundry Debtors', debit: 78000, credit: 0 },
-  { ledger: 'HealthFirst Distributors', group: 'Sundry Debtors', debit: 0, credit: 45000 },
-  { ledger: 'CareWell Pharmacy', group: 'Sundry Debtors', debit: 78000, credit: 0 },
-  { ledger: 'Sun Pharma Industries', group: 'Sundry Creditors', debit: 0, credit: 515000 },
-  { ledger: 'Cipla Ltd', group: 'Sundry Creditors', debit: 0, credit: 560000 },
-  { ledger: "Dr. Reddy's Labs", group: 'Sundry Creditors', debit: 0, credit: 180000 },
-  { ledger: 'Sales Account', group: 'Sales', debit: 0, credit: 8100000 },
-  { ledger: 'Purchase Account', group: 'Purchase', debit: 6500000, credit: 0 },
-  { ledger: 'GST Output CGST', group: 'Tax', debit: 0, credit: 486000 },
-  { ledger: 'GST Output SGST', group: 'Tax', debit: 0, credit: 486000 },
-  { ledger: 'Salary Account', group: 'Expense', debit: 1200000, credit: 0 },
-  { ledger: 'Rent Expense', group: 'Expense', debit: 300000, credit: 0 },
-  { ledger: 'Discount Received', group: 'Income', debit: 0, credit: 85000 },
-  { ledger: 'Freight Charges', group: 'Expense', debit: 45000, credit: 0 },
-]
+import { getErp } from './erpApi'
 
-export const pnl = {
-  income: [
-    { item: 'Sales Revenue', amount: 8100000 },
-    { item: 'Discount Received', amount: 85000 },
-    { item: 'Other Income', amount: 25000 },
-  ],
-  expenses: [
-    { item: 'Purchase Cost', amount: 6500000 },
-    { item: 'Salary', amount: 1200000 },
-    { item: 'Rent', amount: 300000 },
-    { item: 'Freight', amount: 45000 },
-    { item: 'Other Expenses', amount: 60000 },
-  ],
+export interface TrialBalanceItem {
+  ledger: string
+  group: string
+  debit: number
+  credit: number
 }
 
-export const balanceSheet = {
-  assets: [
-    { item: 'Cash in Hand', amount: 350000 },
-    { item: 'Bank Balance', amount: 2840000 },
-    { item: 'Sundry Debtors', amount: 156000 },
-    { item: 'Closing Stock', amount: 1250000 },
-  ],
-  liabilities: [
-    { item: 'Sundry Creditors', amount: 1255000 },
-    { item: 'GST Payable', amount: 972000 },
-    { item: 'Capital Account', amount: 2369000 },
-  ],
+export interface PnLData {
+  income: Array<{ item: string; amount: number }>
+  expenses: Array<{ item: string; amount: number }>
 }
 
-export const cashFlow = {
-  operating: [
-    { item: 'Net Profit before tax', inflow: 1105000, outflow: 0 },
-    { item: 'Depreciation add-back', inflow: 85000, outflow: 0 },
-    { item: 'Increase in Debtors', inflow: 0, outflow: 156000 },
-    { item: 'Increase in Creditors', inflow: 1255000, outflow: 0 },
-    { item: 'Increase in Stock', inflow: 0, outflow: 1250000 },
-    { item: 'Tax Paid', inflow: 0, outflow: 320000 },
-  ],
-  investing: [
-    { item: 'Purchase of Furniture', inflow: 0, outflow: 120000 },
-    { item: 'Interest Received', inflow: 15000, outflow: 0 },
-  ],
-  financing: [
-    { item: 'Capital Introduced', inflow: 500000, outflow: 0 },
-    { item: 'Drawings', inflow: 0, outflow: 200000 },
-  ],
+export interface BalanceSheetData {
+  assets: Array<{ item: string; amount: number }>
+  liabilities: Array<{ item: string; amount: number }>
+}
+
+export interface CashFlowData {
+  operating: Array<{ item: string; inflow: number; outflow: number }>
+  investing: Array<{ item: string; inflow: number; outflow: number }>
+  financing: Array<{ item: string; inflow: number; outflow: number }>
+}
+
+export const trialBalance: TrialBalanceItem[] = []
+
+export const pnl: PnLData = {
+  income: [],
+  expenses: []
+}
+
+export const balanceSheet: BalanceSheetData = {
+  assets: [],
+  liabilities: []
+}
+
+export const cashFlow: CashFlowData = {
+  operating: [],
+  investing: [],
+  financing: []
+}
+
+export async function fetchLiveFinancialData(): Promise<{
+  trialBalance: TrialBalanceItem[]
+  pnl: PnLData
+  balanceSheet: BalanceSheetData
+  cashFlow: CashFlowData
+}> {
+  const [accounts, parties, sales, purchases, items, vouchers] = await Promise.all([
+    getErp<any[]>('accounts').catch(() => []),
+    getErp<any[]>('parties').catch(() => []),
+    getErp<any[]>('sales').catch(() => []),
+    getErp<any[]>('purchases').catch(() => []),
+    getErp<any[]>('items').catch(() => []),
+    getErp<any[]>('vouchers').catch(() => [])
+  ])
+
+  // 1. Trial Balance calculation
+  const tb: TrialBalanceItem[] = []
+
+  // Bank & Cash accounts
+  let cashBalance = 0
+  let bankBalance = 0
+  ;(accounts || []).forEach((acc: any) => {
+    const bal = Number(acc.balance || 0)
+    const isDr = acc.type === 'Dr' || bal >= 0
+    const absVal = Math.abs(bal)
+    tb.push({
+      ledger: acc.name || acc.code,
+      group: acc.group || (acc.name?.toLowerCase().includes('bank') ? 'Bank' : 'Cash'),
+      debit: isDr ? absVal : 0,
+      credit: !isDr ? absVal : 0
+    })
+    if (acc.group === 'Cash-in-hand' || acc.name?.toLowerCase().includes('cash')) {
+      cashBalance += isDr ? absVal : -absVal
+    } else {
+      bankBalance += isDr ? absVal : -absVal
+    }
+  })
+
+  // Sundry Debtors & Creditors
+  let totalDebtors = 0
+  let totalCreditors = 0
+  ;(parties || []).forEach((p: any) => {
+    const bal = Number(p.balance || 0)
+    if (bal !== 0) {
+      const isDebtor = p.type === 'customer' || bal > 0
+      const absBal = Math.abs(bal)
+      tb.push({
+        ledger: p.name,
+        group: isDebtor ? 'Sundry Debtors' : 'Sundry Creditors',
+        debit: isDebtor ? absBal : 0,
+        credit: !isDebtor ? absBal : 0
+      })
+      if (isDebtor) totalDebtors += absBal
+      else totalCreditors += absBal
+    }
+  })
+
+  // Sales and Output GST
+  let totalSalesRev = 0
+  let totalOutputTax = 0
+  ;(sales || []).forEach((s: any) => {
+    const tot = Number(s.total || s.grand_total || 0)
+    const taxable = tot / 1.12
+    const tax = tot - taxable
+    totalSalesRev += taxable
+    totalOutputTax += tax
+  })
+
+  if (totalSalesRev > 0) {
+    tb.push({ ledger: 'Sales Account', group: 'Sales', debit: 0, credit: Math.round(totalSalesRev) })
+    tb.push({ ledger: 'GST Output CGST', group: 'Tax', debit: 0, credit: Math.round(totalOutputTax / 2) })
+    tb.push({ ledger: 'GST Output SGST', group: 'Tax', debit: 0, credit: Math.round(totalOutputTax / 2) })
+  }
+
+  // Purchases and Input GST
+  let totalPurchasesCost = 0
+  let totalInputTax = 0
+  ;(purchases || []).forEach((p: any) => {
+    const tot = Number(p.total || p.grand_total || 0)
+    const taxable = tot / 1.12
+    const tax = tot - taxable
+    totalPurchasesCost += taxable
+    totalInputTax += tax
+  })
+
+  if (totalPurchasesCost > 0) {
+    tb.push({ ledger: 'Purchase Account', group: 'Purchase', debit: Math.round(totalPurchasesCost), credit: 0 })
+    tb.push({ ledger: 'GST Input CGST', group: 'Tax', debit: Math.round(totalInputTax / 2), credit: 0 })
+    tb.push({ ledger: 'GST Input SGST', group: 'Tax', debit: Math.round(totalInputTax / 2), credit: 0 })
+  }
+
+  // Vouchers / Other Expenses
+  let totalExpenses = 0
+  ;(vouchers || []).forEach((v: any) => {
+    const amt = Number(v.amount || 0)
+    if (amt > 0 && v.voucher_type === 'payment') {
+      totalExpenses += amt
+      tb.push({
+        ledger: v.narration || 'General Expense',
+        group: 'Expense',
+        debit: amt,
+        credit: 0
+      })
+    }
+  })
+
+  // Closing inventory stock valuation
+  let closingStockVal = 0
+  ;(items || []).forEach((item: any) => {
+    const st = Number(item.stock || 0)
+    const rate = Number(item.purchaseRate || item.saleRate || 0)
+    closingStockVal += st * rate
+  })
+
+  // 2. Profit & Loss
+  const pnlResult: PnLData = {
+    income: [
+      { item: 'Sales Revenue', amount: Math.round(totalSalesRev) }
+    ],
+    expenses: [
+      { item: 'Purchase Cost', amount: Math.round(totalPurchasesCost) }
+    ]
+  }
+
+  if (totalExpenses > 0) {
+    pnlResult.expenses.push({ item: 'Operating Expenses', amount: Math.round(totalExpenses) })
+  }
+
+  const netProfit = Math.round(totalSalesRev - totalPurchasesCost - totalExpenses)
+
+  // 3. Balance Sheet
+  const netGstPayable = Math.max(0, Math.round(totalOutputTax - totalInputTax))
+  const capital = Math.max(0, Math.round((cashBalance + bankBalance + totalDebtors + closingStockVal) - (totalCreditors + netGstPayable)))
+
+  const bsResult: BalanceSheetData = {
+    assets: [
+      { item: 'Cash in Hand', amount: Math.max(0, Math.round(cashBalance)) },
+      { item: 'Bank Balance', amount: Math.max(0, Math.round(bankBalance)) },
+      { item: 'Sundry Debtors', amount: Math.round(totalDebtors) },
+      { item: 'Closing Stock', amount: Math.round(closingStockVal) },
+    ],
+    liabilities: [
+      { item: 'Sundry Creditors', amount: Math.round(totalCreditors) },
+      { item: 'GST Payable', amount: netGstPayable },
+      { item: 'Capital & Reserves', amount: capital },
+    ]
+  }
+
+  // 4. Cash Flow
+  const cfResult: CashFlowData = {
+    operating: [
+      { item: 'Net Operational Profit', inflow: netProfit > 0 ? netProfit : 0, outflow: netProfit < 0 ? Math.abs(netProfit) : 0 },
+      { item: 'Debtors Movement', inflow: 0, outflow: Math.round(totalDebtors) },
+      { item: 'Creditors Movement', inflow: Math.round(totalCreditors), outflow: 0 },
+      { item: 'Inventory Movement', inflow: 0, outflow: Math.round(closingStockVal) },
+    ],
+    investing: [],
+    financing: []
+  }
+
+  return {
+    trialBalance: tb,
+    pnl: pnlResult,
+    balanceSheet: bsResult,
+    cashFlow: cfResult
+  }
 }

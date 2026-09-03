@@ -1,20 +1,82 @@
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
+import { getErp } from '../../lib/erpApi'
 
-const TABLES = [
-  { no: '4', title: 'Outward Supplies (Auto from GSTR-1)', taxable: 0, tax: 0, status: 'review' },
-  { no: '5', title: 'Inward Supplies (Auto from GSTR-2A)', taxable: 0, tax: 0, status: 'review' },
-  { no: '6', title: 'Amendments', taxable: 0, tax: 0, status: 'review' },
-  { no: '7', title: 'ITC Reversal / Adjustment', taxable: 0, tax: 0, status: 'review' },
-  { no: '8', title: 'ITC Summary (Books vs 2A vs 2B)', taxable: 0, tax: 0, status: 'review' },
-  { no: '10', title: 'Supplies through E-commerce', taxable: 0, tax: 0, status: 'review' },
-]
+type TableRow = {
+  no: string
+  title: string
+  taxable: number
+  tax: number
+  status: string
+}
 
 export default function Gstr9() {
-  const totalTaxable = TABLES.reduce((a, t) => a + t.taxable, 0)
-  const totalTax = TABLES.reduce((a, t) => a + t.tax, 0)
+  const [tables, setTables] = useState<TableRow[]>([
+    { no: '4', title: 'Outward Supplies (Auto from GSTR-1 / Sales)', taxable: 0, tax: 0, status: 'review' },
+    { no: '5', title: 'Inward Supplies (Auto from GSTR-2A / Purchases)', taxable: 0, tax: 0, status: 'review' },
+    { no: '6', title: 'Amendments', taxable: 0, tax: 0, status: 'review' },
+    { no: '7', title: 'ITC Reversal / Adjustment', taxable: 0, tax: 0, status: 'review' },
+    { no: '8', title: 'ITC Summary (Books vs 2A vs 2B)', taxable: 0, tax: 0, status: 'review' },
+    { no: '10', title: 'Supplies through E-commerce', taxable: 0, tax: 0, status: 'review' },
+  ])
+
+  useEffect(() => {
+    Promise.all([
+      getErp<any[]>('sales').catch(() => []),
+      getErp<any[]>('purchases').catch(() => [])
+    ]).then(([sales, purchases]) => {
+      let salesTaxable = 0
+      let salesTax = 0
+      ;(sales || []).forEach((s: any) => {
+        const tot = Number(s.total || s.grand_total || 0)
+        const taxVal = tot / 1.12
+        salesTaxable += taxVal
+        salesTax += tot - taxVal
+      })
+
+      let purTaxable = 0
+      let purTax = 0
+      ;(purchases || []).forEach((p: any) => {
+        const tot = Number(p.total || p.grand_total || 0)
+        const taxVal = tot / 1.12
+        purTaxable += taxVal
+        purTax += tot - taxVal
+      })
+
+      setTables([
+        {
+          no: '4',
+          title: 'Outward Supplies (Auto from GSTR-1 / Sales)',
+          taxable: Math.round(salesTaxable * 100) / 100,
+          tax: Math.round(salesTax * 100) / 100,
+          status: salesTaxable > 0 ? 'auto-populated' : 'review'
+        },
+        {
+          no: '5',
+          title: 'Inward Supplies (Auto from GSTR-2A / Purchases)',
+          taxable: Math.round(purTaxable * 100) / 100,
+          tax: Math.round(purTax * 100) / 100,
+          status: purTaxable > 0 ? 'auto-populated' : 'review'
+        },
+        { no: '6', title: 'Amendments', taxable: 0, tax: 0, status: 'review' },
+        { no: '7', title: 'ITC Reversal / Adjustment', taxable: 0, tax: 0, status: 'review' },
+        {
+          no: '8',
+          title: 'ITC Summary (Books vs 2A vs 2B)',
+          taxable: Math.round(purTaxable * 100) / 100,
+          tax: Math.round(purTax * 100) / 100,
+          status: 'review'
+        },
+        { no: '10', title: 'Supplies through E-commerce', taxable: 0, tax: 0, status: 'review' },
+      ])
+    })
+  }, [])
+
+  const totalTaxable = tables.reduce((a, t) => a + t.taxable, 0)
+  const totalTax = tables.reduce((a, t) => a + t.tax, 0)
   return (
     <div className="p-6 space-y-4">
       <PrintHeader title="GSTR-9 Annual Return" subtitle="FY 2025-26 | Consolidated Annual GST Return" />
@@ -37,7 +99,7 @@ export default function Gstr9() {
             <Download size={16} /> Export Excel
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr9-filing', TABLES))}
+            onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr9-filing', tables))}
             className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/90 text-foreground border border-border rounded-lg text-sm font-semibold shadow-sm transition"
             title="Download JSON schema for government portal upload"
           >
@@ -53,7 +115,7 @@ export default function Gstr9() {
         {[
           { l: 'Total Taxable', v: formatCurrency(totalTaxable), c: 'text-blue-600 dark:text-blue-400' },
           { l: 'Total Tax', v: formatCurrency(totalTax), c: 'text-emerald-600 dark:text-emerald-400' },
-          { l: 'Tables Ready', v: TABLES.filter((t) => t.status !== 'review').length + '/' + TABLES.length, c: 'text-foreground' }
+          { l: 'Tables Ready', v: tables.filter((t) => t.status !== 'review').length + '/' + tables.length, c: 'text-foreground' }
         ].map((s) => (
           <div key={s.l} className="bg-card border border-border rounded-xl p-4 shadow-sm">
             <div className="text-[10px] text-muted-foreground uppercase font-semibold">{s.l}</div>
@@ -75,7 +137,7 @@ export default function Gstr9() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-foreground">
-            {TABLES.map((t) => (
+            {tables.map((t) => (
               <tr key={t.no} className="hover:bg-secondary/40 transition-colors">
                 <td className="px-4 py-3 font-mono font-bold text-primary">{t.no}</td>
                 <td className="px-4 py-3 font-medium text-foreground">{t.title}</td>

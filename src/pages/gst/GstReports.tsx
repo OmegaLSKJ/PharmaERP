@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { formatCurrency, cn } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
+import { getErp } from '../../lib/erpApi'
 
 interface GstrEntry {
   id: string
@@ -19,19 +20,75 @@ interface GstrEntry {
   invoiceValue: number
 }
 
-const GSTR_DATA: GstrEntry[] = [
-  { id: '1', invoiceNo: 'SI-2026/001', date: '2026-08-01', partyName: 'Apollo Pharmacy', gstin: '27AAAAA1111A1Z1', type: 'B2B', taxable: 85000, cgst: 7650, sgst: 7650, igst: 0, totalTax: 15300, invoiceValue: 100300 },
-  { id: '2', invoiceNo: 'SI-2026/002', date: '2026-08-04', partyName: 'MedPlus Chemist', gstin: '07BBBBB2222B2Z2', type: 'B2B', taxable: 120000, cgst: 10800, sgst: 10800, igst: 0, totalTax: 21600, invoiceValue: 141600 },
-  { id: '3', invoiceNo: 'SI-2026/003', date: '2026-08-10', partyName: 'Walk-in Customer A', gstin: '', type: 'B2C Small', taxable: 45000, cgst: 4050, sgst: 4050, igst: 0, totalTax: 8100, invoiceValue: 53100 },
-  { id: '4', invoiceNo: 'SI-2026/004', date: '2026-08-15', partyName: 'Global Biotech Export', gstin: '99APEXG1234F9Z0', type: 'Export', taxable: 650000, cgst: 0, sgst: 0, igst: 117000, totalTax: 117000, invoiceValue: 767000 },
-  { id: '5', invoiceNo: 'SI-2026/005', date: '2026-08-20', partyName: 'Metro Healthcare Group', gstin: '27DDDDD4444D4Z4', type: 'B2B', taxable: 950000, cgst: 85500, sgst: 85500, igst: 0, totalTax: 171000, invoiceValue: 1121000 }
-]
-
 export default function GstReports() {
+  const [salesData, setSalesData] = useState<GstrEntry[]>([])
   const [typeFilter, setTypeFilter] = useState<string>('all')
-  const types = ['all', ...new Set(GSTR_DATA.map((g) => g.type))]
 
-  const filtered = GSTR_DATA.filter((g) => typeFilter === 'all' || g.type === typeFilter)
+  useEffect(() => {
+    Promise.all([
+      getErp<any[]>('sales').catch(() => []),
+      getErp<any[]>('parties').catch(() => [])
+    ]).then(([sales, parties]) => {
+      const partyMap = new Map((parties || []).map((p: any) => [p.name, p.gstin || '']))
+
+      const mapped: GstrEntry[] = (sales || []).map((s: any, idx: number) => {
+        const partyGstin = s.gstin || partyMap.get(s.party) || ''
+        const grandTotal = Number(s.total || s.grand_total || 0)
+        
+        let taxable = 0
+        let cgst = 0
+        let sgst = 0
+        let igst = 0
+
+        if (Array.isArray(s.lines) && s.lines.length > 0) {
+          s.lines.forEach((l: any) => {
+            const lineAmt = Number(l.amount || (Number(l.qty || 0) * Number(l.rate || 0)))
+            const gstRate = Number(l.gst || l.gstRate || 12)
+            const lineTaxable = lineAmt
+            taxable += lineTaxable
+            const taxAmt = (lineTaxable * gstRate) / 100
+            cgst += taxAmt / 2
+            sgst += taxAmt / 2
+          })
+        } else {
+          taxable = Math.round((grandTotal / 1.12) * 100) / 100
+          const taxAmt = grandTotal - taxable
+          cgst = taxAmt / 2
+          sgst = taxAmt / 2
+        }
+
+        const totalTax = cgst + sgst + igst
+        const invoiceVal = grandTotal || (taxable + totalTax)
+
+        let gstrType: GstrEntry['type'] = 'B2C Small'
+        if (partyGstin && partyGstin.trim().length >= 10) {
+          gstrType = 'B2B'
+        } else if (invoiceVal > 250000) {
+          gstrType = 'B2C Large'
+        }
+
+        return {
+          id: s.id || String(idx + 1),
+          invoiceNo: s.number || s.invoiceNo || `SI-${idx + 1}`,
+          date: s.date || new Date().toISOString().slice(0, 10),
+          partyName: s.party || 'Cash Customer',
+          gstin: partyGstin,
+          type: gstrType,
+          taxable: Math.round(taxable * 100) / 100,
+          cgst: Math.round(cgst * 100) / 100,
+          sgst: Math.round(sgst * 100) / 100,
+          igst: Math.round(igst * 100) / 100,
+          totalTax: Math.round(totalTax * 100) / 100,
+          invoiceValue: Math.round(invoiceVal * 100) / 100,
+        }
+      })
+
+      setSalesData(mapped)
+    })
+  }, [])
+
+  const types = ['all', ...new Set(salesData.map((g) => g.type))]
+  const filtered = salesData.filter((g) => typeFilter === 'all' || g.type === typeFilter)
   const totals = filtered.reduce(
     (acc, g) => ({
       taxable: acc.taxable + g.taxable,
@@ -61,7 +118,7 @@ export default function GstReports() {
             <FileText size={15} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr1', GSTR_DATA))}
+            onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr1', salesData))}
             className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/90 text-foreground border border-border rounded-lg text-sm font-semibold shadow-sm transition"
           >
             <Download size={16} /> GSTR-1 JSON
