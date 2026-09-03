@@ -19,11 +19,12 @@ import {
   Layers,
   Edit2,
   Pencil,
+  Trash2,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
 import { useUIStore } from '../../store/uiStore'
-import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { getErp, patchErp, postErp, deleteErp } from '../../lib/erpApi'
 
 export interface Party {
   id: string
@@ -198,18 +199,81 @@ export default function PartyList() {
 
     getErp<Party[]>('parties')
       .then((serverParties) => {
-        const serverIds = new Set(serverParties.map((p) => (p.id || p.name).toLowerCase()))
-        const customRemaining = localSaved.filter((c) => !serverIds.has((c.id || c.name).toLowerCase()))
-        setParties([...customRemaining, ...serverParties])
+        const partyMap = new Map<string, Party>()
+        // Server parties take precedence for canonical ID, but localSaved fields enrich missing metadata
+        const combined = [...(serverParties || []), ...(localSaved || [])]
+
+        for (const p of combined) {
+          const key = (p.name || '').trim().toLowerCase()
+          if (!key) continue
+          if (!partyMap.has(key)) {
+            partyMap.set(key, { ...p })
+          } else {
+            const existing = partyMap.get(key)!
+            if ((!existing.phone || existing.phone === '-') && p.phone && p.phone !== '-') existing.phone = p.phone
+            if ((!existing.city || existing.city === '-') && p.city && p.city !== '-') existing.city = p.city
+            if ((!existing.station || existing.station === '-') && p.station && p.station !== '-') existing.station = p.station
+            if (!existing.gstin && p.gstin) existing.gstin = p.gstin
+            if (!existing.dlNo && (p.dlNo || p.dlNumber)) existing.dlNo = p.dlNo || p.dlNumber
+            if (p.type === 'both') existing.type = 'both'
+          }
+        }
+
+        const uniqueParties = Array.from(partyMap.values())
+        setParties(uniqueParties)
+
+        // Save clean deduplicated list back to local storage
+        try {
+          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(uniqueParties))
+        } catch {}
       })
       .catch((error) => {
         if (localSaved.length > 0) {
-          setParties(localSaved)
+          const partyMap = new Map<string, Party>()
+          for (const p of localSaved) {
+            const key = (p.name || '').trim().toLowerCase()
+            if (key && !partyMap.has(key)) partyMap.set(key, p)
+          }
+          setParties(Array.from(partyMap.values()))
         }
         showToast(error instanceof Error ? error.message : 'Could not load parties.')
       })
       .finally(() => setLoading(false))
   }, [showToast])
+
+  const purgeDuplicates = async () => {
+    try {
+      const partyMap = new Map<string, Party>()
+      let count = 0
+      for (const p of parties) {
+        const key = (p.name || '').trim().toLowerCase()
+        if (!key) continue
+        if (!partyMap.has(key)) {
+          partyMap.set(key, { ...p })
+        } else {
+          count++
+          const existing = partyMap.get(key)!
+          if ((!existing.phone || existing.phone === '-') && p.phone && p.phone !== '-') existing.phone = p.phone
+          if ((!existing.city || existing.city === '-') && p.city && p.city !== '-') existing.city = p.city
+          if ((!existing.station || existing.station === '-') && p.station && p.station !== '-') existing.station = p.station
+          if (!existing.gstin && p.gstin) existing.gstin = p.gstin
+          if (!existing.dlNo && (p.dlNo || p.dlNumber)) existing.dlNo = p.dlNo || p.dlNumber
+          if (p.type === 'both') existing.type = 'both'
+        }
+      }
+
+      try {
+        await deleteErp('parties', 'purge-duplicates')
+      } catch {}
+
+      const cleanList = Array.from(partyMap.values())
+      setParties(cleanList)
+      localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(cleanList))
+      showToast(count > 0 ? `Deleted ${count} duplicate parties. 1 canonical copy kept.` : 'No duplicate parties found. All records are unique.')
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to purge duplicate parties.')
+    }
+  }
 
   const filtered = useMemo(() => {
     const s = (search || '').toLowerCase().trim()
@@ -656,6 +720,16 @@ export default function PartyList() {
               <option value={0}>All ({totalItems})</option>
             </select>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={purgeDuplicates}
+            title="Delete duplicate customer/supplier entries and keep only one copy"
+            className="h-8 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 border-rose-800/40 flex items-center gap-1.5"
+          >
+            <Trash2 size={13} /> Delete Duplicates
+          </Button>
 
           <Button variant="outline" size="icon" aria-label="Export filtered parties" onClick={exportParties} className="h-8 w-8">
             <Download size={14} />

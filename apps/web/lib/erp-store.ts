@@ -469,13 +469,62 @@ export async function list(resource: string, partyName?: string) {
     const data = await fetchAll<any>((from, to) =>
       client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
     )
-    const dbParties = (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type || 'both', phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
-    const dbCodes = new Set(dbParties.map((p: any) => (p.code || p.name).toLowerCase()))
-    const combined = [
-      ...dbParties,
-      ...(mockStore.parties || []).filter((p: any) => !dbCodes.has((p.code || p.name).toLowerCase()))
-    ]
-    return combined
+    const dbParties = (data ?? []).map((p: any) => ({
+      id: p.id,
+      code: p.code,
+      name: p.legal_name,
+      type: p.party_type || 'both',
+      phone: p.phone ?? '',
+      email: p.email ?? '',
+      city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '',
+      gstin: p.gstin ?? '',
+      balance: 0,
+      creditLimit: Number(p.credit_limit),
+      lastSale: '',
+      status: p.is_blocked ? 'blocked' : 'active'
+    }))
+
+    // Deduplicate DB parties by name, collecting redundant duplicate IDs
+    const uniqueDbMap = new Map<string, any>()
+    const redundantDbIds: string[] = []
+    for (const p of dbParties) {
+      const key = (p.name || '').trim().toLowerCase()
+      if (!key) continue
+      if (!uniqueDbMap.has(key)) {
+        uniqueDbMap.set(key, { ...p })
+      } else {
+        const existing = uniqueDbMap.get(key)!
+        if (!existing.phone && p.phone) existing.phone = p.phone
+        if (!existing.city && p.city) existing.city = p.city
+        if (!existing.gstin && p.gstin) existing.gstin = p.gstin
+        if (p.type === 'both') existing.type = 'both'
+        redundantDbIds.push(p.id)
+      }
+    }
+
+    // Prune redundant duplicate rows from Supabase database
+    if (redundantDbIds.length > 0) {
+      try {
+        await client.from('parties').delete().in('id', redundantDbIds).eq('organization_id', organizationId)
+        await client.from('party_addresses').delete().in('party_id', redundantDbIds)
+        await client.from('chart_of_accounts').delete().in('party_id', redundantDbIds)
+      } catch {}
+    }
+
+    const cleanDbParties = Array.from(uniqueDbMap.values())
+    const combinedMap = new Map<string, any>()
+    for (const p of cleanDbParties) {
+      combinedMap.set((p.name || '').trim().toLowerCase(), p)
+    }
+    for (const p of (mockStore.parties || [])) {
+      const key = (p.name || '').trim().toLowerCase()
+      if (!key) continue
+      if (!combinedMap.has(key)) {
+        combinedMap.set(key, p)
+      }
+    }
+
+    return Array.from(combinedMap.values())
   }
   if (resource === 'items') {
     const data = await fetchAll<any>((from, to) =>
@@ -1554,6 +1603,16 @@ export async function remove(resource: string, id: string) {
     if (list) {
       if (id === 'zero-value' || id === 'all-zero') {
         mockStore[storeKey] = list.filter((x: any) => (Number(x.debit) || 0) > 0 || (Number(x.credit) || 0) > 0)
+      } else if (id === 'purge-duplicates' || id === 'duplicates') {
+        const seen = new Map<string, any>()
+        let removed = 0
+        for (const item of list) {
+          const k = (item.name || item.legal_name || '').trim().toLowerCase()
+          if (!seen.has(k)) seen.set(k, item)
+          else removed++
+        }
+        mockStore[storeKey] = Array.from(seen.values())
+        return { id, removedCount: removed }
       } else {
         const idx = list.findIndex((x: any) => x.id === id)
         if (idx !== -1) list.splice(idx, 1)
@@ -1563,6 +1622,30 @@ export async function remove(resource: string, id: string) {
   }
 
   const { client, organizationId } = await context()
+  if (resource === 'parties' && (id === 'purge-duplicates' || id === 'duplicates')) {
+    const data = await fetchAll<any>((from, to) =>
+      client.from('parties').select('id,legal_name,created_at').eq('organization_id', organizationId).order('created_at', { ascending: true }).range(from, to)
+    )
+    const seen = new Map<string, string>()
+    const duplicateIds: string[] = []
+    for (const p of (data ?? [])) {
+      const key = (p.legal_name || '').trim().toLowerCase()
+      if (!key) continue
+      if (!seen.has(key)) {
+        seen.set(key, p.id)
+      } else {
+        duplicateIds.push(p.id)
+      }
+    }
+    if (duplicateIds.length > 0) {
+      try {
+        await client.from('parties').delete().in('id', duplicateIds).eq('organization_id', organizationId)
+        await client.from('party_addresses').delete().in('party_id', duplicateIds)
+        await client.from('chart_of_accounts').delete().in('party_id', duplicateIds)
+      } catch {}
+    }
+    return { id, removedCount: duplicateIds.length }
+  }
   if (resource === 'ledgers') {
     const { count, error } = await client
       .from('voucher_lines')
