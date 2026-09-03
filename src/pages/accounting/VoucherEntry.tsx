@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Save, Banknote, Landmark, Plus, ArrowRightLeft, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Save, Banknote, Landmark, Plus, ArrowRightLeft, CheckCircle2, AlertCircle, RefreshCw, Printer, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import VoucherPrint, { VoucherPrintData } from '../../components/accounting/VoucherPrint'
 
 interface VoucherLine {
   id: string
@@ -40,6 +41,7 @@ export default function VoucherEntry() {
   const [lines, setLines] = useState<VoucherLine[]>([])
   const [narration, setNarration] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
 
   useEffect(() => {
     const qVNo = searchParams.get('vNo')
@@ -325,39 +327,77 @@ export default function VoucherEntry() {
     }
   }
 
+  const getPrintData = (): VoucherPrintData => {
+    const total = lines.length > 0 ? totalDebit : Number(quickAmount) || 0
+    return {
+      voucherType: vType,
+      voucherNo: vNo,
+      voucherDate: vDate,
+      physicalVoucherNo: physicalVoucherNo || undefined,
+      paymentMode: payMode === 'all' ? 'Cash / Bank' : payMode.toUpperCase(),
+      primaryAccount: cashBankLedger,
+      partyAccount: partyLedger,
+      bankRefNo: bankRefNo || undefined,
+      lines: lines.map((l, i) => ({
+        sNo: i + 1,
+        ledger: l.ledger,
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        narration: l.narration,
+      })),
+      totalAmount: total,
+      narration: narration || undefined,
+    }
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <Landmark className="text-indigo-400" size={24} /> Voucher Entry
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Record Cash &amp; Bank transactions &bull; Receipts, Payments, Contra &amp; Journals
-          </p>
+      {/* Screen Interactive UI (Hidden during print) */}
+      <div className="no-print space-y-4">
+        {/* Top Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <Landmark className="text-indigo-400" size={24} /> Voucher Entry
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+              Record Cash &amp; Bank transactions &bull; Receipts, Payments, Contra &amp; Journals
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLines([])}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700 cursor-pointer"
+            >
+              Clear Lines
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPrintModal(true)}
+              className="group relative inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 via-neutral-950 to-black hover:from-zinc-800 hover:to-neutral-900 border border-neutral-700 hover:border-neutral-500 shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer"
+              title="Print Voucher Preview (Alt+P)"
+            >
+              <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+              <span>Print Voucher</span>
+              <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                Alt+P
+              </kbd>
+            </button>
+            <button
+              onClick={saveVoucher}
+              disabled={saving}
+              className={cn(
+                'flex items-center gap-2 h-9 px-4 rounded-lg text-xs sm:text-sm font-semibold shadow-md transition text-white cursor-pointer',
+                isBalanced || (lines.length === 0 && Number(quickAmount) > 0)
+                  ? 'bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 shadow-blue-900/30'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+              )}
+            >
+              <Save size={15} /> {saving ? 'Posting…' : 'Save Voucher'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setLines([])}
-            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700"
-          >
-            Clear Lines
-          </button>
-          <button
-            onClick={saveVoucher}
-            disabled={saving}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition text-white',
-              isBalanced || (lines.length === 0 && Number(quickAmount) > 0)
-                ? 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-indigo-600/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
-            )}
-          >
-            <Save size={16} /> {saving ? 'Posting…' : 'Save Voucher'}
-          </button>
-        </div>
-      </div>
 
       {/* Main Voucher Parameters Card */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
@@ -869,6 +909,61 @@ export default function VoucherEntry() {
             </div>
           </div>
         </div>
+      </div>
+      </div>
+
+      {/* Voucher Print Preview Modal */}
+      {showPrintModal && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setShowPrintModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Voucher Print Preview</h2>
+                <p className="text-xs text-slate-400">
+                  {vType} Voucher &bull; No: <span className="text-white font-mono">{vNo}</span> | Date:{' '}
+                  <span className="text-white">{vDate}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <span>Print Voucher</span>
+                  <kbd className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                    Ctrl+P
+                  </kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Document Preview Frame */}
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <VoucherPrint data={getPrintData()} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      <div className="hidden print:block w-full">
+        <VoucherPrint data={getPrintData()} />
       </div>
     </div>
   )

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Printer, Eye, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 
 interface ReturnEntry {
   id: string
@@ -30,6 +31,7 @@ export default function PurchaseReturn() {
   const [items, setItems] = useState(1)
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
+  const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null)
   const showToast = useUIStore((s) => s.showToast)
 
   const load = () =>
@@ -83,11 +85,37 @@ export default function PurchaseReturn() {
     }
   }
 
+  const getPrintDataForReturn = (r: ReturnEntry): TaxInvoicePrintData => ({
+    title: 'DEBIT NOTE / PURCHASE RETURN',
+    copyType: 'Original for Supplier',
+    invoiceNo: r.returnNo,
+    invoiceDate: r.date,
+    paymentMode: 'ADJUSTMENT',
+    buyer: {
+      name: r.supplier,
+      address: 'Supplier / Vendor Account',
+    },
+    orderNo: r.origChallan ? `Ref Challan: ${r.origChallan}` : undefined,
+    items: [
+      {
+        name: `Return of Goods (${r.reason || 'Damaged / Shortage / Expired'})`,
+        packing: '1x1',
+        qty: r.items || 1,
+        rate: r.total,
+        gstRate: 12,
+        amount: r.total,
+      },
+    ],
+    grandTotal: r.total,
+  })
+
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Purchase Returns</h1>
+      {/* Screen Interactive UI (Hidden during print) */}
+      <div className="no-print space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Purchase Returns</h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">{filtered.length} return entries</p>
         </div>
         <button
@@ -157,6 +185,7 @@ export default function PurchaseReturn() {
               <th className="text-right px-4 py-3 font-medium">Total</th>
               <th className="text-left px-4 py-3 font-medium">Reason</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
+              <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 text-slate-300">
@@ -173,6 +202,29 @@ export default function PurchaseReturn() {
                   <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>
                     {s.status}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReturn(s)}
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                      title="View & Print Debit Note"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedReturn(s)
+                        setTimeout(() => window.print(), 100)
+                      }}
+                      className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                      title="Direct Print (Ctrl+P)"
+                    >
+                      <Printer size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -215,6 +267,63 @@ export default function PurchaseReturn() {
               Post Purchase Return
             </button>
           </form>
+        </div>
+      )}
+      </div>
+
+      {/* Debit Note Print Preview Modal */}
+      {selectedReturn && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setSelectedReturn(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Debit Note / Purchase Return Preview</h2>
+                <p className="text-xs text-slate-400">
+                  Return No: <span className="text-white font-mono">{selectedReturn.returnNo}</span> | Date:{' '}
+                  <span className="text-white">{selectedReturn.date}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <span>Print Debit Note</span>
+                  <kbd className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                    Ctrl+P
+                  </kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReturn(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Document Preview Frame */}
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <TaxInvoicePrint data={getPrintDataForReturn(selectedReturn)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {selectedReturn && (
+        <div className="hidden print:block w-full">
+          <TaxInvoicePrint data={getPrintDataForReturn(selectedReturn)} />
         </div>
       )}
     </div>

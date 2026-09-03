@@ -56,6 +56,9 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
 
   const company = {
     name: data.companyName || storeCompany.companyName,
+    city: storeCompany.city || 'BORGANG',
+    state: storeCompany.state || 'Assam',
+    pan: storeCompany.pan || 'AKWPP4417G',
     addr1: data.companyAddress1 || storeCompany.address,
     addr2: data.companyAddress2 || `${storeCompany.city}${storeCompany.state ? ', ' + storeCompany.state : ''}`,
     phone: data.companyPhone || storeCompany.phone,
@@ -190,60 +193,96 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
     <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
       {/* Main Outer Box with 1.5px solid black border */}
       <div className="border-[1.5px] border-black text-black">
-        {/* Header Grid: Left Company Details, Center Credit/GRN Box, Right Buyer Details */}
+        {/* Header Grid: Left Company Branding (7 cols) + Right Document Badge & Metadata (5 cols) */}
         <div className="grid grid-cols-12 border-b-[1.5px] border-black">
-          {/* Left: Seller/Company Info */}
-          <div className="col-span-5 p-2 pr-1 border-r-[1.5px] border-black flex flex-col justify-start">
-            <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
-              {company.name}
-            </h1>
-            <div className="text-[10px] font-bold text-black uppercase leading-snug">
-              <div>{company.addr1}</div>
-              <div>{company.addr2}</div>
-              <div>Phone : {company.phone}</div>
-              <div className="mt-0.5">GSTIN : <span className="font-mono">{company.gstin}</span></div>
-              <div>D.L.No. : {company.dlNo}</div>
-              <div className="lowercase">E-Mail : {company.email.toLowerCase()}</div>
+          {/* Company Branding */}
+          <div className="col-span-7 p-2.5 border-r-[1.5px] border-black flex items-start gap-2.5">
+            <img
+              src="/favicon.png"
+              alt="Logo"
+              className="w-10 h-10 object-contain mt-0.5 flex-shrink-0"
+            />
+            <div className="flex-1">
+              <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
+                {company.name}
+              </h1>
+              <div className="text-[10px] text-gray-800 font-semibold leading-tight">
+                <div>WHOLESALE PHARMACEUTICAL DISTRIBUTORS</div>
+                <div>{company.addr1}, {company.addr2}</div>
+                <div>State: {company.state || 'Assam'} (State Code: 18)</div>
+                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                  {company.phone && <span>Phone: {company.phone}</span>}
+                  {company.email && <span>E-Mail: {company.email.toLowerCase()}</span>}
+                </div>
+                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                  <span>GSTIN: <strong className="font-mono">{company.gstin}</strong></span>
+                  <span>D.L.No: {company.dlNo}</span>
+                  <span>PAN: {company.pan}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Center: CREDIT & GOODS RECEIPT NOTE Box */}
-          <div className="col-span-3 p-2 border-r-[1.5px] border-black flex flex-col items-center justify-center text-center">
-            <div className="text-[14px] font-black text-black tracking-wide uppercase mb-2">
-              {data.paymentType || 'CREDIT'}
-            </div>
-            <div className="border-[1.5px] border-black px-2 py-1 text-[13px] font-black tracking-wider uppercase bg-white">
+          {/* Document Badge & Metadata */}
+          <div className="col-span-5 p-2.5 flex flex-col justify-between text-right">
+            <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase mb-1">
               GOODS RECEIPT NOTE
             </div>
+            <div className="text-[10px] text-left space-y-0.5 mt-1 border border-black p-1.5 bg-gray-50/50">
+              <div className="flex justify-between font-bold">
+                <span>GRN / Rcpt No:</span>
+                <span className="font-mono text-[11px] text-[#0c2f66]">{receiptNo}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Invoice Date:</span>
+                <span className="font-bold">{invDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment Mode:</span>
+                <span className="font-bold uppercase">{data.paymentType || 'CREDIT'}</span>
+              </div>
+              <div className="flex justify-between text-[9px] text-gray-700 pt-0.5 border-t border-gray-200">
+                <span>Order Ref:</span>
+                <span>{orderNo} ({orderDate})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Vendor / Consignor & Consignee Details Strip */}
+        <div className="grid grid-cols-12 border-b-[1.5px] border-black text-[9.5px] p-2 bg-gray-50/30">
+          <div className="col-span-7 border-r-[1.5px] border-black pr-2">
+            <div className="text-[9px] font-bold uppercase text-gray-600 mb-0.5">
+              SUPPLIER / CONSIGNOR (BILLED FROM):
+            </div>
+            <div className="text-[12px] font-black uppercase text-black leading-tight">
+              {buyer.name}
+            </div>
+            <div className="text-[9.5px] font-semibold text-gray-800 uppercase leading-snug">
+              {buyer.address}
+            </div>
+            <div className="flex flex-wrap gap-x-3 text-[9px] font-bold text-black mt-0.5">
+              {buyer.phone && <span>Phone: {buyer.phone}</span>}
+              {buyer.gstin && <span>GSTIN: <span className="font-mono">{buyer.gstin}</span></span>}
+              {buyer.dlNo && <span>D.L.No: {buyer.dlNo}</span>}
+              {buyer.pan && <span>PAN: {buyer.pan}</span>}
+            </div>
           </div>
 
-          {/* Right: Buyer's Details & Invoice metadata */}
-          <div className="col-span-4 p-1.5 flex flex-col justify-between text-[9.5px]">
-            <div className="border border-black p-1 mb-1 leading-tight">
-              <div className="text-[9px] font-bold underline mb-0.5">Buyer's Details:</div>
-              <div className="text-[11px] font-black uppercase text-black">{buyer.name}</div>
-              <div className="font-bold uppercase text-[9.5px]">{buyer.address}</div>
-              <div className="flex justify-between font-bold text-[9px] mt-0.5">
-                <span>Phone: {buyer.phone}</span>
-                <span>D.L.No.:{buyer.dlNo}</span>
+          <div className="col-span-5 pl-2 flex flex-col justify-between">
+            <div>
+              <div className="text-[9px] font-bold uppercase text-gray-600 mb-0.5">
+                CONSIGNEE / RECEIVED AT:
               </div>
-              <div className="flex justify-between font-bold text-[9px]">
-                <span>GST : <span className="font-mono">{buyer.gstin}</span></span>
-                <span>Balance: {buyer.balance.toFixed(2)}</span>
+              <div className="text-[11px] font-black uppercase text-[#0c2f66] leading-tight">
+                {company.name} - Central Warehouse
               </div>
-              <div className="font-bold text-[9px]">PAN :{buyer.pan}</div>
+              <div className="text-[9px] font-semibold text-gray-700">
+                {company.addr1}, {company.city}
+              </div>
             </div>
-
-            <div className="font-bold text-[10px] leading-tight space-y-0.5 px-0.5">
-              <div className="flex justify-between">
-                <span>G.Rcpt. No. : <strong className="font-mono text-[11px]">{receiptNo}</strong></span>
-              </div>
-              <div className="flex justify-between">
-                <span>Inv. Date : <strong>{invDate}</strong></span>
-              </div>
-              <div className="text-[9px] text-gray-800">
-                ORDER NO: {orderNo}, DATE- {orderDate}
-              </div>
+            <div className="text-[9px] font-bold text-gray-700 pt-1 border-t border-gray-200">
+              Supplier Ledger Balance: <span className="font-mono text-black">₹{buyer.balance.toFixed(2)}</span>
             </div>
           </div>
         </div>

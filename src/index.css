@@ -862,7 +862,8 @@
   }
 
   .tax-invoice-bill,
-  .goods-receipt-note-print {
+  .goods-receipt-note-print,
+  .voucher-print-bill {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -871,7 +872,8 @@
   }
 
   .tax-invoice-bill table,
-  .goods-receipt-note-print table {
+  .goods-receipt-note-print table,
+  .voucher-print-bill table {
     display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
@@ -879,19 +881,23 @@
   }
 
   .tax-invoice-bill tr,
-  .goods-receipt-note-print tr {
+  .goods-receipt-note-print tr,
+  .voucher-print-bill tr {
     display: table-row !important;
   }
 
   .tax-invoice-bill th,
   .tax-invoice-bill td,
   .goods-receipt-note-print th,
-  .goods-receipt-note-print td {
+  .goods-receipt-note-print td,
+  .voucher-print-bill th,
+  .voucher-print-bill td {
     display: table-cell !important;
   }
 
   .tax-invoice-bill table th,
-  .goods-receipt-note-print table th {
+  .goods-receipt-note-print table th,
+  .voucher-print-bill table th {
     background-color: #d4ebf2 !important;
     color: #000000 !important;
     font-size: 8.5px !important;
@@ -905,7 +911,8 @@
   }
 
   .tax-invoice-bill table td,
-  .goods-receipt-note-print table td {
+  .goods-receipt-note-print table td,
+  .voucher-print-bill table td {
     background: transparent !important;
     color: #000000 !important;
     padding: 2.5px 2px !important;
@@ -917,11 +924,15 @@
   .tax-invoice-bill tbody tr:nth-child(even) td,
   .tax-invoice-bill tbody tr:nth-child(odd) td,
   .goods-receipt-note-print tbody tr:nth-child(even) td,
-  .goods-receipt-note-print tbody tr:nth-child(odd) td {
+  .goods-receipt-note-print tbody tr:nth-child(odd) td,
+  .voucher-print-bill tbody tr:nth-child(even) td,
+  .voucher-print-bill tbody tr:nth-child(odd) td {
     background: transparent !important;
   }
 
-  .tax-invoice-bill .text-\[\#0c2f66\] {
+  .tax-invoice-bill .text-\[\#0c2f66\],
+  .goods-receipt-note-print .text-\[\#0c2f66\],
+  .voucher-print-bill .text-\[\#0c2f66\] {
     color: #0c2f66 !important;
   }
 
