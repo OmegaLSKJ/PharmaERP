@@ -1,5 +1,14 @@
 [
   {
+    "id": "mfg-659",
+    "name": "",
+    "code": "MFG659",
+    "productCount": 1,
+    "itemcount": 1,
+    "status": "Active",
+    "is_active": true
+  },
+  {
     "id": "mfg-1",
     "name": "AAHAR",
     "code": "AAHAR",
@@ -291,8 +300,8 @@
     "id": "mfg-33",
     "name": "ALKEM",
     "code": "ALKEM",
-    "productCount": 506,
-    "itemcount": 506,
+    "productCount": 508,
+    "itemcount": 508,
     "status": "Active",
     "is_active": true
   },
@@ -606,8 +615,8 @@
     "id": "mfg-68",
     "name": "B.D",
     "code": "BDXX",
-    "productCount": 0,
-    "itemcount": 0,
+    "productCount": 2,
+    "itemcount": 2,
     "status": "Active",
     "is_active": true
   },
@@ -1587,8 +1596,8 @@
     "id": "mfg-177",
     "name": "ELDER",
     "code": "ELDER",
-    "productCount": 0,
-    "itemcount": 0,
+    "productCount": 100,
+    "itemcount": 100,
     "status": "Active",
     "is_active": true
   },
@@ -3927,8 +3936,8 @@
     "id": "mfg-437",
     "name": "PARANTAA DRUGS PVT LTD",
     "code": "PARANT",
-    "productCount": 0,
-    "itemcount": 0,
+    "productCount": 16,
+    "itemcount": 16,
     "status": "Active",
     "is_active": true
   },
@@ -4674,8 +4683,8 @@
     "id": "mfg-520",
     "name": "SAMKEM",
     "code": "SAMKEM",
-    "productCount": 0,
-    "itemcount": 0,
+    "productCount": 3,
+    "itemcount": 3,
     "status": "Active",
     "is_active": true
   },
@@ -5369,6 +5378,15 @@
     "code": "TULIP",
     "productCount": 1,
     "itemcount": 1,
+    "status": "Active",
+    "is_active": true
+  },
+  {
+    "id": "mfg-658",
+    "name": "UNCLASSIFIED",
+    "code": "UNCL01",
+    "productCount": 286,
+    "itemcount": 286,
     "status": "Active",
     "is_active": true
   },

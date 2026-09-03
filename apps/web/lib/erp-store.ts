@@ -360,7 +360,17 @@ export async function list(resource: string, partyName?: string) {
     return (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
   }
   if (resource === 'hsn') { return await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to)) }
-  if (resource === 'manufacturers') { return await fetchAll<any>((from, to) => client.from('manufacturers').select('*').eq('organization_id', organizationId).order('name').range(from, to)) }
+  if (resource === 'manufacturers') {
+    const data = await fetchAll<any>((from, to) =>
+      client.from('manufacturers').select('id,name,code,is_active,items(count)').eq('organization_id', organizationId).order('name').range(from, to)
+    )
+    return (data ?? []).map((m: any) => ({
+      ...m,
+      productCount: Number(m.items?.[0]?.count ?? 0),
+      itemcount: Number(m.items?.[0]?.count ?? 0),
+      items: undefined
+    }))
+  }
   if (resource === 'salts') { const data = await fetchAll<any>((from, to) => client.from('salts').select('id,code,name,composition,category,items(count)').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((s: any) => ({ ...s, itemcount: Number(s.items?.[0]?.count ?? 0), items: undefined })) }
   if (resource === 'warehouses') { const data = await fetchAll<any>((from, to) => client.from('warehouses').select('*').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((w: any) => ({ id: w.id, code: w.code, name: w.name, type: w.warehouse_type, address: w.address ?? '', capacity: Number(w.capacity), used: 0, status: w.is_active ? 'active' : 'inactive' })) }
   if (resource === 'item-mappings') {

@@ -62,17 +62,24 @@ export default function ManufacturerList() {
   const showToast = useUIStore((state) => state.showToast)
 
   const loadData = () => {
+    const defaultCountMap = new Map<string, number>(
+      (defaultManufacturerMaster as any[]).map((m) => [m.name.toUpperCase().trim(), Number(m.productCount || 0)])
+    )
     getErp<any[]>('manufacturers')
       .then((rows) => {
         if (Array.isArray(rows) && rows.length > 0) {
           setManufacturers(
-            rows.map((row) => ({
-              id: String(row?.id || ''),
-              name: String(row?.name || ''),
-              code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
-              productCount: Number(row?.productCount || row?.itemcount || 0),
-              status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-            }))
+            rows.map((row) => {
+              const nameKey = String(row?.name || '').toUpperCase().trim()
+              const count = Number(row?.productCount ?? row?.itemcount ?? defaultCountMap.get(nameKey) ?? 0) || (defaultCountMap.get(nameKey) ?? 0)
+              return {
+                id: String(row?.id || ''),
+                name: String(row?.name || ''),
+                code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
+                productCount: count,
+                status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
+              }
+            })
           )
         }
       })
