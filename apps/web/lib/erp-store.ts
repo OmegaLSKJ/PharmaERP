@@ -1023,6 +1023,15 @@ export async function create(resource: string, body: any, actor: MutationActor =
         items: docItems,
         total: docTotal
       }
+      const existingIdx = mockStore[storeKey].findIndex((x: any) => (body.id && (x.id === body.id || x.number === body.id)) || (body.number && x.number === body.number))
+      if (existingIdx !== -1) {
+        mockStore[storeKey][existingIdx] = {
+          ...mockStore[storeKey][existingIdx],
+          ...doc,
+          id: mockStore[storeKey][existingIdx].id
+        }
+        return mockStore[storeKey][existingIdx]
+      }
       mockStore[storeKey].unshift(doc)
       return doc
     }
@@ -1228,6 +1237,11 @@ export async function update(resource: string, id: string, body: any) {
   const { client, organizationId } = await context()
   if (resource === 'sales') {
     const { data, error } = await client.from('sales_invoices').update(body).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
+  if (resource === 'purchases') {
+    const { data, error } = await client.from('purchase_invoices').update(body).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
     return data
   }
