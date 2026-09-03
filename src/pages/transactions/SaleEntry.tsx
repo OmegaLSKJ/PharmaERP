@@ -295,6 +295,10 @@ export default function SaleEntry() {
         event.preventDefault()
         if (customer && items.length && !saving) void saveInvoice()
       }
+      if (event.altKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault()
+        setShowPrintModal(true)
+      }
       if (event.key === 'F2') {
         event.preventDefault()
         setShowItemSearch(true)
@@ -351,22 +355,33 @@ export default function SaleEntry() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2.5">
+          {/* Professional Print Bill Button */}
           <button
+            type="button"
             onClick={() => setShowPrintModal(true)}
-            className="px-4 py-2.5 bg-black hover:bg-neutral-900 text-white font-semibold rounded-lg text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition border border-black cursor-pointer"
-            title="Print Preview (Tax Invoice Bill)"
+            className="group relative inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-medium text-white bg-gradient-to-b from-zinc-900 via-neutral-950 to-black hover:from-zinc-800 hover:to-neutral-900 border border-neutral-700 hover:border-neutral-500 shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
+            title="Print Preview & Tax Invoice Bill (Alt+P)"
           >
-            <Printer size={16} className="text-white" />
-            <span className="hidden sm:inline">Print Bill</span>
+            <Printer size={15} className="text-zinc-300 group-hover:text-white transition-colors" />
+            <span className="tracking-tight font-semibold">Print Bill</span>
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10 group-hover:text-zinc-200 group-hover:border-white/20 transition-colors">
+              Alt+P
+            </kbd>
           </button>
+
+          {/* Primary Save / Update Invoice Button */}
           <button
+            type="button"
             onClick={saveInvoice}
             disabled={saving || !customer || !items.length}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm text-white font-semibold flex items-center gap-1.5 shadow-md shadow-blue-900/30 transition"
+            className="group relative inline-flex items-center gap-2 h-10 px-4 sm:px-4.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 rounded-lg text-xs sm:text-sm text-white font-semibold shadow-md shadow-blue-900/30 hover:shadow-blue-900/50 active:scale-[0.98] border border-blue-500/60 transition-all duration-150 cursor-pointer"
           >
-            <Save size={16} />
-            <span>{saving ? 'Saving…' : isEditMode ? 'Update Invoice (Alt+S)' : 'Save (Alt+S)'}</span>
+            <Save size={15} className="text-blue-100 group-hover:text-white transition-colors" />
+            <span className="tracking-tight">{saving ? 'Saving…' : isEditMode ? 'Update Invoice' : 'Save Invoice'}</span>
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-blue-200 bg-black/20 rounded border border-blue-300/20 group-hover:border-blue-300/40 transition-colors">
+              Alt+S
+            </kbd>
           </button>
         </div>
       </div>
@@ -806,10 +821,15 @@ export default function SaleEntry() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
+                  className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-white" /> Print Bill (Ctrl+P)
+                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <span>Print Bill</span>
+                  <kbd className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                    Ctrl+P
+                  </kbd>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
