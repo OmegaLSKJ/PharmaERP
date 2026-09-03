@@ -538,50 +538,54 @@ export default function SaleEntry() {
                       <td className="p-3 font-medium text-white">{item.name}</td>
                       <td className="p-3 font-mono text-slate-400">{item.batch}</td>
                       <td className="p-3 text-right text-slate-400">{item.stock}</td>
-                      <td className="p-3 text-right">
+                      <td className="p-2 text-right">
                         <input
                           id={`row-${i}-qty`}
                           min="1"
                           max={item.stock}
                           type="number"
-                          value={item.qty}
-                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value))}
-                          className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          value={item.qty === 0 ? '' : item.qty}
+                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
+                          placeholder="1"
+                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-2 text-right">
                         <input
                           id={`row-${i}-free`}
                           min="0"
                           type="number"
-                          value={item.free}
-                          onChange={(e) => updateLine(item.id, 'free', Number(e.target.value))}
-                          className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          value={item.free === 0 ? '' : item.free}
+                          onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                          placeholder="0"
+                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'free')}
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-2 text-right">
                         <input
                           id={`row-${i}-rate`}
                           min="0"
                           type="number"
                           step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value))}
-                          className="w-20 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          value={item.rate === 0 ? '' : item.rate}
+                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="w-24 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-2 text-right">
                         <input
                           id={`row-${i}-disc`}
                           min="0"
                           max="100"
                           type="number"
-                          value={item.disc}
-                          onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
-                          className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          value={item.disc === 0 ? '' : item.disc}
+                          onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
+                          placeholder="0"
+                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
                         />
                       </td>

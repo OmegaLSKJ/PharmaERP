@@ -672,14 +672,15 @@ export default function PurchaseEntry() {
                         <input
                           type="number"
                           min="1"
-                          value={item.qty}
-                          onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
-                          className="w-full text-center bg-transparent text-xs font-mono text-foreground outline-none py-1.5"
+                          value={item.qty === 0 ? '' : item.qty}
+                          onChange={(e) => updateItem(item.id, 'qty', e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="1"
+                          className="w-full text-center bg-transparent text-xs font-mono text-slate-900 dark:text-white font-bold outline-none py-1.5"
                           inputMode="numeric"
                         />
                         <button
                           type="button"
-                          onClick={() => updateItem(item.id, 'qty', item.qty + 1)}
+                          onClick={() => updateItem(item.id, 'qty', (Number(item.qty) || 0) + 1)}
                           className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
                         >
                           <Plus size={13} />
@@ -688,10 +689,10 @@ export default function PurchaseEntry() {
                     </div>
                     <div>
                       <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Free Qty</label>
-                      <div className="flex items-center bg-card rounded-lg border border-border overflow-hidden">
+                      <div className="flex items-center bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden">
                         <button
                           type="button"
-                          onClick={() => updateItem(item.id, 'freeQty', Math.max(0, item.freeQty - 1))}
+                          onClick={() => updateItem(item.id, 'freeQty', Math.max(0, (Number(item.freeQty) || 0) - 1))}
                           className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
                         >
                           <Minus size={13} />
@@ -699,14 +700,15 @@ export default function PurchaseEntry() {
                         <input
                           type="number"
                           min="0"
-                          value={item.freeQty}
-                          onChange={(e) => updateItem(item.id, 'freeQty', Number(e.target.value))}
-                          className="w-full text-center bg-transparent text-xs font-mono text-foreground outline-none py-1.5"
+                          value={item.freeQty === 0 ? '' : item.freeQty}
+                          onChange={(e) => updateItem(item.id, 'freeQty', e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="0"
+                          className="w-full text-center bg-transparent text-xs font-mono text-slate-900 dark:text-white font-bold outline-none py-1.5"
                           inputMode="numeric"
                         />
                         <button
                           type="button"
-                          onClick={() => updateItem(item.id, 'freeQty', item.freeQty + 1)}
+                          onClick={() => updateItem(item.id, 'freeQty', (Number(item.freeQty) || 0) + 1)}
                           className="px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition"
                         >
                           <Plus size={13} />
@@ -723,9 +725,10 @@ export default function PurchaseEntry() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={item.purchaseRate}
-                        onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        value={item.purchaseRate === 0 ? '' : item.purchaseRate}
+                        onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="0.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
@@ -735,9 +738,10 @@ export default function PurchaseEntry() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={item.mrp}
-                        onChange={(e) => updateItem(item.id, 'mrp', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        value={item.mrp === 0 ? '' : item.mrp}
+                        onChange={(e) => updateItem(item.id, 'mrp', e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="0.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
@@ -753,7 +757,7 @@ export default function PurchaseEntry() {
                         value={item.hsn}
                         onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
                         placeholder="HSN code"
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                       />
                     </div>
                     <div>
@@ -766,9 +770,10 @@ export default function PurchaseEntry() {
                           min="0"
                           max="100"
                           step="0.5"
-                          value={item.gstRate}
-                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value))}
-                          className="w-full bg-card border border-primary/40 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                          value={item.gstRate === 0 ? '' : item.gstRate}
+                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value) || 0)}
+                          placeholder="0"
+                          className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500/60 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                           inputMode="decimal"
                         />
                         <span className="text-xs text-muted-foreground font-mono">%</span>
@@ -784,9 +789,10 @@ export default function PurchaseEntry() {
                         type="number"
                         min="0"
                         max="100"
-                        value={item.discount}
-                        onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        value={item.discount === 0 ? '' : item.discount}
+                        onChange={(e) => updateItem(item.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="numeric"
                       />
                     </div>
@@ -796,9 +802,10 @@ export default function PurchaseEntry() {
                         type="number"
                         min="0"
                         max="100"
-                        value={item.scheme}
-                        onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-foreground outline-none focus:border-primary"
+                        value={item.scheme === 0 ? '' : item.scheme}
+                        onChange={(e) => updateItem(item.id, 'scheme', e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="numeric"
                       />
                     </div>
@@ -818,36 +825,36 @@ export default function PurchaseEntry() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-border">
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-border bg-card">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
-                    <th className="p-3 text-left w-10">#</th>
-                    <th className="p-3 text-left">Item / Description</th>
-                    <th className="p-3 text-left w-24">HSN</th>
-                    <th className="p-3 text-left w-28">Batch</th>
-                    <th className="p-3 text-left w-32">Expiry</th>
-                    <th className="p-3 text-right w-16">Qty</th>
-                    <th className="p-3 text-right w-16">Free</th>
-                    <th className="p-3 text-right w-24">Purc. Rate</th>
-                    <th className="p-3 text-right w-16">Disc%</th>
-                    <th className="p-3 text-right w-16">Scheme%</th>
-                    <th className="p-3 text-right w-20 text-primary">GST% *</th>
-                    <th className="p-3 text-right w-28">Amount</th>
-                    <th className="p-3 text-center w-10"></th>
+                    <th className="p-2.5 text-left w-10">#</th>
+                    <th className="p-2.5 text-left min-w-[170px]">Item / Description</th>
+                    <th className="p-2.5 text-left w-20">HSN</th>
+                    <th className="p-2.5 text-left w-24">Batch</th>
+                    <th className="p-2.5 text-left w-28">Expiry</th>
+                    <th className="p-2 text-right w-20 min-w-[72px]">Qty</th>
+                    <th className="p-2 text-right w-20 min-w-[72px]">Free</th>
+                    <th className="p-2 text-right w-24 min-w-[88px]">Purc. Rate</th>
+                    <th className="p-2 text-right w-20 min-w-[72px]">Disc%</th>
+                    <th className="p-2 text-right w-20 min-w-[72px]">Scheme%</th>
+                    <th className="p-2 text-right w-20 min-w-[72px] text-primary">GST% *</th>
+                    <th className="p-2.5 text-right w-28 min-w-[96px]">Amount</th>
+                    <th className="p-2.5 text-center w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-foreground">
                   {items.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-secondary/40 transition-colors">
-                      <td className="p-3 text-muted-foreground font-mono">{idx + 1}</td>
-                      <td className="p-3 font-semibold text-foreground">
+                      <td className="p-2 text-muted-foreground font-mono">{idx + 1}</td>
+                      <td className="p-2 font-semibold text-foreground">
                         {item.itemName}
                         {item.packing && (
                           <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
                         )}
                       </td>
-                      <td className="p-3">
+                      <td className="p-1.5">
                         <input
                           type="text"
                           list="hsn-list"
@@ -855,97 +862,103 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
                           onKeyDown={handleRowKeyDown}
                           placeholder="HSN"
-                          className="w-20 bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary font-mono text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary font-mono text-xs"
                           title="HSN Code (changing this updates GST%)"
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-1.5">
                         <input
                           type="text"
                           value={item.batch}
                           onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
                           onKeyDown={handleRowKeyDown}
                           placeholder="Batch"
-                          className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary font-mono text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary font-mono text-xs"
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-1.5">
                         <input
                           type="date"
                           value={item.expiry}
                           onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-foreground outline-none focus:border-primary text-xs"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-primary text-xs"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="1"
-                          value={item.qty}
-                          onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
+                          value={item.qty === 0 ? '' : item.qty}
+                          onChange={(e) => updateItem(item.id, 'qty', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                          placeholder="1"
+                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="0"
-                          value={item.freeQty}
-                          onChange={(e) => updateItem(item.id, 'freeQty', Number(e.target.value))}
+                          value={item.freeQty === 0 ? '' : item.freeQty}
+                          onChange={(e) => updateItem(item.id, 'freeQty', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                          placeholder="0"
+                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.purchaseRate}
-                          onChange={(e) => updateItem(item.id, 'purchaseRate', Number(e.target.value))}
+                          value={item.purchaseRate === 0 ? '' : item.purchaseRate}
+                          onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                          placeholder="0.00"
+                          className="w-full min-w-[76px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="0"
                           max="100"
-                          value={item.discount}
-                          onChange={(e) => updateItem(item.id, 'discount', Number(e.target.value))}
+                          value={item.discount === 0 ? '' : item.discount}
+                          onChange={(e) => updateItem(item.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                          placeholder="0"
+                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="0"
                           max="100"
-                          value={item.scheme}
-                          onChange={(e) => updateItem(item.id, 'scheme', Number(e.target.value))}
+                          value={item.scheme === 0 ? '' : item.scheme}
+                          onChange={(e) => updateItem(item.id, 'scheme', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
-                          className="w-full bg-card border border-border rounded p-1 text-right text-foreground outline-none focus:border-primary font-mono"
+                          placeholder="0"
+                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-1.5 text-right">
                         <input
                           type="number"
                           min="0"
                           max="100"
                           step="0.5"
-                          value={item.gstRate}
-                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value))}
+                          value={item.gstRate === 0 ? '' : item.gstRate}
+                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value) || 0)}
                           onKeyDown={handleRowKeyDown}
-                          className="w-16 bg-card border border-primary/40 rounded p-1 text-right text-foreground font-mono outline-none focus:border-primary"
+                          placeholder="0"
+                          className="w-full min-w-[60px] bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500/60 rounded px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           title="GST percentage (Auto-filled from HSN, editable)"
                         />
                       </td>
-                      <td className="p-3 text-right font-bold text-emerald-400 font-mono">{formatCurrency(item.amount)}</td>
-                      <td className="p-3 text-center">
+                      <td className="p-2.5 text-right font-bold text-emerald-500 dark:text-emerald-400 font-mono text-xs">{formatCurrency(item.amount)}</td>
+                      <td className="p-2.5 text-center">
                         <button
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground hover:text-rose-500 transition-colors p-1"
