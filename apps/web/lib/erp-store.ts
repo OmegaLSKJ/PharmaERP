@@ -801,9 +801,12 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
 
   const { client, organizationId, financialYearId } = await context()
   if (!['sales', 'purchases'].includes(type)) {
-    const { data, error } = await client.rpc('erp_import_master', { p_type: type, p_organization_id: organizationId, p_rows: rows, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await client.rpc('erp_import_master', { p_type: type, p_organization_id: organizationId, p_rows: rows, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
+      if (!error && data) return data
+    } catch (rpcErr) {
+      console.warn('erp_import_master fallback to direct table upsert:', rpcErr)
+    }
   }
   if (type === 'parties') {
     const payload = rows.map((row) => ({ organization_id: organizationId, code: importText(row, 'code'), party_type: importText(row, 'party_type').toLowerCase(), legal_name: importText(row, 'legal_name'), phone: importText(row, 'phone') || null, email: importText(row, 'email') || null, gstin: importText(row, 'gstin') || null, credit_limit: importNumber(row, 'credit_limit'), is_blocked: importText(row, 'status').toLowerCase() === 'blocked' }))
@@ -1199,11 +1202,12 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (resource === 'series') { const { data, error } = await client.from('document_series').insert({ organization_id: organizationId, document_type: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', next_number: Number(body.nextNo || 1), padding: Number(body.padding || 4), financial_year_reset: body.fyReset !== false, is_active: body.active !== false }).select('*').single(); if (error) throw error; return { ...body, id: data.id } }
   if (resource === 'communication-blocks') { const { data, error } = await client.from('communication_blocks').insert({ organization_id: organizationId, channel: body.type, destination: body.value, reason: body.reason || null }).select('*').single(); if (error) throw error; return { id: data.id, type: data.channel, value: data.destination, reason: data.reason ?? '', blockedOn: data.blocked_on } }
   if (resource === 'breakages') {
-    if (!body.lines?.length) throw new Error('Add at least one expiry or breakage line.')
+    const rawLines = Array.isArray(body.lines) && body.lines.length > 0 ? body.lines : (body.name || body.itemName) ? [{ name: body.name || body.itemName, batch: body.batch, qty: body.qty, rate: body.rate, mrp: body.mrp, expiry: body.expiry }] : []
+    if (!rawLines.length) throw new Error('Add at least one expiry or breakage line.')
     const documentNumber = body.number || number(body.entryType === 'expiry' ? 'EXP' : 'BRK')
     const prepared: Array<{ batchId: string; warehouseId: string; qty: number; name: string }> = []
-    for (const line of body.lines) { const resolved = await stock(client, organizationId, { ...line, rate: line.rate ?? 0 }); const { data: movements, error: movementError } = await client.from('stock_movements').select('quantity').eq('item_batch_id', resolved.batchId).eq('warehouse_id', resolved.warehouseId); if (movementError) throw movementError; const available = (movements ?? []).reduce((sum, movement) => sum + Number(movement.quantity), 0); if (available < Number(line.qty)) throw new Error(`Only ${available} units of ${line.name} are available.`); prepared.push({ batchId: resolved.batchId, warehouseId: resolved.warehouseId, qty: Number(line.qty), name: line.name }) }
-    const { data: document, error: documentError } = await client.from('business_documents').insert({ organization_id: organizationId, document_type: 'breakage', document_number: documentNumber, document_date: body.date || date(), status: 'posted', total: Number(body.total || 0), details: body }).select('id').single(); if (documentError) throw documentError
+    for (const line of rawLines) { const resolved = await stock(client, organizationId, { ...line, rate: line.rate ?? 0 }); const { data: movements, error: movementError } = await client.from('stock_movements').select('quantity').eq('item_batch_id', resolved.batchId).eq('warehouse_id', resolved.warehouseId); if (movementError) throw movementError; const available = (movements ?? []).reduce((sum, movement) => sum + Number(movement.quantity), 0); if (available < Number(line.qty)) throw new Error(`Only ${available} units of ${line.name} are available.`); prepared.push({ batchId: resolved.batchId, warehouseId: resolved.warehouseId, qty: Number(line.qty), name: line.name }) }
+    const { data: document, error: documentError } = await client.from('business_documents').insert({ organization_id: organizationId, document_type: 'breakage', document_number: documentNumber, document_date: body.date || date(), status: 'posted', total: Number(body.total || 0), details: { ...body, lines: rawLines } }).select('id').single(); if (documentError) throw documentError
     for (const row of prepared) { const { error } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: row.batchId, warehouse_id: row.warehouseId, movement_type: body.entryType === 'expiry' ? 'expiry' : 'breakage', quantity: -Math.abs(row.qty), source_type: 'breakage', source_id: document.id }); if (error) throw error }
     return { ...body, id: document.id, number: documentNumber, date: body.date || date() }
   }
@@ -1554,7 +1558,43 @@ export async function update(resource: string, id: string, body: any) {
   if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'accounts') { const values: any = {}; if ('name' in body) values.name = body.name; if ('group' in body) values.account_group = body.group; if ('openingBalance' in body) values.opening_balance = Number(body.openingBalance); const { data, error } = await client.from('chart_of_accounts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
-  if (resource === 'items') { const values: any = {}; if ('code' in body) values.code = body.code; if ('name' in body) values.name = body.name; if ('packing' in body) values.packing = body.packing; if ('mrp' in body) values.mrp = Number(body.mrp); if ('saleRate' in body) values.sale_rate = Number(body.saleRate); if ('purchaseRate' in body) values.purchase_rate = Number(body.purchaseRate); if ('status' in body) values.is_active = body.status !== 'banned'; if ('scheduleClass' in body) values.schedule_class=body.scheduleClass; if ('prescriptionRequired' in body) values.prescription_required=Boolean(body.prescriptionRequired); if ('coldChain' in body) values.cold_chain=Boolean(body.coldChain); if ('controlledSubstance' in body) values.controlled_substance=Boolean(body.controlledSubstance); const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
+  if (resource === 'items') {
+    const values: any = {}
+    if ('code' in body) values.code = body.code
+    if ('name' in body) values.name = body.name
+    if ('packing' in body) values.packing = body.packing
+    if ('mrp' in body) values.mrp = Number(body.mrp)
+    if ('saleRate' in body) values.sale_rate = Number(body.saleRate)
+    if ('purchaseRate' in body) values.purchase_rate = Number(body.purchaseRate)
+    if ('status' in body) values.is_active = body.status !== 'banned'
+    if ('scheduleClass' in body) values.schedule_class = body.scheduleClass
+    if ('prescriptionRequired' in body) values.prescription_required = Boolean(body.prescriptionRequired)
+    if ('coldChain' in body) values.cold_chain = Boolean(body.coldChain)
+    if ('controlledSubstance' in body) values.controlled_substance = Boolean(body.controlledSubstance)
+    if ('salesSchemeDeal' in body) values.sales_scheme_deal = Number(body.salesSchemeDeal)
+    if ('salesSchemeFree' in body) values.sales_scheme_free = Number(body.salesSchemeFree)
+    if (body.manufacturer) {
+      try {
+        const { data: m } = await client.from('manufacturers').select('id').eq('organization_id', organizationId).ilike('name', body.manufacturer).maybeSingle()
+        if (m) values.manufacturer_id = m.id
+      } catch {}
+    }
+    if (body.salt) {
+      try {
+        const { data: s } = await client.from('salts').select('id').eq('organization_id', organizationId).ilike('name', body.salt).maybeSingle()
+        if (s) values.salt_id = s.id
+      } catch {}
+    }
+    if (body.hsn) {
+      try {
+        const { data: h } = await client.from('hsn_codes').select('id').eq('organization_id', organizationId).eq('code', body.hsn).maybeSingle()
+        if (h) values.hsn_id = h.id
+      } catch {}
+    }
+    const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
   if (resource === 'manufacturers') {
     const values: any = {}
     if ('name' in body) values.name = body.name

@@ -213,6 +213,12 @@ export default function PricingSchemes() {
     }
     localStorage.setItem(STORAGE_SCHEMES_KEY, JSON.stringify(savedSchemes))
 
+    // Persist to ERP backend database
+    patchErp('items', targetId, {
+      salesSchemeDeal: modalDealQty,
+      salesSchemeFree: modalFreeQty
+    }).catch(() => {})
+
     // Update local state
     setItems((prev) =>
       prev.map((i) =>
