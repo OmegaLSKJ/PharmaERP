@@ -160,11 +160,11 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
   const words = numberToWordsIndian(roundedGrandTotal)
 
   // Ensure minimum rows so table fills nicely like a printed bill
-  const minRows = Math.max(1, 8 - processedItems.length)
+  const minRows = Math.max(1, 5 - processedItems.length)
   const fillerRows = Array.from({ length: minRows }, (_, idx) => idx)
 
   return (
-    <div className="tax-invoice-bill bg-white text-black font-sans text-[11px] leading-tight select-text w-full max-w-[850px] mx-auto p-1">
+    <div className="tax-invoice-bill bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
       {/* Top Banner: Jurisdiction & Copy Type */}
       <div className="flex justify-between items-center text-[9.5px] font-semibold text-gray-700 px-1 pb-1">
         <span>Subject to {jurisdiction.toUpperCase()} Jurisdiction</span>
@@ -300,61 +300,61 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
           <thead>
             <tr className="bg-[#d4ebf2] text-black border-b-[1.5px] border-black font-bold">
               <th className="border-r border-black py-1 px-0.5 text-center w-[26px]">#</th>
-              <th className="border-r border-black py-1 px-1 text-left">Product Description</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[40px]">Pack</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[40px]">Mfr</th>
+              <th className="border-r border-black py-1 px-1.5 text-left">Product Description</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[54px]">Pack</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[56px]">Mfr</th>
               <th className="border-r border-black py-1 px-0.5 text-center w-[42px]">HSN</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[55px]">Batch</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[36px]">Exp.</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[42px]">Qty</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[46px]">M.R.P.</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[46px]">Rate</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[66px]">Batch</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[42px]">Exp.</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[44px]">Qty</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[50px]">M.R.P.</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[50px]">Rate</th>
               <th className="border-r border-black py-1 px-0.5 text-right w-[34px]">Disc%</th>
               <th className="border-r border-black py-1 px-0.5 text-right w-[36px]">GST%</th>
-              <th className="py-1 px-1 text-right w-[62px]">Amount</th>
+              <th className="py-1 px-1 text-right w-[66px]">Amount</th>
             </tr>
           </thead>
           <tbody>
             {processedItems.map((item) => (
               <tr key={item.sNo} className="border-b border-gray-300 font-semibold leading-tight">
-                <td className="border-r border-black py-1 px-0.5 text-center text-[9px] text-gray-600">
+                <td className="border-r border-black py-1 px-0.5 text-center text-[9px] text-gray-700">
                   {item.sNo}
                 </td>
-                <td className="border-r border-black py-1 px-1 text-left font-bold text-black truncate">
+                <td className="border-r border-black py-1 px-1.5 text-left font-bold text-black">
                   {item.name}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center truncate">
+                <td className="border-r border-black py-1 px-0.5 text-center whitespace-nowrap text-[9px]">
                   {item.packing}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center truncate uppercase">
+                <td className="border-r border-black py-1 px-0.5 text-center uppercase whitespace-nowrap text-[9px]">
                   {item.mfr}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-center font-mono text-[9px]">
                   {item.hsn}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center font-mono text-[9px]">
+                <td className="border-r border-black py-1 px-0.5 text-center font-mono text-[9px] whitespace-nowrap">
                   {item.batch}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-center font-mono text-[9px]">
                   {item.expiry}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-right font-mono font-bold">
+                <td className="border-r border-black py-1 px-0.5 text-right font-mono font-bold text-[9px]">
                   {item.qty}
                   {item.freeQty ? <span className="text-[8px] text-emerald-700">+{item.freeQty}</span> : ''}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-right font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-right font-mono text-[9px]">
                   {item.mrp.toFixed(2)}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-right font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-right font-mono text-[9px]">
                   {item.rate.toFixed(2)}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-right font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-right font-mono text-[9px]">
                   {item.discPercent > 0 ? `${item.discPercent}%` : '—'}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-right font-mono">
+                <td className="border-r border-black py-1 px-0.5 text-right font-mono text-[9px]">
                   {item.gstRate}%
                 </td>
-                <td className="py-1 px-1 text-right font-mono font-bold">
+                <td className="py-1 px-1 text-right font-mono font-bold text-[9px]">
                   {item.lineTotal.toFixed(2)}
                 </td>
               </tr>
@@ -362,20 +362,20 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
 
             {/* Filler Rows to maintain crisp invoice vertical lines */}
             {fillerRows.map((_, fIdx) => (
-              <tr key={`filler-${fIdx}`} className="border-b border-gray-200/50">
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="border-r border-black py-2">&nbsp;</td>
-                <td className="py-2">&nbsp;</td>
+              <tr key={`filler-${fIdx}`} className="border-b border-gray-200/40 h-[20px]">
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="border-r border-black py-0.5">&nbsp;</td>
+                <td className="py-0.5">&nbsp;</td>
               </tr>
             ))}
           </tbody>
@@ -389,14 +389,14 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
               <div className="text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-1">
                 GST Tax Analysis:
               </div>
-              <table className="w-full border border-black text-[9px] border-collapse">
+              <table className="w-full border border-black text-[9px] border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-gray-100 font-bold border-b border-black">
-                    <th className="border-r border-black px-1 py-0.5 text-center">Tax Slab</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right">Taxable Val</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right">CGST</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right">SGST</th>
-                    <th className="px-1 py-0.5 text-right">Total Tax</th>
+                    <th className="border-r border-black px-1 py-0.5 text-center w-[18%]">Tax Slab</th>
+                    <th className="border-r border-black px-1 py-0.5 text-right w-[21%]">Taxable Val</th>
+                    <th className="border-r border-black px-1 py-0.5 text-right w-[18%]">CGST</th>
+                    <th className="border-r border-black px-1 py-0.5 text-right w-[18%]">SGST</th>
+                    <th className="px-1 py-0.5 text-right w-[25%]">Total Tax</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -442,11 +442,11 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
 
             {/* Bank Details Box */}
             <div className="border border-black p-1.5 mt-2 bg-gray-50/60 leading-tight text-[9px]">
-              <div className="font-bold text-[#0c2f66] uppercase">Bank Payment Details:</div>
-              <div className="flex flex-wrap gap-x-4 mt-0.5 font-semibold">
-                <span>Bank: <strong>{company.bankName || 'PUNJAB NATIONAL BANK'}</strong></span>
-                <span>A/C No: <strong className="font-mono">{company.accountNo || '1125250029704'}</strong></span>
-                <span>IFSC: <strong className="font-mono">{company.ifsc || 'PUNB0112520'}</strong></span>
+              <div className="font-bold text-black uppercase mb-1">Bank Payment Details:</div>
+              <div className="grid grid-cols-3 gap-1 text-[8.5px]">
+                <div><span className="text-gray-600">Bank:</span> <strong>{company.bankName || 'PUNJAB NATIONAL BANK'}</strong></div>
+                <div><span className="text-gray-600">A/C:</span> <strong className="font-mono">{company.accountNo || '1125250029704'}</strong></div>
+                <div><span className="text-gray-600">IFSC:</span> <strong className="font-mono">{company.ifsc || 'PUNB0112520'}</strong></div>
               </div>
             </div>
           </div>

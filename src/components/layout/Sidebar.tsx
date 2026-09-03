@@ -130,7 +130,7 @@ export default function Sidebar() {
 
   return (
     <aside className={cn(
-      'h-screen flex flex-col shrink-0 z-20 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px]',
+      'no-print h-screen flex flex-col shrink-0 z-20 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px]',
       'bg-[hsl(var(--sidebar))] border-r border-border/80 text-[hsl(var(--sidebar-foreground))]',
       collapsed ? 'w-[60px]' : 'w-[240px]',
       mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'

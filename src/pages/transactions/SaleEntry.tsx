@@ -805,7 +805,7 @@ export default function SaleEntry() {
       {/* Print Preview Modal */}
       {showPrintModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setShowPrintModal(false)}
         >
           <div

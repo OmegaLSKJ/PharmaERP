@@ -241,7 +241,7 @@ export default function SaleReturn() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">
+        <div className="no-print fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">
           <form onSubmit={saveReturn} className="bg-slate-900 border border-slate-800 w-full max-w-lg space-y-4 rounded-2xl p-5 sm:p-6 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h2 className="text-base sm:text-lg font-semibold text-white">New Sale Return</h2>

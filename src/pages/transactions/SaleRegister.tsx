@@ -323,7 +323,7 @@ export default function SaleRegister() {
       {/* Rich Invoice View & Edit Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-xs"
+          className="no-print fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-xs"
           onClick={() => setSelected(null)}
         >
           <div
