@@ -42,7 +42,10 @@ export default function Topbar() {
   }
 
   return (
-    <header className="no-print glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs">
+    <header
+      data-no-print
+      className="no-print print:hidden print:!hidden glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs"
+    >
       {/* Left: Mobile Hamburger & Brand Name */}
       <div className="flex items-center gap-2">
         <button

@@ -36,17 +36,21 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
+      <div className="no-print print:hidden shrink-0" data-no-print>
+        <Sidebar />
+      </div>
       {mobileSidebarOpen && (
-        <button type="button" aria-label="Close navigation" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 z-10 bg-slate-950/60 backdrop-blur-[1px] md:hidden" />
+        <button type="button" aria-label="Close navigation" onClick={() => setMobileSidebarOpen(false)} className="no-print print:hidden fixed inset-0 z-10 bg-slate-950/60 backdrop-blur-[1px] md:hidden" />
       )}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Ambient background glow */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="no-print print:hidden pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -top-40 right-[10%] w-[560px] h-[360px] rounded-full bg-blue-600/[0.06] blur-[120px]" />
           <div className="absolute bottom-[-160px] left-[20%] w-[480px] h-[320px] rounded-full bg-emerald-600/[0.04] blur-[110px]" />
         </div>
-        <Topbar />
+        <div className="no-print print:hidden shrink-0" data-no-print>
+          <Topbar />
+        </div>
         <main className="flex-1 overflow-auto p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
           <ErrorBoundary>
             <div key={location.pathname} className="page-enter min-h-full">
