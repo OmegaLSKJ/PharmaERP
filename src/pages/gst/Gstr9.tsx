@@ -46,13 +46,7 @@ export default function Gstr9() {
         </div>
       </div>
 
-      {/* Warning Banner */}
-      <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex items-center gap-3">
-        <FileText size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
-        <span className="text-xs text-amber-800 dark:text-amber-300">
-          Due date for GSTR-9 FY 2025-26: <b>31 Dec 2026</b>. Tables marked "Review" need manual reconciliation before filing.
-        </span>
-      </div>
+
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
