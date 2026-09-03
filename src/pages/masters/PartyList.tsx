@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useState, useMemo, startTransition } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus,
@@ -12,6 +12,11 @@ import {
   Percent,
   X,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Layers,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
@@ -117,16 +122,26 @@ export default function PartyList() {
     }
   }, [searchParams])
 
+  // Chunking and pagination controls
+  const [pageSize, setPageSize] = useState<number>(50)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [continuousCount, setContinuousCount] = useState<number>(50)
+  const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
+
   const handleTypeFilterChange = (newType: 'all' | 'customer' | 'supplier') => {
-    setTypeFilter(newType)
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (newType === 'all') {
-        next.delete('type')
-      } else {
-        next.set('type', newType)
-      }
-      return next
+    startTransition(() => {
+      setTypeFilter(newType)
+      setCurrentPage(1)
+      setContinuousCount(pageSize || 50)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        if (newType === 'all') {
+          next.delete('type')
+        } else {
+          next.set('type', newType)
+        }
+        return next
+      })
     })
   }
 
@@ -178,32 +193,64 @@ export default function PartyList() {
       .finally(() => setLoading(false))
   }, [showToast])
 
-  const filtered = parties.filter((p) => {
+  const filtered = useMemo(() => {
     const s = (search || '').toLowerCase().trim()
-    const matchSearch =
-      !s ||
-      (p?.name || '').toLowerCase().includes(s) ||
-      (p?.id || '').toLowerCase().includes(s) ||
-      (p?.gstin || '').toLowerCase().includes(s) ||
-      (p?.dlNo || p?.dlNumber || '').toLowerCase().includes(s) ||
-      (p?.phone || '').includes(s)
+    return parties.filter((p) => {
+      const matchSearch =
+        !s ||
+        (p?.name || '').toLowerCase().includes(s) ||
+        (p?.id || '').toLowerCase().includes(s) ||
+        (p?.gstin || '').toLowerCase().includes(s) ||
+        (p?.dlNo || p?.dlNumber || '').toLowerCase().includes(s) ||
+        (p?.phone || '').includes(s)
 
-    const isCustomer =
-      p?.type === 'customer' ||
-      p?.type === 'both' ||
-      (p?.accountGroup || '').toLowerCase().includes('debtor')
-    const isSupplier =
-      p?.type === 'supplier' ||
-      p?.type === 'both' ||
-      (p?.accountGroup || '').toLowerCase().includes('creditor')
+      const isCustomer =
+        p?.type === 'customer' ||
+        p?.type === 'both' ||
+        (p?.accountGroup || '').toLowerCase().includes('debtor')
+      const isSupplier =
+        p?.type === 'supplier' ||
+        p?.type === 'both' ||
+        (p?.accountGroup || '').toLowerCase().includes('creditor')
 
-    const matchType =
-      typeFilter === 'all' ||
-      (typeFilter === 'customer' && isCustomer) ||
-      (typeFilter === 'supplier' && isSupplier)
+      const matchType =
+        typeFilter === 'all' ||
+        (typeFilter === 'customer' && isCustomer) ||
+        (typeFilter === 'supplier' && isSupplier)
 
-    return matchSearch && matchType
-  })
+      return matchSearch && matchType
+    })
+  }, [parties, search, typeFilter])
+
+  // Reset pagination index on search/pageSize/typeFilter changes
+  useEffect(() => {
+    setCurrentPage(1)
+    setContinuousCount(pageSize || 50)
+  }, [search, pageSize, typeFilter])
+
+  const totalItems = filtered.length
+  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / (pageSize || 50)) || 1
+
+  const displayedParties = useMemo(() => {
+    if (pageSize === 0) return filtered
+    if (chunkMode === 'continuous') {
+      return filtered.slice(0, continuousCount)
+    }
+    const start = (currentPage - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, chunkMode, currentPage, pageSize, continuousCount])
+
+  const startIdx = totalItems === 0 ? 0 : pageSize === 0 ? 1 : chunkMode === 'continuous' ? 1 : (currentPage - 1) * pageSize + 1
+  const endIdx =
+    pageSize === 0
+      ? totalItems
+      : chunkMode === 'continuous'
+      ? Math.min(continuousCount, totalItems)
+      : Math.min(currentPage * pageSize, totalItems)
+
+  const handleLoadMore = () => {
+    setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
+  }
 
   // Auto-sync Mail To with Name, and auto-sync Account Group with Type
   const handleFieldChange = (field: string, value: string) => {
@@ -416,35 +463,135 @@ export default function PartyList() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, ID, GSTIN, D.L. No..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+      {/* Filters & Chunk Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border p-2.5 rounded-xl shadow-xs">
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by name, ID, GSTIN, D.L. No..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
         </div>
-        <div className="flex rounded-md border border-input overflow-hidden">
-          {(['all', 'customer', 'supplier'] as const).map((t) => (
+
+        <div className="flex items-center flex-wrap gap-2 justify-end">
+          <div className="flex rounded-md border border-input overflow-hidden text-xs">
+            {(['all', 'customer', 'supplier'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => handleTypeFilterChange(t)}
+                className={cn(
+                  'px-3 py-1.5 text-xs capitalize transition-colors font-medium',
+                  typeFilter === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
+                )}
+              >
+                {t === 'all' ? `All (${parties.length})` : t === 'customer' ? 'Customers' : 'Suppliers'}
+              </button>
+            ))}
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="flex items-center bg-background p-0.5 rounded-md border border-input text-xs">
             <button
-              key={t}
-              onClick={() => handleTypeFilterChange(t)}
+              type="button"
+              onClick={() => setChunkMode('paginated')}
               className={cn(
-                'px-3 py-1.5 text-sm capitalize transition-colors',
-                typeFilter === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                'px-2.5 py-1 rounded font-medium transition text-xs',
+                chunkMode === 'paginated'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {t === 'all' ? 'All Parties' : t === 'customer' ? 'Customers' : 'Suppliers'}
+              Pages
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setChunkMode('continuous')}
+              className={cn(
+                'px-2.5 py-1 rounded font-medium transition flex items-center gap-1 text-xs',
+                chunkMode === 'continuous'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Layers size={11} /> Continuous
+            </button>
+          </div>
+
+          {/* Chunk Selector */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span>Show:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="bg-background border border-input text-foreground rounded px-2 py-1 text-xs outline-none"
+            >
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={250}>250 / page</option>
+              <option value={0}>All ({totalItems})</option>
+            </select>
+          </div>
+
+          <Button variant="outline" size="icon" aria-label="Export filtered parties" onClick={exportParties} className="h-8 w-8">
+            <Download size={14} />
+          </Button>
         </div>
-        <Button variant="outline" size="icon" aria-label="Export filtered parties" onClick={exportParties}>
-          <Download size={16} />
-        </Button>
+      </div>
+
+      {/* Chunk Info Strip */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+        <div>
+          Showing <span className="font-semibold text-foreground">{startIdx}</span> to{' '}
+          <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
+          <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> parties
+        </div>
+
+        {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(1)}
+              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              title="First Page"
+            >
+              <ChevronsLeft size={14} />
+            </button>
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              title="Previous Page"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="px-2 font-mono text-foreground font-semibold">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              title="Next Page"
+            >
+              <ChevronRight size={14} />
+            </button>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              title="Last Page"
+            >
+              <ChevronsRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -467,7 +614,7 @@ export default function PartyList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => (
+              {displayedParties.map((p) => (
                 <tr key={p.id} className="table-row-hover">
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.id}</td>
                   <td className="px-4 py-3">
@@ -569,6 +716,19 @@ export default function PartyList() {
             </tbody>
           </table>
         </div>
+
+        {/* Load more button for continuous scrolling */}
+        {chunkMode === 'continuous' && continuousCount < totalItems && (
+          <div className="p-3 flex justify-center border-t border-border bg-muted/20">
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-background hover:bg-muted text-primary text-xs font-semibold rounded-lg border border-border transition shadow-xs cursor-pointer"
+            >
+              Load More Parties ({Math.min(pageSize || 50, totalItems - continuousCount)} more)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Comprehensive New Party / Modify Ledger Modal (Matching TAO Solutions Pvt Ltd Ledger Spec) */}
