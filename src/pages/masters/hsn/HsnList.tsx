@@ -45,11 +45,11 @@ export default function HsnList() {
     getErp<any[]>('hsn')
       .then((rows) =>
         setItems(
-          rows.map((row) => ({
-            id: row.id,
+          (rows || []).map((row) => ({
+            id: row.id || `hsn-${row.code}`,
             code: row.code,
             description: row.description ?? '',
-            gstRate: Number(row.gst_rate),
+            gstRate: Number(row.gst_rate ?? row.gstRate ?? 12),
             type: row.code?.startsWith('99') ? 'Services' : 'Goods'
           }))
         )
