@@ -126,6 +126,10 @@ export default function LedgerList() {
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   const [showModal, setShowModal] = useState(false)
+  const [editModalLedger, setEditModalLedger] = useState<Ledger | null>(null)
+  const [editName, setEditName] = useState('')
+  const [deleteConfirmLedger, setDeleteConfirmLedger] = useState<Ledger | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [purging, setPurging] = useState(false)
   const [name, setName] = useState('')
   const [group, setGroup] = useState('Sundry Debtors')
@@ -320,26 +324,40 @@ export default function LedgerList() {
     }
   }
 
-  const editLedger = async (ledger: Ledger) => {
-    const nextName = window.prompt('Ledger name', ledger.name)
-    if (!nextName) return
+  const editLedger = (ledger: Ledger) => {
+    setEditModalLedger(ledger)
+    setEditName(ledger.name)
+  }
+
+  const confirmEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editModalLedger || !editName.trim()) return
     try {
-      await patchErp('accounts', ledger.id, { name: nextName, group: ledger.group })
-      setLedgers((rows) => rows.map((row) => (row.id === ledger.id ? { ...row, name: nextName } : row)))
+      await patchErp('accounts', editModalLedger.id, { name: editName.trim(), group: editModalLedger.group })
+      setLedgers((rows) => rows.map((row) => (row.id === editModalLedger.id ? { ...row, name: editName.trim() } : row)))
       addToast('Ledger updated', 'success')
+      setEditModalLedger(null)
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Unable to update ledger', 'error')
     }
   }
 
-  const removeLedger = async (ledger: Ledger) => {
-    if (!window.confirm(`Delete ${ledger.name}?`)) return
+  const removeLedger = (ledger: Ledger) => {
+    setDeleteConfirmLedger(ledger)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmLedger) return
+    setDeleting(true)
     try {
-      await deleteErp('accounts', ledger.id)
-      setLedgers((rows) => rows.filter((row) => row.id !== ledger.id))
+      await deleteErp('accounts', deleteConfirmLedger.id)
+      setLedgers((rows) => rows.filter((row) => row.id !== deleteConfirmLedger.id))
       addToast('Ledger deleted', 'success')
+      setDeleteConfirmLedger(null)
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'This ledger may already be used in posted entries.', 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -350,12 +368,14 @@ export default function LedgerList() {
 
   const [hideZeroBalances, setHideZeroBalances] = useState(false)
 
-  const filteredLedgers = ledgers.filter((l) => {
-    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.group.toLowerCase().includes(search.toLowerCase())
-    const matchGroup = groupFilter === 'ALL' || l.group.toLowerCase() === groupFilter.toLowerCase()
-    const matchBalance = !hideZeroBalances || (Number(l.balance) || 0) > 0
-    return matchSearch && matchGroup && matchBalance
-  })
+  const filteredLedgers = useMemo(() => {
+    return ledgers.filter((l) => {
+      const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.group.toLowerCase().includes(search.toLowerCase())
+      const matchGroup = groupFilter === 'ALL' || l.group.toLowerCase() === groupFilter.toLowerCase()
+      const matchBalance = !hideZeroBalances || (Number(l.balance) || 0) > 0
+      return matchSearch && matchGroup && matchBalance
+    })
+  }, [ledgers, search, groupFilter, hideZeroBalances])
 
   const selectedLedgerObj = ledgers.find((l) => l.name === selectedLedger)
 
@@ -961,6 +981,70 @@ export default function LedgerList() {
                   <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Save</button>
                 </div>
               </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {editModalLedger &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
+              <h3 className="text-base sm:text-lg font-bold text-white">Edit Ledger Name</h3>
+              <form onSubmit={confirmEdit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger Name</label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div className="text-xs text-slate-400">
+                  Group: <span className="text-slate-200 font-medium">{editModalLedger.group}</span>
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                  <button type="button" onClick={() => setEditModalLedger(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Update</button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {deleteConfirmLedger &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
+            <div className="bg-slate-900 border border-rose-900/50 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
+              <h3 className="text-base sm:text-lg font-bold text-rose-400">Confirm Deletion</h3>
+              <p className="text-sm text-slate-300">
+                Are you sure you want to delete <strong className="text-white">{deleteConfirmLedger.name}</strong>?
+              </p>
+              <div className="text-xs text-slate-400">
+                Ledgers linked to existing posted transactions cannot be deleted.
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setDeleteConfirmLedger(null)}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-md disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete Ledger'}
+                </button>
+              </div>
             </div>
           </div>,
           document.body
