@@ -155,21 +155,29 @@ export async function fetchLiveFinancialData(): Promise<{
     closingStockVal += st * rate
   })
 
-  // 2. Profit & Loss
+  // 2. Profit & Loss (Trading and Profit & Loss Account)
+  // In standard accounting, Closing Stock is credited to Income (Trading Account),
+  // offsetting inward purchases so that only the actual Cost of Goods Sold impacts profit.
   const pnlResult: PnLData = {
     income: [
       { item: 'Sales Revenue', amount: Math.round(totalSalesRev) }
     ],
     expenses: [
-      { item: 'Purchase Cost', amount: Math.round(totalPurchasesCost) }
+      { item: 'Gross Purchases (Inward Stock)', amount: Math.round(totalPurchasesCost) }
     ]
   }
 
-  if (totalExpenses > 0) {
-    pnlResult.expenses.push({ item: 'Operating Expenses', amount: Math.round(totalExpenses) })
+  if (closingStockVal > 0) {
+    pnlResult.income.push({ item: 'Closing Stock (Inventory on Hand)', amount: Math.round(closingStockVal) })
   }
 
-  const netProfit = Math.round(totalSalesRev - totalPurchasesCost - totalExpenses)
+  if (totalExpenses > 0) {
+    pnlResult.expenses.push({ item: 'Operating & Admin Expenses', amount: Math.round(totalExpenses) })
+  }
+
+  const totalTradingIncome = totalSalesRev + closingStockVal
+  const totalTradingExpenses = totalPurchasesCost + totalExpenses
+  const netProfit = Math.round(totalTradingIncome - totalTradingExpenses)
 
   // 3. Balance Sheet
   const netGstPayable = Math.max(0, Math.round(totalOutputTax - totalInputTax))
