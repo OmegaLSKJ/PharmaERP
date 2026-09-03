@@ -1,1389 +1,5916 @@
 {
   "manufacturers": [
     {
-      "id": "m-1",
-      "name": "**",
-      "code": "",
-      "is_active": true
-    },
-    {
-      "id": "m-2",
+      "id": "mfg-1",
       "name": "AAHAR",
-      "code": "AAHA",
+      "code": "AAHAR",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-3",
+      "id": "mfg-2",
+      "name": "AASTHA",
+      "code": "AASTHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-3",
       "name": "ABBOTT",
-      "code": "ABBO",
+      "code": "ABBOTT",
+      "productCount": 51,
+      "itemcount": 51,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-4",
+      "id": "mfg-4",
       "name": "ACCUSURE",
-      "code": "ACCU",
+      "code": "ACCUSU",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-5",
+      "id": "mfg-5",
       "name": "ACPL",
       "code": "ACPL",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-6",
+      "id": "mfg-6",
+      "name": "ADCOCK",
+      "code": "ADCOCK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-7",
+      "name": "ADDLIFE",
+      "code": "ADDLIF",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-8",
+      "name": "ADMAC",
+      "code": "ADMAC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-9",
+      "name": "ADONIS LAB",
+      "code": "ADONIS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-10",
       "name": "ADROIT",
-      "code": "ADRO",
+      "code": "ADROIT",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-7",
+      "id": "mfg-11",
+      "name": "AFD",
+      "code": "AFDX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-12",
+      "name": "AFEX",
+      "code": "AFEX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-13",
+      "name": "AGASTYA RESEARC",
+      "code": "AGASTY",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-14",
+      "name": "AGASTYA RESEARCH",
+      "code": "AGAS01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-15",
       "name": "AGLOWMED",
-      "code": "AGLO",
+      "code": "AGLOWM",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-8",
+      "id": "mfg-16",
       "name": "AIMIL",
-      "code": "AIMI",
+      "code": "AIMIL",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-9",
+      "id": "mfg-17",
+      "name": "AIOCD LTD",
+      "code": "AIOCDL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-18",
+      "name": "AIRCEL",
+      "code": "AIRCEL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-19",
       "name": "AISHWARA HEALTHCARE",
-      "code": "AISH",
+      "code": "AISHWA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-10",
+      "id": "mfg-20",
       "name": "AJANTA",
-      "code": "AJAN",
+      "code": "AJANTA",
+      "productCount": 17,
+      "itemcount": 17,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-11",
+      "id": "mfg-21",
+      "name": "AKSIGEN",
+      "code": "AKSIGE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-22",
+      "name": "AKUMENTIS HEALTHCARE LTD",
+      "code": "AKUMEN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-23",
       "name": "ALBERT",
-      "code": "ALBE",
+      "code": "ALBERT",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-12",
+      "id": "mfg-24",
       "name": "ALBERT DAVID",
-      "code": "ALBE",
+      "code": "ALBE01",
+      "productCount": 11,
+      "itemcount": 11,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-13",
+      "id": "mfg-25",
+      "name": "ALBERT PHARMA",
+      "code": "ALBE02",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-26",
+      "name": "ALBIC",
+      "code": "ALBIC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-27",
+      "name": "ALCHEM",
+      "code": "ALCHEM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-28",
+      "name": "ALCO",
+      "code": "ALCO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-29",
+      "name": "ALCON",
+      "code": "ALCON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-30",
       "name": "ALEMBIC",
-      "code": "ALEM",
+      "code": "ALEMBI",
+      "productCount": 82,
+      "itemcount": 82,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-14",
+      "id": "mfg-31",
       "name": "ALEMBIC MEGACERE",
-      "code": "ALEM",
+      "code": "ALEM01",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-15",
+      "id": "mfg-32",
+      "name": "ALIDAC FORTIZA",
+      "code": "ALIDAC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-33",
       "name": "ALKEM",
-      "code": "ALKE",
+      "code": "ALKEM",
+      "productCount": 64,
+      "itemcount": 64,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-16",
+      "id": "mfg-34",
       "name": "ALLEN'S",
-      "code": "ALLE",
+      "code": "ALLENS",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-17",
+      "id": "mfg-35",
       "name": "ALLERGAN",
-      "code": "ALLE",
+      "code": "ALLERG",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-18",
+      "id": "mfg-36",
       "name": "ALTO",
       "code": "ALTO",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-19",
+      "id": "mfg-37",
+      "name": "AMANTA HEALTHCARE LTD",
+      "code": "AMANTA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-38",
+      "name": "AMAZING RESEARCH LAB",
+      "code": "AMAZIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-39",
+      "name": "AMCO HERBALS",
+      "code": "AMCOHE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-40",
       "name": "AMIGO",
-      "code": "AMIG",
+      "code": "AMIGO",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-20",
+      "id": "mfg-41",
       "name": "AMRUTAN",
-      "code": "AMRU",
+      "code": "AMRUTA",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-21",
+      "id": "mfg-42",
+      "name": "AMS",
+      "code": "AMSX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-43",
+      "name": "ANAKEM",
+      "code": "ANAKEM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-44",
+      "name": "ANATRA",
+      "code": "ANATRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-45",
       "name": "ANGLO",
-      "code": "ANGL",
+      "code": "ANGLO",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-22",
+      "id": "mfg-46",
+      "name": "ANOM HEALTCRE",
+      "code": "ANOMHE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-47",
       "name": "APEX",
       "code": "APEX",
+      "productCount": 14,
+      "itemcount": 14,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-23",
+      "id": "mfg-48",
+      "name": "APK",
+      "code": "APKX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-49",
+      "name": "AREX LAB",
+      "code": "AREXLA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-50",
       "name": "ARISTO",
-      "code": "ARIS",
+      "code": "ARISTO",
+      "productCount": 32,
+      "itemcount": 32,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-24",
+      "id": "mfg-51",
+      "name": "ARROW",
+      "code": "ARROW",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-52",
       "name": "ARUNAVA",
-      "code": "ARUN",
+      "code": "ARUNAV",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-25",
+      "id": "mfg-53",
+      "name": "ARYA PHARMA",
+      "code": "ARYAPH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-54",
       "name": "ASCENT",
-      "code": "ASCE",
+      "code": "ASCENT",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-26",
+      "id": "mfg-55",
+      "name": "ASH",
+      "code": "ASHX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-56",
       "name": "ASTRA ZENECA",
-      "code": "ASTR",
+      "code": "ASTRAZ",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-27",
+      "id": "mfg-57",
+      "name": "ASTRAL",
+      "code": "ASTRAL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-58",
+      "name": "AUROBINA",
+      "code": "AUROBI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-59",
+      "name": "AUSMED LIFE",
+      "code": "AUSMED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-60",
+      "name": "AUSTRIA PHARMA",
+      "code": "AUSTRI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-61",
+      "name": "AUSTRO",
+      "code": "AUSTRO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-62",
       "name": "AVENTIS",
-      "code": "AVEN",
+      "code": "AVENTI",
+      "productCount": 8,
+      "itemcount": 8,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-28",
+      "id": "mfg-63",
+      "name": "AXCEL HEALHCARE",
+      "code": "AXCELH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-64",
       "name": "AXZEL LIFE",
-      "code": "AXZE",
+      "code": "AXZELL",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-29",
-      "name": "B.D.",
-      "code": "BD",
+      "id": "mfg-65",
+      "name": "AYU-VEDA",
+      "code": "AYUVED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-30",
+      "id": "mfg-66",
+      "name": "AYURVET",
+      "code": "AYURVE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-67",
+      "name": "AZILLIAN HEALTCARE",
+      "code": "AZILLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-68",
+      "name": "B.D",
+      "code": "BDXX",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-69",
       "name": "B.E.LIMITED",
-      "code": "BELI",
+      "code": "BELIMI",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-31",
+      "id": "mfg-70",
+      "name": "B.SERUM",
+      "code": "BSERUM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-71",
+      "name": "B/BRAUN",
+      "code": "BBRAUN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-72",
+      "name": "BAIDYANATH",
+      "code": "BAIDYA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-73",
+      "name": "BAJAJ",
+      "code": "BAJAJ",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-74",
+      "name": "BANK",
+      "code": "BANK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-75",
       "name": "BAYERS",
-      "code": "BAYE",
+      "code": "BAYERS",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-32",
+      "id": "mfg-76",
+      "name": "BD",
+      "code": "BDXX01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-77",
       "name": "BDF",
-      "code": "BDF",
+      "code": "BDFX",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-33",
+      "id": "mfg-78",
+      "name": "BDH",
+      "code": "BDHX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-79",
       "name": "BE",
-      "code": "BE",
+      "code": "BEXX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-34",
+      "id": "mfg-80",
       "name": "BENNET PHARM",
-      "code": "BENN",
+      "code": "BENNET",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-35",
+      "id": "mfg-81",
+      "name": "BENZORGO",
+      "code": "BENZOR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-82",
       "name": "BERGEN",
-      "code": "BERG",
+      "code": "BERGEN",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-36",
+      "id": "mfg-83",
       "name": "BESTIA",
-      "code": "BEST",
+      "code": "BESTIA",
+      "productCount": 10,
+      "itemcount": 10,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-37",
+      "id": "mfg-84",
+      "name": "BHARAT BIOTECH",
+      "code": "BHARAT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-85",
+      "name": "BHARAT SERUMS",
+      "code": "BHAR01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-86",
       "name": "BIDHI",
-      "code": "BIDH",
+      "code": "BIDHI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-38",
+      "id": "mfg-87",
+      "name": "BIO MARK",
+      "code": "BIOMAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-88",
+      "name": "BIO SCIENCES",
+      "code": "BIOSCI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-89",
       "name": "BIO TECH",
-      "code": "BIOT",
+      "code": "BIOTEC",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-39",
+      "id": "mfg-90",
       "name": "BIOCHEM",
-      "code": "BIOC",
+      "code": "BIOCHE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-40",
+      "id": "mfg-91",
+      "name": "BIOCHEM PHARMA",
+      "code": "BIOC01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-92",
       "name": "BIOCON",
-      "code": "BIOC",
+      "code": "BIOCON",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-41",
+      "id": "mfg-93",
+      "name": "BIOMAX BIOS",
+      "code": "BIOMAX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-94",
       "name": "BIOZEAL HEALTHCARE",
-      "code": "BIOZ",
+      "code": "BIOZEA",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-42",
+      "id": "mfg-95",
       "name": "BIOZEN",
-      "code": "BIOZ",
+      "code": "BIOZEN",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-43",
+      "id": "mfg-96",
+      "name": "BISHNU",
+      "code": "BISHNU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-97",
       "name": "BLISSI",
-      "code": "BLIS",
+      "code": "BLISSI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-44",
+      "id": "mfg-98",
+      "name": "BOEHRINGER INGELHAIM",
+      "code": "BOEHRI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-99",
+      "name": "BOFFIN BIOTECH",
+      "code": "BOFFIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-100",
+      "name": "BOMBAY TAB",
+      "code": "BOMBAY",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-101",
+      "name": "BOOTS",
+      "code": "BOOTS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-102",
       "name": "BOOTS PIRAMAL",
-      "code": "BOOT",
+      "code": "BOOTSP",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-45",
+      "id": "mfg-103",
+      "name": "BOTANI PHARMA",
+      "code": "BOTANI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-104",
+      "name": "BPL",
+      "code": "BPLX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-105",
+      "name": "BRANOLIA",
+      "code": "BRANOL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-106",
+      "name": "BRAWN",
+      "code": "BRAWN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-107",
+      "name": "BRIOC",
+      "code": "BRIOC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-108",
+      "name": "BRITISH BIOLOGICALS",
+      "code": "BRITIS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-109",
+      "name": "BROAD BIOTECH",
+      "code": "BROADB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-110",
       "name": "BROS ENT",
-      "code": "BROS",
+      "code": "BROSEN",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-46",
+      "id": "mfg-111",
+      "name": "BSN",
+      "code": "BSNX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-112",
+      "name": "BSNL",
+      "code": "BSNL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-113",
+      "name": "BTEX",
+      "code": "BTEX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-114",
+      "name": "BULLFORD",
+      "code": "BULLFO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-115",
+      "name": "BULTER",
+      "code": "BULTER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-116",
+      "name": "BURGEON",
+      "code": "BURGEO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-117",
+      "name": "BURROUGHS",
+      "code": "BURROU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-118",
+      "name": "CACHET",
+      "code": "CACHET",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-119",
       "name": "CADILA",
-      "code": "CADI",
+      "code": "CADILA",
+      "productCount": 10,
+      "itemcount": 10,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-47",
+      "id": "mfg-120",
+      "name": "CANIXA",
+      "code": "CANIXA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-121",
       "name": "CAPSOF",
-      "code": "CAPS",
+      "code": "CAPSOF",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-48",
+      "id": "mfg-122",
+      "name": "CARE FOMMUL",
+      "code": "CAREFO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-123",
       "name": "CELANTIS",
-      "code": "CELA",
+      "code": "CELANT",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-49",
+      "id": "mfg-124",
       "name": "CENTAUR",
-      "code": "CENT",
+      "code": "CENTAU",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-50",
+      "id": "mfg-125",
+      "name": "CENTURY DRUG",
+      "code": "CENTUR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-126",
+      "name": "CFL",
+      "code": "CFLX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-127",
       "name": "CHARAK",
-      "code": "CHAR",
+      "code": "CHARAK",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-51",
+      "id": "mfg-128",
+      "name": "CHIRON",
+      "code": "CHIRON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-129",
+      "name": "CHPL",
+      "code": "CHPL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-130",
       "name": "CIPLA",
-      "code": "CIPL",
+      "code": "CIPLA",
+      "productCount": 51,
+      "itemcount": 51,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-52",
+      "id": "mfg-131",
+      "name": "COLES",
+      "code": "COLES",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-132",
       "name": "COMBITIC GLOBAL",
-      "code": "COMB",
+      "code": "COMBIT",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-53",
+      "id": "mfg-133",
       "name": "CONCEPT",
-      "code": "CONC",
+      "code": "CONCEP",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-54",
+      "id": "mfg-134",
+      "name": "CORAL LAB",
+      "code": "CORALL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-135",
+      "name": "COSME",
+      "code": "COSME",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-136",
+      "name": "CPI",
+      "code": "CPIX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-137",
+      "name": "CRATUS",
+      "code": "CRATUS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-138",
+      "name": "CRIS",
+      "code": "CRIS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-139",
+      "name": "CROSLAND",
+      "code": "CROSLA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-140",
+      "name": "CROSSBERRY",
+      "code": "CROSSB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-141",
+      "name": "CUBIT",
+      "code": "CUBIT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-142",
+      "name": "CUREKIND",
+      "code": "CUREKI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-143",
+      "name": "CUREWEL",
+      "code": "CUREWE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-144",
+      "name": "CYMER",
+      "code": "CYMER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-145",
       "name": "DABUR",
-      "code": "DABU",
+      "code": "DABUR",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-55",
+      "id": "mfg-146",
+      "name": "DALTON LAB",
+      "code": "DALTON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-147",
+      "name": "DARNIV",
+      "code": "DARNIV",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-148",
+      "name": "DELCURE",
+      "code": "DELCUR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-149",
       "name": "DELTA",
-      "code": "DELT",
+      "code": "DELTA",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-56",
+      "id": "mfg-150",
       "name": "DEV",
-      "code": "DEV",
+      "code": "DEVX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-57",
+      "id": "mfg-151",
       "name": "DEYS",
       "code": "DEYS",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-58",
+      "id": "mfg-152",
+      "name": "DINDAYAL IND",
+      "code": "DINDAY",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-153",
       "name": "DIOMOND",
-      "code": "DIOM",
+      "code": "DIOMON",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-59",
+      "id": "mfg-154",
       "name": "DIVISA",
-      "code": "DIVI",
+      "code": "DIVISA",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-60",
+      "id": "mfg-155",
+      "name": "DKT",
+      "code": "DKTX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-156",
       "name": "DOLLAR",
-      "code": "DOLL",
+      "code": "DOLLAR",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-61",
-      "name": "DOMAGK",
+      "id": "mfg-157",
+      "name": "DOMA",
       "code": "DOMA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-62",
+      "id": "mfg-158",
+      "name": "DOMAGK",
+      "code": "DOMAGK",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-159",
       "name": "DONSON",
-      "code": "DONS",
+      "code": "DONSON",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-63",
+      "id": "mfg-160",
       "name": "DOSON",
-      "code": "DOSO",
+      "code": "DOSON",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-64",
+      "id": "mfg-161",
       "name": "DR BISWAS",
-      "code": "DRBI",
+      "code": "DRBISW",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-65",
+      "id": "mfg-162",
+      "name": "DR.JOHN;S",
+      "code": "DRJOHN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-163",
+      "name": "DR.K.K'S",
+      "code": "DRKKS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-164",
       "name": "DR.MOREPEN",
-      "code": "DRMO",
+      "code": "DRMORE",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-66",
+      "id": "mfg-165",
       "name": "DR.REDDY'S",
-      "code": "DRRE",
+      "code": "DRREDD",
+      "productCount": 53,
+      "itemcount": 53,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-67",
+      "id": "mfg-166",
+      "name": "DRAKT",
+      "code": "DRAKT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-167",
+      "name": "DRAWN",
+      "code": "DRAWN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-168",
       "name": "DRUGS INDIA",
-      "code": "DRUG",
+      "code": "DRUGSI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-68",
+      "id": "mfg-169",
+      "name": "DUBAR",
+      "code": "DUBAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-170",
+      "name": "DUCKBAC",
+      "code": "DUCKBA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-171",
       "name": "DWD",
-      "code": "DWD",
+      "code": "DWDX",
+      "productCount": 15,
+      "itemcount": 15,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-69",
+      "id": "mfg-172",
+      "name": "DYMEXA BIOTECH",
+      "code": "DYMEXA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-173",
       "name": "DYNA",
       "code": "DYNA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-70",
-      "name": "ELDER.",
-      "code": "ELDE",
+      "id": "mfg-174",
+      "name": "DYOTA",
+      "code": "DYOTA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-71",
+      "id": "mfg-175",
+      "name": "EAST",
+      "code": "EAST",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-176",
+      "name": "EASYLIFE",
+      "code": "EASYLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-177",
+      "name": "ELDER",
+      "code": "ELDER",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-178",
+      "name": "ELI LLILY",
+      "code": "ELILLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-179",
+      "name": "ELISA BIOTECH",
+      "code": "ELISAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-180",
+      "name": "ELIXIR",
+      "code": "ELIXIR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-181",
+      "name": "ELMAC",
+      "code": "ELMAC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-182",
+      "name": "ELYON PHARAMA",
+      "code": "ELYONP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-183",
+      "name": "EMAMI LTD",
+      "code": "EMAMIL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-184",
       "name": "EMCURE",
-      "code": "EMCU",
+      "code": "EMCURE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-72",
+      "id": "mfg-185",
+      "name": "ERGOS LIFE SCIENCE",
+      "code": "ERGOSL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-186",
       "name": "ERIS LIFE",
-      "code": "ERIS",
+      "code": "ERISLI",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-73",
+      "id": "mfg-187",
       "name": "ETCHICON",
-      "code": "ETCH",
+      "code": "ETCHIC",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-74",
+      "id": "mfg-188",
+      "name": "ETHICON",
+      "code": "ETHICO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-189",
+      "name": "EUPHORIC",
+      "code": "EUPHOR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-190",
+      "name": "EUROLIFE",
+      "code": "EUROLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-191",
+      "name": "EVANS PHARMA",
+      "code": "EVANSP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-192",
+      "name": "EVANSS PHARMA",
+      "code": "EVANSS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-193",
       "name": "EVEREST",
-      "code": "EVER",
+      "code": "EVERES",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-75",
+      "id": "mfg-194",
       "name": "EXCARE",
-      "code": "EXCA",
+      "code": "EXCARE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-76",
+      "id": "mfg-195",
       "name": "EXCELL",
-      "code": "EXCE",
+      "code": "EXCELL",
+      "productCount": 15,
+      "itemcount": 15,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-77",
+      "id": "mfg-196",
       "name": "EXKLUSIV LIFE",
-      "code": "EXKL",
+      "code": "EXKLUS",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-78",
+      "id": "mfg-197",
+      "name": "FAIR FORD",
+      "code": "FAIRFO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-198",
       "name": "FDC",
-      "code": "FDC",
+      "code": "FDCX",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-79",
+      "id": "mfg-199",
+      "name": "FIGARO",
+      "code": "FIGARO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-200",
+      "name": "FLAMINGO",
+      "code": "FLAMIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-201",
+      "name": "FLORA BIOTECH",
+      "code": "FLORAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-202",
       "name": "FOURRTS",
-      "code": "FOUR",
+      "code": "FOURRT",
+      "productCount": 22,
+      "itemcount": 22,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-80",
+      "id": "mfg-203",
+      "name": "FPO",
+      "code": "FPOX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-204",
       "name": "FRANCO",
-      "code": "FRAN",
+      "code": "FRANCO",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-81",
+      "id": "mfg-205",
+      "name": "FRESENIUS KABI INDIA PVT",
+      "code": "FRESEN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-206",
+      "name": "FULFORD",
+      "code": "FULFOR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-207",
+      "name": "GALDERMA",
+      "code": "GALDER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-208",
       "name": "GALLBERRY",
-      "code": "GALL",
+      "code": "GALLBE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-82",
+      "id": "mfg-209",
       "name": "GALPHA",
-      "code": "GALP",
+      "code": "GALPHA",
+      "productCount": 10,
+      "itemcount": 10,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-83",
+      "id": "mfg-210",
       "name": "GENO",
       "code": "GENO",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-84",
+      "id": "mfg-211",
       "name": "GENX",
       "code": "GENX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-85",
+      "id": "mfg-212",
       "name": "GERMAN",
-      "code": "GERM",
+      "code": "GERMAN",
+      "productCount": 17,
+      "itemcount": 17,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-86",
+      "id": "mfg-213",
+      "name": "GILLET",
+      "code": "GILLET",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-214",
+      "name": "GK",
+      "code": "GKXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-215",
       "name": "GLAXO",
-      "code": "GLAX",
+      "code": "GLAXO",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-87",
+      "id": "mfg-216",
       "name": "GLENMERK",
-      "code": "GLEN",
+      "code": "GLENME",
+      "productCount": 28,
+      "itemcount": 28,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-88",
+      "id": "mfg-217",
+      "name": "GLOBEX",
+      "code": "GLOBEX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-218",
       "name": "GLOWDERMA",
-      "code": "GLOW",
+      "code": "GLOWDE",
+      "productCount": 22,
+      "itemcount": 22,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-89",
+      "id": "mfg-219",
       "name": "GLYCO",
-      "code": "GLYC",
+      "code": "GLYCO",
+      "productCount": 12,
+      "itemcount": 12,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-90",
+      "id": "mfg-220",
+      "name": "GOODCARE PHARMA",
+      "code": "GOODCA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-221",
+      "name": "GOPISH",
+      "code": "GOPISH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-222",
+      "name": "GREENCO",
+      "code": "GREENC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-223",
+      "name": "GROUP",
+      "code": "GROUP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-224",
+      "name": "GROWMAX MEDICARE",
+      "code": "GROWMA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-225",
       "name": "GSK",
-      "code": "GSK",
+      "code": "GSKX",
+      "productCount": 12,
+      "itemcount": 12,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-91",
+      "id": "mfg-226",
+      "name": "GUARDIAN",
+      "code": "GUARDI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-227",
       "name": "H&H",
-      "code": "HH",
+      "code": "HHXX",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-92",
+      "id": "mfg-228",
       "name": "HAMDDARD",
-      "code": "HAMD",
+      "code": "HAMDDA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-93",
+      "id": "mfg-229",
+      "name": "HASRRB",
+      "code": "HASRRB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-230",
+      "name": "HEALTH CARE",
+      "code": "HEALTH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-231",
+      "name": "HEALTHIUM MEDITECH",
+      "code": "HEAL01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-232",
+      "name": "HEALWEL PHARMA",
+      "code": "HEALWE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-233",
       "name": "HEGDE",
-      "code": "HEGD",
+      "code": "HEGDE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-94",
+      "id": "mfg-234",
+      "name": "HEILGERMAN",
+      "code": "HEILGE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-235",
+      "name": "HEINZ INDIA",
+      "code": "HEINZI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-236",
+      "name": "HELIX INDIA",
+      "code": "HELIXI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-237",
+      "name": "HERB EDGE",
+      "code": "HERBED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-238",
       "name": "HERBAL",
-      "code": "HERB",
+      "code": "HERBAL",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-95",
+      "id": "mfg-239",
+      "name": "HETERO HEALTH",
+      "code": "HETERO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-240",
       "name": "HICKS",
-      "code": "HICK",
+      "code": "HICKS",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-96",
+      "id": "mfg-241",
+      "name": "HIGGS HEALTH",
+      "code": "HIGGSH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-242",
+      "name": "HIGH TECH",
+      "code": "HIGHTE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-243",
       "name": "HIMALAYA",
-      "code": "HIMA",
+      "code": "HIMALA",
+      "productCount": 22,
+      "itemcount": 22,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-97",
+      "id": "mfg-244",
       "name": "HIMANI",
-      "code": "HIMA",
+      "code": "HIMANI",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-98",
+      "id": "mfg-245",
+      "name": "HINDCARE SURGICALS",
+      "code": "HINDCA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-246",
       "name": "HLL LIFECARE",
-      "code": "HLLL",
+      "code": "HLLLIF",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-99",
+      "id": "mfg-247",
+      "name": "HOECH",
+      "code": "HOECH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-248",
+      "name": "HP",
+      "code": "HPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-249",
+      "name": "HRHP",
+      "code": "HRHP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-250",
       "name": "HSMD",
       "code": "HSMD",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-100",
+      "id": "mfg-251",
+      "name": "HSMS9",
+      "code": "HSMS9",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-252",
       "name": "HUMAN BIOLOGICAL INSTITUTE",
-      "code": "HUMA",
+      "code": "HUMANB",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-101",
+      "id": "mfg-253",
+      "name": "HUMAN DIAGNOSTICS",
+      "code": "HUMAND",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-254",
+      "name": "I",
+      "code": "IXXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-255",
       "name": "ICPA",
       "code": "ICPA",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-102",
+      "id": "mfg-256",
+      "name": "IDEAL",
+      "code": "IDEAL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-257",
+      "name": "IKON",
+      "code": "IKON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-258",
+      "name": "IKON REMEDIES",
+      "code": "IKONRE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-259",
       "name": "IND-SWIFT",
-      "code": "INDS",
+      "code": "INDSWI",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-103",
+      "id": "mfg-260",
       "name": "INDECHEMIC",
-      "code": "INDE",
+      "code": "INDECH",
+      "productCount": 14,
+      "itemcount": 14,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-104",
+      "id": "mfg-261",
       "name": "INDI PHARMA",
-      "code": "INDI",
+      "code": "INDIPH",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-105",
+      "id": "mfg-262",
       "name": "INDIAN HERBS",
-      "code": "INDI",
+      "code": "INDIAN",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-106",
+      "id": "mfg-263",
+      "name": "indkus",
+      "code": "INDKUS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-264",
       "name": "INDOCO",
-      "code": "INDO",
+      "code": "INDOCO",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-107",
+      "id": "mfg-265",
+      "name": "INDOSS LIFE",
+      "code": "INDOSS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-266",
+      "name": "INFUTEC",
+      "code": "INFUTE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-267",
+      "name": "INGZEST",
+      "code": "INGZES",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-268",
       "name": "INNOVTIVE",
-      "code": "INNO",
+      "code": "INNOVT",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-108",
+      "id": "mfg-269",
       "name": "INTAS",
-      "code": "INTA",
+      "code": "INTAS",
+      "productCount": 95,
+      "itemcount": 95,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-109",
+      "id": "mfg-270",
       "name": "INTERPHAR",
-      "code": "INTE",
+      "code": "INTERP",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-110",
+      "id": "mfg-271",
+      "name": "INTERVE",
+      "code": "INTERV",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-272",
+      "name": "ION LAB",
+      "code": "IONLAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-273",
       "name": "IPCA",
       "code": "IPCA",
+      "productCount": 13,
+      "itemcount": 13,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-111",
+      "id": "mfg-274",
+      "name": "IPSA",
+      "code": "IPSA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-275",
+      "name": "IRENE",
+      "code": "IRENE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-276",
+      "name": "J.P",
+      "code": "JPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-277",
       "name": "JAGSONPAL",
-      "code": "JAGS",
+      "code": "JAGSON",
+      "productCount": 6,
+      "itemcount": 6,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-112",
+      "id": "mfg-278",
+      "name": "JAIN",
+      "code": "JAIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-279",
+      "name": "JASCO LAB",
+      "code": "JASCOL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-280",
       "name": "JBCPL",
-      "code": "JBCP",
+      "code": "JBCPL",
+      "productCount": 17,
+      "itemcount": 17,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-113",
+      "id": "mfg-281",
+      "name": "JCWP",
+      "code": "JCWP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-282",
+      "name": "JD PHARMA",
+      "code": "JDPHAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-283",
+      "name": "JEDUX",
+      "code": "JEDUX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-284",
+      "name": "JH",
+      "code": "JHXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-285",
       "name": "JIBANJYOTI PHARMA",
-      "code": "JIBA",
+      "code": "JIBANJ",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-114",
+      "id": "mfg-286",
+      "name": "JIBANJYOTY PHARMA",
+      "code": "JIBA01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-287",
+      "name": "JIMIT",
+      "code": "JIMIT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-288",
+      "name": "JLPL",
+      "code": "JLPL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-289",
+      "name": "JMD",
+      "code": "JMDX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-290",
       "name": "JOHNSON",
-      "code": "JOHN",
+      "code": "JOHNSO",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-115",
+      "id": "mfg-291",
+      "name": "JORDEN REMEDIES",
+      "code": "JORDEN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-292",
+      "name": "JPEE DRUGS",
+      "code": "JPEEDR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-293",
       "name": "JUGGAT",
-      "code": "JUGG",
+      "code": "JUGGAT",
+      "productCount": 9,
+      "itemcount": 9,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-116",
+      "id": "mfg-294",
       "name": "JUPITER",
-      "code": "JUPI",
+      "code": "JUPITE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-117",
+      "id": "mfg-295",
+      "name": "K.N.SURGICAL",
+      "code": "KNSURG",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-296",
+      "name": "KABRA",
+      "code": "KABRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-297",
+      "name": "KABRADRUG",
+      "code": "KABRAD",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-298",
+      "name": "KAYTEE",
+      "code": "KAYTEE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-299",
+      "name": "KBL",
+      "code": "KBLX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-300",
+      "name": "KEE PHARMA",
+      "code": "KEEPHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-301",
+      "name": "KERATIC HEALTH",
+      "code": "KERATI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-302",
       "name": "KL",
-      "code": "KL",
+      "code": "KLXX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-118",
+      "id": "mfg-303",
       "name": "KLAR",
       "code": "KLAR",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-119",
+      "id": "mfg-304",
+      "name": "KLIPL",
+      "code": "KLIPL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-305",
+      "name": "KLOSTER PHARAMA",
+      "code": "KLOSTE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-306",
+      "name": "KNM PHARMA",
+      "code": "KNMPHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-307",
       "name": "KNOLL",
-      "code": "KNOL",
+      "code": "KNOLL",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-120",
+      "id": "mfg-308",
+      "name": "KOBRA",
+      "code": "KOBRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-309",
+      "name": "KODAK FILM",
+      "code": "KODAKF",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-310",
+      "name": "KONDEDEX HEALH",
+      "code": "KONDED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-311",
       "name": "KONTEST",
-      "code": "KONT",
+      "code": "KONTES",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-121",
+      "id": "mfg-312",
+      "name": "KOPRAN LAB",
+      "code": "KOPRAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-313",
+      "name": "KOYE PHARMA",
+      "code": "KOYEPH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-314",
+      "name": "KRPL",
+      "code": "KRPL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-315",
+      "name": "KRUSE PATH",
+      "code": "KRUSEP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-316",
+      "name": "KUNAL REMEDIYS",
+      "code": "KUNALR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-317",
       "name": "LABORATE",
-      "code": "LABO",
+      "code": "LABORA",
+      "productCount": 6,
+      "itemcount": 6,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-122",
+      "id": "mfg-318",
+      "name": "LAKSHMI HEALTH CARE",
+      "code": "LAKSHM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-319",
+      "name": "LANARK LABORATORIES PVT LTD",
+      "code": "LANARK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-320",
+      "name": "LANARK PVT",
+      "code": "LANA01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-321",
+      "name": "LARK",
+      "code": "LARK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-322",
+      "name": "LASER",
+      "code": "LASER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-323",
+      "name": "LASOR PHARMA",
+      "code": "LASORP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-324",
       "name": "LEGEND",
-      "code": "LEGE",
+      "code": "LEGEND",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-123",
-      "name": "LIFE VENTURE",
+      "id": "mfg-325",
+      "name": "LEKAR",
+      "code": "LEKAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-326",
+      "name": "LEO",
+      "code": "LEOX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-327",
+      "name": "LGD",
+      "code": "LGDX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-328",
+      "name": "LIBRA",
+      "code": "LIBRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-329",
+      "name": "LIFE",
       "code": "LIFE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-124",
+      "id": "mfg-330",
+      "name": "LIFE VENTURE",
+      "code": "LIFEVE",
+      "productCount": 14,
+      "itemcount": 14,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-331",
       "name": "LINCOLN",
-      "code": "LINC",
+      "code": "LINCOL",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-125",
+      "id": "mfg-332",
+      "name": "LINCOLN C&D",
+      "code": "LINC01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-333",
+      "name": "LINCOLN DERMA",
+      "code": "LINC02",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-334",
       "name": "LINCOLN GASRTRO",
-      "code": "LINC",
+      "code": "LINC03",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-126",
+      "id": "mfg-335",
       "name": "LINCOLN LOARDS",
-      "code": "LINC",
+      "code": "LINC04",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-127",
+      "id": "mfg-336",
+      "name": "LINCOLN PHARMA 1",
+      "code": "LINC05",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-337",
+      "name": "LINCOLN PHARMA 2",
+      "code": "LINC06",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-338",
+      "name": "LINCOLN TERESSA",
+      "code": "LINC07",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-339",
+      "name": "LINEA",
+      "code": "LINEA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-340",
+      "name": "LIVA HEALTHCARE LTD",
+      "code": "LIVAHE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-341",
+      "name": "LLOYDS PHARMACEUTICALS",
+      "code": "LLOYDS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-342",
       "name": "LUPIN",
-      "code": "LUPI",
+      "code": "LUPIN",
+      "productCount": 88,
+      "itemcount": 88,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-128",
+      "id": "mfg-343",
+      "name": "LUPIN LUPICARE",
+      "code": "LUPINL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-344",
+      "name": "LYCON",
+      "code": "LYCON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-345",
+      "name": "M.S",
+      "code": "MSXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-346",
       "name": "MACLEODS",
-      "code": "MACL",
+      "code": "MACLEO",
+      "productCount": 161,
+      "itemcount": 161,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-129",
+      "id": "mfg-347",
       "name": "MADRAIN",
-      "code": "MADR",
+      "code": "MADRAI",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-130",
+      "id": "mfg-348",
+      "name": "MAHARISHI AYURVEDA",
+      "code": "MAHARI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-349",
+      "name": "MAHENDRA DUTTA",
+      "code": "MAHEND",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-350",
+      "name": "MAIDEN",
+      "code": "MAIDEN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-351",
+      "name": "MAKERS LAB",
+      "code": "MAKERS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-352",
       "name": "MANKIND",
-      "code": "MANK",
+      "code": "MANKIN",
+      "productCount": 54,
+      "itemcount": 54,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-131",
+      "id": "mfg-353",
+      "name": "MANO PHARMA",
+      "code": "MANOPH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-354",
       "name": "MAPRA",
-      "code": "MAPR",
+      "code": "MAPRA",
+      "productCount": 8,
+      "itemcount": 8,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-132",
+      "id": "mfg-355",
       "name": "MARKSANS",
-      "code": "MARK",
+      "code": "MARKSA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-133",
+      "id": "mfg-356",
       "name": "MARTIN",
-      "code": "MART",
+      "code": "MARTIN",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-134",
+      "id": "mfg-357",
+      "name": "MARXX PHARMA",
+      "code": "MARXXP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-358",
+      "name": "MAX QU",
+      "code": "MAXQU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-359",
+      "name": "MAXTAR",
+      "code": "MAXTAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-360",
+      "name": "MAY&BAKER",
+      "code": "MAYBAK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-361",
+      "name": "MED-MANOR",
+      "code": "MEDMAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-362",
+      "name": "MEDI-JOHN",
+      "code": "MEDIJO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-363",
+      "name": "MEDIKIT",
+      "code": "MEDIKI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-364",
       "name": "MEDIVALE",
-      "code": "MEDI",
+      "code": "MEDIVA",
+      "productCount": 18,
+      "itemcount": 18,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-135",
+      "id": "mfg-365",
       "name": "MEDIYES",
-      "code": "MEDI",
+      "code": "MEDIYE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-136",
+      "id": "mfg-366",
       "name": "MEDLEY",
-      "code": "MEDL",
+      "code": "MEDLEY",
+      "productCount": 12,
+      "itemcount": 12,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-137",
+      "id": "mfg-367",
+      "name": "MEDMARK",
+      "code": "MEDMAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-368",
       "name": "MEDRAIN PHARMA",
-      "code": "MEDR",
+      "code": "MEDRAI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-138",
+      "id": "mfg-369",
+      "name": "MENARINI",
+      "code": "MENARI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-370",
+      "name": "MENDINE",
+      "code": "MENDIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-371",
       "name": "MERCK",
-      "code": "MERC",
+      "code": "MERCK",
+      "productCount": 26,
+      "itemcount": 26,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-139",
+      "id": "mfg-372",
+      "name": "MERIDIN",
+      "code": "MERIDI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-373",
+      "name": "MERIND",
+      "code": "MERIND",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-374",
+      "name": "MERZ",
+      "code": "MERZ",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-375",
+      "name": "MEWELL",
+      "code": "MEWELL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-376",
+      "name": "MEYER ORGANICS",
+      "code": "MEYERO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-377",
+      "name": "MEYER VITABIOTICS",
+      "code": "MEYERV",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-378",
+      "name": "MICO",
+      "code": "MICO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-379",
       "name": "MICRO",
-      "code": "MICR",
+      "code": "MICRO",
+      "productCount": 38,
+      "itemcount": 38,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-140",
+      "id": "mfg-380",
+      "name": "MIOCON LAB",
+      "code": "MIOCON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-381",
+      "name": "MIX V",
+      "code": "MIXV",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-382",
       "name": "MODI",
       "code": "MODI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-141",
+      "id": "mfg-383",
+      "name": "MONET",
+      "code": "MONET",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-384",
       "name": "MOREPEN",
-      "code": "MORE",
+      "code": "MOREPE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-142",
+      "id": "mfg-385",
+      "name": "MORISONS",
+      "code": "MORISO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-386",
       "name": "MORWELL",
-      "code": "MORW",
+      "code": "MORWEL",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-143",
+      "id": "mfg-387",
+      "name": "MP",
+      "code": "MPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-388",
+      "name": "MRK HEALTH",
+      "code": "MRKHEA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-389",
       "name": "MSD",
-      "code": "MSD",
+      "code": "MSDX",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-144",
+      "id": "mfg-390",
       "name": "MSN",
-      "code": "MSN",
+      "code": "MSNX",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-145",
+      "id": "mfg-391",
+      "name": "MULLER & PHIPPS",
+      "code": "MULLER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-392",
+      "name": "MULTANI PHARMA",
+      "code": "MULTAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-393",
+      "name": "NAKODA",
+      "code": "NAKODA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-394",
       "name": "NCPW",
       "code": "NCPW",
+      "productCount": 8,
+      "itemcount": 8,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-146",
+      "id": "mfg-395",
+      "name": "NCPW LTD",
+      "code": "NCPWLT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-396",
+      "name": "NECLIFE",
+      "code": "NECLIF",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-397",
       "name": "NEEV LIFE",
-      "code": "NEEV",
+      "code": "NEEVLI",
+      "productCount": 11,
+      "itemcount": 11,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-147",
+      "id": "mfg-398",
       "name": "NEON",
       "code": "NEON",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-148",
+      "id": "mfg-399",
+      "name": "NEON LAB",
+      "code": "NEONLA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-400",
+      "name": "NESTLE",
+      "code": "NESTLE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-401",
+      "name": "NI",
+      "code": "NIXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-402",
       "name": "NICHOLAS",
-      "code": "NICH",
+      "code": "NICHOL",
+      "productCount": 12,
+      "itemcount": 12,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-149",
+      "id": "mfg-403",
       "name": "NIMOLI",
-      "code": "NIMO",
+      "code": "NIMOLI",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-150",
+      "id": "mfg-404",
+      "name": "NIRLIFE HEALTCARE",
+      "code": "NIRLIF",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-405",
+      "name": "NITIN LIFESCIENCES LTD",
+      "code": "NITINL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-406",
+      "name": "NOVA BIOTECH",
+      "code": "NOVABI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-407",
       "name": "NOVARTIS",
-      "code": "NOVA",
+      "code": "NOVART",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-151",
+      "id": "mfg-408",
+      "name": "NOVITAS",
+      "code": "NOVITA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-409",
+      "name": "NOVO NORDISK",
+      "code": "NOVONO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-410",
       "name": "NPD",
-      "code": "NPD",
+      "code": "NPDX",
+      "productCount": 8,
+      "itemcount": 8,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-152",
+      "id": "mfg-411",
       "name": "NR",
-      "code": "NR",
+      "code": "NRXX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-153",
+      "id": "mfg-412",
       "name": "NUKIND HEALTCARE",
-      "code": "NUKI",
+      "code": "NUKIND",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-154",
+      "id": "mfg-413",
       "name": "NULIFE",
-      "code": "NULI",
+      "code": "NULIFE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-155",
+      "id": "mfg-414",
       "name": "NUTON",
-      "code": "NUTO",
+      "code": "NUTON",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-156",
+      "id": "mfg-415",
       "name": "NUVICARE",
-      "code": "NUVI",
+      "code": "NUVICA",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-157",
+      "id": "mfg-416",
+      "name": "O0021",
+      "code": "O0021",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-417",
+      "name": "OKON REMEDIES",
+      "code": "OKONRE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-418",
+      "name": "OLCARE LAB",
+      "code": "OLCARE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-419",
+      "name": "ONIDA",
+      "code": "ONIDA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-420",
+      "name": "ORGANON",
+      "code": "ORGANO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-421",
+      "name": "ORNIKA ORGANICS",
+      "code": "ORNIKA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-422",
       "name": "OROCHEM LTD",
-      "code": "OROC",
+      "code": "OROCHE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-158",
+      "id": "mfg-423",
+      "name": "ORYX",
+      "code": "ORYX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-424",
+      "name": "OSMED",
+      "code": "OSMED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-425",
+      "name": "OXPRO PHARMA",
+      "code": "OXPROP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-426",
+      "name": "OXY ORGANICS",
+      "code": "OXYORG",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-427",
+      "name": "OYSTER",
+      "code": "OYSTER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-428",
       "name": "OZONE",
-      "code": "OZON",
+      "code": "OZONE",
+      "productCount": 15,
+      "itemcount": 15,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-159",
+      "id": "mfg-429",
+      "name": "P D ASSOCIATES",
+      "code": "PDASSO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-430",
+      "name": "P&G",
+      "code": "PGXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-431",
+      "name": "PAAM",
+      "code": "PAAM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-432",
       "name": "PACITORA BIOTECH",
-      "code": "PACI",
+      "code": "PACITO",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-160",
+      "id": "mfg-433",
       "name": "PADMO",
-      "code": "PADM",
+      "code": "PADMO",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-161",
+      "id": "mfg-434",
       "name": "PALSONS",
-      "code": "PALS",
+      "code": "PALSON",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-162",
+      "id": "mfg-435",
       "name": "PANACEA",
-      "code": "PANA",
+      "code": "PANACE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-163",
+      "id": "mfg-436",
+      "name": "PANTHER",
+      "code": "PANTHE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-437",
+      "name": "PARANTAA DRUGS PVT LTD",
+      "code": "PARANT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-438",
       "name": "PARAS",
-      "code": "PARA",
+      "code": "PARAS",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-164",
+      "id": "mfg-439",
       "name": "PARKER",
-      "code": "PARK",
+      "code": "PARKER",
+      "productCount": 11,
+      "itemcount": 11,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-165",
+      "id": "mfg-440",
+      "name": "PARKIN LAB",
+      "code": "PARKIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-441",
       "name": "PASCHIM BANGA PHARMACEUTICALS",
-      "code": "PASC",
+      "code": "PASCHI",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-166",
+      "id": "mfg-442",
+      "name": "PC",
+      "code": "PCXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-443",
+      "name": "PCI PHARMA",
+      "code": "PCIPHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-444",
+      "name": "PDI",
+      "code": "PDIX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-445",
       "name": "PDPL",
       "code": "PDPL",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-167",
+      "id": "mfg-446",
       "name": "PED",
-      "code": "PED",
+      "code": "PEDX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-168",
+      "id": "mfg-447",
+      "name": "PEEKLAY",
+      "code": "PEEKLA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-448",
       "name": "PFIZER",
-      "code": "PFIZ",
+      "code": "PFIZER",
+      "productCount": 6,
+      "itemcount": 6,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-169",
+      "id": "mfg-449",
+      "name": "PHARMA",
+      "code": "PHARMA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-450",
+      "name": "PHARMADENT REMEDIES PVT.LTD",
+      "code": "PHAR01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-451",
+      "name": "PHARMATAC",
+      "code": "PHAR02",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-452",
+      "name": "PHARMATEC",
+      "code": "PHAR03",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-453",
       "name": "PHARMED",
-      "code": "PHAR",
+      "code": "PHARME",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-170",
+      "id": "mfg-454",
       "name": "PHS",
-      "code": "PHS",
+      "code": "PHSX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-171",
+      "id": "mfg-455",
+      "name": "PIFP",
+      "code": "PIFP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-456",
+      "name": "PIONEE",
+      "code": "PIONEE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-457",
       "name": "PIRAMAL",
-      "code": "PIRA",
+      "code": "PIRAMA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-172",
+      "id": "mfg-458",
       "name": "PL",
-      "code": "PL",
+      "code": "PLXX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-173",
+      "id": "mfg-459",
       "name": "PLASORON",
-      "code": "PLAS",
+      "code": "PLASOR",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-174",
+      "id": "mfg-460",
+      "name": "PLASORON BIOTEC",
+      "code": "PLAS01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-461",
+      "name": "PLENTEEOUS",
+      "code": "PLENTE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-462",
+      "name": "PLETHICO",
+      "code": "PLETHI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-463",
+      "name": "PLUSINDIA",
+      "code": "PLUSIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-464",
+      "name": "PPPL",
+      "code": "PPPL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-465",
+      "name": "PREM",
+      "code": "PREM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-466",
+      "name": "PULSE",
+      "code": "PULSE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-467",
+      "name": "QP",
+      "code": "QPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-468",
       "name": "QUALITY",
-      "code": "QUAL",
+      "code": "QUALIT",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-175",
+      "id": "mfg-469",
+      "name": "R.T.PHARMA",
+      "code": "RTPHAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-470",
+      "name": "RABS",
+      "code": "RABS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-471",
+      "name": "RAI DRUG",
+      "code": "RAIDRU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-472",
+      "name": "RAINBOW BIOTECH",
+      "code": "RAINBO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-473",
+      "name": "RAJ PHARAMA",
+      "code": "RAJPHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-474",
       "name": "RANBAXY LAB",
-      "code": "RANB",
+      "code": "RANBAX",
+      "productCount": 4,
+      "itemcount": 4,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-176",
+      "id": "mfg-475",
+      "name": "RAPH",
+      "code": "RAPH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-476",
+      "name": "RAPID",
+      "code": "RAPID",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-477",
       "name": "RAPTAKOS",
-      "code": "RAPT",
+      "code": "RAPTAK",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-177",
+      "id": "mfg-478",
       "name": "RASOI",
-      "code": "RASO",
+      "code": "RASOI",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-178",
+      "id": "mfg-479",
+      "name": "RATHILA LAB",
+      "code": "RATHIL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-480",
+      "name": "RAVENBHEL",
+      "code": "RAVENB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-481",
       "name": "RECKITT",
-      "code": "RECK",
+      "code": "RECKIT",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-179",
+      "id": "mfg-482",
+      "name": "REDLEY",
+      "code": "REDLEY",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-483",
+      "name": "REGAIN",
+      "code": "REGAIN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-484",
+      "name": "REGENIX DRUGS",
+      "code": "REGENI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-485",
+      "name": "RELIABO PHARMA",
+      "code": "RELIAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-486",
+      "name": "RELIANCE LIFE SCIENCES",
+      "code": "RELIAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-487",
       "name": "RENASCENT PHARMA",
-      "code": "RENA",
+      "code": "RENASC",
+      "productCount": 14,
+      "itemcount": 14,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-180",
+      "id": "mfg-488",
       "name": "REXCIN",
-      "code": "REXC",
+      "code": "REXCIN",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-181",
+      "id": "mfg-489",
+      "name": "REZFEM",
+      "code": "REZFEM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-490",
+      "name": "RFCL LIMITED",
+      "code": "RFCLLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-491",
+      "name": "RHINO",
+      "code": "RHINO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-492",
+      "name": "RHYD",
+      "code": "RHYD",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-493",
+      "name": "RHYDBURG PHARMA",
+      "code": "RHYDBU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-494",
+      "name": "RICHTER",
+      "code": "RICHTE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-495",
       "name": "RICKER",
-      "code": "RICK",
+      "code": "RICKER",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-182",
+      "id": "mfg-496",
+      "name": "RIDLEY",
+      "code": "RIDLEY",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-497",
       "name": "RM",
-      "code": "RM",
+      "code": "RMXX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-183",
+      "id": "mfg-498",
       "name": "ROCH",
       "code": "ROCH",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-184",
+      "id": "mfg-499",
       "name": "ROCHE",
-      "code": "ROCH",
+      "code": "ROCHE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-185",
+      "id": "mfg-500",
       "name": "ROMSONS",
-      "code": "ROMS",
+      "code": "ROMSON",
+      "productCount": 6,
+      "itemcount": 6,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-186",
+      "id": "mfg-501",
+      "name": "ROSE PHARMACO PVT.LTD",
+      "code": "ROSEPH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-502",
+      "name": "ROSMA LAB",
+      "code": "ROSMAL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-503",
       "name": "ROUSELL",
-      "code": "ROUS",
+      "code": "ROUSEL",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-187",
+      "id": "mfg-504",
+      "name": "RP",
+      "code": "RPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-505",
       "name": "RPG",
-      "code": "RPG",
+      "code": "RPGX",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-188",
+      "id": "mfg-506",
+      "name": "RPL INDIA",
+      "code": "RPLIND",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-507",
+      "name": "RUSOMA LAB",
+      "code": "RUSOMA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-508",
+      "name": "RUSSIAN REMEDIES",
+      "code": "RUSSIA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-509",
+      "name": "S M",
+      "code": "SMXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-510",
+      "name": "S.D PHARMA",
+      "code": "SDPHAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-511",
       "name": "S.DHOLE",
-      "code": "SDHO",
+      "code": "SDHOLE",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-189",
+      "id": "mfg-512",
       "name": "SAF FERMION",
-      "code": "SAFF",
+      "code": "SAFFER",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-190",
+      "id": "mfg-513",
+      "name": "SAFFY TRADERS",
+      "code": "SAFFYT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-514",
+      "name": "SAINT MICHAEL BIOTECH",
+      "code": "SAINTM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-515",
+      "name": "SALAS",
+      "code": "SALAS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-516",
+      "name": "SALAS PHARAMA",
+      "code": "SALASP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-517",
+      "name": "SALAS PHARMA",
+      "code": "SALA01",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-518",
+      "name": "SALVUS PHARMA",
+      "code": "SALVUS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-519",
+      "name": "SAMIRAN TEA",
+      "code": "SAMIRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-520",
+      "name": "SAMKEM",
+      "code": "SAMKEM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-521",
+      "name": "SAMPHIRE",
+      "code": "SAMPHI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-522",
+      "name": "SANATRA HEALTH",
+      "code": "SANATR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-523",
+      "name": "SANDOZ",
+      "code": "SANDOZ",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-524",
+      "name": "SANGAM HEALTHCARE",
+      "code": "SANGAM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-525",
       "name": "SANOFI",
-      "code": "SANO",
+      "code": "SANOFI",
+      "productCount": 8,
+      "itemcount": 8,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-191",
+      "id": "mfg-526",
+      "name": "SAPHNIX",
+      "code": "SAPHNI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-527",
       "name": "SARABHAI",
-      "code": "SARA",
+      "code": "SARABH",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-192",
+      "id": "mfg-528",
+      "name": "SARALIFE",
+      "code": "SARALI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-529",
+      "name": "SBP",
+      "code": "SBPX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-530",
+      "name": "SD",
+      "code": "SDXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-531",
+      "name": "SEARLE",
+      "code": "SEARLE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-532",
+      "name": "SENSES PHARMA",
+      "code": "SENSES",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-533",
+      "name": "SERGIO",
+      "code": "SERGIO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-534",
+      "name": "SERUM INS",
+      "code": "SERUMI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-535",
+      "name": "SERVIER",
+      "code": "SERVIE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-536",
+      "name": "SGKLAB",
+      "code": "SGKLAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-537",
       "name": "SH PHARMA",
-      "code": "SHPH",
+      "code": "SHPHAR",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-193",
+      "id": "mfg-538",
+      "name": "SHASUM PHARMA",
+      "code": "SHASUM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-539",
+      "name": "SHIELD HEALTCARE",
+      "code": "SHIELD",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-540",
       "name": "SHINE PHARMAC",
-      "code": "SHIN",
+      "code": "SHINEP",
+      "productCount": 24,
+      "itemcount": 24,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-194",
+      "id": "mfg-541",
+      "name": "SHIVAM",
+      "code": "SHIVAM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-542",
+      "name": "SHIVCHEM",
+      "code": "SHIVCH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-543",
+      "name": "SHIVEK LABS",
+      "code": "SHIVEK",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-544",
       "name": "SHREYA",
-      "code": "SHRE",
+      "code": "SHREYA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-195",
+      "id": "mfg-545",
+      "name": "SHRINIVAS",
+      "code": "SHRINI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-546",
+      "name": "SHUKRA",
+      "code": "SHUKRA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-547",
+      "name": "SIGMA",
+      "code": "SIGMA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-548",
       "name": "SIGNOVA PHARMA",
-      "code": "SIGN",
+      "code": "SIGNOV",
+      "productCount": 19,
+      "itemcount": 19,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-196",
+      "id": "mfg-549",
+      "name": "SINGH SURGICALS",
+      "code": "SINGHS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-550",
+      "name": "SKYMAP",
+      "code": "SKYMAP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-551",
       "name": "SMART LAB",
-      "code": "SMAR",
+      "code": "SMARTL",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-197",
+      "id": "mfg-552",
+      "name": "SOBIR",
+      "code": "SOBIR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-553",
+      "name": "SOCRUS PHARMA",
+      "code": "SOCRUS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-554",
+      "name": "SOFT MEDICAPS",
+      "code": "SOFTME",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-555",
+      "name": "SOLVATE LAB",
+      "code": "SOLVAT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-556",
       "name": "SOLVAY",
-      "code": "SOLV",
+      "code": "SOLVAY",
+      "productCount": 6,
+      "itemcount": 6,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-198",
+      "id": "mfg-557",
+      "name": "SONIXA LIFECARE",
+      "code": "SONIXA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-558",
+      "name": "SP",
+      "code": "SPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-559",
+      "name": "SPACE LAB",
+      "code": "SPACEL",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-560",
+      "name": "SPAS DIAG",
+      "code": "SPASDI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-561",
+      "name": "SPC",
+      "code": "SPCX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-562",
+      "name": "SPECTRUM",
+      "code": "SPECTR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-563",
       "name": "STADMED",
-      "code": "STAD",
+      "code": "STADME",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-199",
+      "id": "mfg-564",
       "name": "STEADFAST MEDISHIELD",
-      "code": "STEA",
+      "code": "STEADF",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-200",
+      "id": "mfg-565",
+      "name": "STELLAR LIFESCIENCES",
+      "code": "STELLA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-566",
       "name": "STL PHARMA",
-      "code": "STLP",
+      "code": "STLPHA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-201",
+      "id": "mfg-567",
       "name": "STP PHARMA",
-      "code": "STPP",
+      "code": "STPPHA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-202",
+      "id": "mfg-568",
       "name": "STRASSENBURG",
-      "code": "STRA",
+      "code": "STRASS",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-203",
+      "id": "mfg-569",
       "name": "SUN PHARMA",
-      "code": "SUNP",
+      "code": "SUNPHA",
+      "productCount": 88,
+      "itemcount": 88,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-204",
+      "id": "mfg-570",
+      "name": "SUNLIFE SCIENCES",
+      "code": "SUNLIF",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-571",
+      "name": "SUNNY DRUG",
+      "code": "SUNNYD",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-572",
+      "name": "SUPREX LAB",
+      "code": "SUPREX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-573",
       "name": "SVIZERA",
-      "code": "SVIZ",
+      "code": "SVIZER",
+      "productCount": 7,
+      "itemcount": 7,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-205",
+      "id": "mfg-574",
+      "name": "SVST",
+      "code": "SVST",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-575",
+      "name": "SYDLER",
+      "code": "SYDLER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-576",
+      "name": "SYNDICATE",
+      "code": "SYNDIC",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-577",
+      "name": "SYNERGY",
+      "code": "SYNERG",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-578",
       "name": "SYNGEX'S",
-      "code": "SYNG",
+      "code": "SYNGEX",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-206",
+      "id": "mfg-579",
+      "name": "SYNTHOCCHEM",
+      "code": "SYNTHO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-580",
       "name": "TABLETS INDIA",
-      "code": "TABL",
+      "code": "TABLET",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-207",
+      "id": "mfg-581",
       "name": "TANISH",
-      "code": "TANI",
+      "code": "TANISH",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-208",
+      "id": "mfg-582",
+      "name": "TASMED PVT",
+      "code": "TASMED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-583",
+      "name": "TB",
+      "code": "TBXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-584",
+      "name": "TCF",
+      "code": "TCFX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-585",
+      "name": "TERESA",
+      "code": "TERESA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-586",
+      "name": "TETRAGON",
+      "code": "TETRAG",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-587",
+      "name": "TGB",
+      "code": "TGBX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-588",
+      "name": "THC",
+      "code": "THCX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-589",
       "name": "THEMIS",
-      "code": "THEM",
+      "code": "THEMIS",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-209",
+      "id": "mfg-590",
+      "name": "THEOGEN PVT",
+      "code": "THEOGE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-591",
       "name": "TORQUE",
-      "code": "TORQ",
+      "code": "TORQUE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-210",
+      "id": "mfg-592",
       "name": "TORRENT",
-      "code": "TORR",
+      "code": "TORREN",
+      "productCount": 28,
+      "itemcount": 28,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-211",
+      "id": "mfg-593",
       "name": "TRICOS",
-      "code": "TRIC",
+      "code": "TRICOS",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-212",
+      "id": "mfg-594",
+      "name": "TRINITY PAHAR",
+      "code": "TRINIT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-595",
+      "name": "TROIKAA PHARMA",
+      "code": "TROIKA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-596",
+      "name": "TTK",
+      "code": "TTKX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-597",
+      "name": "TULIP",
+      "code": "TULIP",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-598",
+      "name": "UNI-PEX",
+      "code": "UNIPEX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-599",
+      "name": "UNICHARM",
+      "code": "UNICHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-600",
       "name": "UNICHEM",
-      "code": "UNIC",
+      "code": "UNICHE",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-213",
+      "id": "mfg-601",
+      "name": "UNIQUE IMAGING",
+      "code": "UNIQUE",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-602",
+      "name": "UNIVERSAL",
+      "code": "UNIVER",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-603",
+      "name": "UNIZA HEALHCARE",
+      "code": "UNIZAH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-604",
       "name": "USV LIMITED",
-      "code": "USVL",
+      "code": "USVLIM",
+      "productCount": 65,
+      "itemcount": 65,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-214",
+      "id": "mfg-605",
+      "name": "V.I.P.PHARMA",
+      "code": "VIPPHA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-606",
+      "name": "V0001",
+      "code": "V0001",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-607",
       "name": "V0175",
-      "code": "V017",
+      "code": "V0175",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-215",
+      "id": "mfg-608",
+      "name": "V0224",
+      "code": "V0224",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-609",
+      "name": "VANSAN",
+      "code": "VANSAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-610",
       "name": "VAPI CARE",
-      "code": "VAPI",
+      "code": "VAPICA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-216",
+      "id": "mfg-611",
       "name": "VET",
-      "code": "VET",
+      "code": "VETX",
+      "productCount": 46,
+      "itemcount": 46,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-217",
+      "id": "mfg-612",
+      "name": "VICKS",
+      "code": "VICKS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-613",
       "name": "VILCO LAB",
-      "code": "VILC",
+      "code": "VILCOL",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-218",
+      "id": "mfg-614",
+      "name": "VINAYAK",
+      "code": "VINAYA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-615",
+      "name": "VIP",
+      "code": "VIPX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-616",
       "name": "VIRBAC",
-      "code": "VIRB",
+      "code": "VIRBAC",
+      "productCount": 19,
+      "itemcount": 19,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-219",
+      "id": "mfg-617",
       "name": "VIRTUAL",
-      "code": "VIRT",
+      "code": "VIRTUA",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-220",
+      "id": "mfg-618",
+      "name": "VISSCO",
+      "code": "VISSCO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-619",
+      "name": "VITABIOYICS",
+      "code": "VITABI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-620",
+      "name": "VP",
+      "code": "VPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-621",
+      "name": "VULCAN LAB",
+      "code": "VULCAN",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-622",
       "name": "WALLACE",
-      "code": "WALL",
+      "code": "WALLAC",
+      "productCount": 16,
+      "itemcount": 16,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-221",
+      "id": "mfg-623",
       "name": "WALTER BUSHNELL",
-      "code": "WALT",
+      "code": "WALTER",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-222",
+      "id": "mfg-624",
       "name": "WANBURY",
-      "code": "WANB",
+      "code": "WANBUR",
+      "productCount": 12,
+      "itemcount": 12,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-223",
+      "id": "mfg-625",
+      "name": "WARDEX",
+      "code": "WARDEX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-626",
       "name": "WARREN",
-      "code": "WARR",
+      "code": "WARREN",
+      "productCount": 3,
+      "itemcount": 3,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-224",
+      "id": "mfg-627",
       "name": "WAVES BIO-TECH",
-      "code": "WAVE",
+      "code": "WAVESB",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-225",
+      "id": "mfg-628",
+      "name": "WEBCOT",
+      "code": "WEBCOT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-629",
+      "name": "WELLCHEM",
+      "code": "WELLCH",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-630",
+      "name": "WILCURE",
+      "code": "WILCUR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-631",
+      "name": "WIN",
+      "code": "WINX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-632",
+      "name": "WIN MEDICARE",
+      "code": "WINMED",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-633",
       "name": "WINGS BIOTECH",
-      "code": "WING",
+      "code": "WINGSB",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-226",
+      "id": "mfg-634",
+      "name": "WL",
+      "code": "WLXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-635",
       "name": "WOCKH",
-      "code": "WOCK",
+      "code": "WOCKH",
+      "productCount": 5,
+      "itemcount": 5,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-227",
+      "id": "mfg-636",
+      "name": "WP",
+      "code": "WPXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-637",
       "name": "WYETH",
-      "code": "WYET",
+      "code": "WYETH",
+      "productCount": 1,
+      "itemcount": 1,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-228",
+      "id": "mfg-638",
+      "name": "X****",
+      "code": "XXXX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-639",
       "name": "XENICHEM",
-      "code": "XENI",
+      "code": "XENICH",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-229",
+      "id": "mfg-640",
+      "name": "XIEON",
+      "code": "XIEON",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-641",
+      "name": "XIONIM",
+      "code": "XIONIM",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-642",
       "name": "YASH",
       "code": "YASH",
+      "productCount": 2,
+      "itemcount": 2,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-230",
+      "id": "mfg-643",
+      "name": "YOSURA",
+      "code": "YOSURA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-644",
+      "name": "ZANDU",
+      "code": "ZANDU",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-645",
+      "name": "ZEE LAB",
+      "code": "ZEELAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-646",
+      "name": "ZENACTS",
+      "code": "ZENACT",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-647",
+      "name": "ZENLAB",
+      "code": "ZENLAB",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-648",
+      "name": "ZENMARK",
+      "code": "ZENMAR",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-649",
+      "name": "ZERICO",
+      "code": "ZERICO",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-650",
+      "name": "ZETA",
+      "code": "ZETA",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-651",
+      "name": "ZOIC LIFE",
+      "code": "ZOICLI",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-652",
+      "name": "ZOVIK DRUGS PVT LTD",
+      "code": "ZOVIKD",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-653",
       "name": "ZUVENT",
-      "code": "ZUVE",
+      "code": "ZUVENT",
+      "productCount": 38,
+      "itemcount": 38,
+      "status": "Active",
       "is_active": true
     },
     {
-      "id": "m-231",
+      "id": "mfg-654",
+      "name": "ZUVIS",
+      "code": "ZUVIS",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-655",
       "name": "ZYDUS",
-      "code": "ZYDU",
+      "code": "ZYDUS",
+      "productCount": 26,
+      "itemcount": 26,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-656",
+      "name": "ZYG",
+      "code": "ZYGX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
+      "is_active": true
+    },
+    {
+      "id": "mfg-657",
+      "name": "ZYZ",
+      "code": "ZYZX",
+      "productCount": 0,
+      "itemcount": 0,
+      "status": "Active",
       "is_active": true
     }
   ],

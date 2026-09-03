@@ -1,9 +1,24 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Building2, Check } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X,
+  AlertTriangle,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Layers
+} from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
+import defaultManufacturerMaster from '../../../data/manufacturerMasterData.json'
 
 interface Manufacturer {
   id: string
@@ -14,9 +29,23 @@ interface Manufacturer {
 }
 
 export default function ManufacturerList() {
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
-  const [loading, setLoading] = useState(true)
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>(() =>
+    (defaultManufacturerMaster as any[]).map((row) => ({
+      id: String(row?.id || ''),
+      name: String(row?.name || ''),
+      code: String(row?.code || 'MFG'),
+      productCount: Number(row?.productCount || row?.itemcount || 0),
+      status: row?.is_active === false || row?.status === 'Blocked' ? 'Blocked' : 'Active'
+    }))
+  )
+  const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+
+  // Chunking controls
+  const [pageSize, setPageSize] = useState<number>(50)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [continuousCount, setContinuousCount] = useState<number>(50)
+  const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
   
   // Modal state for Add/Edit
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null)
@@ -33,21 +62,23 @@ export default function ManufacturerList() {
   const showToast = useUIStore((state) => state.showToast)
 
   const loadData = () => {
-    setLoading(true)
     getErp<any[]>('manufacturers')
       .then((rows) => {
-        setManufacturers(
-          (rows || []).map((row) => ({
-            id: String(row?.id || ''),
-            name: String(row?.name || ''),
-            code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
-            productCount: Number(row?.productCount || row?.itemcount || 0),
-            status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-          }))
-        )
+        if (Array.isArray(rows) && rows.length > 0) {
+          setManufacturers(
+            rows.map((row) => ({
+              id: String(row?.id || ''),
+              name: String(row?.name || ''),
+              code: String(row?.code || (row?.name ? String(row.name).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'MFG')),
+              productCount: Number(row?.productCount || row?.itemcount || 0),
+              status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
+            }))
+          )
+        }
       })
-      .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load manufacturers.'))
-      .finally(() => setLoading(false))
+      .catch(() => {
+        // Keeps the default deduplicated manufacturers safely loaded
+      })
   }
 
   useEffect(() => {
@@ -156,38 +187,163 @@ export default function ManufacturerList() {
     )
   }, [manufacturers, search])
 
+  // Reset page index on search/pageSize changes
+  useEffect(() => {
+    setCurrentPage(1)
+    setContinuousCount(pageSize || 50)
+  }, [search, pageSize])
+
+  const totalItems = filtered.length
+  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / (pageSize || 50)) || 1
+
+  const displayedItems = useMemo(() => {
+    if (pageSize === 0) return filtered
+    if (chunkMode === 'continuous') {
+      return filtered.slice(0, continuousCount)
+    }
+    const start = (currentPage - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, chunkMode, currentPage, pageSize, continuousCount])
+
+  const startIdx = totalItems === 0 ? 0 : pageSize === 0 ? 1 : chunkMode === 'continuous' ? 1 : (currentPage - 1) * pageSize + 1
+  const endIdx =
+    pageSize === 0
+      ? totalItems
+      : chunkMode === 'continuous'
+      ? Math.min(continuousCount, totalItems)
+      : Math.min(currentPage * pageSize, totalItems)
+
+  const handleLoadMore = () => {
+    setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
+  }
+
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Manufacturer Master</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Manufacturer Master</h1>
             <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
-              {filtered.length} Brands
+              {totalItems.toLocaleString()} Brands
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">Manage pharmaceutical brands, companies and supplier codes</p>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Manage pharmaceutical brands, companies and supplier codes</p>
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"
+          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition"
         >
           <Plus size={16} />
           Add Manufacturer
         </button>
       </div>
 
-      {/* Search Toolbar */}
-      <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md">
-        <Search className="text-slate-400" size={18} />
-        <input
-          type="text"
-          placeholder="Search by name or code..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-transparent border-none outline-none text-white text-sm w-full placeholder:text-slate-500"
-        />
+      {/* Toolbar & Chunk Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl shadow-xs">
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <Search className="text-slate-400 shrink-0" size={16} />
+          <input
+            type="text"
+            placeholder="Search by brand name or code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent border-none outline-none text-white text-sm w-full placeholder:text-slate-500"
+          />
+        </div>
+
+        <div className="flex items-center flex-wrap gap-2 justify-end">
+          {/* Mode Toggle */}
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-md border border-slate-800 text-xs">
+            <button
+              onClick={() => setChunkMode('paginated')}
+              className={cn(
+                'px-2.5 py-1 rounded font-medium transition',
+                chunkMode === 'paginated'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              )}
+            >
+              Pages
+            </button>
+            <button
+              onClick={() => setChunkMode('continuous')}
+              className={cn(
+                'px-2.5 py-1 rounded font-medium transition flex items-center gap-1',
+                chunkMode === 'continuous'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              )}
+            >
+              <Layers size={12} /> Continuous
+            </button>
+          </div>
+
+          {/* Chunk Selector */}
+          <div className="flex items-center gap-1 text-xs text-slate-400">
+            <span>Chunk:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+            >
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={250}>250 / page</option>
+              <option value={0}>All ({totalItems})</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Chunk Info Strip */}
+      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+        <div>
+          Showing <span className="font-semibold text-slate-200">{startIdx}</span> to{' '}
+          <span className="font-semibold text-slate-200">{endIdx}</span> of{' '}
+          <span className="font-semibold text-slate-200">{totalItems.toLocaleString()}</span> brands
+        </div>
+
+        {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(1)}
+              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              title="First Page"
+            >
+              <ChevronsLeft size={14} />
+            </button>
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              title="Previous Page"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="px-2 font-mono text-slate-200">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              title="Next Page"
+            >
+              <ChevronRight size={14} />
+            </button>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              title="Last Page"
+            >
+              <ChevronsRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -210,7 +366,7 @@ export default function ManufacturerList() {
                 </td>
               </tr>
             )}
-            {!loading && filtered.length === 0 && (
+            {!loading && totalItems === 0 && (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-slate-500">
                   No manufacturers found matching your search.
@@ -218,7 +374,7 @@ export default function ManufacturerList() {
               </tr>
             )}
             {!loading &&
-              filtered.map((m) => (
+              displayedItems.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-800/40 transition-colors group">
                   <td className="px-4 py-3 font-mono font-medium text-indigo-400 group-hover:text-indigo-300">
                     {m.code || '—'}
@@ -266,6 +422,18 @@ export default function ManufacturerList() {
               ))}
           </tbody>
         </table>
+
+        {/* Load more button for continuous scrolling */}
+        {chunkMode === 'continuous' && continuousCount < totalItems && (
+          <div className="p-4 flex justify-center border-t border-slate-800 bg-slate-900/30">
+            <button
+              onClick={handleLoadMore}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition"
+            >
+              Load More Brands ({Math.min(pageSize || 50, totalItems - continuousCount)} more)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Modal */}
