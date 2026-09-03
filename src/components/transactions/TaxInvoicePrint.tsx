@@ -165,12 +165,6 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
 
   return (
     <div className="tax-invoice-bill bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
-      {/* Top Banner: Jurisdiction & Copy Type */}
-      <div className="flex justify-between items-center text-[9.5px] font-semibold text-gray-700 px-1 pb-1">
-        <span>Subject to {jurisdiction.toUpperCase()} Jurisdiction</span>
-        <span className="font-bold uppercase tracking-wider text-black">{copyType}</span>
-      </div>
-
       {/* Main Box Outer Border */}
       <div className="border-[1.5px] border-black">
         {/* Header: Company Details & Invoice Type */}

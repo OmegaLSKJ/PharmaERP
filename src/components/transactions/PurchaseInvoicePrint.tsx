@@ -188,11 +188,6 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
 
   return (
     <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
-      {/* Top indicator: Original Copy */}
-      <div className="text-right text-[10px] text-black pr-2 pb-0.5 font-normal tracking-wide">
-        Original Copy
-      </div>
-
       {/* Main Outer Box with 1.5px solid black border */}
       <div className="border-[1.5px] border-black text-black">
         {/* Header Grid: Left Company Details, Center Credit/GRN Box, Right Buyer Details */}
