@@ -662,6 +662,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
         mockStore.ledgers = mockStore.ledgers.filter((x: any) => (Number(x.debit) || 0) > 0 || (Number(x.credit) || 0) > 0)
         removedCount += init - mockStore.ledgers.length
       }
+      if (mockStore.accounts) {
+        const initAcc = mockStore.accounts.length
+        mockStore.accounts = mockStore.accounts.filter((a: any) => (Number(a.balance) || 0) > 0)
+        removedCount += initAcc - mockStore.accounts.length
+      }
       return { success: true, removedCount }
     }
 
@@ -924,7 +929,24 @@ export async function create(resource: string, body: any, actor: MutationActor =
       .delete({ count: 'exact' })
       .or('and(debit.eq.0,credit.eq.0),and(debit.is.null,credit.is.null)')
     if (error) throw error
-    return { success: true, removedCount: count ?? 0 }
+
+    const { data: emptyAccounts } = await client
+      .from('chart_of_accounts')
+      .select('id,opening_balance,voucher_lines(id)')
+      .eq('organization_id', organizationId)
+      .eq('opening_balance', 0)
+
+    const idsToDelete = (emptyAccounts ?? [])
+      .filter((a: any) => !a.voucher_lines || a.voucher_lines.length === 0)
+      .map((a: any) => a.id)
+
+    let accCount = 0
+    if (idsToDelete.length > 0) {
+      const { count: c } = await client.from('chart_of_accounts').delete({ count: 'exact' }).in('id', idsToDelete)
+      accCount = c ?? 0
+    }
+
+    return { success: true, removedCount: (count ?? 0) + accCount }
   }
   if (resource === 'bulk-import') return importDataset(String(body.type ?? ''), body.rows, actor)
   if (resource === 'cancellations') {
