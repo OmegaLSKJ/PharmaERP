@@ -753942,5 +753942,889 @@
       "gstRate": 5.0,
       "type": "Goods"
     }
+  ],
+  "account_groups": [
+    {
+      "id": "grp-001",
+      "code": "GRP-BANKACCO",
+      "name": "BANK ACCOUNTS",
+      "category": "Asset",
+      "nature": "Liquid Assets",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-002",
+      "code": "GRP-BANKOCCA",
+      "name": "BANK OCC A/C",
+      "category": "Liability",
+      "nature": "Bank Borrowings / Overdraft",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-003",
+      "code": "GRP-BRANCHDI",
+      "name": "BRANCH / DIVISIONS",
+      "category": "Liability",
+      "nature": "Inter-Branch / Divisions",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-004",
+      "code": "GRP-CAPITALA",
+      "name": "CAPITAL ACCOUNT",
+      "category": "Liability",
+      "nature": "Capital",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-005",
+      "code": "GRP-CAPITALW",
+      "name": "CAPITAL WORK-IN-PROGRESS",
+      "category": "Asset",
+      "nature": "Fixed Assets in Progress",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-006",
+      "code": "GRP-CASHINHA",
+      "name": "CASH-IN-HAND",
+      "category": "Asset",
+      "nature": "Cash & Cash Equivalents",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-007",
+      "code": "GRP-CURRENTA",
+      "name": "CURRENT ASSETS",
+      "category": "Asset",
+      "nature": "Current Assets",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-008",
+      "code": "GRP-CURRENTI",
+      "name": "CURRENT INVESTMENTS",
+      "category": "Asset",
+      "nature": "Short-Term Investments",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-009",
+      "code": "GRP-CURRENTL",
+      "name": "CURRENT LIABILITIES",
+      "category": "Liability",
+      "nature": "Current Liabilities",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-010",
+      "code": "GRP-DEFERRED",
+      "name": "DEFERRED TAX ASSET",
+      "category": "Asset",
+      "nature": "Deferred Taxes",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-011",
+      "code": "GRP-DEFERRED",
+      "name": "DEFERRED TAX LIABILITY",
+      "category": "Liability",
+      "nature": "Deferred Taxes",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-012",
+      "code": "GRP-DUTIESTA",
+      "name": "DUTIES & TAXES",
+      "category": "Liability",
+      "nature": "Statutory Taxes & Duties",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-013",
+      "code": "GRP-EMPLOYEE",
+      "name": "EMPLOYEE BENEFIT EXPENSE",
+      "category": "Expense",
+      "nature": "Indirect Expenses",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-014",
+      "code": "GRP-EXCEPTIO",
+      "name": "EXCEPTIONAL ITEMS",
+      "category": "Expense",
+      "nature": "P&L Extraordinary Items",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-015",
+      "code": "GRP-EXPENDIT",
+      "name": "EXPENDITURE ACCOUNT",
+      "category": "Expense",
+      "nature": "Operational Expenditure",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-016",
+      "code": "GRP-EXPENSES",
+      "name": "EXPENSES (Direct) (Mfg./Trdg. Expenses)",
+      "category": "Expense",
+      "nature": "Direct Trading & Mfg Expenses",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-017",
+      "code": "GRP-EXPENSES",
+      "name": "EXPENSES (Indirect) (Admin. Expenses)",
+      "category": "Expense",
+      "nature": "Indirect & Administrative Expenses",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-018",
+      "code": "GRP-EXTRAORD",
+      "name": "EXTRAORDINARY ITEMS",
+      "category": "Income",
+      "nature": "P&L Extraordinary Items",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-019",
+      "code": "GRP-FINANCIA",
+      "name": "FINANCIAL COSTS",
+      "category": "Expense",
+      "nature": "Bank Charges & Interest",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-020",
+      "code": "GRP-FIXEDASS",
+      "name": "FIXED ASSETS",
+      "category": "Asset",
+      "nature": "Property, Plant & Equipment",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-021",
+      "code": "GRP-INCOMEDI",
+      "name": "INCOME (Direct)",
+      "category": "Income",
+      "nature": "Direct Operating Income",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-022",
+      "code": "GRP-INCOMEIN",
+      "name": "INCOME (Indirect)",
+      "category": "Income",
+      "nature": "Indirect / Other Income",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-023",
+      "code": "GRP-INTANGIB",
+      "name": "INTANGIBLE ASSETS",
+      "category": "Asset",
+      "nature": "Intangible Assets",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-024",
+      "code": "GRP-INTANGIB",
+      "name": "INTANGIBLE ASSETS UNDER DEVELOPMENT",
+      "category": "Asset",
+      "nature": "Intangibles in Progress",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-025",
+      "code": "GRP-INVESTME",
+      "name": "INVESTMENTS",
+      "category": "Asset",
+      "nature": "Non-Current Investments",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-026",
+      "code": "GRP-LOANADVA",
+      "name": "LOAN & ADVANCES (Asset)",
+      "category": "Asset",
+      "nature": "Loans & Advances Extended",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-027",
+      "code": "GRP-LOANSLIA",
+      "name": "LOANS (Liability)",
+      "category": "Liability",
+      "nature": "Borrowings & Loans",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-028",
+      "code": "GRP-LONGTERM",
+      "name": "LONG TERM PROVISIONS",
+      "category": "Liability",
+      "nature": "Non-Current Provisions",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-029",
+      "code": "GRP-LONGTERM",
+      "name": "LONG-TERM BORROWINGS",
+      "category": "Liability",
+      "nature": "Non-Current Borrowings",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-030",
+      "code": "GRP-MISCEXPE",
+      "name": "MISC. EXPENSES (Asset)",
+      "category": "Asset",
+      "nature": "Fictitious & Deferred Assets",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-031",
+      "code": "GRP-MONEYREC",
+      "name": "MONEY RECEIVED AGAINST SHARE WARRANTS",
+      "category": "Liability",
+      "nature": "Shareholders Funds",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-032",
+      "code": "GRP-NONREFUN",
+      "name": "NON REFUNDABLE TAXES",
+      "category": "Expense",
+      "nature": "Non-Creditable Tax Expense",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-033",
+      "code": "GRP-NONCURRE",
+      "name": "NON-CURRENT INVESTMENTS",
+      "category": "Asset",
+      "nature": "Long-Term Investments",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-034",
+      "code": "GRP-NONCURRE",
+      "name": "NON-CURRENT LIABILITIES",
+      "category": "Liability",
+      "nature": "Long-Term Liabilities",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-035",
+      "code": "GRP-OTHERCUR",
+      "name": "OTHER CURRENT ASSETS",
+      "category": "Asset",
+      "nature": "Other Current Assets",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-036",
+      "code": "GRP-OTHERCUR",
+      "name": "OTHER CURRENT LIABILITIES",
+      "category": "Liability",
+      "nature": "Other Current Liabilities",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-037",
+      "code": "GRP-OTHERDUT",
+      "name": "OTHER DUTIES & TAXES",
+      "category": "Liability",
+      "nature": "Statutory Taxes",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-038",
+      "code": "GRP-OTHERLON",
+      "name": "OTHER LONG-TERM LIABILITIES",
+      "category": "Liability",
+      "nature": "Long-Term Liabilities",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-039",
+      "code": "GRP-OTHERNON",
+      "name": "OTHER NON-CURRENT ASSETS",
+      "category": "Asset",
+      "nature": "Long-Term Receivables & Deposits",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-040",
+      "code": "GRP-PROFITLO",
+      "name": "PROFIT & LOSS A/C",
+      "category": "Liability",
+      "nature": "Reserves & Surplus",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-041",
+      "code": "GRP-PROVISIO",
+      "name": "PROVISIONS",
+      "category": "Liability",
+      "nature": "Provisions",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-042",
+      "code": "GRP-PURCHASE",
+      "name": "PURCHASE ACCOUNT",
+      "category": "Expense",
+      "nature": "Trading / Purchases",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-043",
+      "code": "GRP-PURCHASE",
+      "name": "PURCHASE CENTRAL",
+      "category": "Expense",
+      "nature": "Interstate Purchases (IGST)",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-044",
+      "code": "GRP-PURCHASE",
+      "name": "PURCHASE IMPORT",
+      "category": "Expense",
+      "nature": "Import Purchases",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-045",
+      "code": "GRP-PURCHASE",
+      "name": "PURCHASE LOCAL",
+      "category": "Expense",
+      "nature": "Intrastate Purchases (CGST/SGST)",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-046",
+      "code": "GRP-RESERVES",
+      "name": "RESERVES & SURPLUS",
+      "category": "Liability",
+      "nature": "Retained Earnings & Reserves",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-047",
+      "code": "GRP-REVENUEA",
+      "name": "REVENUE ACCOUNT",
+      "category": "Income",
+      "nature": "Operating Revenue",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-048",
+      "code": "GRP-SALESACC",
+      "name": "SALES ACCOUNT",
+      "category": "Income",
+      "nature": "Trading / Sales",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-049",
+      "code": "GRP-SALESCEN",
+      "name": "SALES CENTRAL",
+      "category": "Income",
+      "nature": "Interstate Sales (IGST)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-050",
+      "code": "GRP-SALESEXP",
+      "name": "SALES EXPORT",
+      "category": "Income",
+      "nature": "Export Sales",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-051",
+      "code": "GRP-SALESLOC",
+      "name": "SALES LOCAL",
+      "category": "Income",
+      "nature": "Intrastate Sales (CGST/SGST)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-052",
+      "code": "GRP-SECUREDL",
+      "name": "SECURED LOANS",
+      "category": "Liability",
+      "nature": "Secured Bank Borrowings",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-053",
+      "code": "GRP-SECURITY",
+      "name": "SECURITY & DEPOSIT (Asset)",
+      "category": "Asset",
+      "nature": "Security & Rental Deposits",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-054",
+      "code": "GRP-SHAREAPP",
+      "name": "SHARE APPLICATION MONEY PENDING ALLOT",
+      "category": "Liability",
+      "nature": "Share Capital",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-055",
+      "code": "GRP-SHARECAP",
+      "name": "SHARE CAPITAL",
+      "category": "Liability",
+      "nature": "Equity / Share Capital",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-056",
+      "code": "GRP-SHORTTER",
+      "name": "SHORT-TERM BORROWINGS",
+      "category": "Liability",
+      "nature": "Short-Term Loans",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-057",
+      "code": "GRP-SHORTTER",
+      "name": "SHORT-TERM LOANS & ADVANCES",
+      "category": "Asset",
+      "nature": "Current Loans & Advances",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-058",
+      "code": "GRP-SHORTTER",
+      "name": "SHORT-TERM PROVISIONS",
+      "category": "Liability",
+      "nature": "Current Provisions",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-059",
+      "code": "GRP-STOCKINH",
+      "name": "STOCK-IN-HAND",
+      "category": "Asset",
+      "nature": "Inventory / Stock",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-060",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS",
+      "category": "Liability",
+      "nature": "Trade Payables (General)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-061",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS (E-COMMERCE)",
+      "category": "Liability",
+      "nature": "Trade Payables (E-Commerce)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-062",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS (EXPENSES PAYABLE)",
+      "category": "Liability",
+      "nature": "Expense Creditors",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-063",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS (FIELD STAFF)",
+      "category": "Liability",
+      "nature": "Staff & Rep Payables",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-064",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS (MANUFACTURERS)",
+      "category": "Liability",
+      "nature": "Trade Payables (Pharma Manufacturers)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-065",
+      "code": "GRP-SUNDRYCR",
+      "name": "SUNDRY CREDITORS (SUPPLIERS)",
+      "category": "Liability",
+      "nature": "Trade Payables (Stockists & Distributors)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-066",
+      "code": "GRP-SUNDRYDE",
+      "name": "SUNDRY DEBTORS",
+      "category": "Asset",
+      "nature": "Trade Receivables (General)",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-067",
+      "code": "GRP-SUNDRYDE",
+      "name": "SUNDRY DEBTORS (E-COMMERCE)",
+      "category": "Asset",
+      "nature": "Trade Receivables (Online / E-Commerce)",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-068",
+      "code": "GRP-SUNDRYDE",
+      "name": "SUNDRY DEBTORS (FIELD STAFF)",
+      "category": "Asset",
+      "nature": "Staff & Field Imprests",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-069",
+      "code": "GRP-SUSPENSE",
+      "name": "SUSPENSE ACCOUNT (Temporary A/cs)",
+      "category": "Liability",
+      "nature": "Suspense / Clearing Accounts",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-070",
+      "code": "GRP-TANGIBLE",
+      "name": "TANGIBLE ASSETS",
+      "category": "Asset",
+      "nature": "Tangible Plant & Equipment",
+      "normalBalance": "Dr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-071",
+      "code": "GRP-TAXCGST",
+      "name": "TAX - CGST",
+      "category": "Liability",
+      "nature": "Goods & Services Tax (Central)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-072",
+      "code": "GRP-TAXIGST",
+      "name": "TAX - IGST",
+      "category": "Liability",
+      "nature": "Goods & Services Tax (Integrated)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-073",
+      "code": "GRP-TAXSGST",
+      "name": "TAX - SGST",
+      "category": "Liability",
+      "nature": "Goods & Services Tax (State)",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    },
+    {
+      "id": "grp-074",
+      "code": "GRP-UNSECURE",
+      "name": "UNSECURED LOANS",
+      "category": "Liability",
+      "nature": "Unsecured Loans & Advances",
+      "normalBalance": "Cr",
+      "is_active": true,
+      "source": "MARG_ERP_MASTER"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "acc-1",
+      "code": "ACC-CASH",
+      "name": "Cash-in-Hand Account",
+      "group": "CASH-IN-HAND",
+      "category": "Asset",
+      "balance": 45000,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-2",
+      "code": "ACC-HDFC",
+      "name": "HDFC Bank Account",
+      "group": "BANK ACCOUNTS",
+      "category": "Asset",
+      "balance": 280000,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-3",
+      "code": "ACC-SBI",
+      "name": "State Bank of India",
+      "group": "BANK ACCOUNTS",
+      "category": "Asset",
+      "balance": 150000,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-4",
+      "code": "ACC-SALES-LOC",
+      "name": "Sales (Intrastate Local)",
+      "group": "SALES LOCAL",
+      "category": "Income",
+      "balance": 0,
+      "type": "Cr",
+      "active": true
+    },
+    {
+      "id": "acc-5",
+      "code": "ACC-SALES-CEN",
+      "name": "Sales (Interstate Central)",
+      "group": "SALES CENTRAL",
+      "category": "Income",
+      "balance": 0,
+      "type": "Cr",
+      "active": true
+    },
+    {
+      "id": "acc-6",
+      "code": "ACC-PURC-LOC",
+      "name": "Purchases (Intrastate Local)",
+      "group": "PURCHASE LOCAL",
+      "category": "Expense",
+      "balance": 0,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-7",
+      "code": "ACC-PURC-CEN",
+      "name": "Purchases (Interstate Central)",
+      "group": "PURCHASE CENTRAL",
+      "category": "Expense",
+      "balance": 0,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-8",
+      "code": "ACC-CGST-OUT",
+      "name": "Output CGST",
+      "group": "TAX - CGST",
+      "category": "Liability",
+      "balance": 0,
+      "type": "Cr",
+      "active": true
+    },
+    {
+      "id": "acc-9",
+      "code": "ACC-SGST-OUT",
+      "name": "Output SGST",
+      "group": "TAX - SGST",
+      "category": "Liability",
+      "balance": 0,
+      "type": "Cr",
+      "active": true
+    },
+    {
+      "id": "acc-10",
+      "code": "ACC-IGST-OUT",
+      "name": "Output IGST",
+      "group": "TAX - IGST",
+      "category": "Liability",
+      "balance": 0,
+      "type": "Cr",
+      "active": true
+    },
+    {
+      "id": "acc-11",
+      "code": "ACC-CGST-IN",
+      "name": "Input CGST Credit",
+      "group": "TAX - CGST",
+      "category": "Asset",
+      "balance": 0,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-12",
+      "code": "ACC-SGST-IN",
+      "name": "Input SGST Credit",
+      "group": "TAX - SGST",
+      "category": "Asset",
+      "balance": 0,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-13",
+      "code": "ACC-IGST-IN",
+      "name": "Input IGST Credit",
+      "group": "TAX - IGST",
+      "category": "Asset",
+      "balance": 0,
+      "type": "Dr",
+      "active": true
+    },
+    {
+      "id": "acc-14",
+      "code": "ACC-STOCK",
+      "name": "Stock-in-Hand Inventory Valuation",
+      "group": "STOCK-IN-HAND",
+      "category": "Asset",
+      "balance": 3885587.14,
+      "type": "Dr",
+      "active": true
+    }
   ]
 }

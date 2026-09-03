@@ -34,6 +34,7 @@ import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { exportVisibleTables } from '../../../lib/download'
 import PrintHeader from '../../../components/layout/PrintHeader'
+import accountGroupMaster from '../../../data/accountGroupMasterData.json'
 
 interface Ledger {
   id: string
@@ -281,18 +282,29 @@ export default function LedgerList() {
     loadData()
   }, [addToast])
 
-  const groups = [
-    'Sundry Debtors',
-    'Sundry Creditors',
-    'Tax - CGST',
-    'Tax - SGST',
-    'Tax - IGST',
-    'Sales Account',
-    'Purchase Account',
-    'Cash',
-    'Bank',
-    'Suspense Account',
-  ]
+  const allGroups = useMemo(() => {
+    return (accountGroupMaster as Array<{ name: string; category: string }>).map((g) => g.name)
+  }, [])
+
+  const groupedAccountOptions = useMemo(() => {
+    const cats: Record<'Asset' | 'Liability' | 'Income' | 'Expense', string[]> = {
+      Asset: [],
+      Liability: [],
+      Income: [],
+      Expense: [],
+    }
+    ;(accountGroupMaster as Array<{ name: string; category: string }>).forEach((g) => {
+      const cat = g.category as 'Asset' | 'Liability' | 'Income' | 'Expense'
+      if (cats[cat]) {
+        cats[cat].push(g.name)
+      } else {
+        cats.Asset.push(g.name)
+      }
+    })
+    return cats
+  }, [])
+
+  const groups = allGroups
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -538,9 +550,20 @@ export default function LedgerList() {
                 />
                 <span>Hide Zero Balance (₹0)</span>
               </label>
-              <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
-                <option value="ALL">All Groups</option>
-                {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+              <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none max-w-[220px]">
+                <option value="ALL">All Groups (74 Groups)</option>
+                <optgroup label="Assets">
+                  {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
+                <optgroup label="Liabilities">
+                  {groupedAccountOptions.Liability.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
+                <optgroup label="Income">
+                  {groupedAccountOptions.Income.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
+                <optgroup label="Expenses">
+                  {groupedAccountOptions.Expense.map((g) => <option key={g} value={g}>{g}</option>)}
+                </optgroup>
               </select>
             </div>
           </div>
@@ -919,7 +942,18 @@ export default function LedgerList() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account Group *</label>
                   <select value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500">
-                    {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                    <optgroup label="Assets (Cash, Bank, Debtors, Current & Fixed Assets)">
+                      {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Liabilities (Creditors, Loans, Capital, Duties & Taxes)">
+                      {groupedAccountOptions.Liability.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Income (Sales, Revenue, Operating & Other Income)">
+                      {groupedAccountOptions.Income.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
+                    <optgroup label="Expenses (Purchases, Operating & Administrative Expenses)">
+                      {groupedAccountOptions.Expense.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </optgroup>
                   </select>
                 </div>
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">

@@ -699,8 +699,19 @@ export default function PartyList() {
                         onChange={(e) => handleFieldChange('accountGroup', e.target.value)}
                         className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-primary font-semibold"
                       >
-                        <option value="SUNDRY DEBTORS">SUNDRY DEBTORS (Customer)</option>
-                        <option value="SUNDRY CREDITORS">SUNDRY CREDITORS (Supplier)</option>
+                        <optgroup label="Customers / Debtors">
+                          <option value="SUNDRY DEBTORS">SUNDRY DEBTORS (General Customer)</option>
+                          <option value="SUNDRY DEBTORS (E-COMMERCE)">SUNDRY DEBTORS (E-Commerce)</option>
+                          <option value="SUNDRY DEBTORS (FIELD STAFF)">SUNDRY DEBTORS (Field Staff)</option>
+                        </optgroup>
+                        <optgroup label="Suppliers / Creditors">
+                          <option value="SUNDRY CREDITORS">SUNDRY CREDITORS (General Supplier)</option>
+                          <option value="SUNDRY CREDITORS (SUPPLIERS)">SUNDRY CREDITORS (Suppliers &amp; Stockists)</option>
+                          <option value="SUNDRY CREDITORS (MANUFACTURERS)">SUNDRY CREDITORS (Manufacturers)</option>
+                          <option value="SUNDRY CREDITORS (EXPENSES PAYABLE)">SUNDRY CREDITORS (Expenses Payable)</option>
+                          <option value="SUNDRY CREDITORS (FIELD STAFF)">SUNDRY CREDITORS (Field Staff)</option>
+                          <option value="SUNDRY CREDITORS (E-COMMERCE)">SUNDRY CREDITORS (E-Commerce)</option>
+                        </optgroup>
                         <option value="BOTH">BOTH (Customer &amp; Supplier)</option>
                       </select>
                     </div>
