@@ -12,7 +12,20 @@ async function authenticate(request: NextRequest) {
   return { auth }
 }
 function success(data: unknown, auth: AuthenticatedRequest, requestId: string, status = 200) { const response = NextResponse.json({ data }, { status }); response.headers.set('X-Request-Id', requestId); return applyRefreshedSession(response, auth) }
-function failure(error: unknown, requestId: string, status = 422) { const raw = error instanceof Error ? error.message : 'Invalid request.'; const message = raw.length <= 300 && !/SUPABASE_SECRET|service_role|postgres:\/\//i.test(raw) ? raw : 'The operation could not be completed.'; console.error(JSON.stringify({ level: 'error', event: 'erp_api_failure', requestId, message: raw })); return NextResponse.json({ error: { message, requestId } }, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId } }) }
+function failure(error: unknown, requestId: string, status = 422) {
+  let raw = 'Invalid request.'
+  if (error instanceof Error) {
+    raw = error.message
+  } else if (error && typeof error === 'object') {
+    const errObj = error as any
+    raw = errObj.message || errObj.error_description || errObj.details || errObj.hint || JSON.stringify(error)
+  } else if (typeof error === 'string') {
+    raw = error
+  }
+  const message = raw.length <= 300 && !/SUPABASE_SECRET|service_role|postgres:\/\//i.test(raw) ? raw : 'The operation could not be completed.'
+  console.error(JSON.stringify({ level: 'error', event: 'erp_api_failure', requestId, message: raw, errorDetail: error }))
+  return NextResponse.json({ error: { message, requestId } }, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId } })
+}
 function mutationOriginAllowed(request: NextRequest) {
   const origin = request.headers.get('origin');
   if (!origin) return true;
