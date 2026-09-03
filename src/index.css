@@ -902,15 +902,6 @@
     color: #0c2f66 !important;
   }
 
-  .tax-invoice-bill .bg-\[\#0c2f66\] {
-    background-color: #0c2f66 !important;
-    color: #ffffff !important;
-  }
-
-  .tax-invoice-bill .bg-\[\#0c2f66\] * {
-    color: #ffffff !important;
-  }
-
   .tax-invoice-bill .bg-\[\#d4ebf2\] {
     background-color: #d4ebf2 !important;
   }

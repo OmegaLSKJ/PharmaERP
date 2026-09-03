@@ -217,7 +217,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
 
           {/* Invoice Document Header Badge (5 cols) */}
           <div className="col-span-5 p-2.5 flex flex-col justify-between text-right">
-            <div className="text-center bg-[#0c2f66] text-white py-1 px-3 rounded-xs font-black tracking-widest text-[13px] uppercase mb-1">
+            <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase mb-1">
               {docTitle}
             </div>
             <div className="text-[10px] text-left space-y-0.5 mt-1 border border-black p-1.5 bg-gray-50/50">
@@ -488,10 +488,10 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
               )}
             </div>
 
-            {/* Grand Total Highlight Box */}
-            <div className="border-[1.5px] border-black bg-[#0c2f66] text-white p-2 mt-2">
-              <div className="text-[9px] uppercase tracking-wider text-blue-200">Grand Total Payable</div>
-              <div className="text-[18px] font-black font-mono tracking-tight flex items-baseline justify-between">
+            {/* Grand Total Box */}
+            <div className="border-[1.5px] border-black bg-gray-100/70 p-2 mt-2">
+              <div className="text-[9.5px] uppercase tracking-wider font-bold text-gray-800">Grand Total Payable</div>
+              <div className="text-[19px] font-black font-mono tracking-tight flex items-baseline justify-between text-black">
                 <span>₹</span>
                 <span>{roundedGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
