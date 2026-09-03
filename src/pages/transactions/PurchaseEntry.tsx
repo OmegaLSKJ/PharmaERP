@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft } from 'lucide-react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
@@ -512,7 +512,18 @@ export default function PurchaseEntry() {
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Supplier / Vendor *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase">Supplier / Vendor *</label>
+              {supplier && (
+                <Link
+                  to={`/masters/parties?search=${encodeURIComponent(supplier)}`}
+                  target="_blank"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline inline-flex items-center gap-1 font-medium"
+                >
+                  <Edit2 size={11} /> Edit Supplier Details
+                </Link>
+              )}
+            </div>
             <Typeahead
               options={supplierTypeaheadOptions}
               value={supplier}

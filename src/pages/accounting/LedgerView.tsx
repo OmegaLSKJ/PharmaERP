@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Search, Download, FileText, Eye } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Search, Download, FileText, Eye, Edit2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
@@ -109,7 +110,17 @@ export default function LedgerView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Ledger View</h1>
-          <p className="text-sm text-muted-foreground mt-1">{selectedLedger || 'Select a ledger'}</p>
+          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+            <span>{selectedLedger || 'Select a ledger'}</span>
+            {selectedLedger && (
+              <Link
+                to={`/masters/parties?search=${encodeURIComponent(selectedLedger)}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-xs font-medium border border-indigo-500/20 transition"
+              >
+                <Edit2 size={11} /> Edit Party Master
+              </Link>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <button

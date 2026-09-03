@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Phone, MapPin, ShieldCheck, CreditCard, Building } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ArrowLeft, Phone, MapPin, ShieldCheck, CreditCard, Building, Edit2, Check, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { getErp } from '../../lib/erpApi'
+import { getErp, patchErp } from '../../lib/erpApi'
+import { useUIStore } from '../../store/uiStore'
 
 export default function Party360() {
   const nav = useNavigate()
@@ -40,6 +42,63 @@ export default function Party360() {
     recentTxns: [],
     topItems: [],
   })
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    station: '',
+    city: '',
+    state: '18-ASSAM',
+    address: '',
+    gstin: '',
+    pan: '',
+    dlNo: '',
+    dlExp: '',
+    foodLicenceNo: '',
+    creditLimit: '0',
+    creditDays: '30'
+  })
+  const showToast = useUIStore((s) => s.showToast)
+
+  const handleSaveParty = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!partyData?.id) return
+    setSaving(true)
+    try {
+      const payload = {
+        ...editForm,
+        creditLimit: Number(editForm.creditLimit) || 0,
+        creditDays: Number(editForm.creditDays) || 0,
+        dlNumber: editForm.dlNo
+      }
+      await patchErp('parties', partyData.id, payload)
+      setPartyData((prev: any) => ({ ...prev, ...payload }))
+
+      // Update localStorage custom parties
+      try {
+        const raw = localStorage.getItem('pharma_erp_custom_parties')
+        if (raw) {
+          const custom = JSON.parse(raw)
+          const updatedCustom = custom.map((p: any) =>
+            (p.id === partyData.id || (p.name && p.name.toLowerCase() === (partyData.name || '').toLowerCase()))
+              ? { ...p, ...payload }
+              : p
+          )
+          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedCustom))
+        }
+      } catch {}
+
+      showToast('Party details updated successfully!')
+      setShowEditModal(false)
+    } catch (err: any) {
+      showToast(err?.message || 'Could not update party details.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -119,6 +178,31 @@ export default function Party360() {
           <h1 className="text-2xl font-bold tracking-tight text-white">{partyData.name}</h1>
           <p className="text-sm text-slate-400">Party 360 | {partyData.type || partyData.accountGroup || 'Ledger Master'}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setEditForm({
+              name: partyData.name || '',
+              phone: partyData.phone || partyData.mobile || '',
+              email: partyData.email || '',
+              station: partyData.station || partyData.city || '',
+              city: partyData.city || '',
+              state: partyData.state || '18-ASSAM',
+              address: partyData.address || '',
+              gstin: partyData.gstin || '',
+              pan: partyData.pan || '',
+              dlNo: partyData.dlNo || partyData.dlNumber || '',
+              dlExp: partyData.dlExp || '',
+              foodLicenceNo: partyData.foodLicenceNo || '',
+              creditLimit: String(partyData.creditLimit || '0'),
+              creditDays: String(partyData.creditDays || '30')
+            })
+            setShowEditModal(true)
+          }}
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition"
+        >
+          <Edit2 size={13} /> Edit Party Details
+        </button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {stats.map(s => (
@@ -266,6 +350,149 @@ export default function Party360() {
           </table>
         </div>
       )}
+
+      {showEditModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl p-5 sm:p-6 shadow-2xl space-y-4 text-white max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base sm:text-lg font-bold text-white">Edit Customer / Supplier Details</h3>
+                <button type="button" onClick={() => setShowEditModal(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleSaveParty} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Legal Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Station / Town</label>
+                    <input
+                      type="text"
+                      value={editForm.station}
+                      onChange={(e) => setEditForm({ ...editForm, station: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">City</label>
+                    <input
+                      type="text"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">State</label>
+                    <input
+                      type="text"
+                      value={editForm.state}
+                      onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Phone / Mobile</label>
+                    <input
+                      type="text"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">GSTIN</label>
+                    <input
+                      type="text"
+                      value={editForm.gstin}
+                      onChange={(e) => setEditForm({ ...editForm, gstin: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">PAN</label>
+                    <input
+                      type="text"
+                      value={editForm.pan}
+                      onChange={(e) => setEditForm({ ...editForm, pan: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Drug License No (DL)</label>
+                    <input
+                      type="text"
+                      value={editForm.dlNo}
+                      onChange={(e) => setEditForm({ ...editForm, dlNo: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">DL Expiry</label>
+                    <input
+                      type="date"
+                      value={editForm.dlExp}
+                      onChange={(e) => setEditForm({ ...editForm, dlExp: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Credit Limit (₹)</label>
+                    <input
+                      type="number"
+                      value={editForm.creditLimit}
+                      onChange={(e) => setEditForm({ ...editForm, creditLimit: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Credit Days</label>
+                    <input
+                      type="number"
+                      value={editForm.creditDays}
+                      onChange={(e) => setEditForm({ ...editForm, creditDays: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 uppercase font-semibold mb-1">Address</label>
+                    <input
+                      type="text"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button type="button" disabled={saving} onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                  <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-1.5">
+                    <Check size={14} /> {saving ? 'Updating...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

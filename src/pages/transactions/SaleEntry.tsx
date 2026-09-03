@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft } from 'lucide-react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -388,7 +388,18 @@ export default function SaleEntry() {
 
       {/* Customer Selection */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Customer / Party *</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Customer / Party *</label>
+          {customer && (
+            <Link
+              to={`/masters/parties?search=${encodeURIComponent(customer)}`}
+              target="_blank"
+              className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline inline-flex items-center gap-1 font-medium"
+            >
+              <Edit2 size={11} /> Edit Customer Details
+            </Link>
+          )}
+        </div>
         <Typeahead
           options={customerOptions}
           value={customer}
