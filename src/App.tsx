@@ -89,6 +89,8 @@ export default function App() {
           <Route path="/transactions/sale-return" element={<SaleReturn />} />
           <Route path="/transactions/purchase" element={<PurchaseRegister />} />
           <Route path="/transactions/purchase/new" element={<PurchaseEntry />} />
+          <Route path="/transactions/purchase/edit/:id" element={<PurchaseEntry />} />
+          <Route path="/transactions/purchase/:id" element={<PurchaseEntry />} />
           <Route path="/transactions/purchase-return" element={<PurchaseReturn />} />
           <Route path="/transactions/orders" element={<Orders />} />
           <Route path="/transactions/breakage" element={<BreakageEntry />} />

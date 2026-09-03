@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Save, Banknote, Landmark, Plus, ArrowRightLeft, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
@@ -26,6 +27,7 @@ const DEFAULT_CASH_ACCOUNTS = ['Cash Account', 'Cash in Hand', 'Petty Cash']
 const DEFAULT_BANK_ACCOUNTS = ['HDFC Bank', 'State Bank of India (SBI)', 'ICICI Bank', 'Axis Bank']
 
 export default function VoucherEntry() {
+  const [searchParams] = useSearchParams()
   const [vType, setVType] = useState('Receipt')
   const [vNo, setVNo] = useState(() => `VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
   const [physicalVoucherNo, setPhysicalVoucherNo] = useState('')
@@ -38,6 +40,20 @@ export default function VoucherEntry() {
   const [lines, setLines] = useState<VoucherLine[]>([])
   const [narration, setNarration] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const qVNo = searchParams.get('vNo')
+    const qType = searchParams.get('type')
+    const qParty = searchParams.get('party')
+    const qAmount = searchParams.get('amount')
+    if (qVNo) setVNo(qVNo)
+    if (qType) {
+      const formatted = qType.charAt(0).toUpperCase() + qType.slice(1).toLowerCase().replace('_', ' ')
+      if (VOUCHER_TYPES.includes(formatted)) setVType(formatted)
+    }
+    if (qParty) setPartyLedger(qParty)
+    if (qAmount && !isNaN(Number(qAmount))) setQuickAmount(Number(qAmount))
+  }, [searchParams])
 
   const [cashAccounts, setCashAccounts] = useState<string[]>(DEFAULT_CASH_ACCOUNTS)
   const [bankAccounts, setBankAccounts] = useState<string[]>(DEFAULT_BANK_ACCOUNTS)

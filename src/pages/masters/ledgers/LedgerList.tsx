@@ -25,8 +25,10 @@ import {
   TrendingUp,
   TrendingDown,
   CreditCard,
-  Scale
+  Scale,
+  ExternalLink
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
@@ -127,6 +129,41 @@ export default function LedgerList() {
   const [name, setName] = useState('')
   const [group, setGroup] = useState('Sundry Debtors')
   const addToast = useUIStore((s) => s.addToast)
+  const navigate = useNavigate()
+
+  const handleNavigateToTransaction = (t: { vType?: string; vNo?: string; id?: string; party?: string }) => {
+    const type = String(t.vType || '').toLowerCase().trim()
+    const rawNo = String(t.vNo || t.id || '').trim()
+    const encoded = encodeURIComponent(rawNo)
+
+    if (
+      type === 'sale' ||
+      type === 'sales' ||
+      type === 'invoice' ||
+      rawNo.toUpperCase().startsWith('SI') ||
+      rawNo.toUpperCase().startsWith('INV')
+    ) {
+      navigate(`/transactions/sale/edit/${encoded}`)
+    } else if (
+      type === 'purchase' ||
+      type === 'purchases' ||
+      type === 'bill' ||
+      rawNo.toUpperCase().startsWith('PB') ||
+      rawNo.toUpperCase().startsWith('PUR')
+    ) {
+      navigate(`/transactions/purchase/edit/${encoded}`)
+    } else if (type === 'sale-return' || type === 'sale_return') {
+      navigate(`/transactions/sale-return`)
+    } else if (type === 'purchase-return' || type === 'purchase_return') {
+      navigate(`/transactions/purchase-return`)
+    } else if (type === 'challan') {
+      navigate(`/transactions/sale/challan`)
+    } else {
+      // Vouchers: Receipt, Payment, Journal, Contra, Notes
+      const party = encodeURIComponent(t.party || selectedLedger || '')
+      navigate(`/accounting/vouchers?vNo=${encoded}&type=${encodeURIComponent(type)}&party=${party}`)
+    }
+  }
 
   const handleForceRemoveZeroValueTxns = async () => {
     setPurging(true)
@@ -370,26 +407,51 @@ export default function LedgerList() {
           <th className="px-4 py-3 font-medium text-right w-28">Debit (₹)</th>
           <th className="px-4 py-3 font-medium text-right w-28">Credit (₹)</th>
           <th className="px-4 py-3 font-medium text-right w-32">Running Bal</th>
+          <th className="px-3 py-3 font-medium text-center w-20">Action</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-800 text-slate-300">
         {txns.length === 0 && (
-          <tr><td colSpan={7} className="p-6 text-center text-slate-500 italic">No records found.</td></tr>
+          <tr><td colSpan={8} className="p-6 text-center text-slate-500 italic">No records found.</td></tr>
         )}
         {txns.map((t, i) => (
-          <tr key={i} className="hover:bg-slate-800/30 transition">
-            <td className="px-4 py-2.5 font-mono text-slate-400 text-[11px]">{t.date}</td>
+          <tr
+            key={t.id || i}
+            onClick={() => handleNavigateToTransaction(t)}
+            className="hover:bg-indigo-500/10 cursor-pointer transition group"
+            title={`Click to open and modify ${t.vType?.toUpperCase()} ${t.vNo}`}
+          >
+            <td className="px-4 py-2.5 font-mono text-slate-400 text-[11px] group-hover:text-slate-300">{t.date}</td>
             <td className="px-4 py-2.5">
               <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[t.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>
                 {t.vType}
               </span>
             </td>
-            <td className="px-4 py-2.5 font-mono text-white font-medium text-[11px]">{t.vNo}</td>
-            <td className="px-4 py-2.5 text-slate-300 max-w-xs truncate">{t.narration || '-'}</td>
+            <td className="px-4 py-2.5 font-mono text-indigo-400 group-hover:text-indigo-300 font-medium text-[11px]">
+              <span className="inline-flex items-center gap-1 underline underline-offset-2">
+                {t.vNo}
+                <ExternalLink size={11} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
+              </span>
+            </td>
+            <td className="px-4 py-2.5 text-slate-300 max-w-xs truncate group-hover:text-white">{t.narration || '-'}</td>
             <td className="px-4 py-2.5 text-right font-mono text-emerald-400 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '-'}</td>
             <td className="px-4 py-2.5 text-right font-mono text-rose-400 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '-'}</td>
             <td className="px-4 py-2.5 text-right font-mono font-semibold text-white text-[11px]">
               {formatCurrency(t.runningBalance)} <span className="text-[9px] text-slate-400">{t.balanceType}</span>
+            </td>
+            <td className="px-3 py-2.5 text-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleNavigateToTransaction(t)
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-medium transition"
+                title={`Open & modify ${t.vNo}`}
+              >
+                <span>Edit</span>
+                <ExternalLink size={10} />
+              </button>
             </td>
           </tr>
         ))}
@@ -688,6 +750,15 @@ export default function LedgerList() {
             <span className="ml-auto text-slate-500">Total: <strong className="text-white">{filteredStatementTxns.length}</strong></span>
           </div>
 
+          {/* Interactive Navigation Hint */}
+          <div className="flex items-center justify-between px-3.5 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-300">
+            <span className="flex items-center gap-2">
+              <span className="text-sm">💡</span>
+              <span>Click on any transaction row or voucher number to open the bill or voucher to modify it.</span>
+            </span>
+            <span className="hidden sm:inline text-[11px] text-indigo-400 font-mono">Click to Edit</span>
+          </div>
+
           {/* Sub-sections */}
           <div className="space-y-3">
             <Section
@@ -776,24 +847,49 @@ export default function LedgerList() {
                     <th className="text-right px-4 py-3 font-medium w-32">Debit (Dr ₹)</th>
                     <th className="text-right px-4 py-3 font-medium w-32">Credit (Cr ₹)</th>
                     <th className="text-right px-4 py-3 font-medium w-36">Running Balance</th>
+                    <th className="text-center px-3 py-3 font-medium w-20">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 text-slate-300">
                   {filteredStatementTxns.map((txn, idx) => (
-                    <tr key={txn.id || idx} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-3 font-mono text-slate-400">{txn.date}</td>
+                    <tr
+                      key={txn.id || idx}
+                      onClick={() => handleNavigateToTransaction(txn)}
+                      className="hover:bg-indigo-500/10 cursor-pointer transition group"
+                      title={`Click to open and modify ${txn.vType?.toUpperCase()} ${txn.vNo}`}
+                    >
+                      <td className="px-4 py-3 font-mono text-slate-400 group-hover:text-slate-300">{txn.date}</td>
                       <td className="px-4 py-3">
                         <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>{txn.vType}</span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-white font-medium">{txn.vNo}</td>
-                      <td className="px-4 py-3 text-slate-300 max-w-sm truncate">{txn.narration || '-'}</td>
+                      <td className="px-4 py-3 font-mono text-indigo-400 group-hover:text-indigo-300 font-medium">
+                        <span className="inline-flex items-center gap-1 underline underline-offset-2">
+                          {txn.vNo}
+                          <ExternalLink size={12} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 max-w-sm truncate group-hover:text-white">{txn.narration || '-'}</td>
                       <td className="px-4 py-3 text-right font-mono text-emerald-400 font-medium">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
                       <td className="px-4 py-3 text-right font-mono text-rose-400 font-medium">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
                       <td className="px-4 py-3 text-right font-mono font-semibold text-white">{formatCurrency(txn.runningBalance)} <span className="text-[10px] text-slate-400">{txn.balanceType}</span></td>
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleNavigateToTransaction(txn)
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-medium transition"
+                          title={`Open & modify ${txn.vNo}`}
+                        >
+                          <span>Edit</span>
+                          <ExternalLink size={10} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {filteredStatementTxns.length === 0 && (
-                    <tr><td colSpan={7} className="p-10 text-center text-slate-500">No transactions found for {selectedLedger} in the selected period.</td></tr>
+                    <tr><td colSpan={8} className="p-10 text-center text-slate-500">No transactions found for {selectedLedger} in the selected period.</td></tr>
                   )}
                 </tbody>
                 <tfoot>
@@ -801,7 +897,7 @@ export default function LedgerList() {
                     <td colSpan={4} className="px-4 py-3 uppercase">Total Movement</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(totalStatementDr)}</td>
                     <td className="px-4 py-3 text-right font-mono text-rose-400">{formatCurrency(totalStatementCr)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
+                    <td colSpan={2} className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
                   </tr>
                 </tfoot>
               </table>
