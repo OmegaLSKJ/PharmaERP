@@ -352,9 +352,9 @@ export default function SaleRegister() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
                 >
-                  <Printer size={14} /> Print Bill (Ctrl+P)
+                  <Printer size={14} className="text-white" /> Print Bill (Ctrl+P)
                 </button>
                 <button
                   onClick={() => setSelected(null)}

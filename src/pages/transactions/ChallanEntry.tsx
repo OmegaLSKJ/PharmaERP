@@ -91,10 +91,10 @@ export default function ChallanEntry() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowPrintModal(true)}
-            className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs sm:text-sm text-white font-medium no-print transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-neutral-900 rounded-lg text-sm text-white font-semibold no-print transition border border-black shadow-md cursor-pointer"
             title="Print Delivery Challan"
           >
-            <Printer size={16} /> <span className="hidden sm:inline">Print Challan</span>
+            <Printer size={16} className="text-white" /> <span>Print Challan</span>
           </button>
           <button
             onClick={saveChallan}
@@ -280,9 +280,9 @@ export default function ChallanEntry() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
                 >
-                  <Printer size={14} /> Print Challan
+                  <Printer size={14} className="text-white" /> Print Challan
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}

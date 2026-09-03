@@ -354,10 +354,10 @@ export default function SaleEntry() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowPrintModal(true)}
-            className="p-2.5 md:px-4 md:py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-white font-medium flex items-center gap-1.5 transition"
+            className="px-4 py-2.5 bg-black hover:bg-neutral-900 text-white font-semibold rounded-lg text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition border border-black cursor-pointer"
             title="Print Preview (Tax Invoice Bill)"
           >
-            <Printer size={16} />
+            <Printer size={16} className="text-white" />
             <span className="hidden sm:inline">Print Bill</span>
           </button>
           <button
@@ -807,9 +807,9 @@ export default function SaleEntry() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
                 >
-                  <Printer size={14} /> Print Bill (Ctrl+P)
+                  <Printer size={14} className="text-white" /> Print Bill (Ctrl+P)
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
