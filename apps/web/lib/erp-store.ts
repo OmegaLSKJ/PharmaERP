@@ -139,6 +139,43 @@ try {
   // Silent catch for production environments where this file won't exist
 }
 
+// Load dynamically added custom parties from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-parties.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-parties.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const existingIds = new Set(custom.map((c: any) => (c.code || c.name).toLowerCase()))
+      mockStore.parties = [...custom, ...(mockStore.parties || []).filter((p: any) => !existingIds.has((p.code || p.name).toLowerCase()))]
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
+function persistCustomParty(party: any) {
+  try {
+    const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-parties.json')
+    const localCustom = path.resolve(process.cwd(), 'lib/custom-parties.json')
+    const targets = [rootCustom, localCustom]
+    for (const target of targets) {
+      let list: any[] = []
+      if (fs.existsSync(target)) {
+        try { list = JSON.parse(fs.readFileSync(target, 'utf8')) } catch {}
+      }
+      list = [party, ...list.filter((p: any) => p.id !== party.id && p.name.toLowerCase() !== party.name.toLowerCase())]
+      const dir = path.dirname(target)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(target, JSON.stringify(list, null, 2), 'utf8')
+    }
+  } catch (err) {
+    console.warn('Failed to persist custom party to disk:', err)
+  }
+}
+
 function isValidUrl(urlString?: string): boolean {
   if (!urlString || typeof urlString !== 'string') return false
   const trimmed = urlString.trim()
@@ -433,8 +470,12 @@ export async function list(resource: string, partyName?: string) {
       client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
     )
     const dbParties = (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type || 'both', phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
-    if (dbParties.length >= (mockStore.parties?.length || 0)) return dbParties
-    return mockStore.parties && mockStore.parties.length > 0 ? mockStore.parties : dbParties
+    const dbCodes = new Set(dbParties.map((p: any) => (p.code || p.name).toLowerCase()))
+    const combined = [
+      ...dbParties,
+      ...(mockStore.parties || []).filter((p: any) => !dbCodes.has((p.code || p.name).toLowerCase()))
+    ]
+    return combined
   }
   if (resource === 'items') {
     const data = await fetchAll<any>((from, to) =>
@@ -846,7 +887,8 @@ export async function create(resource: string, body: any, actor: MutationActor =
         lastSale: '',
         status: 'active'
       }
-      mockStore.parties.push(party)
+      mockStore.parties.unshift(party)
+      persistCustomParty(party)
       return party
     }
     if (resource === 'items') {

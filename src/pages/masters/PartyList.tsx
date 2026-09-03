@@ -187,9 +187,24 @@ export default function PartyList() {
   })
 
   useEffect(() => {
+    let localSaved: Party[] = []
+    try {
+      const raw = localStorage.getItem('pharma_erp_custom_parties')
+      if (raw) localSaved = JSON.parse(raw)
+    } catch {}
+
     getErp<Party[]>('parties')
-      .then(setParties)
-      .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load parties.'))
+      .then((serverParties) => {
+        const serverIds = new Set(serverParties.map((p) => (p.id || p.name).toLowerCase()))
+        const customRemaining = localSaved.filter((c) => !serverIds.has((c.id || c.name).toLowerCase()))
+        setParties([...customRemaining, ...serverParties])
+      })
+      .catch((error) => {
+        if (localSaved.length > 0) {
+          setParties(localSaved)
+        }
+        showToast(error instanceof Error ? error.message : 'Could not load parties.')
+      })
       .finally(() => setLoading(false))
   }, [showToast])
 
@@ -435,7 +450,16 @@ export default function PartyList() {
       }
 
       const created = await postErp<Party>('parties', payload)
-      setParties((current) => [...current, created])
+      // Save locally to localStorage so it permanently persists across browser refresh
+      try {
+        const raw = localStorage.getItem('pharma_erp_custom_parties')
+        const currentLocal = raw ? JSON.parse(raw) : []
+        const updatedLocal = [created, ...currentLocal.filter((p: any) => p.id !== created.id && p.name.toLowerCase() !== created.name.toLowerCase())]
+        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
+      } catch (err) {
+        console.warn('Could not save custom party to localStorage:', err)
+      }
+      setParties((current) => [created, ...current.filter((p) => p.id !== created.id)])
       setShowCreate(false)
       resetForm()
       showToast(`${created.name} was added to Party Master.`)
