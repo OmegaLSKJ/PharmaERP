@@ -183,11 +183,11 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
   const primaryHalfGst = (primaryGstRate / 2).toFixed(1).replace(/\.0$/, '')
 
   // Fill up table rows so the printed form always maintains vertical lines
-  const minRows = Math.max(1, 10 - processedItems.length)
+  const minRows = Math.max(1, 5 - processedItems.length)
   const fillerRows = Array.from({ length: minRows }, (_, idx) => idx)
 
   return (
-    <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full max-w-[820px] mx-auto p-1">
+    <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
       {/* Top indicator: Original Copy */}
       <div className="text-right text-[10px] text-black pr-2 pb-0.5 font-normal tracking-wide">
         Original Copy
@@ -257,20 +257,20 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
         <table className="w-full border-collapse text-[10px] font-sans" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr className="bg-[#d4ebf2] text-black border-b-[1.5px] border-black text-[9.5px] font-bold">
-              <th className="border-r border-black py-1 px-0.5 text-center w-[50px]">Qty+D.Qty</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[42px]">Pack</th>
-              <th className="border-r border-black py-1 px-1 text-left">Product Description</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[46px]">Mfr.</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[42px]">HSN</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[60px]">Batch</th>
-              <th className="border-r border-black py-1 px-0.5 text-center w-[36px]">Exp.</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[46px]">M.R.P</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[46px]">RATE</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[34px]">Sch.</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[34px]">Disc</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[34px]">SGST</th>
-              <th className="border-r border-black py-1 px-0.5 text-right w-[34px]">CGST</th>
-              <th className="py-1 px-1 text-right w-[60px]">Total</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[52px]">Qty+Free</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[48px]">Pack</th>
+              <th className="border-r border-black py-1 px-1.5 text-left">Product Description</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[52px]">Mfr.</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[44px]">HSN</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[66px]">Batch</th>
+              <th className="border-r border-black py-1 px-0.5 text-center w-[40px]">Exp.</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[48px]">M.R.P</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[48px]">RATE</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[36px]">Sch.</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[36px]">Disc</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[36px]">SGST</th>
+              <th className="border-r border-black py-1 px-0.5 text-right w-[36px]">CGST</th>
+              <th className="py-1 px-1 text-right w-[66px]">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -279,13 +279,13 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono">
                   {item.qty}{item.freeQty ? `+${item.freeQty}` : ''}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center uppercase">{item.packing || '—'}</td>
-                <td className="border-r border-black py-1 px-1 text-left uppercase truncate font-black text-black">
+                <td className="border-r border-black py-1 px-0.5 text-center uppercase whitespace-nowrap">{item.packing || '—'}</td>
+                <td className="border-r border-black py-1 px-1.5 text-left uppercase font-black text-black">
                   {item.itemName}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center uppercase">{item.mfr || 'CONCEP'}</td>
+                <td className="border-r border-black py-1 px-0.5 text-center uppercase whitespace-nowrap">{item.mfr || 'CONCEP'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono">{item.hsn || '3004'}</td>
-                <td className="border-r border-black py-1 px-0.5 text-center font-mono">{item.batch || '—'}</td>
+                <td className="border-r border-black py-1 px-0.5 text-center font-mono whitespace-nowrap">{item.batch || '—'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono">{item.expDisplay || '—'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-right font-mono">{item.mrp?.toFixed(2) || '0.00'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-right font-mono">{item.rate.toFixed(2)}</td>

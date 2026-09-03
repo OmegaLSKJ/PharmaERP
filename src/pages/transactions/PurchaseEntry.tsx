@@ -1136,10 +1136,15 @@ export default function PurchaseEntry() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                  className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} /> Print Invoice
+                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <span>Print Invoice</span>
+                  <kbd className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                    Ctrl+P
+                  </kbd>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}

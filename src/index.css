@@ -861,47 +861,63 @@
     width: auto !important;
   }
 
-  .tax-invoice-bill {
+  .tax-invoice-bill,
+  .goods-receipt-note-print {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
-  .tax-invoice-bill table {
+  .tax-invoice-bill table,
+  .goods-receipt-note-print table {
     display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
+    table-layout: fixed !important;
   }
 
-  .tax-invoice-bill tr {
+  .tax-invoice-bill tr,
+  .goods-receipt-note-print tr {
     display: table-row !important;
   }
 
   .tax-invoice-bill th,
-  .tax-invoice-bill td {
+  .tax-invoice-bill td,
+  .goods-receipt-note-print th,
+  .goods-receipt-note-print td {
     display: table-cell !important;
   }
 
-  .tax-invoice-bill thead th {
+  .tax-invoice-bill table th,
+  .goods-receipt-note-print table th {
     background-color: #d4ebf2 !important;
     color: #000000 !important;
-    font-size: 9px !important;
+    font-size: 8.5px !important;
+    padding: 3px 2px !important;
     border-right: 1px solid #000000 !important;
     border-bottom: 1.5px solid #000000 !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
+    white-space: normal !important;
+    line-height: 1.1 !important;
   }
 
-  .tax-invoice-bill tbody td {
+  .tax-invoice-bill table td,
+  .goods-receipt-note-print table td {
     background: transparent !important;
     color: #000000 !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    font-size: 9.5px !important;
+    padding: 2.5px 2px !important;
+    font-size: 9px !important;
+    line-height: 1.15 !important;
+    border-left: none !important;
   }
 
   .tax-invoice-bill tbody tr:nth-child(even) td,
-  .tax-invoice-bill tbody tr:nth-child(odd) td {
+  .tax-invoice-bill tbody tr:nth-child(odd) td,
+  .goods-receipt-note-print tbody tr:nth-child(even) td,
+  .goods-receipt-note-print tbody tr:nth-child(odd) td {
     background: transparent !important;
   }
 
@@ -911,6 +927,12 @@
 
   .tax-invoice-bill .bg-\[\#d4ebf2\] {
     background-color: #d4ebf2 !important;
+  }
+
+  .tax-invoice-bill .col-span-7 table th,
+  .tax-invoice-bill .col-span-7 table td {
+    padding: 2px 3px !important;
+    font-size: 8.5px !important;
   }
 }
 

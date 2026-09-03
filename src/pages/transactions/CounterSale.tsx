@@ -143,9 +143,9 @@ export default function CounterSale() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-700"
+              className="w-full py-2 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-neutral-700 shadow-xs cursor-pointer"
             >
-              <Printer size={14} /> Reprint Last Bill ({completedSale.invoiceNo})
+              <Printer size={14} className="text-zinc-300" /> Reprint Last Bill ({completedSale.invoiceNo})
             </button>
           )}
         </div>
