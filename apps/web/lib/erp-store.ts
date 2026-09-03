@@ -1216,7 +1216,7 @@ export async function update(resource: string, id: string, body: any) {
     const storeKey = specialKeys[resource] || resource
     const list = mockStore[storeKey]
     if (list) {
-      const idx = list.findIndex((x: any) => x.id === id)
+      const idx = list.findIndex((x: any) => x.id === id || x.number === id)
       if (idx !== -1) {
         list[idx] = { ...list[idx], ...body }
         return list[idx]
@@ -1226,6 +1226,11 @@ export async function update(resource: string, id: string, body: any) {
   }
 
   const { client, organizationId } = await context()
+  if (resource === 'sales') {
+    const { data, error } = await client.from('sales_invoices').update(body).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    return data
+  }
   if (resource === 'sale-returns' || resource === 'purchase-returns') {
     const docType = resource === 'sale-returns' ? 'sale_return' : 'purchase_return'
     const { data, error } = await client.from('business_documents').update({ status: body.status, details: body.details || {} }).eq('id', id).eq('organization_id', organizationId).eq('document_type', docType).select('*').single()
