@@ -148,9 +148,9 @@ export default function PartyList() {
   // Form states matching TAO Solutions Pvt Ltd Ledger specification
   const [formData, setFormData] = useState({
     name: '',
-    type: 'customer' as 'customer' | 'supplier' | 'both',
+    type: 'both' as 'customer' | 'supplier' | 'both',
     station: '',
-    accountGroup: 'SUNDRY DEBTORS',
+    accountGroup: 'BOTH',
     balancingMethod: 'On Account',
     openingBalance: '0.00',
     openingType: 'Dr' as 'Dr' | 'Cr',
@@ -207,11 +207,15 @@ export default function PartyList() {
       const isCustomer =
         p?.type === 'customer' ||
         p?.type === 'both' ||
-        (p?.accountGroup || '').toLowerCase().includes('debtor')
+        !p?.type ||
+        (p?.accountGroup || '').toLowerCase().includes('debtor') ||
+        (p?.accountGroup || '').toLowerCase().includes('both')
       const isSupplier =
         p?.type === 'supplier' ||
         p?.type === 'both' ||
-        (p?.accountGroup || '').toLowerCase().includes('creditor')
+        !p?.type ||
+        (p?.accountGroup || '').toLowerCase().includes('creditor') ||
+        (p?.accountGroup || '').toLowerCase().includes('both')
 
       const matchType =
         typeFilter === 'all' ||
@@ -262,11 +266,19 @@ export default function PartyList() {
       }
 
       if (field === 'type') {
-        next.accountGroup = value === 'supplier' ? 'SUNDRY CREDITORS' : 'SUNDRY DEBTORS'
+        next.type = value as 'customer' | 'supplier' | 'both'
+        if (value === 'supplier') {
+          next.accountGroup = 'SUNDRY CREDITORS'
+        } else if (value === 'customer') {
+          next.accountGroup = 'SUNDRY DEBTORS'
+        } else {
+          next.accountGroup = 'BOTH'
+        }
       }
 
       if (field === 'accountGroup') {
-        next.type = value === 'SUNDRY CREDITORS' ? 'supplier' : 'customer'
+        next.accountGroup = value
+        next.type = 'both'
       }
 
       // Auto-extract PAN and State from GSTIN
@@ -333,9 +345,9 @@ export default function PartyList() {
   const resetForm = () => {
     setFormData({
       name: '',
-      type: 'customer',
+      type: 'both',
       station: '',
-      accountGroup: 'SUNDRY DEBTORS',
+      accountGroup: 'BOTH',
       balancingMethod: 'On Account',
       openingBalance: '0.00',
       openingType: 'Dr',
@@ -383,7 +395,7 @@ export default function PartyList() {
     try {
       const payload = {
         name: formData.name.trim(),
-        type: formData.type,
+        type: 'both', // Always set dual role so DB shows them in customers as well as suppliers section
         station: formData.station.trim(),
         accountGroup: formData.accountGroup,
         balancingMethod: formData.balancingMethod,
@@ -627,12 +639,21 @@ export default function PartyList() {
                     <span
                       className={cn(
                         'inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase',
-                        p.type === 'supplier' || p.accountGroup === 'SUNDRY CREDITORS'
+                        p.type === 'both' || p.accountGroup === 'BOTH'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : p.type === 'supplier' || (p.accountGroup || '').toLowerCase().includes('creditor')
                           ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                           : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                       )}
                     >
-                      {p.accountGroup || (p.type === 'supplier' ? 'SUNDRY CREDITORS' : 'SUNDRY DEBTORS')}
+                      {p.accountGroup === 'BOTH'
+                        ? 'CUSTOMER & SUPPLIER'
+                        : p.accountGroup ||
+                          (p.type === 'both'
+                            ? 'CUSTOMER & SUPPLIER'
+                            : p.type === 'supplier'
+                            ? 'SUNDRY CREDITORS'
+                            : 'SUNDRY DEBTORS')}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -835,6 +856,77 @@ export default function PartyList() {
                       className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary"
                       placeholder="e.g. BORGANG MEDICAL HALL"
                     />
+                  </div>
+
+                  {/* Party Classification / Dual Role Selector */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-primary">
+                        Party Classification / Role *
+                      </label>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                        Dual Role (Customers &amp; Suppliers)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFieldChange('type', 'both')
+                          handleFieldChange('accountGroup', 'BOTH')
+                        }}
+                        className={cn(
+                          'px-3 py-2 rounded-lg text-xs font-semibold border transition text-left flex flex-col gap-0.5 cursor-pointer',
+                          formData.accountGroup === 'BOTH'
+                            ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                            : 'bg-card text-muted-foreground border-border hover:border-primary/50'
+                        )}
+                      >
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>🔄</span> Both (Customer &amp; Supplier)
+                        </span>
+                        <span className="text-[10px] opacity-80">Visible in Customers &amp; Suppliers</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFieldChange('type', 'both')
+                          handleFieldChange('accountGroup', 'SUNDRY DEBTORS')
+                        }}
+                        className={cn(
+                          'px-3 py-2 rounded-lg text-xs font-semibold border transition text-left flex flex-col gap-0.5 cursor-pointer',
+                          formData.accountGroup.includes('DEBTOR')
+                            ? 'bg-blue-600/20 text-blue-300 border-blue-500/40 shadow-xs'
+                            : 'bg-card text-muted-foreground border-border hover:border-primary/50'
+                        )}
+                      >
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>👥</span> Customer (Dual Role)
+                        </span>
+                        <span className="text-[10px] opacity-80">Also available as Supplier in DB</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFieldChange('type', 'both')
+                          handleFieldChange('accountGroup', 'SUNDRY CREDITORS')
+                        }}
+                        className={cn(
+                          'px-3 py-2 rounded-lg text-xs font-semibold border transition text-left flex flex-col gap-0.5 cursor-pointer',
+                          formData.accountGroup.includes('CREDITOR')
+                            ? 'bg-purple-600/20 text-purple-300 border-purple-500/40 shadow-xs'
+                            : 'bg-card text-muted-foreground border-border hover:border-primary/50'
+                        )}
+                      >
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>🏢</span> Supplier (Dual Role)
+                        </span>
+                        <span className="text-[10px] opacity-80">Also available as Customer in DB</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      &bull; In All Parties, all added parties are registered in the DB with dual eligibility so they automatically appear in both the <strong>Customers</strong> section and the <strong>Suppliers</strong> section.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

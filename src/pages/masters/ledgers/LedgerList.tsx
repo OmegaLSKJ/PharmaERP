@@ -197,7 +197,7 @@ export default function LedgerList() {
         const partyLedgers: Ledger[] = parties.map((p) => ({
           id: p.id,
           name: p.name,
-          group: p.type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors',
+          group: p.accountGroup || (p.type === 'supplier' ? 'Sundry Creditors' : p.type === 'both' ? 'Sundry Debtors & Creditors' : 'Sundry Debtors'),
           balance: Math.abs(Number(p.balance || 0)),
           type: Number(p.balance || 0) < 0 ? 'Cr' : 'Dr'
         }))

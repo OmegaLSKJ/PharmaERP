@@ -14,9 +14,9 @@ const organizationName = process.env.ERP_ORGANIZATION_NAME ?? 'Borgang Drug Dist
 // OPTION B: In-memory mock database state for local offline development
 const mockStore: Record<string, any[]> = {
   parties: [
-    { id: 'p1', code: 'PTY-001', name: 'Apollo Pharmacy', type: 'customer', phone: '9876543210', email: 'apollo@pharmacy.com', city: 'Mumbai', gstin: '27AAAAA1111A1Z1', balance: 12500, creditLimit: 50000, lastSale: '2026-08-25', status: 'active' },
-    { id: 'p2', code: 'PTY-002', name: 'MedPlus Chemist', type: 'customer', phone: '9876543211', email: 'medplus@chemist.com', city: 'Delhi', gstin: '07BBBBB2222B2Z2', balance: 8450, creditLimit: 40000, lastSale: '2026-08-25', status: 'active' },
-    { id: 'p3', code: 'PTY-003', name: 'Cipla Logistics', type: 'supplier', phone: '9876543212', email: 'cipla@logistics.com', city: 'Pune', gstin: '27CCCCC3333C3Z3', balance: -35000, creditLimit: 200000, lastSale: '2026-08-20', status: 'active' }
+    { id: 'p1', code: 'PTY-001', name: 'Apollo Pharmacy', type: 'both', phone: '9876543210', email: 'apollo@pharmacy.com', city: 'Mumbai', gstin: '27AAAAA1111A1Z1', balance: 12500, creditLimit: 50000, lastSale: '2026-08-25', status: 'active' },
+    { id: 'p2', code: 'PTY-002', name: 'MedPlus Chemist', type: 'both', phone: '9876543211', email: 'medplus@chemist.com', city: 'Delhi', gstin: '07BBBBB2222B2Z2', balance: 8450, creditLimit: 40000, lastSale: '2026-08-25', status: 'active' },
+    { id: 'p3', code: 'PTY-003', name: 'Cipla Logistics', type: 'both', phone: '9876543212', email: 'cipla@logistics.com', city: 'Pune', gstin: '27CCCCC3333C3Z3', balance: -35000, creditLimit: 200000, lastSale: '2026-08-20', status: 'active' }
   ],
   items: [
     { id: 'i1', code: 'ITM-001', name: 'Paracetamol 650mg', packing: '10x15 Tabs', manufacturer: 'Cipla Ltd', salt: 'Paracetamol', hsn: '30049011', gstRate: 12, mrp: 20, saleRate: 15, purchaseRate: 12, scheduleClass: 'OTC', prescriptionRequired: false, coldChain: false, controlledSubstance: false, recalled: false, stock: 120, batches: [{ id: 'b1', batch: 'PCT-0192', expiry: '2026-09-30', mrp: 20, stock: 120, stockByLocation: { 'Main Warehouse': 120 } }], batchCount: 1, category: 'Analgesic', status: 'active' },
@@ -432,7 +432,7 @@ export async function list(resource: string, partyName?: string) {
     const data = await fetchAll<any>((from, to) =>
       client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
     )
-    const dbParties = (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type, phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
+    const dbParties = (data ?? []).map((p: any) => ({ id: p.id, code: p.code, name: p.legal_name, type: p.party_type || 'both', phone: p.phone ?? '', email: p.email ?? '', city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '', gstin: p.gstin ?? '', balance: 0, creditLimit: Number(p.credit_limit), lastSale: '', status: p.is_blocked ? 'blocked' : 'active' }))
     if (dbParties.length >= (mockStore.parties?.length || 0)) return dbParties
     return mockStore.parties && mockStore.parties.length > 0 ? mockStore.parties : dbParties
   }
@@ -798,13 +798,14 @@ export async function create(resource: string, body: any, actor: MutationActor =
       const opType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
       const netBal = opType === 'Cr' ? -Math.abs(opBal) : Math.abs(opBal)
 
+      const partyType = 'both'
       const party = {
         id,
         code: body.code || `PTY-${Date.now()}`,
         name: body.name,
-        type: body.type || (body.accountGroup === 'Sundry Creditors' ? 'supplier' : 'customer'),
+        type: partyType,
         station: body.station || '',
-        accountGroup: body.accountGroup || (body.type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors'),
+        accountGroup: body.accountGroup || 'BOTH',
         balancingMethod: body.balancingMethod || 'On Account',
         openingBalance: opBal,
         openingType: opType,
@@ -1080,10 +1081,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (resource === 'inventory-adjustments') { const { data,error }=await client.rpc('erp_post_inventory_adjustment',{p_organization_id:organizationId,p_document:body,p_actor_auth_id:actor.id ?? null,p_actor_email:actor.email ?? null,p_request_id:actor.requestId ?? null}); if(error) throw error; return data }
   if (resource === 'parties') {
     if (!body.name) throw new Error('Party name is required.')
-    const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: body.type || 'customer', legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
+    const partyType = 'both'
+    const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
     if (error) throw error
     if (body.city) { const { error: addressError } = await client.from('party_addresses').insert({ party_id: data.id, address_type: 'business', line1: body.address || body.city, city: body.city, is_default: true }); if (addressError) throw addressError }
-    return { ...body, id: data.id, code: data.code, balance: 0, status: 'active' }
+    return { ...body, id: data.id, code: data.code, type: partyType, balance: 0, status: 'active' }
   }
   if (resource === 'hsn') { const { data, error } = await client.from('hsn_codes').insert({ organization_id: organizationId, code: body.code, description: body.description ?? body.name ?? null, gst_rate: Number(body.gst_rate ?? body.gstRate ?? 0) }).select('*').single(); if (error) throw error; return data }
   if (resource === 'manufacturers') { const { data, error } = await client.from('manufacturers').insert({ organization_id: organizationId, name: body.name, code: body.code || null, is_active: body.status !== 'inactive' }).select('*').single(); if (error) throw error; return data }

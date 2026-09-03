@@ -92,8 +92,8 @@ export default function VoucherEntry() {
       setCashAccounts(finalCash)
       setBankAccounts(finalBank)
 
-      const customers = parties.filter((p) => p.type === 'customer' || !p.type).map((p) => p.name)
-      const suppliers = parties.filter((p) => p.type === 'supplier').map((p) => p.name)
+      const customers = parties.filter((p) => p.type === 'customer' || p.type === 'both' || !p.type).map((p) => p.name)
+      const suppliers = parties.filter((p) => p.type === 'supplier' || p.type === 'both').map((p) => p.name)
 
       setCustomerLedgers(customers.length ? customers : ['Apollo Pharmacy', 'MedPlus Chemist'])
       setSupplierLedgers(suppliers.length ? suppliers : ['Cipla Logistics', 'Sun Pharma Ltd'])
