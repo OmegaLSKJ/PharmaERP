@@ -9,7 +9,7 @@ export default function BalanceSheet() {
   const totalLiabilities = balanceSheet.liabilities.reduce((a, i) => a + i.amount, 0)
   return (
     <div className="p-6 space-y-4">
-      <PrintHeader title="Balance Sheet" />
+      <PrintHeader title="Balance Sheet" subtitle="As on 31st March 2026" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Balance Sheet</h1>
@@ -18,9 +18,9 @@ export default function BalanceSheet() {
         <div className="flex gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('balance-sheet', useUIStore.getState().company))}

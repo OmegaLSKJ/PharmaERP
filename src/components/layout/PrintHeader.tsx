@@ -6,149 +6,112 @@ interface PrintHeaderProps {
 }
 
 export default function PrintHeader({ title, subtitle }: PrintHeaderProps) {
-  const company = useUIStore((s) => s.company)
+  const storeCompany = useUIStore((s) => s.company)
+
+  const company = {
+    name: storeCompany.companyName || 'BORGANG DRUG DISTRIBUTORS',
+    address: storeCompany.address || 'BORGANG, BISWANATH, ASSAM',
+    city: storeCompany.city || 'BORGANG',
+    pincode: storeCompany.pincode || '784167',
+    state: storeCompany.state || 'Assam',
+    phone: storeCompany.phone || '9435082103',
+    email: storeCompany.email || 'borgangdrugdistributors@gmail.com',
+    gstin: storeCompany.gstin || '18AKWPP4417G1ZN',
+    dlNo: storeCompany.dlNo || 'DNG/622/623',
+    pan: storeCompany.pan || 'AKWPP4417G',
+    bankName: storeCompany.bankName || 'PUNJAB NATIONAL BANK',
+    accountNo: storeCompany.accountNo || '1125250029704',
+    ifsc: storeCompany.ifsc || 'PUNB0112520',
+    jurisdiction: storeCompany.jurisdiction || 'Biswanath',
+  }
+
   const now = new Date().toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
   })
 
   return (
-    <div
-      className="hidden print:block w-full"
-      style={{
-        fontFamily: "'Segoe UI', Arial, sans-serif",
-        marginBottom: '10px',
-        borderBottom: '2.5px solid #1a1a1a',
-        paddingBottom: '8px',
-      }}
-    >
-      {/* Top strip: company identity + document badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-
-        {/* Left: Logo + Name + Address strip */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1 }}>
-          <img
-            src="/favicon.png"
-            alt="Logo"
-            style={{ width: '40px', height: '40px', objectFit: 'contain', flexShrink: 0, marginTop: '2px' }}
-          />
-          <div>
-            {/* Company name */}
-            <div style={{
-              fontSize: '18px',
-              fontWeight: '900',
-              color: '#0c2f66',
-              letterSpacing: '-0.02em',
-              lineHeight: '1.1',
-              textTransform: 'uppercase',
-            }}>
-              {company.companyName}
+    <div className="hidden print:block w-full mb-3 text-black font-sans select-text">
+      {/* Framed Header Box */}
+      <div className="border-[1.5px] border-black bg-white">
+        {/* Top Grid: Branding on Left (7 cols) + Document Badge on Right (5 cols) */}
+        <div className="grid grid-cols-12 border-b-[1.5px] border-black">
+          {/* Left: Logo & Company Information */}
+          <div className="col-span-7 p-2.5 border-r-[1.5px] border-black flex items-start gap-2.5">
+            <img
+              src="/favicon.png"
+              alt="Logo"
+              className="w-10 h-10 object-contain mt-0.5 flex-shrink-0"
+            />
+            <div className="flex-1">
+              <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
+                {company.name}
+              </h1>
+              <div className="text-[10px] text-gray-800 font-semibold leading-tight">
+                <div>WHOLESALE PHARMACEUTICAL DISTRIBUTORS</div>
+                <div>
+                  {company.address}
+                  {company.city ? `, ${company.city}` : ''}
+                  {company.pincode ? ` - ${company.pincode}` : ''}
+                </div>
+                <div>State: {company.state || 'Assam'} (State Code: 18)</div>
+                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                  {company.phone && <span>Ph: {company.phone}</span>}
+                  {company.email && <span>E: {company.email.toLowerCase()}</span>}
+                </div>
+                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                  {company.gstin && (
+                    <span>
+                      GSTIN: <span className="font-mono">{company.gstin}</span>
+                    </span>
+                  )}
+                  {company.dlNo && <span>D.L. No: {company.dlNo}</span>}
+                  {company.pan && <span>PAN: {company.pan}</span>}
+                </div>
+              </div>
             </div>
+          </div>
 
-            {/* Address line */}
-            <div style={{ fontSize: '9px', color: '#333', marginTop: '2px', lineHeight: '1.5' }}>
-              {company.address}{company.pincode && `, ${company.pincode}`}
-              {company.city && company.city !== company.address && `, ${company.city}`}
-              {company.state && ` – ${company.state}`}
+          {/* Right: Document Badge & Audit Metadata */}
+          <div className="col-span-5 p-2.5 flex flex-col justify-between text-right">
+            <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase mb-1">
+              {title}
             </div>
-
-            {/* Key registration numbers */}
-            <div style={{ fontSize: '8.5px', color: '#333', marginTop: '2px', lineHeight: '1.6', display: 'flex', flexWrap: 'wrap', gap: '0 10px' }}>
-              {company.gstin && (
-                <span>
-                  <strong>GSTIN:</strong>{' '}
-                  <span style={{ fontFamily: 'monospace', letterSpacing: '0.04em' }}>{company.gstin}</span>
-                </span>
+            <div className="text-[10px] text-left space-y-0.5 mt-1 border border-black p-1.5 bg-gray-50/50">
+              {subtitle && (
+                <div className="flex justify-between font-bold text-[#0c2f66]">
+                  <span>Period / Scope:</span>
+                  <span className="text-right">{subtitle}</span>
+                </div>
               )}
-              {company.dlNo && (
-                <span>
-                  <strong>D.L. No:</strong>{' '}
-                  <span style={{ fontFamily: 'monospace' }}>{company.dlNo}</span>
-                </span>
-              )}
-              {company.pan && (
-                <span>
-                  <strong>PAN:</strong>{' '}
-                  <span style={{ fontFamily: 'monospace' }}>{company.pan}</span>
-                </span>
-              )}
-              {company.phone && (
-                <span>
-                  <strong>Ph:</strong> {company.phone}
-                </span>
-              )}
-              {company.email && (
-                <span>
-                  <strong>E:</strong> {company.email.toLowerCase()}
-                </span>
-              )}
+              <div className="flex justify-between">
+                <span>Generated On:</span>
+                <span className="font-bold">{now}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Report Type:</span>
+                <span className="font-semibold uppercase text-[9px]">Official Audited Report</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Document title + print timestamp */}
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{
-            fontSize: '11px',
-            fontWeight: '800',
-            border: '1.5px solid #1a1a1a',
-            background: '#f8fafc',
-            color: '#0c2f66',
-            padding: '3px 10px',
-            borderRadius: '3px',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            display: 'inline-block',
-            marginBottom: '4px',
-          }}>
-            {title}
+        {/* Bottom Sub-bar: Bank Details & Legal Jurisdiction */}
+        <div className="px-2 py-1 bg-gray-50/60 flex justify-between items-center text-[8.5px] font-bold text-gray-700">
+          <div>
+            <strong>Bank:</strong> {company.bankName} | <strong>A/C:</strong>{' '}
+            <span className="font-mono">{company.accountNo}</span> | <strong>IFSC:</strong>{' '}
+            <span className="font-mono">{company.ifsc}</span>
           </div>
-          {subtitle && (
-            <div style={{ fontSize: '8px', color: '#555', marginTop: '2px', fontWeight: 600 }}>
-              {subtitle}
-            </div>
-          )}
-          <div style={{ fontSize: '7.5px', color: '#888', marginTop: '3px' }}>
-            Printed: {now}
+          <div>
+            Subject to {company.jurisdiction.toUpperCase()} Jurisdiction &bull; Computer Generated Statement
           </div>
-          {(company.fyStart || company.fyEnd) && (
-            <div style={{ fontSize: '7.5px', color: '#888', marginTop: '1px' }}>
-              FY: {company.fyStart?.slice(0, 7)} to {company.fyEnd?.slice(0, 7)}
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Sub-bar: Bank details & Legal Jurisdiction */}
-      {(company.bankName || company.accountNo || company.jurisdiction) && (
-        <div
-          style={{
-            marginTop: '6px',
-            paddingTop: '4px',
-            borderTop: '1px dashed #ccc',
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '8px',
-            color: '#555',
-          }}
-        >
-          <div>
-            {company.bankName && (
-              <span>
-                <strong>Bank:</strong> {company.bankName} | <strong>A/C No:</strong>{' '}
-                <span style={{ fontFamily: 'monospace' }}>{company.accountNo}</span> | <strong>IFSC:</strong>{' '}
-                <span style={{ fontFamily: 'monospace' }}>{company.ifsc}</span>
-              </span>
-            )}
-          </div>
-          <div>
-            <span>
-              Subject to {(company.jurisdiction || company.city || 'Biswanath').toUpperCase()} Jurisdiction &bull;
-              Computer Generated Statement
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

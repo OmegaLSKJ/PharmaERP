@@ -45,7 +45,7 @@ export default function GstrReconciliation() {
 
   return (
     <div className="p-6 space-y-4">
-      <PrintHeader title="GSTR Reconciliation" />
+      <PrintHeader title="GSTR-2A / 2B Reconciliation" subtitle="Audit Comparison: Purchase Books vs. GST Portal Data" />
       {/* Header Panel */}
       <div className="flex items-center justify-between">
         <div>
@@ -55,9 +55,9 @@ export default function GstrReconciliation() {
         <div className="flex gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
             onClick={() => import('../../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr-reconciliation', useUIStore.getState().company))}

@@ -381,10 +381,9 @@
   /* ═══════════════════════════════════════════════════════════════
      DOCUMENT TITLE BLOCK (h1 + subtitle paragraph)
   ═══════════════════════════════════════════════════════════════ */
-  .flex.items-center.justify-between:first-of-type {
-    margin-bottom: 10pt !important;
-    padding-bottom: 8pt !important;
-    border-bottom: 1pt solid #e5e7eb !important;
+  /* Hide on-screen action bars containing buttons during print so PrintHeader is the single clean header */
+  .flex.items-center.justify-between:has(button) {
+    display: none !important;
   }
 
   h1 {
@@ -508,14 +507,15 @@
     page-break-after: auto !important;
   }
 
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th,
   th {
-    background: #1e3a5f !important;
-    color: #ffffff !important;
+    background: #d4ebf2 !important;
+    color: #000000 !important;
     font-size: 8.5pt !important;
-    font-weight: 700 !important;
-    padding: 5pt 8pt !important;
+    font-weight: 800 !important;
+    padding: 4pt 6pt !important;
     text-align: left !important;
-    border: 0.5pt solid #1e3a5f !important;
+    border: 1px solid #000000 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.03em !important;
     white-space: nowrap !important;
@@ -529,13 +529,14 @@
     text-align: center !important;
   }
 
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td,
   td {
     font-size: 9pt !important;
     color: #111827 !important;
-    padding: 4pt 8pt !important;
-    border-bottom: 0.5pt solid #e5e7eb !important;
-    border-left: 0.5pt solid #f3f4f6 !important;
-    border-right: 0.5pt solid #f3f4f6 !important;
+    padding: 3.5pt 6pt !important;
+    border-bottom: 0.5pt solid #d1d5db !important;
+    border-left: 0.5pt solid #e5e7eb !important;
+    border-right: 0.5pt solid #e5e7eb !important;
     vertical-align: middle !important;
   }
 
@@ -549,7 +550,7 @@
 
   /* Alternating row shading */
   tbody tr:nth-child(even) td {
-    background: #f9fafb !important;
+    background: #fbfcfd !important;
   }
 
   tbody tr:nth-child(odd) td {
@@ -559,12 +560,12 @@
   /* Footer total row */
   tfoot tr td,
   tfoot tr th {
-    background: #1e3a5f !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    font-size: 9pt !important;
-    border: 0.5pt solid #1e3a5f !important;
-    padding: 5pt 8pt !important;
+    background: #f3f4f6 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+    font-size: 9.5pt !important;
+    border: 1.5px solid #000000 !important;
+    padding: 4pt 6pt !important;
   }
 
   /* ═══════════════════════════════════════════════════════════════

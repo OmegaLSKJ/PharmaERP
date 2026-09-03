@@ -46,7 +46,7 @@ export default function GstReports() {
 
   return (
     <div className="p-6 space-y-6">
-      <PrintHeader title="GSTR-1 Report" />
+      <PrintHeader title="GSTR-1 Outward Supplies Report" subtitle="GSTR-1 Summary &bull; Return Period: March 2026" />
       {/* Header block */}
       <div className="flex items-center justify-between">
         <div>
@@ -56,9 +56,9 @@ export default function GstReports() {
         <div className="flex gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
             onClick={() => import('../../lib/download').then(({ exportJson }) => exportJson('gstr1', GSTR_DATA))}
