@@ -15,6 +15,11 @@ export interface CompanyProfile {
   email: string
   fyStart: string
   fyEnd: string
+  // Banking & legal
+  bankName: string
+  accountNo: string
+  ifsc: string
+  jurisdiction: string
 }
 
 const DEFAULT_COMPANY: CompanyProfile = {
@@ -27,11 +32,16 @@ const DEFAULT_COMPANY: CompanyProfile = {
   gstin: '18AKWPP4417G1ZN',
   pan: 'AKWPP4417G',
   dlNo: 'DNG/622/623',
-  phone: '',
+  phone: '03712-260654',
   email: 'borgangdrugdistributors@gmail.com',
   fyStart: '2026-04-01',
   fyEnd: '2027-03-31',
+  bankName: 'PUNJAB NATIONAL BANK',
+  accountNo: '1125250029704',
+  ifsc: 'PUNB0112520',
+  jurisdiction: 'BISWANATH',
 }
+
 
 interface UIState {
   sidebarCollapsed: boolean

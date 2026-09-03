@@ -119,7 +119,7 @@ export default function LedgerView() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`)}
+            onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`, useUIStore.getState().company)}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

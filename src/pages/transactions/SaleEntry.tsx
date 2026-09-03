@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
+import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -40,6 +41,9 @@ export default function SaleEntry() {
   const [prescriberName, setPrescriberName] = useState('')
   const [prescriptionReference, setPrescriptionReference] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [partiesList, setPartiesList] = useState<any[]>([])
+  const [productsList, setProductsList] = useState<any[]>([])
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
   const totals = items.length
     ? calculateInvoice(items.map((item) => ({ qty: item.qty, rate: item.rate, discount: item.disc, gstRate: item.gst })))
@@ -48,6 +52,8 @@ export default function SaleEntry() {
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
       .then(([parties, products]) => {
+        setPartiesList(parties)
+        setProductsList(products)
         setCustomerOptions(
           parties.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => ({ label: p.name, value: p.name }))
         )
@@ -65,6 +71,57 @@ export default function SaleEntry() {
       })
       .catch((error) => showToast(error.message))
   }, [showToast])
+
+  const getPrintData = (): TaxInvoicePrintData => {
+    const partyInfo = partiesList.find((p) => p.name === customer) || {}
+    return {
+      title: 'TAX INVOICE',
+      copyType: 'Original for Recipient',
+      invoiceNo:
+        existingInvoice?.invoiceNo ||
+        existingInvoice?.number ||
+        `SI-${new Date().getFullYear()}/${String(Math.floor(100 + Math.random() * 900))}`,
+      invoiceDate: existingInvoice?.date || new Date().toISOString().split('T')[0],
+      dueDate: '',
+      paymentMode: 'Credit',
+      patientName,
+      prescriberName,
+      prescriptionReference,
+      buyer: {
+        name: customer || 'CASH CUSTOMER / WALK-IN',
+        address: partyInfo.address || partyInfo.city || 'Local',
+        city: partyInfo.city || '',
+        state: partyInfo.state || 'Assam',
+        phone: partyInfo.phone || '',
+        gstin: partyInfo.gstin || '',
+        dlNo: partyInfo.dlNumber || partyInfo.dlNo || '',
+        pan: partyInfo.pan || '',
+      },
+      items: items.map((i) => {
+        const prod = productsList.find((p) => p.name === i.name)
+        return {
+          name: i.name,
+          packing: prod?.packing || '1x10',
+          mfr: prod?.manufacturer || 'PHARMA',
+          hsn: prod?.hsn || '3004',
+          batch: i.batch,
+          expiry: prod?.batches?.find((b: any) => b.batch === i.batch)?.expiry || '',
+          qty: i.qty,
+          freeQty: i.free,
+          mrp: i.rate * 1.2,
+          rate: i.rate,
+          discount: i.disc,
+          gstRate: i.gst,
+          amount: i.amount,
+        }
+      }),
+      subtotal: totals.subtotal,
+      discountTotal: totals.discountTotal,
+      taxTotal: totals.taxTotal,
+      roundingAdjustment: totals.roundingAdjustment,
+      grandTotal: totals.grandTotal,
+    }
+  }
 
   // Load existing invoice if editInvoiceId is provided
   useEffect(() => {
@@ -262,9 +319,9 @@ export default function SaleEntry() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
-      <PrintHeader title="Tax Invoice" />
-
-      {/* Header */}
+      {/* Screen Form (Hidden when printing) */}
+      <div className="no-print space-y-4">
+        {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
           {isEditMode && (
@@ -296,12 +353,12 @@ export default function SaleEntry() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => window.print()}
+            onClick={() => setShowPrintModal(true)}
             className="p-2.5 md:px-4 md:py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-white font-medium flex items-center gap-1.5 transition"
-            title="Print"
+            title="Print Preview (Tax Invoice Bill)"
           >
             <Printer size={16} />
-            <span className="hidden sm:inline">Print</span>
+            <span className="hidden sm:inline">Print Bill</span>
           </button>
           <button
             onClick={saveInvoice}
@@ -727,6 +784,52 @@ export default function SaleEntry() {
       {/* Desktop Keyboard Shortcuts Hint */}
       <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 text-[10px] text-center uppercase tracking-widest text-slate-400 z-30">
         F2: Item Search | Enter: Next Field/Row | Alt+S: Save | Esc: Cancel
+      </div>
+      </div>
+
+      {/* Print Preview Modal */}
+      {showPrintModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setShowPrintModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Tax Invoice Bill Preview</h2>
+                <p className="text-xs text-slate-400">
+                  Standard A4 pharmaceutical wholesale &amp; retail tax invoice ready for print or PDF
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                >
+                  <Printer size={14} /> Print Bill (Ctrl+P)
+                </button>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <TaxInvoicePrint data={getPrintData()} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Target (Rendered exclusively for window.print()) */}
+      <div className="hidden print:block w-full">
+        <TaxInvoicePrint data={getPrintData()} />
       </div>
     </div>
   )

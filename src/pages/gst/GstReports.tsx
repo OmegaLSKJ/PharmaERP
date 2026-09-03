@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { formatCurrency, cn } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 interface GstrEntry {
   id: string
@@ -44,6 +46,7 @@ export default function GstReports() {
 
   return (
     <div className="p-6 space-y-6">
+      <PrintHeader title="GSTR-1 Report" />
       {/* Header block */}
       <div className="flex items-center justify-between">
         <div>
@@ -64,7 +67,7 @@ export default function GstReports() {
             <Download size={16} /> GSTR-1 JSON
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr1'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr1', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

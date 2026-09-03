@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Download, CheckCircle, AlertTriangle, XCircle, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
+import PrintHeader from '../../../components/layout/PrintHeader'
+import { useUIStore } from '../../../store/uiStore'
 
 type ReconRow = {
   id: string
@@ -43,6 +45,7 @@ export default function GstrReconciliation() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="GSTR Reconciliation" />
       {/* Header Panel */}
       <div className="flex items-center justify-between">
         <div>
@@ -57,7 +60,7 @@ export default function GstrReconciliation() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr-reconciliation'))}
+            onClick={() => import('../../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr-reconciliation', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

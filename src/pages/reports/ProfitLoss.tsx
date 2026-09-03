@@ -1,6 +1,8 @@
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { pnl } from '../../lib/financialData'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 export default function ProfitLoss() {
   const totalIncome = pnl.income.reduce((a, i) => a + i.amount, 0)
@@ -9,6 +11,7 @@ export default function ProfitLoss() {
   const grossProfit = 8100000 - 6500000
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Profit & Loss Statement" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Profit &amp; Loss Statement</h1>
@@ -22,7 +25,7 @@ export default function ProfitLoss() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('profit-and-loss'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('profit-and-loss', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

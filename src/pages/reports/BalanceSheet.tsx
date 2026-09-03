@@ -1,12 +1,15 @@
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { balanceSheet } from '../../lib/financialData'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 export default function BalanceSheet() {
   const totalAssets = balanceSheet.assets.reduce((a, i) => a + i.amount, 0)
   const totalLiabilities = balanceSheet.liabilities.reduce((a, i) => a + i.amount, 0)
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Balance Sheet" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Balance Sheet</h1>
@@ -20,7 +23,7 @@ export default function BalanceSheet() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('balance-sheet'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('balance-sheet', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

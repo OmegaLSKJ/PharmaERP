@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { FileCheck, Zap, RefreshCw, Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 const DATA = [
   { id: '1', inv: 'INV/2026/0801', party: 'Apollo Pharmacy Delhi', gstin: '07AAAAA1111A1Z1', date: '2026-08-01', total: 450000, irn: '4b3d881ea8b75fbc6d93b3f46f34567ac8d90f23d4567e89ab0123cde4567f89', status: 'generated' },
@@ -22,6 +24,7 @@ export default function EInvoice() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="e-Invoice (IRN)" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">e-Invoice (IRN Generation)</h1>
@@ -35,7 +38,7 @@ export default function EInvoice() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('e-invoices'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('e-invoices', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

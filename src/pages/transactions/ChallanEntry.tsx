@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Save, Truck, Trash2, Printer, Plus, Minus, Package } from 'lucide-react'
+import { Save, Truck, Trash2, Printer, Plus, Minus, Package, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
+import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 
 interface AvailableItem { name: string; batch: string; rate: number; stock: number }
 interface Line { id: string; name: string; batch: string; qty: number; rate: number }
@@ -16,6 +17,7 @@ export default function ChallanEntry() {
   const [lines, setLines] = useState<Line[]>([])
   const [transport, setTransport] = useState('Surface')
   const [saving, setSaving] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
 
   useEffect(() => {
@@ -75,7 +77,9 @@ export default function ChallanEntry() {
   }))
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
+      {/* Screen Form (Hidden when printing) */}
+      <div className="no-print space-y-4">
       <PrintHeader title="Delivery Challan" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -86,10 +90,11 @@ export default function ChallanEntry() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => window.print()}
+            onClick={() => setShowPrintModal(true)}
             className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs sm:text-sm text-white font-medium no-print transition"
+            title="Print Delivery Challan"
           >
-            <Printer size={16} /> <span className="hidden sm:inline">Print</span>
+            <Printer size={16} /> <span className="hidden sm:inline">Print Challan</span>
           </button>
           <button
             onClick={saveChallan}
@@ -252,6 +257,96 @@ export default function ChallanEntry() {
         >
           <Save size={14} /> {saving ? 'Saving…' : 'Save Challan'}
         </button>
+      </div>
+      </div>
+
+      {/* Print Preview Modal */}
+      {showPrintModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setShowPrintModal(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Delivery Challan Bill Preview</h2>
+                <p className="text-xs text-slate-400">
+                  Official goods dispatch note ready for print or PDF
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                >
+                  <Printer size={14} /> Print Challan
+                </button>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <TaxInvoicePrint
+                data={{
+                  title: 'DELIVERY CHALLAN',
+                  copyType: 'Original for Consignee',
+                  invoiceNo: `DC-${new Date().getFullYear()}/${String(Math.floor(100 + Math.random() * 900))}`,
+                  invoiceDate: new Date().toISOString().split('T')[0],
+                  paymentMode: `Dispatch (${transport})`,
+                  buyer: {
+                    name: party || 'Consignee / Recipient',
+                    address: 'Local / Dispatch Consignee',
+                  },
+                  items: lines.map((l) => ({
+                    name: l.name,
+                    packing: '1x10',
+                    batch: l.batch,
+                    qty: l.qty,
+                    rate: l.rate,
+                    gstRate: 12,
+                    amount: l.qty * l.rate,
+                  })),
+                  grandTotal: lines.reduce((a, l) => a + l.qty * l.rate, 0),
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      <div className="hidden print:block w-full">
+        <TaxInvoicePrint
+          data={{
+            title: 'DELIVERY CHALLAN',
+            copyType: 'Original for Consignee',
+            invoiceNo: `DC-${new Date().getFullYear()}/${String(Math.floor(100 + Math.random() * 900))}`,
+            invoiceDate: new Date().toISOString().split('T')[0],
+            paymentMode: `Dispatch (${transport})`,
+            buyer: {
+              name: party || 'Consignee / Recipient',
+              address: 'Local / Dispatch Consignee',
+            },
+            items: lines.map((l) => ({
+              name: l.name,
+              packing: '1x10',
+              batch: l.batch,
+              qty: l.qty,
+              rate: l.rate,
+              gstRate: 12,
+              amount: l.qty * l.rate,
+            })),
+            grandTotal: lines.reduce((a, l) => a + l.qty * l.rate, 0),
+          }}
+        />
       </div>
     </div>
   )

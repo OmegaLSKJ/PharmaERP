@@ -1,5 +1,6 @@
 import React from 'react'
 import { numberToWordsIndian } from '../../lib/numberToWords'
+import { useUIStore } from '../../store/uiStore'
 
 export interface InvoicePrintItem {
   id?: string
@@ -51,19 +52,22 @@ export interface InvoicePrintData {
 }
 
 export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData }) {
+  const storeCompany = useUIStore((s) => s.company)
+
   const company = {
-    name: data.companyName || 'BORGANG DRUG DISTRIBUTORS',
-    addr1: data.companyAddress1 || 'MAIN ROAD,NH-52, BORGANG,',
-    addr2: data.companyAddress2 || 'BISWANATH, ASSAM',
-    phone: data.companyPhone || '03712-260654',
-    gstin: data.companyGstin || '18AFMPP9224L1ZQ',
-    dlNo: data.companyDlNo || 'STR-4137/4138',
-    email: data.companyEmail || 'ATISHPAUL091@GMAIL.COM',
-    bankName: data.companyBankName || 'PUNJAB NATIONAL BANK',
-    accountNo: data.companyAccountNo || '1125250029704',
-    ifsc: data.companyIfsc || 'PUNB0112520',
-    jurisdiction: data.companyJurisdiction || 'BISWANATH',
+    name: data.companyName || storeCompany.companyName,
+    addr1: data.companyAddress1 || storeCompany.address,
+    addr2: data.companyAddress2 || `${storeCompany.city}${storeCompany.state ? ', ' + storeCompany.state : ''}`,
+    phone: data.companyPhone || storeCompany.phone,
+    gstin: data.companyGstin || storeCompany.gstin,
+    dlNo: data.companyDlNo || storeCompany.dlNo,
+    email: data.companyEmail || storeCompany.email,
+    bankName: data.companyBankName || storeCompany.bankName,
+    accountNo: data.companyAccountNo || storeCompany.accountNo,
+    ifsc: data.companyIfsc || storeCompany.ifsc,
+    jurisdiction: data.companyJurisdiction || storeCompany.jurisdiction,
   }
+
 
   const buyer = {
     name: data.buyerName || 'HUVET ENTERPRISES',

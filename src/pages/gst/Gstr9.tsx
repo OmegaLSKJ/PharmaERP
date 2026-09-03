@@ -1,5 +1,7 @@
 import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 const TABLES = [
   { no: '4', title: 'Outward Supplies (Auto from GSTR-1)', taxable: 0, tax: 0, status: 'review' },
@@ -15,6 +17,7 @@ export default function Gstr9() {
   const totalTax = TABLES.reduce((a, t) => a + t.tax, 0)
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="GSTR-9 Annual Return" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">GSTR-9 (Annual Return)</h1>
@@ -28,7 +31,7 @@ export default function Gstr9() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr9-annual-return'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr9-annual-return', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

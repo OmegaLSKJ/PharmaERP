@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, Eye, RotateCcw } from 'lucide-react'
+import { Search, Plus, Eye, RotateCcw, Printer, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import PrintHeader from '../../components/layout/PrintHeader'
+import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 
 interface ReturnEntry {
   id: string
@@ -32,6 +34,7 @@ export default function SaleReturn() {
   const [items, setItems] = useState(1)
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
+  const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null)
   const showToast = useUIStore((s) => s.showToast)
 
   const load = () =>
@@ -80,6 +83,9 @@ export default function SaleReturn() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
+      {/* Screen List (Hidden when printing) */}
+      <div className="no-print space-y-4">
+      <PrintHeader title="Sale Returns" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Sale Returns</h1>
@@ -219,7 +225,12 @@ export default function SaleReturn() {
                   </select>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button aria-label={`Print ${s.returnNo}`} onClick={() => window.print()} className="p-1 hover:text-white text-slate-400 transition">
+                  <button
+                    aria-label={`Print ${s.returnNo}`}
+                    onClick={() => setSelectedReturn(s)}
+                    className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition"
+                    title="View & Print Credit Note"
+                  >
                     <Eye size={14} />
                   </button>
                 </td>
@@ -264,6 +275,103 @@ export default function SaleReturn() {
               Post Sale Return
             </button>
           </form>
+        </div>
+      )}
+      </div>
+
+      {/* Credit Note / Sale Return Print Preview Modal */}
+      {selectedReturn && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          onClick={() => setSelectedReturn(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Credit Note / Sale Return Bill</h2>
+                <p className="text-xs text-slate-400">
+                  Return No: <span className="text-white font-mono">{selectedReturn.returnNo}</span> | Party:{' '}
+                  <span className="text-white">{selectedReturn.party}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                >
+                  <Printer size={14} /> Print Credit Note
+                </button>
+                <button
+                  onClick={() => setSelectedReturn(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <TaxInvoicePrint
+                data={{
+                  title: 'CREDIT NOTE / SALE RETURN',
+                  copyType: 'Original for Customer',
+                  invoiceNo: selectedReturn.returnNo,
+                  invoiceDate: selectedReturn.date,
+                  orderNo: selectedReturn.origInvoice ? `Ref Inv: ${selectedReturn.origInvoice}` : undefined,
+                  buyer: {
+                    name: selectedReturn.party,
+                    address: 'Local / Customer',
+                  },
+                  items: [
+                    {
+                      name: `Returned Goods (${selectedReturn.reason || 'Sale Return'})`,
+                      packing: '1x10',
+                      batch: 'RET-' + selectedReturn.returnNo,
+                      qty: selectedReturn.items || 1,
+                      rate: selectedReturn.total / Math.max(1, selectedReturn.items || 1),
+                      gstRate: 12,
+                      amount: selectedReturn.total,
+                    },
+                  ],
+                  grandTotal: selectedReturn.total,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {selectedReturn && (
+        <div className="hidden print:block w-full">
+          <TaxInvoicePrint
+            data={{
+              title: 'CREDIT NOTE / SALE RETURN',
+              copyType: 'Original for Customer',
+              invoiceNo: selectedReturn.returnNo,
+              invoiceDate: selectedReturn.date,
+              orderNo: selectedReturn.origInvoice ? `Ref Inv: ${selectedReturn.origInvoice}` : undefined,
+              buyer: {
+                name: selectedReturn.party,
+                address: 'Local / Customer',
+              },
+              items: [
+                {
+                  name: `Returned Goods (${selectedReturn.reason || 'Sale Return'})`,
+                  packing: '1x10',
+                  batch: 'RET-' + selectedReturn.returnNo,
+                  qty: selectedReturn.items || 1,
+                  rate: selectedReturn.total / Math.max(1, selectedReturn.items || 1),
+                  gstRate: 12,
+                  amount: selectedReturn.total,
+                },
+              ],
+              grandTotal: selectedReturn.total,
+            }}
+          />
         </div>
       )}
     </div>

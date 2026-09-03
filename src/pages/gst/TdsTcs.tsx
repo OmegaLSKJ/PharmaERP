@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Download, Percent, FileText, Upload } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 type TaxRow = {
   id: string
@@ -52,6 +54,7 @@ export default function TdsTcs() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="TDS / TCS Register" />
       {/* Title Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -73,7 +76,7 @@ export default function TdsTcs() {
             <Upload size={16} /> Export Gov Format (FVU)
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('tds-tcs-register'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('tds-tcs-register', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel

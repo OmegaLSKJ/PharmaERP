@@ -3,6 +3,8 @@ import { Download, TrendingUp, TrendingDown, FileText, Calendar } from 'lucide-r
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 type SalesReport = {
@@ -86,6 +88,7 @@ export default function SalesAnalytics() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Sales Analytics" />
       {/* Title Block */}
       <div className="flex items-center justify-between">
         <div>
@@ -100,7 +103,7 @@ export default function SalesAnalytics() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV

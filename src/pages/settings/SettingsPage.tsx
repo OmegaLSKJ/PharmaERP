@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Building2, Users, Calendar, Plus, Trash2, UserPlus } from 'lucide-react'
+import { Save, Building2, Users, Calendar, Plus, Trash2, UserPlus, Landmark } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
 
@@ -157,6 +157,70 @@ export default function SettingsPage() {
                 value={form.country}
                 onChange={(e) => handleFieldChange('country', e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bank Details & Contact */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+          <Landmark size={16} className="text-sky-400" />
+          <h3 className="text-sm font-semibold text-white">Bank Details &amp; Contact</h3>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Phone Number</label>
+              <input
+                type="text"
+                value={form.phone}
+                onChange={(e) => handleFieldChange('phone', e.target.value)}
+                placeholder="e.g. 03712-260654"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Bank Name</label>
+              <input
+                type="text"
+                value={form.bankName}
+                onChange={(e) => handleFieldChange('bankName', e.target.value)}
+                placeholder="e.g. PUNJAB NATIONAL BANK"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account No.</label>
+              <input
+                type="text"
+                value={form.accountNo}
+                onChange={(e) => handleFieldChange('accountNo', e.target.value)}
+                placeholder="e.g. 1125250029704"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono tracking-wider"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">IFSC Code</label>
+              <input
+                type="text"
+                value={form.ifsc}
+                onChange={(e) => handleFieldChange('ifsc', e.target.value)}
+                placeholder="e.g. PUNB0112520"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono tracking-wider"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Jurisdiction (City)</label>
+              <input
+                type="text"
+                value={form.jurisdiction}
+                onChange={(e) => handleFieldChange('jurisdiction', e.target.value)}
+                placeholder="e.g. BISWANATH"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500"
               />
             </div>
           </div>

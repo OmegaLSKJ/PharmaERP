@@ -204,7 +204,7 @@ export default function ItemList() {
 
           <button
             aria-label="Export filtered items"
-            onClick={() => exportVisibleTables('items')}
+            onClick={() => exportVisibleTables('items', useUIStore.getState().company)}
             title="Export to CSV"
             className="p-1.5 rounded-md border border-input hover:bg-muted text-muted-foreground"
           >

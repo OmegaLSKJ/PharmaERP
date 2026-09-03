@@ -19,6 +19,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
+import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 
 interface SaleLine {
   id?: string
@@ -113,8 +114,65 @@ export default function SaleRegister() {
     navigate(`/transactions/sale/edit/${encodeURIComponent(invoiceNo)}`)
   }
 
+  const getPrintDataForSelected = (s: SaleInv): TaxInvoicePrintData => {
+    return {
+      title: 'TAX INVOICE',
+      copyType: 'Original for Recipient',
+      invoiceNo: s.invoiceNo,
+      invoiceDate: s.date,
+      dueDate: '',
+      paymentMode: 'Credit',
+      patientName: s.patientName,
+      prescriberName: s.prescriberName,
+      prescriptionReference: s.prescriptionReference,
+      buyer: {
+        name: s.customer,
+        address: 'Assam, India',
+        city: 'Local',
+        state: 'Assam',
+        phone: '',
+        gstin: '',
+        dlNo: '',
+        pan: '',
+      },
+      items:
+        s.lines && s.lines.length > 0
+          ? s.lines.map((l, i) => ({
+              name: l.name,
+              packing: '1x10',
+              mfr: 'PHARMA',
+              hsn: '3004',
+              batch: l.batch || 'BAT-00' + (i + 1),
+              expiry: l.expiry || '',
+              qty: l.qty,
+              freeQty: l.free || 0,
+              mrp: l.rate * 1.2,
+              rate: l.rate,
+              discount: l.disc || 0,
+              gstRate: l.gst || 12,
+              amount: l.amount || l.qty * l.rate,
+            }))
+          : [
+              {
+                name: 'Pharmaceutical Supplies & Medicines',
+                packing: '1x10',
+                mfr: 'GENERIC',
+                hsn: '3004',
+                batch: 'GEN-' + s.invoiceNo,
+                expiry: '',
+                qty: s.items || 1,
+                rate: s.total / Math.max(1, s.items || 1),
+                amount: s.total,
+              },
+            ],
+      grandTotal: s.total,
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-7xl mx-auto">
+      {/* Screen Register (Hidden when printing) */}
+      <div className="no-print space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -269,13 +327,11 @@ export default function SaleRegister() {
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl space-y-5 print:bg-white print:border-none print:shadow-none print:p-0"
+            className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <PrintHeader title="Tax Invoice" />
-
             {/* Modal Header */}
-            <div className="flex items-start justify-between no-print border-b border-slate-800 pb-4">
+            <div className="flex items-start justify-between no-print border-b border-slate-800 pb-3">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-white font-mono">{selected.invoiceNo}</h2>
@@ -288,112 +344,30 @@ export default function SaleRegister() {
                     {selected.status}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1 flex items-center gap-3">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={13} /> {selected.date}
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <User size={13} /> {selected.customer}
-                  </span>
+                <p className="text-xs text-slate-400 mt-1">
+                  Tax invoice bill preview &bull; Ready for A4 print or export to PDF
                 </p>
               </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+                >
+                  <Printer size={14} /> Print Bill (Ctrl+P)
+                </button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Print Header View */}
-            <div className="hidden print:block mb-4">
-              <h2 className="text-lg font-bold text-black">Invoice: {selected.invoiceNo}</h2>
-              <p className="text-xs text-slate-600">
-                Date: {selected.date} | Customer: {selected.customer}
-              </p>
-            </div>
-
-            {/* Patient & Doctor metadata if available */}
-            {(selected.patientName || selected.prescriberName || selected.prescriptionReference) && (
-              <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-xs grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {selected.patientName && (
-                  <div>
-                    <span className="text-slate-500 block">Patient Name:</span>
-                    <span className="text-white font-medium">{selected.patientName}</span>
-                  </div>
-                )}
-                {selected.prescriberName && (
-                  <div>
-                    <span className="text-slate-500 block">Doctor / Prescriber:</span>
-                    <span className="text-white font-medium">{selected.prescriberName}</span>
-                  </div>
-                )}
-                {selected.prescriptionReference && (
-                  <div>
-                    <span className="text-slate-500 block">Rx Ref:</span>
-                    <span className="text-white font-mono">{selected.prescriptionReference}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Line Items Table */}
-            {selected.lines && selected.lines.length > 0 ? (
-              <div className="border border-slate-800 rounded-xl overflow-hidden text-xs">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px] uppercase">
-                    <tr>
-                      <th className="p-2.5">Item</th>
-                      <th className="p-2.5">Batch</th>
-                      <th className="p-2.5 text-right">Qty</th>
-                      <th className="p-2.5 text-right">Rate</th>
-                      <th className="p-2.5 text-right">GST</th>
-                      <th className="p-2.5 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800 text-slate-300">
-                    {selected.lines.map((l, idx) => (
-                      <tr key={l.id || idx}>
-                        <td className="p-2.5 font-medium text-white">{l.name}</td>
-                        <td className="p-2.5 font-mono text-slate-400">{l.batch || '—'}</td>
-                        <td className="p-2.5 text-right font-mono">{l.qty}</td>
-                        <td className="p-2.5 text-right font-mono">{formatCurrency(l.rate)}</td>
-                        <td className="p-2.5 text-right font-mono text-slate-400">{l.gst || 0}%</td>
-                        <td className="p-2.5 text-right font-mono font-semibold text-emerald-400">
-                          {formatCurrency(l.amount || l.qty * l.rate)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <span className="text-slate-500 block">Customer</span>
-                  <span className="text-white font-semibold">{selected.customer}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Date</span>
-                  <span className="text-white font-mono">{selected.date}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Line Items</span>
-                  <span className="text-white font-semibold">{selected.items} items</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Status</span>
-                  <span className="capitalize font-semibold text-emerald-400">{selected.status}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Total Summary Breakdown */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Grand Total Payable:</span>
-              <span className="text-lg font-bold font-mono text-emerald-400">
-                {formatCurrency(selected.total)}
-              </span>
+            {/* Document Preview Frame */}
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+              <TaxInvoicePrint data={getPrintDataForSelected(selected)} />
             </div>
 
             {/* Modal Actions */}
@@ -408,14 +382,6 @@ export default function SaleRegister() {
 
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
-              >
-                <Printer size={14} /> Print Invoice
-              </button>
-
-              <button
-                type="button"
                 onClick={() => editInvoice(selected.invoiceNo)}
                 className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-md transition"
               >
@@ -423,6 +389,14 @@ export default function SaleRegister() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      </div>
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {selected && (
+        <div className="hidden print:block w-full">
+          <TaxInvoicePrint data={getPrintDataForSelected(selected)} />
         </div>
       )}
     </div>

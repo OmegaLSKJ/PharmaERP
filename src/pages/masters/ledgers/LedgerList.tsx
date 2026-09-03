@@ -496,7 +496,7 @@ export default function LedgerList() {
               <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700">
                 <Printer size={15} /> Print Statement
               </button>
-              <button onClick={() => exportVisibleTables(`statement-${selectedLedger || 'party'}`)} className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
+              <button onClick={() => exportVisibleTables(`statement-${selectedLedger || 'party'}`, useUIStore.getState().company)} className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
                 <Download size={15} /> Export CSV
               </button>
             </>

@@ -6,12 +6,21 @@ import { useEffect } from 'react'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
+import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
+import { Printer } from 'lucide-react'
 
 export default function CounterSale() {
   const [available, setAvailable] = useState<Array<{name:string;rate:number;batch:string;stock:number;gst:number}>>([])
   const [cart,setCart] = useState<Array<{name:string;qty:number;rate:number;batch:string;stock:number;gst:number}>>([])
   const [pay,setPay] = useState<'cash'|'upi'>('cash')
   const [saving, setSaving] = useState(false)
+  const [completedSale, setCompletedSale] = useState<{
+    invoiceNo: string
+    date: string
+    lines: Array<{ name: string; qty: number; rate: number; batch: string; stock: number; gst: number }>
+    total: number
+    paymentMode: string
+  } | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   useEffect(() => { getErp<any[]>('items').then((items) => setAvailable(items.flatMap((item) => (item.batches ?? []).filter((b:any) => b.stock > 0).map((b:any) => ({ name:item.name, rate:item.saleRate, batch:b.batch, stock:b.stock, gst:item.gstRate }))))).catch((e) => showToast(e.message)) }, [showToast])
   const add = (i:{name:string;rate:number;batch:string;stock:number;gst:number}) => {
@@ -20,9 +29,41 @@ export default function CounterSale() {
     else setCart([...cart,{...i,qty:1}])
   }
   const total = cart.reduce((a,c)=>a+c.qty*c.rate,0)
-  const complete = async () => { setSaving(true); try { const invoice = await postErp<{id:string}>('sales', { party:'Walk-in Customer', total, paymentMode:pay, lines:cart.map((line) => ({ ...line, freeQty:0, discount:0, gstRate:line.gst, amount:line.qty*line.rate })) }); showToast(`Counter invoice ${invoice.id} posted.`); setCart([]); setTimeout(() => window.print(), 0) } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to complete counter sale.') } finally { setSaving(false) } }
+  const complete = async () => {
+    setSaving(true)
+    try {
+      const invoice = await postErp<{ id: string }>('sales', {
+        party: 'Walk-in Customer',
+        total,
+        paymentMode: pay,
+        lines: cart.map((line) => ({
+          ...line,
+          freeQty: 0,
+          discount: 0,
+          gstRate: line.gst,
+          amount: line.qty * line.rate,
+        })),
+      })
+      const saleData = {
+        invoiceNo: invoice.id || `CS-${Date.now().toString().slice(-6)}`,
+        date: new Date().toISOString().split('T')[0],
+        lines: [...cart],
+        total,
+        paymentMode: pay,
+      }
+      setCompletedSale(saleData)
+      showToast(`Counter invoice ${saleData.invoiceNo} posted.`)
+      setCart([])
+      setTimeout(() => window.print(), 100)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to complete counter sale.')
+    } finally {
+      setSaving(false)
+    }
+  }
   return (
-    <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+    <div>
+      <div className="no-print p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
       <div className="lg:col-span-3">
         <PrintHeader title="Counter Sale Receipt" />
       </div>
@@ -97,8 +138,48 @@ export default function CounterSale() {
           )}
 
           <button onClick={complete} disabled={cart.length===0 || saving} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-lg text-sm font-semibold shadow-md">{saving ? 'Posting…' : 'Print Bill & Complete'}</button>
+
+          {completedSale && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-700"
+            >
+              <Printer size={14} /> Reprint Last Bill ({completedSale.invoiceNo})
+            </button>
+          )}
         </div>
       </div>
+      </div>
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {completedSale && (
+        <div className="hidden print:block w-full">
+          <TaxInvoicePrint
+            data={{
+              title: 'RETAIL CASH MEMO',
+              copyType: 'Original for Customer',
+              invoiceNo: completedSale.invoiceNo,
+              invoiceDate: completedSale.date,
+              paymentMode: completedSale.paymentMode.toUpperCase(),
+              buyer: {
+                name: 'Walk-in Retail Customer',
+                address: 'Local / Counter Sale',
+              },
+              items: completedSale.lines.map((l) => ({
+                name: l.name,
+                packing: '1x10',
+                batch: l.batch,
+                qty: l.qty,
+                rate: l.rate,
+                gstRate: l.gst,
+                amount: l.qty * l.rate,
+              })),
+              grandTotal: completedSale.total,
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }

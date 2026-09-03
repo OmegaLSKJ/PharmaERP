@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect, useState, useMemo } from 'react'
 import { getErp } from '../../lib/erpApi'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 export default function PurchaseAnalytics() {
   const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
@@ -77,6 +79,7 @@ export default function PurchaseAnalytics() {
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Purchase Analytics" />
       {/* Title block */}
       <div className="flex items-center justify-between">
         <div>
@@ -91,7 +94,7 @@ export default function PurchaseAnalytics() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV

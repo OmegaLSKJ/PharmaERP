@@ -75,7 +75,7 @@ export default function DayBook() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Day Book</h1>
           <p className="text-sm text-slate-400 mt-1">{filtered.length} entries | March 2026</p>
         </div>
-        <button onClick={() => exportVisibleTables('day-book')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>
