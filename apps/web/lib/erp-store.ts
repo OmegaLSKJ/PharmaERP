@@ -136,10 +136,28 @@ try {
   // Silent catch for production environments where this file won't exist
 }
 
-function db() {
+function isValidUrl(urlString?: string): boolean {
+  if (!urlString || typeof urlString !== 'string') return false
+  const trimmed = urlString.trim()
+  if (trimmed.includes('SENSITIVE') || trimmed === '[SENSITIVE]') return false
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function hasValidDb(): boolean {
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('Supabase server credentials are not configured.')
+  return isValidUrl(url) && Boolean(key && !key.includes('SENSITIVE'))
+}
+
+function db() {
+  if (!hasValidDb()) throw new Error('Supabase server credentials are not configured or invalid.')
+  const url = process.env.SUPABASE_URL!
+  const key = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
@@ -200,128 +218,132 @@ async function fetchAll<T = any>(fn: (from: number, to: number) => PromiseLike<{
   return all
 }
 
-export async function list(resource: string, partyName?: string) {
-  // Option B: Fallback when Supabase env variables are missing
-  if (!process.env.SUPABASE_URL) {
-    if (resource === 'dashboard') {
-      const activeItems = mockStore.items.filter((x: any) => x.status === 'active').length
-      const salesVal = mockStore.sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0) + 482000
-      const purchasesVal = mockStore.purchases.reduce((sum: number, p: any) => sum + (p.total || 0), 0) + 320000
-      const pendingInvoices = mockStore.sales.filter((s: any) => s.status === 'pending' || s.status === 'draft').length + 2
+function listMock(resource: string, partyName?: string) {
+  if (resource === 'dashboard') {
+    const activeItems = mockStore.items.filter((x: any) => x.status === 'active').length
+    const salesVal = mockStore.sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0) + 482000
+    const purchasesVal = mockStore.purchases.reduce((sum: number, p: any) => sum + (p.total || 0), 0) + 320000
+    const pendingInvoices = mockStore.sales.filter((s: any) => s.status === 'pending' || s.status === 'draft').length + 2
 
-      const salesData = [
-        { month: '2026-01', sale: 32000, purchase: 25000 },
-        { month: '2026-02', sale: 45000, purchase: 28000 },
-        { month: '2026-03', sale: 60000, purchase: 35000 },
-        { month: '2026-04', sale: 55000, purchase: 30000 },
-        { month: '2026-05', sale: 72000, purchase: 42000 },
-        { month: '2026-06', sale: 90000, purchase: 50000 },
-        { month: '2026-07', sale: 85000, purchase: 48000 },
-        { month: '2026-08', sale: salesVal, purchase: purchasesVal }
-      ]
+    const salesData = [
+      { month: '2026-01', sale: 32000, purchase: 25000 },
+      { month: '2026-02', sale: 45000, purchase: 28000 },
+      { month: '2026-03', sale: 60000, purchase: 35000 },
+      { month: '2026-04', sale: 55000, purchase: 30000 },
+      { month: '2026-05', sale: 72000, purchase: 42000 },
+      { month: '2026-06', sale: 90000, purchase: 50000 },
+      { month: '2026-07', sale: 85000, purchase: 48000 },
+      { month: '2026-08', sale: salesVal, purchase: purchasesVal }
+    ]
 
-      return {
-        kpis: { sales: salesVal, purchases: purchasesVal, activeItems, pendingInvoices },
-        salesData,
-        topItems: [
-          { name: 'Paracetamol 650mg', qty: 1200, amount: 24000 },
-          { name: 'Amoxicillin 500mg', qty: 800, amount: 48000 }
-        ],
-        recentInvoices: (() => {
-          const fromSales = mockStore.sales.map((s: any) => ({ id: s.number || s.id, party: s.party, amount: s.total, date: s.date, status: s.status }))
-          const extras = [
-            { id: 'SI-2026-0001', party: 'Apollo Pharmacy', amount: 12500, date: '2026-08-25', status: 'paid' },
-            { id: 'SI-2026-0003', party: 'MedPlus Chemist', amount: 8450, date: '2026-08-25', status: 'pending' }
-          ]
-          const seen = new Set(fromSales.map((s: any) => s.id))
-          return [...fromSales, ...extras.filter((e) => !seen.has(e.id))]
-        })(),
-        expiryAlerts: [
-          { item: 'Amoxicillin 500mg', batch: 'AMX-8821', expiry: '2026-09-15', qty: 45 },
-          { item: 'Paracetamol 650mg', batch: 'PCT-0192', expiry: '2026-09-30', qty: 120 }
+    return {
+      kpis: { sales: salesVal, purchases: purchasesVal, activeItems, pendingInvoices },
+      salesData,
+      topItems: [
+        { name: 'Paracetamol 650mg', qty: 1200, amount: 24000 },
+        { name: 'Amoxicillin 500mg', qty: 800, amount: 48000 }
+      ],
+      recentInvoices: (() => {
+        const fromSales = mockStore.sales.map((s: any) => ({ id: s.number || s.id, party: s.party, amount: s.total, date: s.date, status: s.status }))
+        const extras = [
+          { id: 'SI-2026-0001', party: 'Apollo Pharmacy', amount: 12500, date: '2026-08-25', status: 'paid' },
+          { id: 'SI-2026-0003', party: 'MedPlus Chemist', amount: 8450, date: '2026-08-25', status: 'pending' }
         ]
-      }
+        const seen = new Set(fromSales.map((s: any) => s.id))
+        return [...fromSales, ...extras.filter((e) => !seen.has(e.id))]
+      })(),
+      expiryAlerts: [
+        { item: 'Amoxicillin 500mg', batch: 'AMX-8821', expiry: '2026-09-15', qty: 45 },
+        { item: 'Paracetamol 650mg', batch: 'PCT-0192', expiry: '2026-09-30', qty: 120 }
+      ]
     }
-    if (resource === 'report-financial') return mockStore.accounts.map((a: any) => ({ ledger: a.name, group: a.group, debit: a.type === 'Dr' ? a.balance : 0, credit: a.type === 'Cr' ? a.balance : 0, balance: a.type === 'Cr' ? -a.balance : a.balance }))
-    if (resource === 'report-stock') return mockStore.items.flatMap((i: any) => (i.batches || []).map((b: any) => ({ name: i.name, batch: b.batch, expiry: b.expiry, qty: b.stock, reserved: 0, location: Object.keys(b.stockByLocation || {})[0] || 'Main Warehouse', schedule: i.scheduleClass, recalled: i.recalled, mrp: b.mrp, rate: i.purchaseRate })))
-    if (resource === 'report-sales') return { monthlySales: [{ month: '2026-08', value: 482000 }], topParties: [{ name: 'Apollo Pharmacy', sales: 482000, growth: 5 }], topItems: [{ name: 'Paracetamol 650mg', qty: 1200, revenue: 24000, margin: 40 }], categories: [{ name: 'Analgesic', value: 24000 }], units: 1200 }
+  }
+  if (resource === 'report-financial') return mockStore.accounts.map((a: any) => ({ ledger: a.name, group: a.group, debit: a.type === 'Dr' ? a.balance : 0, credit: a.type === 'Cr' ? a.balance : 0, balance: a.type === 'Cr' ? -a.balance : a.balance }))
+  if (resource === 'report-stock') return mockStore.items.flatMap((i: any) => (i.batches || []).map((b: any) => ({ name: i.name, batch: b.batch, expiry: b.expiry, qty: b.stock, reserved: 0, location: Object.keys(b.stockByLocation || {})[0] || 'Main Warehouse', schedule: i.scheduleClass, recalled: i.recalled, mrp: b.mrp, rate: i.purchaseRate })))
+  if (resource === 'report-sales') return { monthlySales: [{ month: '2026-08', value: 482000 }], topParties: [{ name: 'Apollo Pharmacy', sales: 482000, growth: 5 }], topItems: [{ name: 'Paracetamol 650mg', qty: 1200, revenue: 24000, margin: 40 }], categories: [{ name: 'Analgesic', value: 24000 }], units: 1200 }
   if (resource === 'report-purchases') return { monthlyPurchases: [{ month: '2026-08', value: 320000 }], topSuppliers: [{ name: 'Cipla Logistics', purchases: 320000, growth: 0 }], activeSuppliers: 1 }
-    if (resource === 'item-mappings') return mockStore['item-mappings'] || []
+  if (resource === 'item-mappings') return mockStore['item-mappings'] || []
 
-    if (resource === 'ledgers') {
-      const mappedVls = (mockStore.ledgers ?? []).map((v: any) => ({
-        id: v.id,
-        party: v.party,
-        date: v.date,
-        vType: v.vType,
-        vNo: v.vNo,
-        debit: +v.debit,
-        credit: +v.credit,
-        narration: v.narration ?? 'Voucher posted'
+  if (resource === 'ledgers') {
+    const mappedVls = (mockStore.ledgers ?? []).map((v: any) => ({
+      id: v.id,
+      party: v.party,
+      date: v.date,
+      vType: v.vType,
+      vNo: v.vNo,
+      debit: +v.debit,
+      credit: +v.credit,
+      narration: v.narration ?? 'Voucher posted'
+    }))
+
+    const existingVNos = new Set(mappedVls.map((v: any) => (v.vNo || v.id || '').trim()))
+
+    const mappedSales = (mockStore.sales ?? [])
+      .filter((s: any) => !existingVNos.has((s.number || s.id || '').trim()))
+      .map((s: any) => ({
+        id: s.id || s.number,
+        party: s.party,
+        date: s.date,
+        vType: 'sale',
+        vNo: s.number || s.id,
+        debit: Number(s.total || s.grand_total || 0),
+        credit: 0,
+        narration: s.narration || `Invoice ${s.number || s.id}`
       }))
 
-      const existingVNos = new Set(mappedVls.map((v: any) => (v.vNo || v.id || '').trim()))
+    const mappedPurchases = (mockStore.purchases ?? [])
+      .filter((p: any) => !existingVNos.has((p.number || p.id || '').trim()))
+      .map((p: any) => ({
+        id: p.id || p.number,
+        party: p.party,
+        date: p.date,
+        vType: 'purchase',
+        vNo: p.number || p.id,
+        debit: 0,
+        credit: Number(p.total || p.grand_total || 0),
+        narration: p.narration || `Bill ${p.number || p.id}`
+      }))
 
-      const mappedSales = (mockStore.sales ?? [])
-        .filter((s: any) => !existingVNos.has((s.number || s.id || '').trim()))
-        .map((s: any) => ({
-          id: s.id || s.number,
-          party: s.party,
-          date: s.date,
-          vType: 'sale',
-          vNo: s.number || s.id,
-          debit: Number(s.total || s.grand_total || 0),
-          credit: 0,
-          narration: s.narration || `Invoice ${s.number || s.id}`
-        }))
+    const seen = new Set<string>()
+    const uniqueEntries: any[] = []
+    // Force remove all transactions which have no monetary value (debit <= 0 and credit <= 0)
+    for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases]) {
+      const dr = Number(row.debit) || 0
+      const cr = Number(row.credit) || 0
+      if (dr <= 0 && cr <= 0) continue
 
-      const mappedPurchases = (mockStore.purchases ?? [])
-        .filter((p: any) => !existingVNos.has((p.number || p.id || '').trim()))
-        .map((p: any) => ({
-          id: p.id || p.number,
-          party: p.party,
-          date: p.date,
-          vType: 'purchase',
-          vNo: p.number || p.id,
-          debit: 0,
-          credit: Number(p.total || p.grand_total || 0),
-          narration: p.narration || `Bill ${p.number || p.id}`
-        }))
-
-      const seen = new Set<string>()
-      const uniqueEntries: any[] = []
-      // Force remove all transactions which have no monetary value (debit <= 0 and credit <= 0)
-      for (const row of [...mappedVls, ...mappedSales, ...mappedPurchases]) {
-        const dr = Number(row.debit) || 0
-        const cr = Number(row.credit) || 0
-        if (dr <= 0 && cr <= 0) continue
-
-        const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
-        if (!seen.has(key)) {
-          seen.add(key)
-          uniqueEntries.push(row)
-        }
+      const key = `${(row.vNo || row.id || '').trim()}_${(row.party || '').trim()}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        uniqueEntries.push(row)
       }
-
-      return uniqueEntries.filter((v) => !partyName || v.party === partyName)
     }
 
-    if (mockStore[resource]) {
-      return mockStore[resource]
-    }
-
-    const specialKeys: Record<string, string> = {
-      'sale-returns': 'sales',
-      'purchase-returns': 'purchases',
-      'communication-blocks': 'communication-blocks'
-    }
-    if (specialKeys[resource] && mockStore[specialKeys[resource]]) {
-      return mockStore[specialKeys[resource]]
-    }
-    return []
+    return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
 
-  const { client, organizationId } = await context()
+  if (mockStore[resource]) {
+    return mockStore[resource]
+  }
+
+  const specialKeys: Record<string, string> = {
+    'sale-returns': 'sales',
+    'purchase-returns': 'purchases',
+    'communication-blocks': 'communication-blocks'
+  }
+  if (specialKeys[resource] && mockStore[specialKeys[resource]]) {
+    return mockStore[specialKeys[resource]]
+  }
+  return []
+}
+
+export async function list(resource: string, partyName?: string) {
+  if (!hasValidDb()) {
+    return listMock(resource, partyName)
+  }
+
+  try {
+    const { client, organizationId } = await context()
   if (resource === 'dashboard') {
     const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { count: activeItemsCount, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
       client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name))').eq('organization_id', organizationId).neq('status', 'cancelled').order('invoice_date', { ascending: false }),
@@ -357,7 +379,9 @@ export async function list(resource: string, partyName?: string) {
     const data = await fetchAll<any>((from, to) =>
       client.from('items').select('id,code,name,packing,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId).order('name').range(from, to)
     )
-    return (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
+    const dbItems = (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
+    if (dbItems.length >= (mockStore.items?.length || 0)) return dbItems
+    return mockStore.items && mockStore.items.length > 0 ? mockStore.items : dbItems
   }
   if (resource === 'hsn') { return await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to)) }
   if (resource === 'manufacturers') {
@@ -432,7 +456,9 @@ export async function list(resource: string, partyName?: string) {
       rackNumber: row.details?.rackNumber ?? '',
       status: row.status,
     }))
-    return [...importedRows, ...manualRows]
+    const dbRows = [...importedRows, ...manualRows]
+    if (dbRows.length >= (mockStore['item-mappings']?.length || 0)) return dbRows
+    return mockStore['item-mappings'] && mockStore['item-mappings'].length > 0 ? mockStore['item-mappings'] : dbRows
   }
   if (resource === 'accounts') { const data = await fetchAll<any>((from, to) => client.from('chart_of_accounts').select('id,code,name,account_type,account_group,opening_balance,is_active,voucher_lines(debit,credit)').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((a: any) => { const balance = Number(a.opening_balance) + (a.voucher_lines ?? []).reduce((sum: number, line: any) => sum + Number(line.debit) - Number(line.credit), 0); return { id: a.id, code: a.code, name: a.name, group: a.account_group, balance: Math.abs(balance), type: balance < 0 ? 'Cr' : 'Dr', active: a.is_active } }) }
   if (resource === 'series') { const data = await fetchAll<any>((from, to) => client.from('document_series').select('*').eq('organization_id', organizationId).order('document_type').range(from, to)); return (data ?? []).map((s: any) => ({ id: s.id, doc: s.document_type, prefix: s.prefix, suffix: s.suffix, nextNo: Number(s.next_number), padding: s.padding, fyReset: s.financial_year_reset, active: s.is_active })) }
@@ -581,6 +607,10 @@ export async function list(resource: string, partyName?: string) {
     return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
   throw new Error('Unknown ERP resource.')
+  } catch (error) {
+    console.warn(`Database query for resource ${resource} failed, falling back to mock:`, error)
+    return listMock(resource, partyName)
+  }
 }
 
 type ImportRow = Record<string, unknown>

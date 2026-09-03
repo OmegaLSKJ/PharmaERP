@@ -72,16 +72,16 @@ export default function ItemMapping() {
             const product =
               row.canonicalItem ?? getVal('product', ['Product Name', 'productName']) ?? row.supplierItem ?? ''
             const code = row.supplierItem ?? getVal('code', ['Code']) ?? ''
-            const company = getVal('company', ['Company']) ?? ''
-            const batch = getVal('batch', ['Batch']) ?? ''
-            const unit = getVal('unit', ['Unit']) ?? row.packing ?? ''
-            const stock = Number(getVal('stock', ['Current Stock']) ?? 0)
+            const company = row.company ?? getVal('company', ['Company']) ?? ''
+            const batch = row.batch ?? getVal('batch', ['Batch']) ?? ''
+            const unit = row.unit ?? getVal('unit', ['Unit']) ?? row.packing ?? ''
+            const stock = Number(row.stock ?? getVal('stock', ['Current Stock']) ?? 0)
             const cost = Number(row.costPrice ?? getVal('cost', ['Cost Price', 'Cost Price - Rate']) ?? 0)
             const purchase = Number(
               row.purchasePrice ?? getVal('purchase', ['Purchase Price', 'Purchase Price - Rate']) ?? 0
             )
             const sale = Number(row.salePrice ?? getVal('sale', ['Sales Price', 'Sales Price - Rate']) ?? 0)
-            const mrp = Number(getVal('mrp', ['M.R.P.', 'M.R.P. - Rate']) ?? 0)
+            const mrp = Number(row.mrp ?? getVal('mrp', ['M.R.P.', 'M.R.P. - Rate']) ?? 0)
             const value = Number(row.reportedValue ?? getVal('value', ['Value', 'Value - At Cost']) ?? 0)
 
             // Scheme formatting
@@ -110,12 +110,12 @@ export default function ItemMapping() {
               row.receivedOn ?? getVal('received', ['Rec.Date', 'Received Date', 'received_date']) ?? ''
             const mfg = row.manufacturedOn ?? getVal('mfg', ['MFG', 'MFG - Date']) ?? '—'
             const exp = row.expiryOn ?? getVal('exp', ['EXP', 'EXP - Date']) ?? ''
-            const supplier = getVal('supplier', ['Supplier', 'Supplier - Name']) ?? row.party ?? ''
+            const supplier = row.supplier ?? getVal('supplier', ['Supplier', 'Supplier - Name']) ?? row.party ?? ''
             const invoice_no =
-              row.invoiceNumber ?? getVal('invoice_no', ['Inv.No', 'Invoice No', 'invoiceNo']) ?? ''
+              row.invoiceNumber ?? row.invoice_no ?? getVal('invoice_no', ['Inv.No', 'Invoice No', 'invoiceNo']) ?? ''
             const invoice_date =
-              row.invoiceDate ?? getVal('invoice_date', ['Inv.Date', 'Invoice Date', 'invoiceDate']) ?? ''
-            const rack = row.rackNumber ?? getVal('rack', ['Rack No.', 'Rack No']) ?? ''
+              row.invoiceDate ?? row.invoice_date ?? getVal('invoice_date', ['Inv.Date', 'Invoice Date', 'invoiceDate']) ?? ''
+            const rack = row.rackNumber ?? row.rack ?? getVal('rack', ['Rack', 'Rack - Name']) ?? ''
 
             return {
               id: row.id,
