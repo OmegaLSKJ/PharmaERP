@@ -799,8 +799,8 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
 }
 
 export async function create(resource: string, body: any, actor: MutationActor = {}) {
-  // Option B: Fallback when Supabase env variables are missing
-  if (!process.env.SUPABASE_URL) {
+  // Option B: Fallback when Supabase credentials are not configured or invalid
+  if (!hasValidDb()) {
     const id = `MOCK-${Date.now()}`
     const record = { ...body, id, code: body.code || `C-${Date.now()}`, status: 'active', balance: 0, created_at: date() }
 
@@ -1127,6 +1127,19 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
     if (error) throw error
     if (body.city) { const { error: addressError } = await client.from('party_addresses').insert({ party_id: data.id, address_type: 'business', line1: body.address || body.city, city: body.city, is_default: true }); if (addressError) throw addressError }
+    try {
+      await client.from('chart_of_accounts').upsert({
+        organization_id: organizationId,
+        code: data.code,
+        name: body.name,
+        account_type: 'party',
+        account_group: body.accountGroup || 'Sundry Debtors & Creditors',
+        party_id: data.id,
+        is_active: true
+      }, { onConflict: 'party_id' })
+    } catch (coaErr) {
+      console.warn('Could not auto-create chart_of_accounts record for party:', coaErr)
+    }
     return { ...body, id: data.id, code: data.code, type: partyType, balance: 0, status: 'active' }
   }
   if (resource === 'hsn') { const { data, error } = await client.from('hsn_codes').insert({ organization_id: organizationId, code: body.code, description: body.description ?? body.name ?? null, gst_rate: Number(body.gst_rate ?? body.gstRate ?? 0) }).select('*').single(); if (error) throw error; return data }
@@ -1205,12 +1218,97 @@ export async function create(resource: string, body: any, actor: MutationActor =
     for (const row of prepared) { const common = { organization_id: organizationId, item_batch_id: row.batchId, source_type: 'stock_transfer', source_id: document.id, occurred_at: `${body.date || date()}T12:00:00Z` }; const { error } = await client.from('stock_movements').insert([{ ...common, warehouse_id: row.fromId, movement_type: 'transfer_out', quantity: -Math.abs(Number(row.line.qty)), remarks: `Transfer to ${row.line.to}` }, { ...common, warehouse_id: row.toId, movement_type: 'transfer_in', quantity: Math.abs(Number(row.line.qty)), remarks: `Transfer from ${row.line.from}` }]); if (error) throw error }
     return { id: documentNumber, date: body.date || date(), lines: body.lines }
   }
+
+  const ensureInvoicePrerequisites = async (kind: 'sales' | 'purchases') => {
+    try {
+      // 1. Ensure MAIN warehouse exists
+      const { data: wh } = await client.from('warehouses').select('id').eq('organization_id', organizationId).eq('code', 'MAIN').maybeSingle()
+      if (!wh) {
+        await client.from('warehouses').upsert({
+          organization_id: organizationId,
+          code: 'MAIN',
+          name: 'Main Warehouse',
+          warehouse_type: 'Store Room',
+          capacity: 10000,
+          is_active: true
+        }, { onConflict: 'organization_id,code' })
+      }
+
+      // 2. Ensure party exists
+      const partyName = (body.party || body.customer || body.supplier || '').trim()
+      if (partyName) {
+        const { data: existingParty } = await client.from('parties').select('id').eq('organization_id', organizationId).ilike('legal_name', partyName).maybeSingle()
+        if (!existingParty) {
+          const partyCode = `PTY-${Date.now()}`
+          const { data: createdP } = await client.from('parties').insert({
+            organization_id: organizationId,
+            code: partyCode,
+            party_type: 'both',
+            legal_name: partyName,
+            is_blocked: false
+          }).select('id,code').maybeSingle()
+          if (createdP) {
+            await client.from('chart_of_accounts').upsert({
+              organization_id: organizationId,
+              code: createdP.code,
+              name: partyName,
+              account_type: 'party',
+              account_group: kind === 'sales' ? 'Sundry Debtors' : 'Sundry Creditors',
+              party_id: createdP.id,
+              is_active: true
+            }, { onConflict: 'party_id' })
+          }
+        }
+      }
+
+      // 3. Ensure items and batches exist in DB
+      for (const line of (body.lines || [])) {
+        const itemName = (line.name || line.item || line.itemName || line.itemCode || '').trim()
+        if (!itemName) continue
+        const { data: itemFound } = await client.from('items').select('id,mrp').eq('organization_id', organizationId).or(`name.ilike.${itemName},code.eq.${line.itemCode || itemName}`).limit(1).maybeSingle()
+        let itemId = itemFound?.id
+        let itemMrp = itemFound ? Number(itemFound.mrp || 0) : Number(line.mrp || line.rate || 0)
+        if (!itemId) {
+          const { data: newItem } = await client.from('items').insert({
+            organization_id: organizationId,
+            code: line.itemCode || `ITM-${Date.now().toString().slice(-6)}`,
+            name: itemName,
+            mrp: Number(line.mrp || line.rate || 0),
+            sale_rate: Number(line.rate || 0),
+            purchase_rate: Number(line.purchaseRate || line.rate || 0),
+            is_active: true
+          }).select('id,mrp').maybeSingle()
+          if (newItem) {
+            itemId = newItem.id
+            itemMrp = Number(newItem.mrp || 0)
+          }
+        }
+        if (itemId) {
+          const batchNum = (line.batch || 'UNSPECIFIED').trim()
+          const { data: batchFound } = await client.from('item_batches').select('id').eq('item_id', itemId).eq('batch_number', batchNum).maybeSingle()
+          if (!batchFound) {
+            await client.from('item_batches').insert({
+              item_id: itemId,
+              batch_number: batchNum,
+              expiry_on: line.expiry || null,
+              mrp: Number(line.mrp || itemMrp || 0)
+            })
+          }
+        }
+      }
+    } catch (prereqErr) {
+      console.warn('ensureInvoicePrerequisites non-fatal warning:', prereqErr)
+    }
+  }
+
   if (resource === 'sales') {
+    await ensureInvoicePrerequisites('sales')
     const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'sales', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('SI'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
     if (error) throw error
     return data
   }
   if (resource === 'purchases') {
+    await ensureInvoicePrerequisites('purchases')
     const { data, error } = await client.rpc('erp_post_invoice', { p_kind: 'purchases', p_organization_id: organizationId, p_financial_year_id: financialYearId, p_document: { ...body, id: body.id || number('PB'), date: body.date || date() }, p_actor_auth_id: actor.id ?? null, p_actor_email: actor.email ?? null, p_request_id: actor.requestId ?? null })
     if (error) throw error
     return data
@@ -1259,8 +1357,8 @@ export async function create(resource: string, body: any, actor: MutationActor =
 }
 
 export async function update(resource: string, id: string, body: any) {
-  // Option B: Fallback when Supabase env variables are missing
-  if (!process.env.SUPABASE_URL) {
+  // Option B: Fallback when Supabase credentials are not configured or invalid
+  if (!hasValidDb()) {
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',
@@ -1336,8 +1434,8 @@ export async function update(resource: string, id: string, body: any) {
 }
 
 export async function remove(resource: string, id: string) {
-  // Option B: Fallback when Supabase env variables are missing
-  if (!process.env.SUPABASE_URL) {
+  // Option B: Fallback when Supabase credentials are not configured or invalid
+  if (!hasValidDb()) {
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',
