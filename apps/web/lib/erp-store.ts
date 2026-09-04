@@ -1603,7 +1603,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
           voucher_type: (body.type || 'journal').toLowerCase(),
           voucher_number: voucherNumber,
           voucher_date: voucherDate,
-          status: 'posted',
+          status: 'draft',
           narration: body.narration ?? null
         })
         .select('id')
@@ -1629,17 +1629,35 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
 
     if (lastError || !voucher) throw (lastError || new Error('Could not save voucher.'))
+
+    // Prepare all lines and insert together in a single batch
+    const linesToInsert = []
     for (const line of body.lines) {
       const accountId = await account(client, organizationId, line.ledger)
-      const { error: lineError } = await client.from('voucher_lines').insert({
+      linesToInsert.push({
         voucher_id: voucher.id,
         account_id: accountId,
         debit: +(line.debit || 0),
         credit: +(line.credit || 0),
         narration: line.narration ?? body.narration ?? null
       })
-      if (lineError) throw lineError
     }
+
+    const { error: lineError } = await client.from('voucher_lines').insert(linesToInsert)
+    if (lineError) {
+      try {
+        await client.from('vouchers').delete().eq('id', voucher.id)
+      } catch {}
+      throw lineError
+    }
+
+    // Now that all balanced lines exist, promote voucher to posted status
+    const { error: postError } = await client
+      .from('vouchers')
+      .update({ status: 'posted' })
+      .eq('id', voucher.id)
+    if (postError) throw postError
+
     return { id: voucherNumber, type: body.type ?? 'Journal', date: voucherDate, narration: body.narration ?? '', lines: body.lines }
   }
   throw new Error('Unknown ERP resource.')
