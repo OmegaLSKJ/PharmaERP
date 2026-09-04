@@ -50,6 +50,9 @@ interface UIState {
   commandPaletteOpen: boolean
   toast: string | null
   company: CompanyProfile
+  /** Incremented every time a voucher/challan/walk-in sale is saved so that
+   *  LedgerView (and other views) can re-fetch immediately. */
+  ledgerVersion: number
   toggleSidebar: () => void
   setMobileSidebarOpen: (open: boolean) => void
   setTheme: (theme: 'light' | 'dark') => void
@@ -58,6 +61,7 @@ interface UIState {
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void
   clearToast: () => void
   setCompanyProfile: (updates: Partial<CompanyProfile>) => void
+  incrementLedgerVersion: () => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -69,6 +73,7 @@ export const useUIStore = create<UIState>()(
       commandPaletteOpen: false,
       toast: null,
       company: DEFAULT_COMPANY,
+      ledgerVersion: 0,
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
       setTheme: (theme) => {
@@ -81,6 +86,7 @@ export const useUIStore = create<UIState>()(
       clearToast: () => set({ toast: null }),
       setCompanyProfile: (updates) =>
         set((s) => ({ company: { ...s.company, ...updates } })),
+      incrementLedgerVersion: () => set((s) => ({ ledgerVersion: s.ledgerVersion + 1 })),
     }),
     { name: 'erp-ui' }
   )

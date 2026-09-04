@@ -22,6 +22,7 @@ export default function CounterSale() {
     paymentMode: string
   } | null>(null)
   const showToast = useUIStore((s) => s.showToast)
+  const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
   useEffect(() => { getErp<any[]>('items').then((items) => setAvailable(items.flatMap((item) => (item.batches ?? []).filter((b:any) => b.stock > 0).map((b:any) => ({ name:item.name, rate:item.saleRate, batch:b.batch, stock:b.stock, gst:item.gstRate }))))).catch((e) => showToast(e.message)) }, [showToast])
   const add = (i:{name:string;rate:number;batch:string;stock:number;gst:number}) => {
     const ex = cart.find(c=>c.name===i.name && c.batch===i.batch)
@@ -53,6 +54,7 @@ export default function CounterSale() {
       }
       setCompletedSale(saleData)
       showToast(`Counter invoice ${saleData.invoiceNo} posted.`)
+      incrementLedgerVersion()
       setCart([])
       setTimeout(() => window.print(), 100)
     } catch (error) {

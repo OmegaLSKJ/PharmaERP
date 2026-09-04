@@ -64,6 +64,7 @@ export default function VoucherEntry() {
   const [generalLedgers, setGeneralLedgers] = useState<string[]>([])
 
   const showToast = useUIStore((s) => s.showToast)
+  const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
 
   useEffect(() => {
     Promise.all([
@@ -313,6 +314,7 @@ export default function VoucherEntry() {
         lines: currentLines
       })
       showToast(`Voucher ${saved.id || vNo} posted successfully!`)
+      incrementLedgerVersion()
       setLines([])
       setNarration('')
       setQuickAmount('')

@@ -19,6 +19,7 @@ export default function ChallanEntry() {
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
 
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
@@ -61,6 +62,7 @@ export default function ChallanEntry() {
       setSaving(true)
       const saved = await postErp<{ id: string }>('challans', { party, transport, lines })
       showToast(`Challan ${saved.id} saved.`)
+      incrementLedgerVersion()
       setLines([])
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save challan.')

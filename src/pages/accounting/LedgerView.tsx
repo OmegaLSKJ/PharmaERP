@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Download, FileText, Eye, Edit2 } from 'lucide-react'
+import { Search, Download, FileText, Eye, Edit2, RefreshCw } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
@@ -24,52 +24,16 @@ export default function LedgerView() {
   const [selectedLedger, setSelectedLedger] = useState('')
   const [search, setSearch] = useState('')
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  // Subscribe to the global ledger version so we re-fetch when any entry is saved
+  const ledgerVersion = useUIStore((s) => s.ledgerVersion)
 
-  const handleCancel = async (e: any) => {
-    const reason = prompt('Enter reason for cancellation:')
-    if (reason === null) return
-    if (!reason.trim()) {
-      showToast('Cancellation reason is required.')
-      return
-    }
-
-    try {
-      let kind = ''
-      if (e.vType === 'sale') kind = 'sales'
-      else if (e.vType === 'purchase') kind = 'purchases'
-      else if (e.vType === 'challan') kind = 'challans'
-
-      if (!kind) {
-        showToast('This transaction type cannot be cancelled.')
-        return
-      }
-
-      await postErp('cancellations', { kind, id: e.id, reason })
-      showToast('Transaction cancelled successfully.')
-      
-      // Reload
-      const rows = await getErp<any[]>('ledgers')
-      const balances: Record<string, number> = {}
-      const mapped = rows.map((row) => {
-        balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit)
-        return {
-          ...row,
-          balance: Math.abs(balances[row.party]),
-          balType: balances[row.party] < 0 ? 'Cr' : 'Dr',
-          vType: String(row.vType).replace('_', ' ')
-        }
-      })
-      setAllEntries(mapped)
-      setSelectedTransaction(null)
-    } catch (err: any) {
-      showToast(err.message || 'Failed to cancel transaction.')
-    }
-  }
-
-  useEffect(() => {
-    getErp<any[]>('ledgers')
-      .then((rows) => {
+  const loadLedger = useCallback(
+    async (silent = false) => {
+      if (!silent) setRefreshing(true)
+      try {
+        const rows = await getErp<any[]>('ledgers')
         const seenKeys = new Set<string>()
         const deduped = (rows || []).filter((r) => {
           const dr = Number(r.debit || 0)
@@ -93,10 +57,50 @@ export default function LedgerView() {
           }
         })
         setAllEntries(mapped)
-        if (mapped[0]) setSelectedLedger(mapped[0].party)
-      })
-      .catch((e) => showToast(e.message))
-  }, [showToast])
+        if (mapped[0] && !selectedLedger) setSelectedLedger(mapped[0].party)
+      } catch (e: any) {
+        showToast(e.message)
+      } finally {
+        setRefreshing(false)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showToast]
+  )
+
+  // Re-fetch whenever ledgerVersion is bumped (new voucher/challan/walk-in saved)
+  useEffect(() => {
+    loadLedger(ledgerVersion > 0) // silent=true after first load to avoid spinner flicker
+  }, [ledgerVersion, loadLedger])
+
+  const handleCancel = async (e: any) => {
+    const reason = prompt('Enter reason for cancellation:')
+    if (reason === null) return
+    if (!reason.trim()) {
+      showToast('Cancellation reason is required.')
+      return
+    }
+
+    try {
+      let kind = ''
+      if (e.vType === 'sale') kind = 'sales'
+      else if (e.vType === 'purchase') kind = 'purchases'
+      else if (e.vType === 'challan') kind = 'challans'
+
+      if (!kind) {
+        showToast('This transaction type cannot be cancelled.')
+        return
+      }
+
+      await postErp('cancellations', { kind, id: e.id, reason })
+      showToast('Transaction cancelled successfully.')
+      setSelectedTransaction(null)
+      // Reload via shared loadLedger
+      await loadLedger(true)
+    } catch (err: any) {
+      showToast(err.message || 'Failed to cancel transaction.')
+    }
+  }
 
   const ledgerNames = [...new Set(allEntries.map((entry) => entry.party))]
   const entries = allEntries.filter((entry) => entry.party === selectedLedger)
@@ -123,6 +127,14 @@ export default function LedgerView() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => loadLedger()}
+            disabled={refreshing}
+            title="Refresh ledger"
+            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border no-print"
+          >
+            <RefreshCw size={15} className={cn(refreshing && 'animate-spin')} /> Refresh
+          </button>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
