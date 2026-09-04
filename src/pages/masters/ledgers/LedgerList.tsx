@@ -42,6 +42,8 @@ interface Ledger {
   group: string
   balance: number
   type: 'Dr' | 'Cr'
+  openingBalance?: number
+  openingType?: 'Dr' | 'Cr'
   txnCount?: number
   totalDr?: number
   totalCr?: number
@@ -204,6 +206,8 @@ export default function LedgerList() {
           id: p.id,
           name: p.name,
           group: p.accountGroup || (p.type === 'supplier' ? 'Sundry Creditors' : p.type === 'both' ? 'Sundry Debtors & Creditors' : 'Sundry Debtors'),
+          openingBalance: Number(p.openingBalance ?? 0),
+          openingType: (p.openingType || (Number(p.balance || 0) < 0 ? 'Cr' : 'Dr')) as 'Dr' | 'Cr',
           balance: Math.abs(Number(p.balance || 0)),
           type: Number(p.balance || 0) < 0 ? 'Cr' : 'Dr'
         }))
@@ -247,9 +251,11 @@ export default function LedgerList() {
           const key = ledger.name.trim().toLowerCase()
           const txnData = ledgerTxnTotals[key]
           if (txnData && txnData.count > 0) {
-            // Incorporate transaction movement into balance
-            const initialNet = (ledger.type === 'Cr' ? -1 : 1) * Number(ledger.balance || 0)
-            const finalNet = (initialNet || 0) + txnData.net
+            // Apply transactions to Opening Balance (not the already-calculated balance)
+            const opBal = Number(ledger.openingBalance ?? 0)
+            const opType = ledger.openingType ?? 'Dr'
+            const initialNet = (opType === 'Cr' ? -1 : 1) * opBal
+            const finalNet = initialNet + txnData.net
             return {
               ...ledger,
               balance: Math.abs(finalNet),
@@ -417,7 +423,9 @@ export default function LedgerList() {
       }
     )
     relevant.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    let currentBal = 0
+    const opBal = Number(selectedLedgerObj?.openingBalance ?? 0)
+    const opType = selectedLedgerObj?.openingType ?? 'Dr'
+    let currentBal = (opType === 'Cr' ? -1 : 1) * opBal
     return relevant.map((txn) => {
       const dr = Number(txn.debit) || 0
       const cr = Number(txn.credit) || 0
@@ -430,7 +438,7 @@ export default function LedgerList() {
         balanceType: currentBal >= 0 ? ('Dr' as const) : ('Cr' as const)
       }
     })
-  }, [statementEntries, selectedLedger])
+  }, [statementEntries, selectedLedger, selectedLedgerObj])
 
   const filteredStatementTxns = useMemo(() => {
     return partyTransactions.filter((txn) => {

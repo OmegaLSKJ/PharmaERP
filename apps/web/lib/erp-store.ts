@@ -677,7 +677,26 @@ export async function list(resource: string, partyName?: string) {
     if (data && data.length > 0) return data
     return mockStore['account-groups'] || []
   }
-  if (resource === 'accounts') { const data = await fetchAll<any>((from, to) => client.from('chart_of_accounts').select('id,code,name,account_type,account_group,opening_balance,is_active,voucher_lines(debit,credit)').eq('organization_id', organizationId).order('name').range(from, to)); return (data && data.length > 0) ? (data ?? []).map((a: any) => { const balance = Number(a.opening_balance) + (a.voucher_lines ?? []).reduce((sum: number, line: any) => sum + Number(line.debit) - Number(line.credit), 0); return { id: a.id, code: a.code, name: a.name, group: a.account_group, balance: Math.abs(balance), type: balance < 0 ? 'Cr' : 'Dr', active: a.is_active } }) : (mockStore.accounts || []) }
+  if (resource === 'accounts') {
+    const data = await fetchAll<any>((from, to) => client.from('chart_of_accounts').select('id,code,name,account_type,account_group,opening_balance,is_active,voucher_lines(debit,credit)').eq('organization_id', organizationId).order('name').range(from, to))
+    return (data && data.length > 0)
+      ? (data ?? []).map((a: any) => {
+          const opBal = Number(a.opening_balance || 0)
+          const balance = opBal + (a.voucher_lines ?? []).reduce((sum: number, line: any) => sum + Number(line.debit) - Number(line.credit), 0)
+          return {
+            id: a.id,
+            code: a.code,
+            name: a.name,
+            group: a.account_group,
+            openingBalance: Math.abs(opBal),
+            openingType: opBal < 0 ? 'Cr' : 'Dr',
+            balance: Math.abs(balance),
+            type: balance < 0 ? 'Cr' : 'Dr',
+            active: a.is_active
+          }
+        })
+      : (mockStore.accounts || [])
+  }
   if (resource === 'series') { const data = await fetchAll<any>((from, to) => client.from('document_series').select('*').eq('organization_id', organizationId).order('document_type').range(from, to)); return (data ?? []).map((s: any) => ({ id: s.id, doc: s.document_type, prefix: s.prefix, suffix: s.suffix, nextNo: Number(s.next_number), padding: s.padding, fyReset: s.financial_year_reset, active: s.is_active })) }
   if (resource === 'communication-blocks') { const data = await fetchAll<any>((from, to) => client.from('communication_blocks').select('*').eq('organization_id', organizationId).order('blocked_on', { ascending: false }).range(from, to)); return (data ?? []).map((b: any) => ({ id: b.id, type: b.channel, value: b.destination, reason: b.reason ?? '', blockedOn: b.blocked_on })) }
   const documentResources: Record<string, string> = { 'sale-returns': 'sale_return', 'purchase-returns': 'purchase_return', orders: 'order', breakages: 'breakage', replacements: 'replacement', 'counter-sales': 'counter_sale', pendings: 'pending', 'price-differences': 'price_difference' }
