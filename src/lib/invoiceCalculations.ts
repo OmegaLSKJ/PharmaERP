@@ -3,7 +3,7 @@ const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 10
 
 export function calculateInvoice(lines: InvoiceLineInput[]) {
   const calculatedLines = lines.map((line) => {
-    if (line.qty <= 0 || line.rate < 0) throw new Error('Quantity must be positive and rate cannot be negative.')
+    if (line.qty < 0 || line.rate < 0) throw new Error('Quantity and rate cannot be negative.')
     const discountRate = line.discount ?? 0, gstRate = line.gstRate ?? 0
     if (discountRate < 0 || discountRate > 100 || gstRate < 0 || gstRate > 100) throw new Error('Discount and GST must be between 0 and 100.')
     const gross = money(line.qty * line.rate)

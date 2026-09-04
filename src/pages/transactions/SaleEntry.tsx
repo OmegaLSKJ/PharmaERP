@@ -46,7 +46,7 @@ export default function SaleEntry() {
   const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
   const totals = items.length
-    ? calculateInvoice(items.map((item) => ({ qty: item.qty, rate: item.rate, discount: item.disc, gstRate: item.gst })))
+    ? calculateInvoice(items.map((item) => ({ qty: Math.max(0, item.qty), rate: Math.max(0, item.rate), discount: item.disc, gstRate: item.gst })))
     : calculateInvoice([])
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export default function SaleEntry() {
           setPrescriptionReference(found.prescriptionReference || '')
           if (found.lines && found.lines.length > 0) {
             const mappedLines = found.lines.map((l: any, idx: number) => {
-              const q = Number(l.qty || l.quantity || 1)
+              const q = Number(l.qty ?? l.quantity ?? 0)
               const r = Number(l.rate || 0)
               const d = Number(l.disc || l.discount || l.discount_percent || 0)
               const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
@@ -204,12 +204,12 @@ export default function SaleEntry() {
           name: item.label,
           batch: item.batch,
           stock: item.stock,
-          qty: 1,
+          qty: 0,
           free: 0,
           rate: item.rate,
           disc: 0,
           gst: item.gst,
-          amount: item.rate,
+          amount: 0,
         },
       ])
     }
@@ -232,6 +232,19 @@ export default function SaleEntry() {
 
   const saveInvoice = async () => {
     try {
+      if (!customer) {
+        showToast('Please select a customer.')
+        return
+      }
+      if (!items.length) {
+        showToast('Please add at least one item.')
+        return
+      }
+      const hasValidItems = items.some((i) => (Number(i.qty) || 0) > 0 || (Number(i.free) || 0) > 0)
+      if (!hasValidItems) {
+        showToast('Please enter quantity for at least one item before saving.')
+        return
+      }
       setSaving(true)
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
       const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
@@ -276,14 +289,18 @@ export default function SaleEntry() {
         if (row.id !== id) return row
         const val = isNaN(value) ? 0 : value
         const next = { ...row, [field]: val }
-        next.amount = calculateInvoice([
-          {
-            qty: Math.max(next.qty, 0),
-            rate: Math.max(next.rate, 0),
-            discount: Math.min(100, Math.max(next.disc, 0)),
-            gstRate: next.gst,
-          },
-        ]).lines[0].total
+        try {
+          next.amount = calculateInvoice([
+            {
+              qty: Math.max(next.qty, 0),
+              rate: Math.max(next.rate, 0),
+              discount: Math.min(100, Math.max(next.disc, 0)),
+              gstRate: next.gst,
+            },
+          ]).lines[0].total
+        } catch {
+          next.amount = 0
+        }
         return next
       })
     )
@@ -489,34 +506,19 @@ export default function SaleEntry() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-900">
-                    {/* Qty Stepper */}
+                    {/* Qty */}
                     <div>
                       <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Qty</label>
-                      <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => updateLine(item.id, 'qty', Math.max(1, item.qty - 1))}
-                          className="px-2.5 py-2 text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                        >
-                          <Minus size={13} />
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          max={item.stock}
-                          value={item.qty}
-                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value))}
-                          className="w-full text-center bg-transparent text-sm font-mono text-white outline-none py-1.5"
-                          inputMode="numeric"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => updateLine(item.id, 'qty', Math.min(item.stock, item.qty + 1))}
-                          className="px-2.5 py-2 text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                        >
-                          <Plus size={13} />
-                        </button>
-                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.stock}
+                        value={item.qty}
+                        onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                        inputMode="numeric"
+                      />
                     </div>
 
                     {/* Free Qty */}
@@ -526,7 +528,8 @@ export default function SaleEntry() {
                         type="number"
                         min="0"
                         value={item.free}
-                        onChange={(e) => updateLine(item.id, 'free', Number(e.target.value))}
+                        onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
                         inputMode="numeric"
                       />
@@ -594,12 +597,13 @@ export default function SaleEntry() {
                       <td className="p-2 text-right">
                         <input
                           id={`row-${i}-qty`}
-                          min="1"
+                          min="0"
                           max={item.stock}
                           type="number"
-                          value={item.qty === 0 ? '' : item.qty}
+                          value={item.qty}
                           onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
-                          placeholder="1"
+                          onFocus={(e) => e.target.select()}
+                          placeholder="0"
                           className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
                         />
@@ -609,8 +613,9 @@ export default function SaleEntry() {
                           id={`row-${i}-free`}
                           min="0"
                           type="number"
-                          value={item.free === 0 ? '' : item.free}
+                          value={item.free}
                           onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="0"
                           className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                           onKeyDown={(e) => handleKeyDown(e, i, 'free')}

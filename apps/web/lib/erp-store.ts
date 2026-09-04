@@ -1882,6 +1882,25 @@ export async function remove(resource: string, id: string) {
     }
     return { id, removedCount: duplicateIds.length }
   }
+  if (resource === 'parties') {
+    if (id === 'all' || id === 'purge-all') {
+      try {
+        await client.from('party_addresses').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        await client.from('chart_of_accounts').delete().eq('organization_id', organizationId).eq('account_type', 'party')
+        await client.from('parties').delete().eq('organization_id', organizationId)
+      } catch (err) {
+        console.warn('Delete all parties error:', err)
+      }
+      return { id, removedAll: true }
+    }
+    try {
+      await client.from('party_addresses').delete().eq('party_id', id)
+      await client.from('chart_of_accounts').delete().eq('party_id', id).eq('organization_id', organizationId)
+    } catch {}
+    const { error } = await client.from('parties').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
   if (resource === 'ledgers') {
     const { count, error } = await client
       .from('voucher_lines')

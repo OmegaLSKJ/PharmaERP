@@ -8,8 +8,13 @@ describe('calculateInvoice', () => {
       subtotal: 298.5, discountTotal: 29.85, taxTotal: 48.36, unroundedTotal: 317.01, roundingAdjustment: -0.01, grandTotal: 317,
     })
   })
-  it('rejects invalid percentages and quantities', () => {
-    expect(() => calculateInvoice([{ qty: 0, rate: 10 }])).toThrow(/Quantity/)
+  it('rejects invalid percentages and negative quantities', () => {
+    expect(() => calculateInvoice([{ qty: -1, rate: 10 }])).toThrow(/Quantity/)
     expect(() => calculateInvoice([{ qty: 1, rate: 10, discount: 101 }])).toThrow(/between 0 and 100/)
+  })
+  it('handles zero quantity gracefully without crashing', () => {
+    const res = calculateInvoice([{ qty: 0, rate: 10, discount: 10, gstRate: 18 }])
+    expect(res.grandTotal).toBe(0)
+    expect(res.lines[0].total).toBe(0)
   })
 })

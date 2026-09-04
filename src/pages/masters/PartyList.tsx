@@ -131,6 +131,11 @@ export default function PartyList() {
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [continuousCount, setContinuousCount] = useState<number>(50)
   const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
+  const [partyToDelete, setPartyToDelete] = useState<Party | null>(null)
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteSelectedConfirm, setShowDeleteSelectedConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleTypeFilterChange = (newType: 'all' | 'customer' | 'supplier') => {
     startTransition(() => {
@@ -273,6 +278,97 @@ export default function PartyList() {
     } catch (err: any) {
       showToast(err?.message || 'Failed to purge duplicate parties.')
     }
+  }
+
+  const handleDeleteSingle = async (party: Party) => {
+    try {
+      setIsDeleting(true)
+      try {
+        await deleteErp('parties', party.id)
+      } catch (err) {
+        console.warn('Backend party delete:', err)
+      }
+      const updated = parties.filter((p) => p.id !== party.id)
+      setParties(updated)
+      try {
+        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updated))
+      } catch {}
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(party.id)
+        return next
+      })
+      showToast(`Party ledger "${party.name}" deleted successfully.`)
+      setPartyToDelete(null)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete party ledger.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    try {
+      setIsDeleting(true)
+      try {
+        await deleteErp('parties', 'purge-all')
+      } catch (err) {
+        console.warn('Backend purge-all error:', err)
+      }
+      setParties([])
+      try {
+        localStorage.removeItem('pharma_erp_custom_parties')
+      } catch {}
+      setSelectedIds(new Set())
+      showToast('All party ledgers deleted successfully.')
+      setShowDeleteAllConfirm(false)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete all party ledgers.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return
+    try {
+      setIsDeleting(true)
+      const idsToDelete = Array.from(selectedIds)
+      for (const id of idsToDelete) {
+        try {
+          await deleteErp('parties', id)
+        } catch {}
+      }
+      const updated = parties.filter((p) => !selectedIds.has(p.id))
+      setParties(updated)
+      try {
+        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updated))
+      } catch {}
+      showToast(`${idsToDelete.length} party ledgers deleted successfully.`)
+      setSelectedIds(new Set())
+      setShowDeleteSelectedConfirm(false)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete selected party ledgers.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === displayedParties.length && displayedParties.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(displayedParties.map((p) => p.id)))
+    }
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const filtered = useMemo(() => {
@@ -726,9 +822,31 @@ export default function PartyList() {
             size="sm"
             onClick={purgeDuplicates}
             title="Delete duplicate customer/supplier entries and keep only one copy"
-            className="h-8 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 border-rose-800/40 flex items-center gap-1.5"
+            className="h-8 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-950/30 border-amber-800/40 flex items-center gap-1.5"
           >
             <Trash2 size={13} /> Delete Duplicates
+          </Button>
+
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteSelectedConfirm(true)}
+              title="Delete selected party ledgers"
+              className="h-8 text-xs flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              <Trash2 size={13} /> Delete Selected ({selectedIds.size})
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDeleteAllConfirm(true)}
+            title="Delete all party ledgers from the master"
+            className="h-8 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 border-rose-800/40 flex items-center gap-1.5"
+          >
+            <Trash2 size={13} /> Delete All
           </Button>
 
           <Button variant="outline" size="icon" aria-label="Export filtered parties" onClick={exportParties} className="h-8 w-8">
@@ -793,6 +911,15 @@ export default function PartyList() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border bg-muted/50 text-muted-foreground uppercase text-[11px]">
+                <th className="px-3 py-3 w-8 text-center">
+                  <input
+                    type="checkbox"
+                    checked={displayedParties.length > 0 && selectedIds.size === displayedParties.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-border text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    title="Select all on this page"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium">ID</th>
                 <th className="text-left px-4 py-3 font-medium">Ledger Name</th>
                 <th className="text-left px-4 py-3 font-medium">Group / Type</th>
@@ -802,12 +929,20 @@ export default function PartyList() {
                 <th className="text-right px-4 py-3 font-medium">Balance</th>
                 <th className="text-right px-4 py-3 font-medium">Credit Limit</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-right px-4 py-3 font-medium"></th>
+                <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {displayedParties.map((p) => (
-                <tr key={p.id} className="table-row-hover">
+                <tr key={p.id} className={cn("table-row-hover", selectedIds.has(p.id) && "bg-indigo-950/20")}>
+                  <td className="px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleSelectOne(p.id)}
+                      className="rounded border-border text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.id}</td>
                   <td className="px-4 py-3">
                     <Link to={`/masters/parties/${p.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">
@@ -898,6 +1033,16 @@ export default function PartyList() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={`Delete ${p.name}`}
+                        aria-label={`Delete ${p.name}`}
+                        className="h-7 w-7 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40"
+                        onClick={() => setPartyToDelete(p)}
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label={`Actions for ${p.name}`}
                         className="relative h-7 w-7"
                         onClick={() => setActiveMenu(activeMenu === p.id ? null : p.id)}
@@ -927,6 +1072,16 @@ export default function PartyList() {
                           className="w-full rounded px-3 py-1.5 text-left text-xs text-foreground hover:bg-secondary"
                         >
                           {p.status === 'active' ? 'Block party' : 'Unblock party'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenu(null)
+                            setPartyToDelete(p)
+                          }}
+                          className="w-full flex items-center gap-2 rounded px-3 py-1.5 text-left text-xs text-rose-400 hover:bg-rose-950/30 font-medium"
+                        >
+                          <Trash2 size={12} /> Delete Party Ledger
                         </button>
                       </div>
                     )}
@@ -1629,6 +1784,123 @@ export default function PartyList() {
               </div>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Delete Single Party */}
+      {partyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Delete Party Ledger</h3>
+                <p className="text-xs text-muted-foreground">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <strong className="text-foreground">{partyToDelete.name}</strong>? All associated addresses and party ledger mappings will be removed.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPartyToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDeleteSingle(partyToDelete)}
+                disabled={isDeleting}
+                className="bg-rose-600 hover:bg-rose-500 text-white"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Ledger'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Delete All Parties */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="bg-card border border-rose-900/60 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Delete All Party Ledgers</h3>
+                <p className="text-xs text-rose-400 font-medium">Permanent Bulk Deletion</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <strong className="text-rose-400 font-bold">all {parties.length} party ledgers</strong>? This will permanently clear all customer and supplier records from your party master.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteAllConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteAll}
+                disabled={isDeleting}
+                className="bg-rose-600 hover:bg-rose-500 text-white"
+              >
+                {isDeleting ? 'Deleting All...' : 'Yes, Delete All Ledgers'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Delete Selected Parties */}
+      {showDeleteSelectedConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Delete Selected Ledgers</h3>
+                <p className="text-xs text-muted-foreground">{selectedIds.size} parties selected</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the <strong className="text-foreground">{selectedIds.size} selected party ledgers</strong>?
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteSelectedConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="bg-rose-600 hover:bg-rose-500 text-white"
+              >
+                {isDeleting ? 'Deleting...' : `Delete ${selectedIds.size} Ledgers`}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
