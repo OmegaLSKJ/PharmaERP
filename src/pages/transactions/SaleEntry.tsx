@@ -52,10 +52,28 @@ export default function SaleEntry() {
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
       .then(([parties, products]) => {
-        setPartiesList(parties)
+        let localSaved: any[] = []
+        try {
+          const raw = localStorage.getItem('pharma_erp_custom_parties')
+          if (raw) localSaved = JSON.parse(raw)
+        } catch {}
+        const partyMap = new Map<string, any>()
+        for (const p of [...(parties || []), ...(localSaved || [])]) {
+          const key = (p.name || '').trim().toLowerCase()
+          if (key && !partyMap.has(key)) partyMap.set(key, p)
+        }
+        const allParties = Array.from(partyMap.values())
+        setPartiesList(allParties)
         setProductsList(products)
         setCustomerOptions(
-          parties.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => ({ label: p.name, value: p.name }))
+          allParties
+            .filter((p) => p.name && p.name.trim())
+            .map((p) => ({
+              label: p.name,
+              value: p.name,
+              sub: p.city || p.station ? `${p.city || p.station}${p.type ? ` • ${p.type.toUpperCase()}` : ''}` : (p.type ? p.type.toUpperCase() : undefined),
+              right: p.phone || p.mobile || undefined,
+            }))
         )
         setItemOptions(
           products.flatMap((p) =>
@@ -421,7 +439,7 @@ export default function SaleEntry() {
           options={customerOptions}
           value={customer}
           onChange={setCustomer}
-          placeholder="Search or select customer..."
+          placeholder="Search customer, supplier, or party..."
           autoFocus
         />
       </div>
