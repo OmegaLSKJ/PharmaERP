@@ -42,6 +42,11 @@ export default function VoucherEntry() {
   const [narration, setNarration] = useState('')
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  // ── Quick Cash Entry panel state ──────────────────────────────
+  const [quickParty, setQuickParty] = useState('')
+  const [quickCashAccount, setQuickCashAccount] = useState('Cash Account')
+  const [quickAmt, setQuickAmt] = useState<number | ''>('')
+  const [quickSaving, setQuickSaving] = useState(false)
 
   useEffect(() => {
     const qVNo = searchParams.get('vNo')
@@ -329,6 +334,67 @@ export default function VoucherEntry() {
     }
   }
 
+  /** One-shot quick voucher: builds balanced lines and saves immediately */
+  const quickSaveVoucher = async (mode: 'received' | 'paid' | 'transfer') => {
+    const amt = Number(quickAmt)
+    if (!amt || amt <= 0) { showToast('Enter a valid amount'); return }
+    if (mode !== 'transfer' && !quickParty) { showToast('Select a party / ledger first'); return }
+
+    const cashAcc = quickCashAccount || cashAccounts[0] || 'Cash Account'
+    const bankAcc = bankAccounts[0] || 'HDFC Bank'
+    const party = quickParty
+    const vDate2 = vDate
+    const docNo = `VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+
+    let voucherType = 'Receipt'
+    let builtLines: VoucherLine[] = []
+    let builtNarration = ''
+
+    if (mode === 'received') {
+      voucherType = 'Receipt'
+      builtLines = [
+        { id: '1', ledger: cashAcc, debit: amt, credit: 0, narration: 'Cash received' },
+        { id: '2', ledger: party, debit: 0, credit: amt, narration: 'Received against account' }
+      ]
+      builtNarration = `Received ${formatCurrency(amt)} cash from ${party}`
+    } else if (mode === 'paid') {
+      voucherType = 'Payment'
+      builtLines = [
+        { id: '1', ledger: party, debit: amt, credit: 0, narration: 'Cash paid' },
+        { id: '2', ledger: cashAcc, debit: 0, credit: amt, narration: 'Paid from cash' }
+      ]
+      builtNarration = `Paid ${formatCurrency(amt)} cash to ${party}`
+    } else {
+      voucherType = 'Contra'
+      builtLines = [
+        { id: '1', ledger: bankAcc, debit: amt, credit: 0, narration: 'Cash deposited into bank' },
+        { id: '2', ledger: cashAcc, debit: 0, credit: amt, narration: 'Cash withdrawn' }
+      ]
+      builtNarration = `Cash deposited ${formatCurrency(amt)} into ${bankAcc}`
+    }
+
+    try {
+      setQuickSaving(true)
+      const saved = await postErp<{ id: string }>('vouchers', {
+        id: docNo, number: docNo,
+        type: voucherType, voucher_type: voucherType.toLowerCase(),
+        date: vDate2, voucher_date: vDate2,
+        party: mode !== 'transfer' ? party : bankAcc,
+        narration: builtNarration,
+        total: amt,
+        lines: builtLines
+      })
+      showToast(`✓ ${voucherType} ${saved.id || docNo} saved — ${builtNarration}`)
+      incrementLedgerVersion()
+      setQuickAmt('')
+      if (mode !== 'transfer') setQuickParty('')
+    } catch (err: any) {
+      showToast(err.message || 'Could not save quick voucher.')
+    } finally {
+      setQuickSaving(false)
+    }
+  }
+
   const getPrintData = (): VoucherPrintData => {
     const total = lines.length > 0 ? totalDebit : Number(quickAmount) || 0
     return {
@@ -400,6 +466,132 @@ export default function VoucherEntry() {
             </button>
           </div>
         </div>
+
+      {/* ══════════════════════════════════════════════════════════
+            QUICK CASH ENTRY — one-click receipt / payment / transfer
+          ══════════════════════════════════════════════════════════ */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/30 border border-indigo-500/20 rounded-2xl p-5 shadow-lg shadow-indigo-900/10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30">
+            <Banknote size={15} className="text-indigo-400" />
+          </div>
+          <span className="text-sm font-bold text-white tracking-tight">Quick Cash Entry</span>
+          <span className="text-[10px] text-indigo-400 font-medium bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full ml-1">
+            One-click save
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          {/* Party / Ledger */}
+          <div className="sm:col-span-1">
+            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Party / Company
+            </label>
+            <select
+              value={quickParty}
+              onChange={(e) => setQuickParty(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 transition"
+            >
+              <option value="">Select party…</option>
+              <optgroup label="👥 Customers">
+                {customerLedgers.map((c) => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+              <optgroup label="🏢 Suppliers">
+                {supplierLedgers.map((s) => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+              <optgroup label="📑 General Accounts">
+                {generalLedgers.map((g) => <option key={g} value={g}>{g}</option>)}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Cash Account */}
+          <div>
+            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Cash / Bank Account
+            </label>
+            <select
+              value={quickCashAccount}
+              onChange={(e) => setQuickCashAccount(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 transition"
+            >
+              <optgroup label="💵 Cash">
+                {cashAccounts.map((c) => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+              <optgroup label="🏦 Bank">
+                {bankAccounts.map((b) => <option key={b} value={b}>{b}</option>)}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Amount (₹)
+            </label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={quickAmt}
+              onChange={(e) => setQuickAmt(e.target.value === '' ? '' : Number(e.target.value))}
+              onKeyDown={(e) => { if (e.key === 'Enter' && quickParty) quickSaveVoucher('received') }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 font-mono transition"
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <button
+            type="button"
+            onClick={() => quickSaveVoucher('received')}
+            disabled={quickSaving}
+            className="group flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-sm">
+              <Banknote size={16} />
+              Cash Received
+            </div>
+            <span className="text-[10px] text-emerald-500/70 font-medium">Party → Cash A/c (Dr)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => quickSaveVoucher('paid')}
+            disabled={quickSaving}
+            className="group flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 hover:text-rose-300 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-sm">
+              <Banknote size={16} />
+              Cash Paid
+            </div>
+            <span className="text-[10px] text-rose-500/70 font-medium">Cash A/c (Cr) → Party</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => quickSaveVoucher('transfer')}
+            disabled={quickSaving}
+            className="group flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 hover:text-blue-300 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-sm">
+              <ArrowRightLeft size={16} />
+              Bank Transfer
+            </div>
+            <span className="text-[10px] text-blue-500/70 font-medium">Cash → Bank deposit</span>
+          </button>
+        </div>
+
+        {quickSaving && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-indigo-400">
+            <RefreshCw size={12} className="animate-spin" /> Saving voucher…
+          </div>
+        )}
+
+        <p className="mt-3 text-[10px] text-slate-600">
+          Tip: Press <kbd className="px-1 py-0.5 bg-slate-800 rounded text-slate-400 text-[9px] font-mono">Enter</kbd> in Amount to instantly save as "Cash Received"
+        </p>
+      </div>
 
       {/* Main Voucher Parameters Card */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
