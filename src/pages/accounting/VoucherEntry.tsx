@@ -234,44 +234,41 @@ export default function VoucherEntry() {
   const saveVoucher = async () => {
     let currentLines = [...lines]
 
-    // If no lines in table, but user entered details in Quick Entry Helper
+    // If no lines in table, try Quick Cash Entry panel values first, then old helper values
     if (currentLines.length === 0) {
-      const amt = Number(quickAmount)
-      if (amt > 0) {
-        const accLedger = cashBankLedger || cashAccounts[0] || 'Cash Account'
-        const pLedger = partyLedger || (vType === 'Payment' ? supplierLedgers[0] : customerLedgers[0]) || 'General Party'
-
+      // --- Quick Cash Entry panel (quickAmt, quickParty, quickCashAccount) ---
+      const qAmt = Number(quickAmt)
+      if (qAmt > 0 && quickParty) {
+        const cashAcc = quickCashAccount || cashAccounts[0] || 'Cash Account'
         if (vType === 'Receipt') {
           currentLines = [
-            { id: Date.now().toString() + '1', ledger: accLedger, debit: amt, credit: 0, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Received via Cash/Bank' },
-            { id: Date.now().toString() + '2', ledger: pLedger, debit: 0, credit: amt, narration: 'Received against invoice/account' }
+            { id: Date.now().toString() + '1', ledger: cashAcc, debit: qAmt, credit: 0, narration: 'Cash received' },
+            { id: Date.now().toString() + '2', ledger: quickParty, debit: 0, credit: qAmt, narration: 'Received against account' }
           ]
+          if (!narration) setNarration(`Received ${formatCurrency(qAmt)} from ${quickParty} via ${cashAcc}`)
         } else if (vType === 'Payment') {
           currentLines = [
-            { id: Date.now().toString() + '1', ledger: pLedger, debit: amt, credit: 0, narration: 'Payment made' },
-            { id: Date.now().toString() + '2', ledger: accLedger, debit: 0, credit: amt, narration: bankRefNo ? `Ref: ${bankRefNo}` : 'Paid via Cash/Bank' }
+            { id: Date.now().toString() + '1', ledger: quickParty, debit: qAmt, credit: 0, narration: 'Cash paid' },
+            { id: Date.now().toString() + '2', ledger: cashAcc, debit: 0, credit: qAmt, narration: 'Paid from cash' }
           ]
+          if (!narration) setNarration(`Paid ${formatCurrency(qAmt)} to ${quickParty} from ${cashAcc}`)
         } else if (vType === 'Contra') {
+          const bankAcc = bankAccounts[0] || 'HDFC Bank'
           currentLines = [
-            { id: Date.now().toString() + '1', ledger: bankAccounts[0] || 'HDFC Bank', debit: amt, credit: 0, narration: 'Contra Deposit' },
-            { id: Date.now().toString() + '2', ledger: cashAccounts[0] || 'Cash Account', debit: 0, credit: amt, narration: 'Contra Withdrawal' }
+            { id: Date.now().toString() + '1', ledger: bankAcc, debit: qAmt, credit: 0, narration: 'Cash deposited into bank' },
+            { id: Date.now().toString() + '2', ledger: cashAcc, debit: 0, credit: qAmt, narration: 'Cash withdrawn' }
           ]
+          if (!narration) setNarration(`Contra transfer ${formatCurrency(qAmt)}`)
         } else {
           currentLines = [
-            { id: Date.now().toString() + '1', ledger: accLedger, debit: amt, credit: 0, narration: 'Journal Debit' },
-            { id: Date.now().toString() + '2', ledger: pLedger, debit: 0, credit: amt, narration: 'Journal Credit' }
+            { id: Date.now().toString() + '1', ledger: cashAcc, debit: qAmt, credit: 0, narration: 'Journal Debit' },
+            { id: Date.now().toString() + '2', ledger: quickParty, debit: 0, credit: qAmt, narration: 'Journal Credit' }
           ]
         }
         setLines(currentLines)
-        if (!narration) {
-          setNarration(
-            vType === 'Receipt'
-              ? `Received ${formatCurrency(amt)} from ${pLedger} via ${accLedger}`
-              : `Paid ${formatCurrency(amt)} to ${pLedger} from ${accLedger}`
-          )
-        }
       } else {
-        showToast('Please enter an amount and add voucher debit & credit lines before saving.')
+        // --- Fallback: nothing entered anywhere ---
+        showToast('Select a party and enter an amount in the Quick Cash Entry panel, or add lines below.')
         return
       }
     }
