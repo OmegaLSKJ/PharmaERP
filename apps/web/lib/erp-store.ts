@@ -156,6 +156,39 @@ try {
   // Silent catch
 }
 
+// Load persisted transaction data (ledgers, vouchers, sales, purchases, challans)
+try {
+  const rootTx = path.resolve(process.cwd(), 'apps/web/lib/mock-transactions.json')
+  const localTx = path.resolve(process.cwd(), 'lib/mock-transactions.json')
+  const txPath = fs.existsSync(rootTx) ? rootTx : fs.existsSync(localTx) ? localTx : null
+  if (txPath) {
+    const parsed = JSON.parse(fs.readFileSync(txPath, 'utf8'))
+    // Merge persisted records: persisted entries take priority (they are newer)
+    if (Array.isArray(parsed.ledgers) && parsed.ledgers.length > 0) {
+      const existingIds = new Set(parsed.ledgers.map((l: any) => l.id))
+      mockStore.ledgers = [...parsed.ledgers, ...(mockStore.ledgers || []).filter((l: any) => !existingIds.has(l.id))]
+    }
+    if (Array.isArray(parsed.vouchers) && parsed.vouchers.length > 0) {
+      const existingIds = new Set(parsed.vouchers.map((v: any) => v.id))
+      mockStore.vouchers = [...parsed.vouchers, ...(mockStore.vouchers || []).filter((v: any) => !existingIds.has(v.id))]
+    }
+    if (Array.isArray(parsed.sales) && parsed.sales.length > 0) {
+      const existingIds = new Set(parsed.sales.map((s: any) => s.id))
+      mockStore.sales = [...parsed.sales, ...(mockStore.sales || []).filter((s: any) => !existingIds.has(s.id))]
+    }
+    if (Array.isArray(parsed.purchases) && parsed.purchases.length > 0) {
+      const existingIds = new Set(parsed.purchases.map((p: any) => p.id))
+      mockStore.purchases = [...parsed.purchases, ...(mockStore.purchases || []).filter((p: any) => !existingIds.has(p.id))]
+    }
+    if (Array.isArray(parsed.challans) && parsed.challans.length > 0) {
+      const existingIds = new Set(parsed.challans.map((c: any) => c.id))
+      mockStore.challans = [...parsed.challans, ...(mockStore.challans || []).filter((c: any) => !existingIds.has(c.id))]
+    }
+  }
+} catch (e) {
+  // Silent catch — first run or corrupted file
+}
+
 function persistCustomParty(party: any) {
   try {
     const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-parties.json')
@@ -173,6 +206,32 @@ function persistCustomParty(party: any) {
     }
   } catch (err) {
     console.warn('Failed to persist custom party to disk:', err)
+  }
+}
+
+/**
+ * Persist transaction collections (ledgers, vouchers, sales, purchases, challans)
+ * to a local JSON file so they survive Next.js worker restarts and cross-request reads.
+ */
+function persistTransactions() {
+  try {
+    const payload = {
+      ledgers: mockStore.ledgers ?? [],
+      vouchers: mockStore.vouchers ?? [],
+      sales: mockStore.sales ?? [],
+      purchases: mockStore.purchases ?? [],
+      challans: mockStore.challans ?? [],
+    }
+    const rootPath = path.resolve(process.cwd(), 'apps/web/lib/mock-transactions.json')
+    const localPath = path.resolve(process.cwd(), 'lib/mock-transactions.json')
+    const targets = [rootPath, localPath]
+    for (const target of targets) {
+      const dir = path.dirname(target)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(target, JSON.stringify(payload, null, 2), 'utf8')
+    }
+  } catch (err) {
+    console.warn('Failed to persist transactions to disk:', err)
   }
 }
 
@@ -883,6 +942,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
           found.narration = `Cancelled - Reason: ${reason}`
         }
       }
+      persistTransactions()
       return { id: targetId, status: 'cancelled' }
     }
 
@@ -1085,6 +1145,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
         })
       }
 
+      persistTransactions()
       return doc
     }
 
@@ -1128,6 +1189,8 @@ export async function create(resource: string, body: any, actor: MutationActor =
         return mockStore[storeKey][existingIdx]
       }
       mockStore[storeKey].unshift(doc)
+      // Persist sales/purchases/challans so they survive across requests
+      if (['sales', 'purchases', 'challans'].includes(storeKey)) persistTransactions()
       return doc
     }
 
