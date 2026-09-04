@@ -75,7 +75,9 @@ const DEFAULT_BANK_ACCOUNTS = ['HDFC Bank', 'State Bank of India (SBI)', 'ICICI 
 const AMOUNT_PRESETS = [500, 1000, 2000, 5000, 10000, 25000, 50000]
 
 function generateVoucherNo(): string {
-  return `VCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+  const year = new Date().getFullYear()
+  const rand = Math.floor(10000 + Math.random() * 90000)
+  return `VCH-${year}-${rand}`
 }
 
 export default function VoucherEntry() {
@@ -491,6 +493,7 @@ export default function VoucherEntry() {
       setVNo(generateVoucherNo())
     } catch (err: any) {
       console.error('Error saving voucher:', err)
+      setVNo(generateVoucherNo())
       showToast(err.message || 'Could not save voucher.')
     } finally {
       setSaving(false)

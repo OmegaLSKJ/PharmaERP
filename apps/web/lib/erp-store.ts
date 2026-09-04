@@ -1587,22 +1587,48 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const debit = body.lines?.reduce((sum: number, v: any) => sum + +(v.debit || 0), 0) ?? 0
     const credit = body.lines?.reduce((sum: number, v: any) => sum + +(v.credit || 0), 0) ?? 0
     if (!body.lines?.length || debit <= 0 || Math.abs(debit - credit) > 0.001) throw new Error('Voucher must contain balanced debit and credit lines.')
-    const voucherNumber = body.id || body.number || number('VCH')
+    let voucherNumber = String(body.number || body.id || number('VCH')).trim()
     const voucherDate = body.date || body.voucher_date || date()
-    const { data: voucher, error } = await client
-      .from('vouchers')
-      .insert({
-        organization_id: organizationId,
-        financial_year_id: financialYearId,
-        voucher_type: (body.type || 'journal').toLowerCase(),
-        voucher_number: voucherNumber,
-        voucher_date: voucherDate,
-        status: 'posted',
-        narration: body.narration ?? null
-      })
-      .select('id')
-      .single()
-    if (error) throw error
+
+    // Ensure voucher_number is unique for this organization and financial year
+    let voucher: { id: string } | null = null
+    let lastError: any = null
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: vch, error } = await client
+        .from('vouchers')
+        .insert({
+          organization_id: organizationId,
+          financial_year_id: financialYearId,
+          voucher_type: (body.type || 'journal').toLowerCase(),
+          voucher_number: voucherNumber,
+          voucher_date: voucherDate,
+          status: 'posted',
+          narration: body.narration ?? null
+        })
+        .select('id')
+        .single()
+
+      if (!error && vch) {
+        voucher = vch
+        lastError = null
+        break
+      }
+
+      lastError = error
+      // If duplicate key violation, append a unique timestamp/entropy suffix and retry
+      if (
+        error?.code === '23505' ||
+        error?.message?.includes('duplicate key') ||
+        error?.message?.includes('vouchers_organization_id_financial_year_id_voucher_number_key')
+      ) {
+        voucherNumber = `VCH-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}${Math.floor(10 + Math.random() * 90)}`
+      } else {
+        break
+      }
+    }
+
+    if (lastError || !voucher) throw (lastError || new Error('Could not save voucher.'))
     for (const line of body.lines) {
       const accountId = await account(client, organizationId, line.ledger)
       const { error: lineError } = await client.from('voucher_lines').insert({
