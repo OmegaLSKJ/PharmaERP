@@ -409,36 +409,6 @@ export default function SaleEntry() {
         />
       </div>
 
-      {/* Prescription / Doctor Info */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-3">
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">Patient (Required for Schedule H/H1/X)</label>
-          <input
-            value={patientName}
-            onChange={(e) => setPatientName(e.target.value)}
-            placeholder="Patient name..."
-            className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-sm text-white placeholder:text-slate-600 outline-none focus:border-indigo-500 transition"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">Prescriber / Doctor</label>
-          <input
-            value={prescriberName}
-            onChange={(e) => setPrescriberName(e.target.value)}
-            placeholder="Dr. name / Reg no..."
-            className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-sm text-white placeholder:text-slate-600 outline-none focus:border-indigo-500 transition"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">Prescription Reference</label>
-          <input
-            value={prescriptionReference}
-            onChange={(e) => setPrescriptionReference(e.target.value)}
-            placeholder="Rx / Ref number..."
-            className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-sm text-white placeholder:text-slate-600 outline-none focus:border-indigo-500 transition"
-          />
-        </div>
-      </div>
 
       {/* Items Section */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
