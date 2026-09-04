@@ -1087,8 +1087,42 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
 
     if (resource === 'vouchers') {
-      const docTotal = Number(body.total ?? body.lines?.reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0) ?? 0)
-      const docParty = body.party || 'General Voucher'
+      let vLines = Array.isArray(body.lines) ? [...body.lines] : []
+      const rawAmt = Number(body.amount ?? body.total ?? 0)
+      const targetParty = (body.party || body.customer || body.supplier || '').trim()
+
+      // If lines are not provided but party and amount are, auto-construct balanced lines
+      if (vLines.length === 0 && targetParty && rawAmt > 0) {
+        const cashAcc = body.cashAccount || body.account || 'Cash Account'
+        const vType = (body.type || body.voucher_type || 'Receipt').toLowerCase()
+        const physNo = body.physicalVoucherNo || body.physical_voucher_no || ''
+        const lineNarration = body.narration || `${body.type || 'Voucher'} - ${targetParty}`
+        if (vType.includes('receipt')) {
+          vLines = [
+            { ledger: cashAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+            { ledger: targetParty, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+          ]
+        } else if (vType.includes('payment')) {
+          vLines = [
+            { ledger: targetParty, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+            { ledger: cashAcc, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+          ]
+        } else if (vType.includes('contra')) {
+          const bankAcc = body.bankAccount || 'HDFC Bank'
+          vLines = [
+            { ledger: bankAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+            { ledger: cashAcc, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+          ]
+        } else {
+          vLines = [
+            { ledger: cashAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+            { ledger: targetParty, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+          ]
+        }
+      }
+
+      const docTotal = Number(body.total ?? rawAmt ?? vLines.reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0) ?? 0)
+      const docParty = targetParty || body.party || 'General Voucher'
       const docNumber = body.number || body.id || number('VCH')
       const docDate = body.date || body.voucher_date || date()
       const doc = {
@@ -1102,9 +1136,10 @@ export async function create(resource: string, body: any, actor: MutationActor =
         voucher_type: (body.type || 'Journal').toLowerCase(),
         status: 'posted',
         total: docTotal,
-        lines: body.lines || []
+        lines: vLines
       }
       mockStore.vouchers.unshift(doc)
+      body.lines = vLines
 
       // Post each line to mockStore.ledgers so it appears in Ledger View, Master Ledger, DayBook, and Party 360
       if (Array.isArray(body.lines)) {
@@ -1514,6 +1549,41 @@ export async function create(resource: string, body: any, actor: MutationActor =
     return { id: challanNumber, party: body.party, transport: body.transport ?? '', date: challanDate, lines: body.lines }
   }
   if (resource === 'vouchers') {
+    let vLines = Array.isArray(body.lines) ? [...body.lines] : []
+    const rawAmt = Number(body.amount ?? body.total ?? 0)
+    const targetParty = (body.party || body.customer || body.supplier || '').trim()
+
+    // If lines are not provided but party and amount are, auto-construct balanced lines
+    if (vLines.length === 0 && targetParty && rawAmt > 0) {
+      const cashAcc = body.cashAccount || body.account || 'Cash Account'
+      const vType = (body.type || body.voucher_type || 'Receipt').toLowerCase()
+      const physNo = body.physicalVoucherNo || body.physical_voucher_no || ''
+      const lineNarration = body.narration || `${body.type || 'Voucher'} - ${targetParty}`
+      if (vType.includes('receipt')) {
+        vLines = [
+          { ledger: cashAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+          { ledger: targetParty, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+        ]
+      } else if (vType.includes('payment')) {
+        vLines = [
+          { ledger: targetParty, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+          { ledger: cashAcc, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+        ]
+      } else if (vType.includes('contra')) {
+        const bankAcc = body.bankAccount || 'HDFC Bank'
+        vLines = [
+          { ledger: bankAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+          { ledger: cashAcc, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+        ]
+      } else {
+        vLines = [
+          { ledger: cashAcc, debit: rawAmt, credit: 0, physicalVchNo: physNo, narration: lineNarration },
+          { ledger: targetParty, debit: 0, credit: rawAmt, physicalVchNo: physNo, narration: lineNarration }
+        ]
+      }
+    }
+    body.lines = vLines
+
     const debit = body.lines?.reduce((sum: number, v: any) => sum + +(v.debit || 0), 0) ?? 0
     const credit = body.lines?.reduce((sum: number, v: any) => sum + +(v.credit || 0), 0) ?? 0
     if (!body.lines?.length || debit <= 0 || Math.abs(debit - credit) > 0.001) throw new Error('Voucher must contain balanced debit and credit lines.')
