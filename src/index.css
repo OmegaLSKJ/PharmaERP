@@ -138,15 +138,17 @@
   }
 
   input[type='date'] {
-    @apply w-full pl-3 pr-4 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+    padding-right: 2.75rem !important;
   }
 
   select {
-    @apply w-full pl-3 pr-9 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
+    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.75rem center;
+    background-position: right 1.25rem center !important;
     background-repeat: no-repeat;
     background-size: 1.25em 1.25em;
+    padding-right: 3rem !important;
   }
 
   input:focus, select:focus, textarea:focus {
@@ -213,10 +215,12 @@
   input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(0.5);
     cursor: pointer;
-    margin-right: 0.75rem !important;
-    padding: 4px;
-    border-radius: 4px;
+    margin-right: 1.25rem !important;
+    padding: 6px !important;
+    border-radius: 6px;
     opacity: 0.85;
+    position: relative;
+    right: 0.35rem;
     transition: opacity 0.15s ease, background-color 0.15s ease;
   }
 
@@ -228,7 +232,7 @@
   /* Ensure Chrome on Android/iOS gives proper internal clearance */
   input[type='date']::-webkit-inner-spin-button,
   input[type='date']::-webkit-clear-button {
-    margin-right: 0.25rem;
+    margin-right: 0.5rem;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
@@ -1091,6 +1095,17 @@ input[type="number"] {
   }
   input[type="checkbox"], input[type="radio"] {
     min-height: 18px;
+  }
+  input[type='date'] {
+    padding-right: 3.25rem !important;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    margin-right: 1.25rem !important;
+    right: 0.5rem !important;
+  }
+  select {
+    background-position: right 1.25rem center !important;
+    padding-right: 3.25rem !important;
   }
 }
 

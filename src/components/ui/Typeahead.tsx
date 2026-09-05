@@ -79,7 +79,7 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
           onKeyDown={onKeyDown}
           autoComplete="off"
           className={cn(
-            'w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 pr-11 text-sm text-white outline-none truncate',
+            'w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 pr-16 sm:pr-14 text-sm text-white outline-none truncate',
             'placeholder:text-slate-500 placeholder:truncate transition-colors',
             'focus:border-indigo-500/60 focus:bg-slate-950 focus:ring-1 focus:ring-indigo-500/40'
           )}
@@ -97,10 +97,10 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
             }
           }}
           aria-label="Toggle options"
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
         >
           <ChevronDown
-            size={15}
+            size={16}
             className={cn('transition-transform duration-200 text-slate-400', open && 'rotate-180 text-indigo-400')}
           />
         </button>

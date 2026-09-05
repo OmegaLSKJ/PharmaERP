@@ -551,7 +551,7 @@ export default function PurchaseEntry() {
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && entryDateRef.current?.focus()}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg pl-3 pr-10 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
             />
           </div>
           <div>
@@ -562,7 +562,7 @@ export default function PurchaseEntry() {
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setShowItemSearch(true)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg pl-3 pr-10 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
             />
           </div>
         </div>
