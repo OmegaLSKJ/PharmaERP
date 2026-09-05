@@ -57,12 +57,14 @@ export default function Topbar() {
           <Menu size={20} />
         </button>
 
-        {/* Mobile Brand Name */}
-        <div className="flex items-center gap-1.5 sm:hidden">
-          <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            +
-          </div>
-          <span className="font-bold text-sm text-foreground tracking-tight">Borgang<span className="text-blue-500">Drug</span></span>
+        {/* Mobile Brand Name with Logo & BDD */}
+        <div className="flex items-center gap-2 sm:hidden">
+          <img
+            src="/favicon.png"
+            alt="BDD Logo"
+            className="w-7 h-7 object-contain rounded-md shadow-xs flex-shrink-0"
+          />
+          <span className="font-bold text-base text-foreground tracking-tight">BDD</span>
         </div>
       </div>
 
