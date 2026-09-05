@@ -83,8 +83,9 @@ export default function LoginPage() {
             Powering pharmaceutical supply chains with <span className="whitespace-nowrap">end-to-end</span> batch tracking, automated compliance, and <span className="whitespace-nowrap">real-time</span> inventory visibility.
           </p>
         </div>
-        <div className="relative z-10 text-sm font-semibold text-muted-foreground">
-          ERP by The Alpha and Omega
+        <div className="relative z-10 text-sm text-muted-foreground space-y-1">
+          <div>ERP by The Alpha and Omega</div>
+          <div className="text-xs font-semibold text-foreground/80">Developed by TAO Solutions Pvt Ltd</div>
         </div>
       </div>
 
@@ -171,7 +172,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">Authorized Borgang Drug Distributors users only.</p>
+          <div className="mt-6 text-center space-y-1 text-xs text-muted-foreground">
+            <p>Authorized Borgang Drug Distributors users only.</p>
+            <p className="font-medium text-foreground/80">Developed by TAO Solutions Pvt Ltd</p>
+          </div>
         </div>
       </div>
     </div>
