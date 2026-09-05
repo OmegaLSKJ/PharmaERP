@@ -469,7 +469,7 @@ export default function PurchaseEntry() {
         </datalist>
 
         {/* Title Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {isEditMode && (
               <button
@@ -490,13 +490,13 @@ export default function PurchaseEntry() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
             <button
               onClick={handlePrint}
               className="inline-flex h-9 items-center justify-center gap-2 px-3.5 sm:px-4 rounded-lg bg-card hover:bg-secondary text-foreground text-xs sm:text-sm font-semibold shadow-xs border border-border transition-all active:scale-[0.98] cursor-pointer"
               title="Preview & Print Goods Receipt Note"
             >
-              <Printer size={15} /> <span className="hidden sm:inline">Print Preview</span>
+              <Printer size={15} /> <span>Print Preview</span>
             </button>
             <button
               onClick={savePurchase}

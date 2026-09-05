@@ -390,12 +390,12 @@ export default function SaleEntry() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
           {/* Professional Print Bill Button */}
           <button
             type="button"
             onClick={() => setShowPrintModal(true)}
-            className="group relative inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-medium text-white bg-gradient-to-b from-zinc-900 via-neutral-950 to-black hover:from-zinc-800 hover:to-neutral-900 border border-neutral-700 hover:border-neutral-500 shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
+            className="group relative inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-medium text-white bg-gradient-to-b from-zinc-900 via-neutral-950 to-black hover:from-zinc-800 hover:to-neutral-900 border border-neutral-700 hover:border-neutral-500 shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
             title="Print Preview & Tax Invoice Bill (Alt+P)"
           >
             <Printer size={15} className="text-zinc-300 group-hover:text-white transition-colors" />
@@ -410,7 +410,7 @@ export default function SaleEntry() {
             type="button"
             onClick={saveInvoice}
             disabled={saving || !customer || !items.length}
-            className="group relative inline-flex items-center gap-2 h-10 px-4 sm:px-4.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 rounded-lg text-xs sm:text-sm text-white font-semibold shadow-md shadow-blue-900/30 hover:shadow-blue-900/50 active:scale-[0.98] border border-blue-500/60 transition-all duration-150 cursor-pointer"
+            className="group relative inline-flex items-center justify-center gap-2 h-10 px-4 sm:px-4.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 rounded-lg text-xs sm:text-sm text-white font-semibold shadow-md shadow-blue-900/30 hover:shadow-blue-900/50 active:scale-[0.98] border border-blue-500/60 transition-all duration-150 cursor-pointer"
           >
             <Save size={15} className="text-blue-100 group-hover:text-white transition-colors" />
             <span className="tracking-tight">{saving ? 'Saving…' : isEditMode ? 'Update Invoice' : 'Save Invoice'}</span>

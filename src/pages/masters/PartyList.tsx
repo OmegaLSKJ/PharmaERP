@@ -729,14 +729,14 @@ export default function PartyList() {
   return (
     <div className="space-y-4">
       {/* Title & Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Parties / Ledger Master</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Parties / Ledger Master</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             {filtered.length} parties &bull; Customers &amp; Suppliers &bull; Drug License &amp; GST compliance
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowCreate(true) }}>
+        <Button onClick={() => { resetForm(); setShowCreate(true) }} className="w-full sm:w-auto">
           <Plus size={16} /> New Party / Ledger
         </Button>
       </div>
@@ -757,14 +757,14 @@ export default function PartyList() {
         </div>
 
         <div className="flex items-center flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
-          <div className="flex rounded-md border border-input overflow-hidden text-xs">
+          <div className="flex rounded-md border border-input overflow-hidden text-xs w-full sm:w-auto">
             {(['all', 'customer', 'supplier'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => handleTypeFilterChange(t)}
                 className={cn(
-                  'px-3 py-1.5 text-xs capitalize transition-colors font-medium',
+                  'flex-1 sm:flex-initial px-3 py-1.5 text-xs capitalize transition-colors font-medium text-center',
                   typeFilter === t ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
                 )}
               >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
@@ -333,24 +333,24 @@ export default function PurchaseRegister() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4 max-w-7xl mx-auto">
       {/* Screen Controls & Register Table */}
       <div className="no-print space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Purchase Register</h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Purchase Register</h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
               {filtered.length} challans | Total: {formatCurrency(totalVal)}
             </p>
           </div>
-          <a
-            href="/transactions/purchase/new"
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"
+          <Link
+            to="/transactions/purchase/new"
+            className="inline-flex h-9 items-center justify-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all duration-150"
           >
-            <Plus size={16} /> New Purchase
-          </a>
+            <Plus size={15} /> New Purchase
+          </Link>
         </div>
-        <div className="relative max-w-sm">
+        <div className="relative w-full sm:max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
