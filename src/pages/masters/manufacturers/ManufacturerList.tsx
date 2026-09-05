@@ -388,7 +388,7 @@ export default function ManufacturerList() {
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-2 font-mono text-slate-200">
+            <span className="px-1.5 sm:px-2 font-mono text-slate-200 whitespace-nowrap shrink-0">
               {currentPage} / {totalPages}
             </span>
             <button

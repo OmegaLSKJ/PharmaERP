@@ -856,8 +856,8 @@ export default function PartyList() {
       </div>
 
       {/* Chunk Info Strip */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground px-1">
+        <div className="whitespace-nowrap">
           Showing <span className="font-semibold text-foreground">{startIdx}</span> to{' '}
           <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
           <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> parties
@@ -881,7 +881,7 @@ export default function PartyList() {
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-2 font-mono text-foreground font-semibold text-xs">
+            <span className="px-1.5 sm:px-2 font-mono text-foreground font-semibold text-xs whitespace-nowrap shrink-0">
               {currentPage} / {totalPages}
             </span>
             <button
