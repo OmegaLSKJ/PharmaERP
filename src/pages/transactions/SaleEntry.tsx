@@ -475,7 +475,7 @@ export default function SaleEntry() {
               )
               if (selectedItem) addRow(selectedItem)
             }}
-            placeholder="Type medicine name or tap to pick from available stock..."
+            placeholder="Search medicine or pick from stock..."
           />
         </div>
 

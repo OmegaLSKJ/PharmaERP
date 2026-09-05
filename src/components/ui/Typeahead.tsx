@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 export interface TOption { label: string; sub?: string; right?: string }
@@ -78,12 +79,31 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
           onKeyDown={onKeyDown}
           autoComplete="off"
           className={cn(
-            'w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 pr-9 text-sm text-white outline-none',
-            'placeholder:text-slate-600 transition-colors',
+            'w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 pr-11 text-sm text-white outline-none truncate',
+            'placeholder:text-slate-500 placeholder:truncate transition-colors',
             'focus:border-indigo-500/60 focus:bg-slate-950 focus:ring-1 focus:ring-indigo-500/40'
           )}
         />
-        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] font-mono text-slate-600">↓</kbd>
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (open) {
+              close()
+            } else {
+              inputRef.current?.focus()
+              openList()
+            }
+          }}
+          aria-label="Toggle options"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
+        >
+          <ChevronDown
+            size={15}
+            className={cn('transition-transform duration-200 text-slate-400', open && 'rotate-180 text-indigo-400')}
+          />
+        </button>
       </div>
       {open && filtered.length > 0 && (
         <div ref={listRef} className="absolute z-40 top-full mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-white/[0.08] bg-slate-950 shadow-dialog">

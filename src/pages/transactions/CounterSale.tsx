@@ -86,7 +86,7 @@ export default function CounterSale() {
               const selectedItem = available.find(i => i.name === opt.label && `Batch: ${i.batch} | Stock: ${i.stock}` === opt.sub)
               if (selectedItem) add(selectedItem)
             }}
-            placeholder="Type medicine name to quickly add to cart..."
+            placeholder="Search medicine name to add..."
           />
         </div>
 

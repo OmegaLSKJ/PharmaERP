@@ -595,7 +595,7 @@ export default function PurchaseEntry() {
               const matched = itemOptions.find((it) => it.name === selectedOption.label)
               if (matched) addItem(matched)
             }}
-            placeholder="Type product name or HSN to quickly add..."
+            placeholder="Search product name or HSN..."
           />
         </div>
 
