@@ -655,24 +655,24 @@ export default function PurchaseEntry() {
                   </div>
 
                   {/* Batch & Expiry */}
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-5 min-w-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
                       <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Batch *</label>
                       <input
                         type="text"
                         value={item.batch}
                         onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
                         placeholder="e.g. B-9012"
-                        className="w-full bg-card border border-border rounded-lg px-2.5 py-2 text-xs font-mono text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-mono text-foreground outline-none focus:border-primary"
                       />
                     </div>
-                    <div className="col-span-7 min-w-0">
+                    <div>
                       <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Expiry Date *</label>
                       <input
                         type="date"
                         value={item.expiry}
                         onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
-                        className="w-full bg-card border border-border rounded-lg pl-2 pr-7 py-2 text-xs font-mono tracking-tight text-foreground outline-none focus:border-primary"
+                        className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground outline-none focus:border-primary"
                       />
                     </div>
                   </div>
