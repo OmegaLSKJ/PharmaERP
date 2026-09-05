@@ -81,10 +81,10 @@ export default function Topbar() {
         </button>
       </div>
 
-      <div className="flex-1 sm:hidden" />
+      <div className="flex-1" />
 
       {/* Right Controls */}
-      <div className="flex items-center gap-1 sm:gap-1.5">
+      <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
         {/* Mobile Search Icon Button */}
         <button
           type="button"
@@ -214,16 +214,14 @@ export default function Topbar() {
           )}
         </div>
 
-        {/* Top Right Corner Attribution */}
-        <div className="hidden sm:flex items-center pl-1.5 sm:pl-2 border-l border-border/70 select-none">
-          <div className="flex flex-col text-right leading-tight">
-            <span className="text-[8.5px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Developed by
-            </span>
-            <span className="text-[11px] font-bold text-foreground tracking-tight whitespace-nowrap">
-              TAO Solutions Pvt Ltd
-            </span>
-          </div>
+        {/* Extreme Right Corner Attribution */}
+        <div className="hidden sm:flex flex-col items-center justify-center text-center pl-2.5 sm:pl-3 ml-1 sm:ml-1.5 border-l border-border/70 select-none">
+          <span className="text-[8.5px] uppercase tracking-wider text-muted-foreground font-semibold text-center block leading-none">
+            Developed By
+          </span>
+          <span className="text-[11px] font-bold text-foreground tracking-tight whitespace-nowrap text-center block mt-1 leading-none">
+            TAO Solutions Pvt Ltd
+          </span>
         </div>
       </div>
     </header>
