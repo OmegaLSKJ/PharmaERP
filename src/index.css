@@ -138,7 +138,9 @@
   }
 
   input[type='date'] {
-    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
+    -webkit-appearance: none !important;
+    appearance: none !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
     background-position: right 1.25rem center !important;
     background-repeat: no-repeat !important;
@@ -1111,5 +1113,40 @@ input[type="number"] {
     background-position: right 1.25rem center !important;
     padding-right: 3.25rem !important;
   }
+}
+
+/* ==========================================================================
+   GLOBAL DATE INPUT CHEVRON ENFORCEMENT ACROSS ALL PAGES
+   ========================================================================== */
+input[type='date'] {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 1.25rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.25em 1.25em !important;
+  padding-right: 3rem !important;
+  cursor: pointer !important;
+}
+
+:root:not(.dark) input[type='date'] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+input[type='date']::-webkit-inner-spin-button,
+input[type='date']::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none !important;
 }
 
