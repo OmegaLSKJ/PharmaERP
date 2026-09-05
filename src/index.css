@@ -224,15 +224,15 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* Make native unpadded browser indicator transparent while retaining clickability */
+  /* Completely hide native unpadded browser indicator to eliminate duplicate chevrons */
   input[type='date']::-webkit-calendar-picker-indicator {
+    display: none !important;
+    -webkit-appearance: none !important;
     opacity: 0 !important;
-    cursor: pointer !important;
-    position: relative !important;
-    width: 2.5rem !important;
-    height: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
   }
 
   /* Ensure Chrome on Android/iOS gives proper internal clearance */

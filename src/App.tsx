@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/auth/LoginPage'
@@ -60,6 +61,19 @@ import FastSlowMoving from './pages/reports/FastSlowMoving'
 import SettingsPage from './pages/settings/SettingsPage'
 
 export default function App() {
+  useEffect(() => {
+    const handleDateClick = (e: MouseEvent) => {
+      const el = e.target as HTMLElement
+      if (el && el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'date') {
+        try {
+          (el as HTMLInputElement).showPicker?.()
+        } catch {}
+      }
+    }
+    document.addEventListener('click', handleDateClick)
+    return () => document.removeEventListener('click', handleDateClick)
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
