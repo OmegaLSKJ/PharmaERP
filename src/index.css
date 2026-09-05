@@ -134,9 +134,16 @@
   input[type='number'],
   input[type='date'],
   input[type='search'],
-  select,
   textarea {
     @apply w-full px-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+  }
+
+  select {
+    @apply w-full pl-3 pr-9 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
   }
 
   input:focus, select:focus, textarea:focus {
@@ -203,6 +210,7 @@
   input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(0.5);
     cursor: pointer;
+    margin-right: 0.5rem;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
