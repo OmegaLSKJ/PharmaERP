@@ -132,10 +132,13 @@
   input[type='email'],
   input[type='password'],
   input[type='number'],
-  input[type='date'],
   input[type='search'],
   textarea {
     @apply w-full px-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+  }
+
+  input[type='date'] {
+    @apply w-full pl-3 pr-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
   }
 
   select {
@@ -211,6 +214,13 @@
     filter: invert(0.5);
     cursor: pointer;
     margin-right: 0.5rem;
+    padding: 2px;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
