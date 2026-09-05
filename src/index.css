@@ -138,7 +138,7 @@
   }
 
   input[type='date'] {
-    @apply w-full pl-3 pr-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+    @apply w-full pl-3 pr-4 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
   }
 
   select {
@@ -213,14 +213,22 @@
   input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(0.5);
     cursor: pointer;
-    margin-right: 0.5rem;
-    padding: 2px;
+    margin-right: 0.75rem !important;
+    padding: 4px;
+    border-radius: 4px;
     opacity: 0.85;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
   }
 
   input[type='date']::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+
+  /* Ensure Chrome on Android/iOS gives proper internal clearance */
+  input[type='date']::-webkit-inner-spin-button,
+  input[type='date']::-webkit-clear-button {
+    margin-right: 0.25rem;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
