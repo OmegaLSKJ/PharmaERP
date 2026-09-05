@@ -67,7 +67,7 @@ export default function Topbar() {
       </div>
 
       {/* Desktop / Tablet Command Search Bar */}
-      <div className="hidden sm:flex flex-1 max-w-md">
+      <div className="hidden sm:flex flex-1 max-w-xs md:max-w-md">
         <button
           type="button"
           onClick={toggleCommandPalette}

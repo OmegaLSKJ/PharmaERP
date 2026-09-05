@@ -31,6 +31,16 @@ export default function AppLayout() {
     setMobileSidebarOpen(false)
   }, [location.pathname, setMobileSidebarOpen])
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileSidebarOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [setMobileSidebarOpen])
+
   if (!initialized) return <div className="min-h-screen grid place-items-center bg-background text-sm text-muted-foreground">Checking your secure session…</div>
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
@@ -40,7 +50,7 @@ export default function AppLayout() {
         <Sidebar />
       </div>
       {mobileSidebarOpen && (
-        <button type="button" aria-label="Close navigation" onClick={() => setMobileSidebarOpen(false)} className="no-print print:hidden fixed inset-0 z-10 bg-slate-950/60 backdrop-blur-[1px] md:hidden" />
+        <button type="button" aria-label="Close navigation" onClick={() => setMobileSidebarOpen(false)} className="no-print print:hidden fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-[1px] md:hidden" />
       )}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Ambient background glow */}
@@ -51,7 +61,7 @@ export default function AppLayout() {
         <div className="no-print print:hidden shrink-0" data-no-print>
           <Topbar />
         </div>
-        <main className="flex-1 overflow-auto p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
           <ErrorBoundary>
             <div key={location.pathname} className="page-enter min-h-full">
               <Outlet />

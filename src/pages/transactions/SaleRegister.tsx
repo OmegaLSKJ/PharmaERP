@@ -197,7 +197,7 @@ export default function SaleRegister() {
 
       {/* Filters Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -209,13 +209,13 @@ export default function SaleRegister() {
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex rounded-lg border border-slate-800 overflow-hidden text-xs bg-slate-900 p-0.5">
+        <div className="flex rounded-lg border border-slate-800 overflow-x-auto text-xs bg-slate-900 p-0.5 max-w-full">
           {['all', 'paid', 'posted', 'pending', 'overdue', 'partial', 'draft'].map((t) => (
             <button
               key={t}
               onClick={() => setStatusFilter(t)}
               className={cn(
-                'px-3 py-1 font-medium capitalize transition rounded-md',
+                'px-3 py-1 font-medium capitalize transition rounded-md whitespace-nowrap shrink-0',
                 statusFilter === t
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white'

@@ -58,9 +58,9 @@ export default function Dashboard() {
   const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Operations overview</h1><p className="text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p></div>
-        <div className="flex flex-wrap gap-2"><Link to="/transactions/sale/new" className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"><Plus size={15}/> New sale</Link><Link to="/transactions/orders" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"><ClipboardList size={15}/> Orders</Link></div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div><h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Operations overview</h1><p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p></div>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto"><Link to="/transactions/sale/new" className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"><Plus size={15}/> New sale</Link><Link to="/transactions/orders" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"><ClipboardList size={15}/> Orders</Link></div>
       </div>
 
       {/* KPI Cards */}

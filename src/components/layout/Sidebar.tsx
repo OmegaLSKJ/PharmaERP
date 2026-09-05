@@ -130,25 +130,34 @@ export default function Sidebar() {
 
   return (
     <aside className={cn(
-      'no-print h-screen flex flex-col shrink-0 z-20 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px]',
+      'no-print h-screen flex flex-col shrink-0 z-20 md:z-20 max-md:z-50 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px] max-md:max-w-[85vw] shadow-2xl md:shadow-none',
       'bg-[hsl(var(--sidebar))] border-r border-border/80 text-[hsl(var(--sidebar-foreground))]',
       collapsed ? 'w-[60px]' : 'w-[240px]',
       mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
     )}>
       {/* Brand Logo Header */}
       <div className={cn('flex items-center gap-3 px-4 h-14 border-b border-border/80 shrink-0', collapsed && 'justify-center px-0')}>
-        <div className="relative">
+        <div className="relative shrink-0">
           <img src="/favicon.png" alt={`${company.companyName} Logo`} className="w-8 h-8 object-contain rounded" />
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-[hsl(var(--sidebar))]" />
         </div>
         {!collapsed && (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-[13px] font-bold text-foreground leading-tight tracking-tight truncate" title={company.companyName}>
               {company.companyName}
             </div>
             <div className="text-[9px] text-muted-foreground/60 font-semibold tracking-wider uppercase">Distribution Suite</div>
           </div>
         )}
+        {/* Mobile close button */}
+        <button
+          type="button"
+          aria-label="Close navigation drawer"
+          onClick={() => useUIStore.getState().setMobileSidebarOpen(false)}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition md:hidden ml-auto"
+        >
+          <PanelLeftClose size={18} />
+        </button>
       </div>
 
       {/* Navigation Sections */}

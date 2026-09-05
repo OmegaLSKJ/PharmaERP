@@ -357,11 +357,11 @@ export default function SaleEntry() {
   }))
 
   return (
-    <div className="p-4 md:p-6 space-y-4 pb-28 md:pb-12 max-w-7xl mx-auto">
+    <div className="p-2.5 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 w-full max-w-7xl mx-auto">
       {/* Screen Form (Hidden when printing) */}
       <div className="no-print space-y-4">
         {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
           {isEditMode && (
             <button
@@ -686,7 +686,7 @@ export default function SaleEntry() {
       </div>
 
       {/* Invoice Totals */}
-      <div className="ml-auto grid max-w-md grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm shadow-sm">
+      <div className="w-full sm:max-w-md sm:ml-auto grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm shadow-sm">
         <span className="text-slate-400">Subtotal</span>
         <span className="text-right font-mono">{formatCurrency(totals.subtotal)}</span>
         <span className="text-slate-400">Discount</span>
@@ -848,6 +848,25 @@ export default function SaleEntry() {
               <TaxInvoicePrint data={getPrintData()} />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Mobile Sticky Checkout Bar */}
+      {items.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 md:hidden shadow-xl">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Grand Total ({items.length} items)</div>
+            <div className="text-base font-bold font-mono text-emerald-400">{formatCurrency(totals.grandTotal)}</div>
+          </div>
+          <button
+            type="button"
+            onClick={saveInvoice}
+            disabled={saving || !customer || !items.length}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold shadow transition"
+          >
+            <Save size={14} />
+            <span>{saving ? 'Saving…' : isEditMode ? 'Update' : 'Save Bill'}</span>
+          </button>
         </div>
       )}
 

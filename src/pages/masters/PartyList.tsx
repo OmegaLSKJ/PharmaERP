@@ -743,7 +743,7 @@ export default function PartyList() {
 
       {/* Filters & Chunk Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border p-2.5 rounded-xl shadow-xs">
-        <div className="flex items-center gap-2 flex-1 max-w-md">
+        <div className="flex items-center gap-2 flex-1 w-full sm:max-w-md">
           <div className="relative w-full">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -756,7 +756,7 @@ export default function PartyList() {
           </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-2 justify-end">
+        <div className="flex items-center flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
           <div className="flex rounded-md border border-input overflow-hidden text-xs">
             {(['all', 'customer', 'supplier'] as const).map((t) => (
               <button
@@ -908,7 +908,7 @@ export default function PartyList() {
       <div className="glass-surface rounded-lg overflow-hidden border border-border">
         {loading && <div className="p-6 text-sm text-muted-foreground">Loading parties…</div>}
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[1020px]">
             <thead>
               <tr className="border-b border-border bg-muted/50 text-muted-foreground uppercase text-[11px]">
                 <th className="px-3 py-3 w-8 text-center">
