@@ -532,7 +532,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
       </div>
 
       <div className="text-center text-[8px] text-gray-500 mt-1">
-        This is a Computer Generated Tax Invoice &bull; Powered by PharmaERP
+        This is a Computer Generated Tax Invoice &bull; Powered by Borgang Drug Distributors
       </div>
     </div>
   )

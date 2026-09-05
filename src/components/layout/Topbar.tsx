@@ -57,11 +57,12 @@ export default function Topbar() {
           <Menu size={20} />
         </button>
 
+        {/* Mobile Brand Name */}
         <div className="flex items-center gap-1.5 sm:hidden">
           <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
             +
           </div>
-          <span className="font-bold text-sm text-white tracking-tight">Pharma<span className="text-blue-500">ERP</span></span>
+          <span className="font-bold text-sm text-foreground tracking-tight">Borgang<span className="text-blue-500">Drug</span></span>
         </div>
       </div>
 
@@ -162,7 +163,7 @@ export default function Topbar() {
         </div>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-slate-800 mx-0.5 sm:mx-1" />
+        <div className="w-px h-5 bg-border/70 mx-0.5 sm:mx-1" />
 
         {/* User Profile & Menu */}
         <div className="relative" ref={userMenuRef}>
@@ -172,17 +173,17 @@ export default function Topbar() {
               setUserMenuOpen((open) => !open)
               setNotificationsOpen(false)
             }}
-            className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-xl hover:bg-slate-850 transition"
+            className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-xl hover:bg-secondary/70 transition"
             aria-label="User profile"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
               {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="hidden md:block text-left leading-tight">
-              <div className="text-xs font-semibold text-white truncate max-w-[100px]">{user?.name || 'User'}</div>
-              <div className="text-[10px] text-slate-400 capitalize">{user?.role || 'Admin'}</div>
+              <div className="text-xs font-semibold text-foreground truncate max-w-[100px]">{user?.name || 'User'}</div>
+              <div className="text-[10px] text-muted-foreground capitalize">{user?.role || 'Admin'}</div>
             </div>
-            <ChevronDown size={14} className="text-slate-400 hidden md:block" />
+            <ChevronDown size={14} className="text-muted-foreground hidden md:block" />
           </button>
 
           {/* User Dropdown Menu */}
@@ -205,8 +206,24 @@ export default function Topbar() {
                   <span>Log out</span>
                 </button>
               </div>
+              <div className="pt-2 pb-1 px-3 border-t border-slate-800/80 text-center sm:hidden">
+                <span className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-medium">Developed by</span>
+                <span className="block text-[11px] font-semibold text-slate-200">TAO Solutions Pvt Ltd</span>
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Top Right Corner Attribution */}
+        <div className="hidden sm:flex items-center pl-1.5 sm:pl-2 border-l border-border/70 select-none">
+          <div className="flex flex-col text-right leading-tight">
+            <span className="text-[8.5px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Developed by
+            </span>
+            <span className="text-[11px] font-bold text-foreground tracking-tight whitespace-nowrap">
+              TAO Solutions Pvt Ltd
+            </span>
+          </div>
         </div>
       </div>
     </header>
