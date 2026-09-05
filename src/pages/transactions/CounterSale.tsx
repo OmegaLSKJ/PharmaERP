@@ -116,9 +116,9 @@ export default function CounterSale() {
         }
         <div className="mt-auto pt-3 border-t border-slate-700 space-y-3">
           <div className="flex justify-between text-xl font-bold"><span className="text-white">Total</span><span className="font-mono text-emerald-400">{formatCurrency(total)}</span></div>
-          <div className="flex rounded-lg border border-slate-800 overflow-hidden">
-            <button onClick={()=>setPay('cash')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='cash'?'bg-emerald-600 text-white':'bg-slate-950 text-slate-400')}><Banknote size={14}/>Cash</button>
-            <button onClick={()=>setPay('upi')} className={cn('flex-1 p-2 text-sm font-medium flex items-center justify-center gap-2 transition',pay==='upi'?'bg-indigo-600 text-white':'bg-slate-950 text-slate-400')}><Smartphone size={14}/>UPI</button>
+          <div className="flex rounded-lg border border-slate-800 overflow-hidden p-0.5 bg-slate-950/60">
+            <button onClick={()=>setPay('cash')} className={cn('flex-1 h-9 px-3 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition active:scale-[0.98]',pay==='cash'?'bg-emerald-600 text-white shadow-sm':'text-slate-400 hover:text-white')}><Banknote size={14}/>Cash</button>
+            <button onClick={()=>setPay('upi')} className={cn('flex-1 h-9 px-3 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition active:scale-[0.98]',pay==='upi'?'bg-indigo-600 text-white shadow-sm':'text-slate-400 hover:text-white')}><Smartphone size={14}/>UPI</button>
           </div>
 
           {pay === 'upi' && total > 0 && (
@@ -139,13 +139,13 @@ export default function CounterSale() {
             </div>
           )}
 
-          <button onClick={complete} disabled={cart.length===0 || saving} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-lg text-sm font-semibold shadow-md">{saving ? 'Posting…' : 'Print Bill & Complete'}</button>
+          <button onClick={complete} disabled={cart.length===0 || saving} className="w-full h-11 px-4 inline-flex items-center justify-center gap-2 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 disabled:opacity-40 text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.98] transition-all cursor-pointer">{saving ? 'Posting…' : 'Print Bill & Complete'}</button>
 
           {completedSale && (
             <button
               type="button"
               onClick={() => window.print()}
-              className="w-full py-2 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-neutral-700 shadow-xs cursor-pointer"
+              className="w-full h-10 px-4 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition border border-neutral-700 shadow-xs active:scale-[0.98] cursor-pointer"
             >
               <Printer size={14} className="text-zinc-300" /> Reprint Last Bill ({completedSale.invoiceNo})
             </button>

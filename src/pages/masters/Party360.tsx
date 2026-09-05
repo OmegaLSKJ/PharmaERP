@@ -199,7 +199,7 @@ export default function Party360() {
             })
             setShowEditModal(true)
           }}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md active:scale-[0.98] transition cursor-pointer"
         >
           <Edit2 size={13} /> Edit Party Details
         </button>
@@ -482,9 +482,9 @@ export default function Party360() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                  <button type="button" disabled={saving} onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-                  <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-1.5">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end pt-3 border-t border-slate-800">
+                  <button type="button" disabled={saving} onClick={() => setShowEditModal(false)} className="inline-flex items-center justify-center h-9 px-4 text-xs sm:text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition active:scale-[0.98]">Cancel</button>
+                  <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-1.5 h-9 px-4 text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md disabled:opacity-50 active:scale-[0.98] transition cursor-pointer">
                     <Check size={14} /> {saving ? 'Updating...' : 'Save Changes'}
                   </button>
                 </div>

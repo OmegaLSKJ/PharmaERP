@@ -120,7 +120,7 @@ export default function PurchaseReturn() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md active:scale-[0.98] transition cursor-pointer"
         >
           <Plus size={16} /> New Return
         </button>
@@ -263,7 +263,7 @@ export default function PurchaseReturn() {
                 <input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(Number(e.target.value))} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500 font-mono" />
               </label>
             </div>
-            <button className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 p-3 font-semibold text-white shadow-md transition">
+            <button className="w-full h-11 px-4 rounded-xl bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 font-semibold text-white shadow-md active:scale-[0.98] transition cursor-pointer">
               Post Purchase Return
             </button>
           </form>

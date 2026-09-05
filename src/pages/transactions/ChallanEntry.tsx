@@ -90,20 +90,20 @@ export default function ChallanEntry() {
             <Truck size={14} className="text-cyan-400" /> Goods dispatch without invoice
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
           <button
             onClick={() => setShowPrintModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-neutral-900 rounded-lg text-sm text-white font-semibold no-print transition border border-black shadow-md cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 sm:px-4 bg-black hover:bg-neutral-900 rounded-lg text-xs sm:text-sm text-white font-semibold no-print transition border border-black shadow-sm active:scale-[0.98] cursor-pointer"
             title="Print Delivery Challan"
           >
-            <Printer size={16} className="text-white" /> <span>Print Challan</span>
+            <Printer size={15} className="text-white" /> <span>Print Challan</span>
           </button>
           <button
             onClick={saveChallan}
             disabled={saving || !party || !lines.length}
-            className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md no-print transition"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 sm:px-4 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-sm no-print active:scale-[0.98] transition cursor-pointer"
           >
-            <Save size={16} /> {saving ? 'Saving…' : 'Save Challan'}
+            <Save size={15} /> <span>{saving ? 'Saving…' : 'Save Challan'}</span>
           </button>
         </div>
       </div>
@@ -255,9 +255,9 @@ export default function ChallanEntry() {
           type="button"
           onClick={saveChallan}
           disabled={saving || !party || !lines.length}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md transition"
+          className="inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md active:scale-[0.98] transition cursor-pointer"
         >
-          <Save size={14} /> {saving ? 'Saving…' : 'Save Challan'}
+          <Save size={14} /> <span>{saving ? 'Saving…' : 'Save Challan'}</span>
         </button>
       </div>
       </div>

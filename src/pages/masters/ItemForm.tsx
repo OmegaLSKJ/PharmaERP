@@ -103,20 +103,20 @@ export default function ItemForm() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <form onSubmit={submit} className="space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Back to items" onClick={() => navigate('/masters/items')} className="glass-action rounded-lg p-2">
+            <button type="button" aria-label="Back to items" onClick={() => navigate('/masters/items')} className="glass-action rounded-lg p-2 hover:bg-secondary transition active:scale-[0.98]">
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-2xl font-semibold">{id ? 'Edit item' : 'New item'}</h1>
-              <p className="text-sm text-muted-foreground">Product identity, tax classification and trade rates</p>
+              <h1 className="text-xl sm:text-2xl font-semibold">{id ? 'Edit item' : 'New item'}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Product identity, tax classification and trade rates</p>
             </div>
           </div>
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-600 transition disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-700 hover:bg-blue-600 px-4 h-9 text-xs sm:text-sm font-semibold text-white shadow-xs transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             <Save size={16} />
             {saving ? 'Saving…' : 'Save item'}
