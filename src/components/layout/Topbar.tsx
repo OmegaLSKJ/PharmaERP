@@ -90,7 +90,7 @@ export default function Topbar() {
           type="button"
           aria-label="Search"
           onClick={toggleCommandPalette}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 sm:hidden transition"
+          className="h-9 w-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 sm:hidden transition-all cursor-pointer"
           title="Search (⌘K)"
         >
           <Search size={18} />
@@ -101,7 +101,7 @@ export default function Topbar() {
           type="button"
           aria-label="Toggle theme"
           onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 transition"
+          className="h-9 w-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer"
           title={theme === 'light' ? 'Switch to Dark mode' : 'Switch to Light mode'}
         >
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
@@ -118,13 +118,13 @@ export default function Topbar() {
               setUserMenuOpen(false)
             }}
             className={cn(
-              "relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 transition",
-              notificationsOpen && "bg-slate-850 text-white"
+              "relative h-9 w-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer",
+              notificationsOpen && "bg-secondary text-foreground"
             )}
             title="Notifications"
           >
             <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+            <span className="absolute top-2 right-2 flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 animate-ping opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
@@ -173,7 +173,7 @@ export default function Topbar() {
               setUserMenuOpen((open) => !open)
               setNotificationsOpen(false)
             }}
-            className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-xl hover:bg-secondary/70 transition"
+            className="flex items-center gap-2 h-10 px-2 sm:px-2.5 rounded-xl hover:bg-secondary/80 active:scale-[0.98] transition-all cursor-pointer"
             aria-label="User profile"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-md">

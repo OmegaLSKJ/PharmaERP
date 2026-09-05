@@ -189,9 +189,9 @@ export default function SaleRegister() {
         </div>
         <Link
           to="/transactions/sale/new"
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"
+          className="inline-flex h-9 items-center gap-2 px-3.5 sm:px-4 py-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all duration-150"
         >
-          <Plus size={16} /> New Sale
+          <Plus size={15} /> New Sale
         </Link>
       </div>
 

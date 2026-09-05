@@ -1057,9 +1057,10 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Touch targets and mobile responsiveness */
+/* Touch targets and mobile responsiveness for inputs */
 @media (max-width: 640px) {
-  button, input, select {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select {
     min-height: 38px;
   }
   input[type="checkbox"], input[type="radio"] {

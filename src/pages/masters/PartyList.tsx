@@ -868,7 +868,7 @@ export default function PartyList() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(1)}
-              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              className="h-7 w-7 rounded-lg bg-background border border-input hover:bg-secondary flex items-center justify-center text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
               title="First Page"
             >
               <ChevronsLeft size={14} />
@@ -876,18 +876,18 @@ export default function PartyList() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              className="h-7 w-7 rounded-lg bg-background border border-input hover:bg-secondary flex items-center justify-center text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
               title="Previous Page"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-2 font-mono text-foreground font-semibold">
+            <span className="px-2 font-mono text-foreground font-semibold text-xs">
               {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              className="h-7 w-7 rounded-lg bg-background border border-input hover:bg-secondary flex items-center justify-center text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
               title="Next Page"
             >
               <ChevronRight size={14} />
@@ -895,7 +895,7 @@ export default function PartyList() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(totalPages)}
-              className="p-1 rounded bg-background border border-input hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
+              className="h-7 w-7 rounded-lg bg-background border border-input hover:bg-secondary flex items-center justify-center text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
               title="Last Page"
             >
               <ChevronsRight size={14} />

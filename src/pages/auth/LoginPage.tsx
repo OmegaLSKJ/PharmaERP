@@ -165,7 +165,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white h-11 px-4 rounded-xl text-sm font-semibold shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer border border-blue-500/60"
             >
               {loading ? (inviteTokens ? 'Activating...' : 'Signing in...') : (inviteTokens ? 'Activate account' : 'Sign In')}
               {!loading && <ArrowRight size={16} />}

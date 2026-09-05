@@ -455,7 +455,7 @@ export default function SaleEntry() {
           <button
             type="button"
             onClick={() => setShowItemSearch(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all cursor-pointer"
           >
             <Plus size={14} /> Add Item (F2)
           </button>

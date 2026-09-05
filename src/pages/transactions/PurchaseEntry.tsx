@@ -493,17 +493,17 @@ export default function PurchaseEntry() {
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border"
+              className="inline-flex h-9 items-center justify-center gap-2 px-3.5 sm:px-4 rounded-lg bg-card hover:bg-secondary text-foreground text-xs sm:text-sm font-semibold shadow-xs border border-border transition-all active:scale-[0.98] cursor-pointer"
               title="Preview & Print Goods Receipt Note"
             >
-              <Printer size={16} /> <span className="hidden sm:inline">Print Preview</span>
+              <Printer size={15} /> <span className="hidden sm:inline">Print Preview</span>
             </button>
             <button
               onClick={savePurchase}
               disabled={saving || !supplier || !items.length}
-              className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/95 text-primary-foreground disabled:opacity-50 rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
+              className="inline-flex h-9 items-center justify-center gap-2 px-3.5 sm:px-4 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm transition-all active:scale-[0.98] border border-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <Save size={16} /> {saving ? 'Saving…' : isEditMode ? 'Update Bill' : 'Post Purchase'}
+              <Save size={15} /> {saving ? 'Saving…' : isEditMode ? 'Update Bill' : 'Post Purchase'}
             </button>
           </div>
         </div>
