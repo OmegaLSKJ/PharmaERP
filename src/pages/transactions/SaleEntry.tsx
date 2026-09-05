@@ -816,28 +816,37 @@ export default function SaleEntry() {
             className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <h2 className="text-base font-bold text-white">Tax Invoice Bill Preview</h2>
-                <p className="text-xs text-slate-400">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
+                <h2 className="text-sm sm:text-base font-bold text-white truncate">Tax Invoice Bill Preview</h2>
+                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
                   Standard A4 pharmaceutical wholesale &amp; retail tax invoice ready for print or PDF
                 </p>
+                {/* Mobile top-right close X */}
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  aria-label="Close dialog"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
                   <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
                   <span>Print Bill</span>
-                  <kbd className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  aria-label="Close dialog"
                 >
                   <X size={16} />
                 </button>

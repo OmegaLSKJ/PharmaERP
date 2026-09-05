@@ -190,7 +190,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
   const fillerRows = Array.from({ length: minRows }, (_, idx) => idx)
 
   return (
-    <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
+    <div className="goods-receipt-note-print bg-white text-black font-sans text-[11px] leading-tight select-text w-full min-w-[760px] print:min-w-0 mx-auto p-0">
       {/* Main Outer Box with 1.5px solid black border */}
       <div className="border-[1.5px] border-black text-black">
         {/* Header Grid: Left Company Branding (7 cols) + Right Document Badge & Metadata (5 cols) */}

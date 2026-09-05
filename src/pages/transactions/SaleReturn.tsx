@@ -289,24 +289,34 @@ export default function SaleReturn() {
             className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <h2 className="text-base font-bold text-white">Credit Note / Sale Return Bill</h2>
-                <p className="text-xs text-slate-400">
-                  Return No: <span className="text-white font-mono">{selectedReturn.returnNo}</span> | Party:{' '}
-                  <span className="text-white">{selectedReturn.party}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
+                <h2 className="text-sm sm:text-base font-bold text-white truncate">Credit Note / Sale Return Bill</h2>
+                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
+                  <span>Return No: <span className="text-white font-mono">{selectedReturn.returnNo}</span></span>
+                  <span className="hidden sm:inline text-slate-600">•</span>
+                  <span className="truncate">Party: <span className="text-white">{selectedReturn.party}</span></span>
                 </p>
+                {/* Mobile top-right close X */}
+                <button
+                  onClick={() => setSelectedReturn(null)}
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  aria-label="Close dialog"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-semibold shadow-xs active:scale-[0.98] transition border border-black cursor-pointer"
                 >
-                  <Printer size={14} className="text-white" /> Print Credit Note
+                  <Printer size={14} className="text-white" /> <span>Print Credit Note</span>
                 </button>
                 <button
                   onClick={() => setSelectedReturn(null)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  aria-label="Close dialog"
                 >
                   <X size={16} />
                 </button>

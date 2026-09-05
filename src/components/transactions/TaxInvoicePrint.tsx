@@ -164,7 +164,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
   const fillerRows = Array.from({ length: minRows }, (_, idx) => idx)
 
   return (
-    <div className="tax-invoice-bill bg-white text-black font-sans text-[11px] leading-tight select-text w-full mx-auto p-0">
+    <div className="tax-invoice-bill bg-white text-black font-sans text-[11px] leading-tight select-text w-full min-w-[760px] print:min-w-0 mx-auto p-0">
       {/* Main Box Outer Border */}
       <div className="border-[1.5px] border-black">
         {/* Header: Company Details & Invoice Type */}
