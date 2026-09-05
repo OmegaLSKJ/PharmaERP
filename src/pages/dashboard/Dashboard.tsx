@@ -63,15 +63,17 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
           <Link
             to="/transactions/sale/new"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:shadow-sm transition-all duration-150 active:scale-[0.98] border border-blue-500/50"
+            className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:shadow-sm transition-all duration-150 active:scale-[0.98] border border-blue-500/50"
           >
-            <Plus size={15} /> New sale
+            <Plus size={15} className="shrink-0" />
+            <span className="leading-none text-center">New sale</span>
           </Link>
           <Link
             to="/transactions/orders"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card hover:bg-secondary px-3.5 text-xs sm:text-sm font-semibold text-foreground shadow-2xs transition-all duration-150 active:scale-[0.98]"
+            className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg border border-border bg-card hover:bg-secondary px-3.5 text-xs sm:text-sm font-semibold text-foreground shadow-2xs transition-all duration-150 active:scale-[0.98]"
           >
-            <ClipboardList size={15} /> Orders
+            <ClipboardList size={15} className="shrink-0" />
+            <span className="leading-none text-center">Orders</span>
           </Link>
         </div>
       </div>

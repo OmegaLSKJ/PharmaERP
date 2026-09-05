@@ -127,6 +127,13 @@
     @apply px-4 py-3 align-middle;
   }
 
+  /* Center align content inside buttons by default */
+  button:not([class*='text-left']):not([class*='text-right']),
+  [role="button"]:not([class*='text-left']):not([class*='text-right']),
+  .btn {
+    text-align: center;
+  }
+
   /* Spacious and comfortable Form Inputs */
   input[type='text'],
   input[type='email'],

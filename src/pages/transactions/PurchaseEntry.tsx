@@ -1113,17 +1113,19 @@ export default function PurchaseEntry() {
           <button
             type="button"
             onClick={() => setShowItemSearch(true)}
-            className="flex items-center gap-1 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border"
+            className="flex items-center justify-center text-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border"
           >
-            <Plus size={14} /> Add Item
+            <Plus size={14} className="shrink-0" />
+            <span className="leading-none text-center">Add Item</span>
           </button>
           <button
             type="button"
             onClick={savePurchase}
             disabled={saving || !supplier || !items.length}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground rounded-lg text-xs font-bold shadow-md transition"
+            className="flex items-center justify-center text-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground rounded-lg text-xs font-bold shadow-md transition"
           >
-            <Save size={14} /> {saving ? 'Posting…' : 'Post'}
+            <Save size={14} className="shrink-0" />
+            <span className="leading-none text-center">{saving ? 'Posting…' : 'Post'}</span>
           </button>
         </div>
       </div>
