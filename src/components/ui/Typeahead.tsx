@@ -112,7 +112,7 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
             }
           }}
           aria-label="Toggle options"
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
+          className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
         >
           <ChevronDown
             size={16}

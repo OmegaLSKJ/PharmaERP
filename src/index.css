@@ -139,16 +139,28 @@
 
   input[type='date'] {
     @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
-    padding-right: 2.75rem !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 1.25rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25em 1.25em !important;
+    padding-right: 3rem !important;
+  }
+
+  :root:not(.dark) input[type='date'] {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
   }
 
   select {
     @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
     background-position: right 1.25rem center !important;
-    background-repeat: no-repeat;
-    background-size: 1.25em 1.25em;
+    background-repeat: no-repeat !important;
+    background-size: 1.25em 1.25em !important;
     padding-right: 3rem !important;
+  }
+
+  :root:not(.dark) select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
   }
 
   input:focus, select:focus, textarea:focus {
@@ -212,27 +224,22 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
+  /* Make native unpadded browser indicator transparent while retaining clickability */
   input[type='date']::-webkit-calendar-picker-indicator {
-    filter: invert(0.5);
-    cursor: pointer;
-    margin-right: 1.25rem !important;
-    padding: 6px !important;
-    border-radius: 6px;
-    opacity: 0.85;
-    position: relative;
-    right: 0.35rem;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
-  }
-
-  input[type='date']::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
-    background-color: hsl(var(--secondary) / 0.8);
+    opacity: 0 !important;
+    cursor: pointer !important;
+    position: relative !important;
+    width: 2.5rem !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   /* Ensure Chrome on Android/iOS gives proper internal clearance */
   input[type='date']::-webkit-inner-spin-button,
   input[type='date']::-webkit-clear-button {
-    margin-right: 0.5rem;
+    display: none !important;
+    -webkit-appearance: none !important;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
@@ -1097,11 +1104,8 @@ input[type="number"] {
     min-height: 18px;
   }
   input[type='date'] {
+    background-position: right 1.25rem center !important;
     padding-right: 3.25rem !important;
-  }
-  input[type='date']::-webkit-calendar-picker-indicator {
-    margin-right: 1.25rem !important;
-    right: 0.5rem !important;
   }
   select {
     background-position: right 1.25rem center !important;
