@@ -88,7 +88,7 @@ export default function PurchaseEntry() {
         setSupplierOptions(
           parties
             .filter((p) => p.type === 'supplier' || p.type === 'both')
-            .map((p) => ({ name: p.name, gstin: p.gstin ?? '', outstanding: Math.abs(Number(p.balance ?? 0)) }))
+            .map((p) => ({ name: String(p.name || '').replace(/\s+/g, ' ').trim(), gstin: p.gstin ?? '', outstanding: Math.abs(Number(p.balance ?? 0)) }))
         )
 
         const rawHsn = Array.isArray(hsnData) && hsnData.length > 0 ? hsnData : (defaultHsnMaster as any[])
@@ -136,7 +136,8 @@ export default function PurchaseEntry() {
           return pid === decodedId || pno === decodedId || pinv === decodedId || pdb === decodedId
         })
         if (found) {
-          setSupplier(found.party || found.supplier || '')
+          const loadedSupplier = String(found.party || found.supplier || '').replace(/\s+/g, ' ').trim()
+          setSupplier(loadedSupplier)
           setInvoiceNo(found.supplierInvoice || found.invoiceNo || found.number || editPurchaseId)
           setInvoiceDate(found.date || new Date().toISOString().slice(0, 10))
           if (found.entryDate) setEntryDate(found.entryDate)

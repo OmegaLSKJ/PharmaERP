@@ -68,12 +68,15 @@ export default function SaleEntry() {
         setCustomerOptions(
           allParties
             .filter((p) => p.name && p.name.trim())
-            .map((p) => ({
-              label: p.name,
-              value: p.name,
-              sub: p.city || p.station ? `${p.city || p.station}${p.type ? ` • ${p.type.toUpperCase()}` : ''}` : (p.type ? p.type.toUpperCase() : undefined),
-              right: p.phone || p.mobile || undefined,
-            }))
+            .map((p) => {
+              const cleanName = String(p.name || '').replace(/\s+/g, ' ').trim()
+              return {
+                label: cleanName,
+                value: cleanName,
+                sub: p.city || p.station ? `${p.city || p.station}${p.type ? ` • ${p.type.toUpperCase()}` : ''}` : (p.type ? p.type.toUpperCase() : undefined),
+                right: p.phone || p.mobile || undefined,
+              }
+            })
         )
         setItemOptions(
           products.flatMap((p) =>
@@ -155,7 +158,7 @@ export default function SaleEntry() {
         })
         if (found) {
           setExistingInvoice(found)
-          setCustomer(found.party || found.customer || '')
+          setCustomer(String(found.party || found.customer || '').replace(/\s+/g, ' ').trim())
           setPatientName(found.patientName || '')
           setPrescriberName(found.prescriberName || '')
           setPrescriptionReference(found.prescriptionReference || '')
