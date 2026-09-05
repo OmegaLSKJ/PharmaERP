@@ -58,13 +58,15 @@ export default function Topbar() {
         </button>
 
         {/* Mobile Brand Name with Logo & BDD */}
-        <div className="flex items-center gap-2 sm:hidden">
+        <div className="flex items-center gap-1.5 sm:hidden">
           <img
             src="/favicon.png"
             alt="BDD Logo"
-            className="w-7 h-7 object-contain rounded-md shadow-xs flex-shrink-0"
+            className="w-5 h-5 object-contain rounded flex-shrink-0"
           />
-          <span className="font-bold text-base text-foreground tracking-tight">BDD</span>
+          <span className="font-extrabold text-sm tracking-wider bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent drop-shadow-xs">
+            BDD
+          </span>
         </div>
       </div>
 
