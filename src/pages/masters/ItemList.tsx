@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, Download, MoreHorizontal, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Filter, Download, MoreHorizontal, Package, AlertTriangle, Trash2 } from 'lucide-react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
-import { getErp } from '../../lib/erpApi'
+import { deleteErp, getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
 
@@ -28,6 +28,10 @@ export default function ItemList() {
     const matchCat = categoryFilter === 'all' || i.category === categoryFilter
     return matchSearch && matchCat
   })
+  const remove = async (item: Item) => {
+    if (!window.confirm(`Delete ${item.name}? Products with batch or invoice history cannot be deleted.`)) return
+    try { await deleteErp('items', item.id); setItems((current) => current.filter((row) => row.id !== item.id)); showToast('Item deleted.') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to delete item.') }
+  }
 
   return (
     <div className="space-y-4">
@@ -132,6 +136,7 @@ export default function ItemList() {
                     <Link aria-label={`Edit ${item.name}`} to={`/masters/items/${item.id}`} className="inline-flex p-1 rounded hover:bg-muted text-muted-foreground">
                       <MoreHorizontal size={14} />
                     </Link>
+                    <button aria-label={`Delete ${item.name}`} onClick={() => remove(item)} className="ml-2 inline-flex p-1 rounded text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={14} /></button>
                   </td>
                 </tr>
               ))}

@@ -29,6 +29,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       ]},
       { label: 'Items', path: '/masters/items', icon: <Package size={16} />, children: [
         { label: 'All Items', path: '/masters/items' },
+        { label: 'Batch Master', path: '/masters/batches' },
         { label: 'Item Mapping', path: '/masters/itemmapping' },
       ]},
       { label: 'Manufacturers', path: '/masters/manufacturers', icon: <Building2 size={16} /> },
