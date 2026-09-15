@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
+  Edit2,
+  Save,
+  X,
   Search,
   Link2,
   Trash2,
@@ -13,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
-import { deleteErp, getErp, postErp } from '../../../lib/erpApi'
+import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import TopTableScroller from '../../../components/common/TopTableScroller'
 
@@ -41,11 +44,16 @@ interface Map {
   rack?: string
   status?: string
 }
+type MappingForm = Omit<Map, 'id' | 'status'>
+const emptyMapping = (): MappingForm => ({ product: '', code: '', company: '', batch: '', unit: '', stock: 0, cost: 0, purchase: 0, sale: 0, mrp: 0, value: 0, sales_scheme: '0+0', purchase_scheme: '0+0', received: '', mfg: '', exp: '', supplier: '', invoice_no: '', invoice_date: '', rack: '' })
 
 export default function ItemMapping() {
   const [mappings, setMappings] = useState<Map[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editor, setEditor] = useState<MappingForm | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Chunking controls
   const [pageSize, setPageSize] = useState<number>(50)
@@ -193,65 +201,22 @@ export default function ItemMapping() {
     setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
   }
 
-  const addMapping = async () => {
-    const product = window.prompt('Product name:')
-    if (!product) return
-    const code = window.prompt('Item / barcode code:', `ITM-${Date.now().toString().slice(-4)}`) ?? ''
-    const company = window.prompt('Company / Manufacturer:') ?? ''
+  const addMapping = () => { setEditingId(null); setEditor(emptyMapping()) }
+  const editMapping = (mapping: Map) => { const { id: _id, status: _status, ...values } = mapping; setEditingId(mapping.id); setEditor(values) }
+  const saveMapping = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editor?.product.trim()) { showToast('Product name is required.'); return }
+    setSaving(true)
     try {
-      const row = await postErp<any>('item-mappings', {
-        product,
-        code,
-        company,
-        batch: 'UNSPECIFIED',
-        unit: 'NO.',
-        stock: 0,
-        cost: 0,
-        purchase: 0,
-        sale: 0,
-        mrp: 0,
-        value: 0,
-        sales_scheme: '0+0',
-        purchase_scheme: '0+0',
-        received: new Date().toISOString().slice(0, 10),
-        mfg: '—',
-        exp: '',
-        supplier: 'DIRECT',
-        invoice_no: '',
-        invoice_date: '',
-        rack: '',
-        status: 'posted'
-      })
-      setMappings((items) => [
-        ...items,
-        {
-          id: row.id,
-          product,
-          code,
-          company,
-          batch: 'UNSPECIFIED',
-          unit: 'NO.',
-          stock: 0,
-          cost: 0,
-          purchase: 0,
-          sale: 0,
-          mrp: 0,
-          value: 0,
-          sales_scheme: '0+0',
-          purchase_scheme: '0+0',
-          received: new Date().toISOString().slice(0, 10),
-          mfg: '—',
-          exp: '',
-          supplier: 'DIRECT',
-          invoice_no: '',
-          invoice_date: '',
-          rack: '',
-          status: 'active'
-        }
-      ])
-      showToast('Item mapping saved.')
+      const payload = { ...editor, product: editor.product.trim() }
+      const saved = editingId ? await patchErp<any>('item-mappings', editingId, payload) : await postErp<any>('item-mappings', payload)
+      const row: Map = { ...payload, id: saved.id || editingId || '', status: 'active' }
+      setMappings((items) => editingId ? items.map((item) => item.id === editingId ? row : item) : [row, ...items])
+      setEditor(null); setEditingId(null); showToast(editingId ? 'Mapping updated.' : 'Mapping saved.')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Unable to save mapping.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -289,6 +254,33 @@ export default function ItemMapping() {
           <Plus size={16} /> New Mapping
         </button>
       </div>
+
+      {editor && (
+        <form onSubmit={saveMapping} className="grid grid-cols-1 gap-3 rounded-xl border border-indigo-500/30 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="flex items-center justify-between md:col-span-2 lg:col-span-4"><div><h2 className="font-semibold text-white">{editingId ? 'Edit mapping' : 'New mapping'}</h2><p className="text-xs text-slate-400">All mapping fields are editable. Stock movements remain in the inventory ledger.</p></div><button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded p-1 text-slate-400 hover:text-white"><X size={18} /></button></div>
+          <MappingField label="Product *"><input required value={editor.product} onChange={(e) => setEditor({ ...editor, product: e.target.value })} /></MappingField>
+          <MappingField label="Item code"><input value={editor.code} onChange={(e) => setEditor({ ...editor, code: e.target.value })} /></MappingField>
+          <MappingField label="Company / manufacturer"><input value={editor.company} onChange={(e) => setEditor({ ...editor, company: e.target.value })} /></MappingField>
+          <MappingField label="Unit"><input value={editor.unit} onChange={(e) => setEditor({ ...editor, unit: e.target.value })} /></MappingField>
+          <MappingField label="Batch"><input value={editor.batch} onChange={(e) => setEditor({ ...editor, batch: e.target.value })} /></MappingField>
+          <MappingNumber label="Stock" value={editor.stock} onChange={(stock) => setEditor({ ...editor, stock })} />
+          <MappingNumber label="Cost price" value={editor.cost} onChange={(cost) => setEditor({ ...editor, cost })} />
+          <MappingNumber label="Purchase price" value={editor.purchase} onChange={(purchase) => setEditor({ ...editor, purchase })} />
+          <MappingNumber label="Sale price" value={editor.sale} onChange={(sale) => setEditor({ ...editor, sale })} />
+          <MappingNumber label="MRP" value={editor.mrp} onChange={(mrp) => setEditor({ ...editor, mrp })} />
+          <MappingNumber label="Reported value" value={editor.value} onChange={(value) => setEditor({ ...editor, value })} />
+          <MappingField label="Sales scheme (deal+free)"><input value={editor.sales_scheme} onChange={(e) => setEditor({ ...editor, sales_scheme: e.target.value })} /></MappingField>
+          <MappingField label="Purchase scheme (deal+free)"><input value={editor.purchase_scheme} onChange={(e) => setEditor({ ...editor, purchase_scheme: e.target.value })} /></MappingField>
+          <MappingField label="Received date"><input type="date" value={editor.received} onChange={(e) => setEditor({ ...editor, received: e.target.value })} /></MappingField>
+          <MappingField label="Manufactured date"><input type="date" value={editor.mfg} onChange={(e) => setEditor({ ...editor, mfg: e.target.value })} /></MappingField>
+          <MappingField label="Expiry date"><input type="date" value={editor.exp} onChange={(e) => setEditor({ ...editor, exp: e.target.value })} /></MappingField>
+          <MappingField label="Supplier"><input value={editor.supplier} onChange={(e) => setEditor({ ...editor, supplier: e.target.value })} /></MappingField>
+          <MappingField label="Invoice number"><input value={editor.invoice_no} onChange={(e) => setEditor({ ...editor, invoice_no: e.target.value })} /></MappingField>
+          <MappingField label="Invoice date"><input type="date" value={editor.invoice_date} onChange={(e) => setEditor({ ...editor, invoice_date: e.target.value })} /></MappingField>
+          <MappingField label="Rack number"><input value={editor.rack || ''} onChange={(e) => setEditor({ ...editor, rack: e.target.value })} /></MappingField>
+          <div className="flex justify-end gap-2 md:col-span-2 lg:col-span-4"><button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200">Cancel</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Save size={15} /> {saving ? 'Saving…' : 'Save mapping'}</button></div>
+        </form>
+      )}
 
       {/* Toolbar & Chunk Controls */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl shadow-xs">
@@ -470,6 +462,13 @@ export default function ItemMapping() {
                   </td>
                   <td className="px-4 py-2.5">
                     <button
+                      aria-label={`Edit ${m.product}`}
+                      onClick={() => editMapping(m)}
+                      className="mr-1 p-1 hover:text-indigo-300 text-slate-400 transition"
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
                       aria-label={`Delete ${m.product}`}
                       onClick={() => removeMapping(m.id)}
                       className="p-1 hover:text-rose-400 text-slate-400 transition"
@@ -557,4 +556,12 @@ export default function ItemMapping() {
       )}
     </div>
   )
+}
+
+function MappingField({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}<div className="[&>input]:w-full [&>input]:rounded-md [&>input]:border [&>input]:border-slate-700 [&>input]:bg-slate-950 [&>input]:px-2.5 [&>input]:py-2 [&>input]:text-sm [&>input]:normal-case [&>input]:text-white">{children}</div></label>
+}
+
+function MappingNumber({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return <MappingField label={label}><input type="number" step="0.01" value={value} onChange={(e) => onChange(Number(e.target.value))} /></MappingField>
 }

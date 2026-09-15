@@ -1354,6 +1354,22 @@ export async function create(resource: string, body: any, actor: MutationActor =
     'price-differences': { type: 'price_difference', prefix: 'PD' },
     'item-mappings': { type: 'item_mapping', prefix: 'MAP' }
   }
+  if (resource === 'item-mappings') {
+    const sourceFile = `manual-ui-${crypto.randomUUID()}`
+    const { data, error } = await client.from('stock_import_rows').insert({
+      organization_id: organizationId, source_file: sourceFile, source_row: 1,
+      item_code: body.code || null, product_name: body.product || null, unit: body.unit || null,
+      current_stock: Number(body.stock || 0), cost_price: Number(body.cost || 0), purchase_price: Number(body.purchase || 0),
+      sale_price: Number(body.sale || 0), mrp: Number(body.mrp || 0), reported_value: Number(body.value || 0), company: body.company || null,
+      manufacturer: body.company || null, batch_number: body.batch || null, received_on: body.received || null,
+      manufactured_on: body.mfg === '—' ? null : body.mfg || null, expiry_on: body.exp || null, supplier_name: body.supplier || null,
+      invoice_number: body.invoice_no || null, invoice_date: body.invoice_date || null, rack_number: body.rack || null,
+      sales_scheme_deal: Number(String(body.sales_scheme || '0+0').split('+')[0] || 0), sales_scheme_free: Number(String(body.sales_scheme || '0+0').split('+')[1] || 0),
+      purchase_scheme_deal: Number(String(body.purchase_scheme || '0+0').split('+')[0] || 0), purchase_scheme_free: Number(String(body.purchase_scheme || '0+0').split('+')[1] || 0), raw_payload: { source: 'manual-ui' }
+    }).select('id').single()
+    if (error) throw error
+    return { ...body, id: `import-${data.id}` }
+  }
   if (documentResources[resource]) {
     const config = documentResources[resource]
     const partyId = body.party ? await party(client, organizationId, body.party, body.partyType === 'supplier' ? 'supplier' : 'customer') : null
@@ -1757,6 +1773,11 @@ export async function update(resource: string, id: string, body: any) {
   }
   if (resource === 'parties') {
     const values: any = {}
+    if ('itemId' in body) {
+      const { data: item } = await client.from('items').select('id').eq('id', body.itemId).eq('organization_id', organizationId).maybeSingle()
+      if (!item) throw new Error('The selected item is unavailable.')
+      values.item_id = item.id
+    }
     if ('name' in body) values.legal_name = body.name
     if ('type' in body) values.party_type = body.type
     if ('phone' in body) values.phone = body.phone
@@ -1828,6 +1849,42 @@ export async function update(resource: string, id: string, body: any) {
     const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
     return data
+  }
+  if (resource === 'item-mappings') {
+    if (id.startsWith('import-')) {
+      const importId = id.slice('import-'.length)
+      const { data: existing, error: existingError } = await client.from('stock_import_rows').select('id').eq('id', importId).eq('organization_id', organizationId).maybeSingle()
+      if (existingError) throw existingError
+      if (!existing) throw new Error('Imported mapping not found.')
+      const scheme = (value: unknown, position: number) => Number(String(value || '0+0').split('+')[position] || 0)
+      const values: any = {}
+      if ('code' in body) values.item_code = body.code || null
+      if ('product' in body) values.product_name = body.product || null
+      if ('unit' in body) values.unit = body.unit || null
+      if ('stock' in body) values.current_stock = Number(body.stock || 0)
+      if ('cost' in body) values.cost_price = Number(body.cost || 0)
+      if ('purchase' in body) values.purchase_price = Number(body.purchase || 0)
+      if ('sale' in body) values.sale_price = Number(body.sale || 0)
+      if ('mrp' in body) values.mrp = Number(body.mrp || 0)
+      if ('value' in body) values.reported_value = Number(body.value || 0)
+      if ('company' in body) { values.company = body.company || null; values.manufacturer = body.company || null }
+      if ('batch' in body) values.batch_number = body.batch || null
+      if ('received' in body) values.received_on = body.received || null
+      if ('mfg' in body) values.manufactured_on = body.mfg === '—' ? null : body.mfg || null
+      if ('exp' in body) values.expiry_on = body.exp || null
+      if ('supplier' in body) values.supplier_name = body.supplier || null
+      if ('invoice_no' in body) values.invoice_number = body.invoice_no || null
+      if ('invoice_date' in body) values.invoice_date = body.invoice_date || null
+      if ('rack' in body) values.rack_number = body.rack || null
+      if ('sales_scheme' in body) { values.sales_scheme_deal = scheme(body.sales_scheme, 0); values.sales_scheme_free = scheme(body.sales_scheme, 1) }
+      if ('purchase_scheme' in body) { values.purchase_scheme_deal = scheme(body.purchase_scheme, 0); values.purchase_scheme_free = scheme(body.purchase_scheme, 1) }
+      const { error } = await client.from('stock_import_rows').update(values).eq('id', importId).eq('organization_id', organizationId)
+      if (error) throw error
+      return { ...body, id }
+    }
+    const { data, error } = await client.from('business_documents').update({ details: body }).eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping').select('id').single()
+    if (error) throw error
+    return { ...body, id: data.id }
   }
   if (resource === 'item-batches') {
     const { data: existing, error: existingError } = await client.from('item_batches').select('id,items!inner(organization_id)').eq('id', id).eq('items.organization_id', organizationId).maybeSingle()
@@ -1979,7 +2036,16 @@ export async function remove(resource: string, id: string) {
     if (error) throw error
     return { id }
   }
-  if (resource === 'item-mappings') { const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping'); if (error) throw error; return { id } }
+  if (resource === 'item-mappings') {
+    if (id.startsWith('import-')) {
+      const { error } = await client.from('stock_import_rows').delete().eq('id', id.slice('import-'.length)).eq('organization_id', organizationId)
+      if (error) throw error
+      return { id }
+    }
+    const { error } = await client.from('business_documents').delete().eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping')
+    if (error) throw error
+    return { id }
+  }
   if (resource === 'item-batches') {
     const { data: batch, error: batchError } = await client.from('item_batches').select('id,items!inner(organization_id)').eq('id', id).eq('items.organization_id', organizationId).maybeSingle()
     if (batchError) throw batchError

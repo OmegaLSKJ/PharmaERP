@@ -30,7 +30,7 @@ export default function BatchMaster() {
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Batch Master</h1><p className="mt-1 text-sm text-muted-foreground">Create, edit and review every batch-level rate, scheme, supplier and rack field.</p></div><button onClick={reset} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white"><Plus size={16} /> New batch</button></div>
     <form onSubmit={submit} className="glass-surface grid grid-cols-1 gap-4 rounded-2xl p-5 md:grid-cols-2 lg:grid-cols-4">
-      <Field label="Item"><select required disabled={Boolean(editingId)} value={form.itemId} onChange={(event) => set('itemId', event.target.value)}><option value="">Select item</option>{items.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field>
+      <Field label="Item"><select required value={form.itemId} onChange={(event) => set('itemId', event.target.value)}><option value="">Select item</option>{items.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field>
       <Field label="Batch number"><input required value={form.batchNumber} onChange={(event) => set('batchNumber', event.target.value)} /></Field>
       <Field label="MRP"><NumberInput value={form.mrp} onChange={(value) => set('mrp', value)} /></Field>
       <Field label="Current stock"><div className="rounded-lg border border-input bg-muted px-3 py-2.5 text-sm text-muted-foreground">{editingId ? `${batches.find((batch) => batch.id === editingId)?.stock ?? 0} units` : 'Created through purchase/opening stock'}</div></Field>
