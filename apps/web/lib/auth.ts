@@ -5,29 +5,45 @@ import { NextRequest, NextResponse } from 'next/server'
 const ACCESS_COOKIE = 'borgang-access-token'
 const REFRESH_COOKIE = 'borgang-refresh-token'
 
-function supabaseUrl() {
+function isValidUrl(urlString?: string): boolean {
+  if (!urlString || typeof urlString !== 'string') return false
+  const trimmed = urlString.trim()
+  if (trimmed.includes('SENSITIVE') || trimmed === '[SENSITIVE]') return false
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function hasRealSupabase(): boolean {
+  return isValidUrl(process.env.SUPABASE_URL)
+}
+
+function supabaseUrl(): string {
   const value = process.env.SUPABASE_URL
-  if (!value) return 'http://localhost'
-  return value
+  if (!isValidUrl(value)) return 'http://localhost'
+  return value!
 }
 
 function publishableKey() {
   const value = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY
-  if (!value) return 'mock-anon-key'
+  if (!value || value.includes('SENSITIVE')) return 'mock-anon-key'
   return value
 }
 
 function authClient() {
-  if (!process.env.SUPABASE_URL) return null as any
+  if (!hasRealSupabase()) return null as any
   return createClient(supabaseUrl(), publishableKey(), {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
 }
 
 export function adminClient() {
-  if (!process.env.SUPABASE_URL) return null as any
+  if (!hasRealSupabase()) return null as any
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!key) throw new Error('SUPABASE_SECRET_KEY is not configured.')
+  if (!key || key.includes('SENSITIVE')) throw new Error('SUPABASE_SECRET_KEY is not configured.')
   return createClient(supabaseUrl(), key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
@@ -46,7 +62,7 @@ export type AuthenticatedRequest = {
 }
 
 export async function signIn(email: string, password: string) {
-  if (!process.env.SUPABASE_URL) {
+  if (!hasRealSupabase()) {
     const cleanEmail = email.trim().toLowerCase()
     if (cleanEmail === 'admin@borgangdrugdistributors.com' && password === 'admin12345678') {
       return {
@@ -74,7 +90,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function acceptInvite(accessToken: string, refreshToken: string, password: string) {
-  if (!process.env.SUPABASE_URL) {
+  if (!hasRealSupabase()) {
     return {
       user: {
         id: 'mock-admin-id',
@@ -108,7 +124,7 @@ export async function verifyRequest(request: NextRequest): Promise<Authenticated
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
   if (!accessToken && !refreshToken) return null
 
-  if (!process.env.SUPABASE_URL) {
+  if (!hasRealSupabase()) {
     if (accessToken === 'mock-access-token') {
       return {
         user: {
@@ -165,7 +181,7 @@ export function applyRefreshedSession(response: NextResponse, auth: Authenticate
 }
 
 export async function revokeRequestSession(request: NextRequest) {
-  if (!process.env.SUPABASE_URL) return
+  if (!hasRealSupabase()) return
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value
   if (!accessToken) return
   await adminClient().auth.admin.signOut(accessToken, 'local')

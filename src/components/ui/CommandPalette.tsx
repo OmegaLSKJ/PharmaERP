@@ -54,9 +54,9 @@ export default function CommandPalette() {
   if (!commandPaletteOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={toggleCommandPalette}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] sm:pt-[20vh] px-3 sm:px-4" onClick={toggleCommandPalette}>
       <div className="absolute inset-0 bg-black/50" />
-      <div className="glass-surface relative w-full max-w-md rounded-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="glass-surface relative w-full max-w-[92vw] sm:max-w-md rounded-xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search size={16} className="text-muted-foreground" />
           <input ref={inputRef} type="text" placeholder="Type a command..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground" />

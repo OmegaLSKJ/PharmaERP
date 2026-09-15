@@ -3,6 +3,8 @@ import { Download, TrendingUp, TrendingDown, FileText, Calendar } from 'lucide-r
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 type SalesReport = {
@@ -37,55 +39,22 @@ export default function SalesAnalytics() {
   }, [preset])
 
   const totalSales = useMemo(() => {
-    const originalTotal = monthlySales.reduce((a, m) => a + m.value, 0) || 482000
+    const originalTotal = monthlySales.reduce((a, m) => a + m.value, 0)
     return originalTotal * dateScaleFactor
   }, [monthlySales, dateScaleFactor])
 
-  const avgMonthly = totalSales / 12
+  const avgMonthly = totalSales / (monthlySales.length || 1)
   const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a, { month: 'No data', value: 0 })
 
-  // Dynamic / mock datasets based on selected timeframe & date filters
+  // Datasets strictly from software entered sales
   const chartData = useMemo(() => {
-    if (timeframe === 'daily' || preset === 'Today') {
-      return [
-        { name: '01st', value: 5000 * dateScaleFactor },
-        { name: '05th', value: 12000 * dateScaleFactor },
-        { name: '10th', value: 16000 * dateScaleFactor },
-        { name: '15th', value: 38000 * dateScaleFactor },
-        { name: '20th', value: 24000 * dateScaleFactor },
-        { name: '25th', value: 45000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'weekly') {
-      return [
-        { name: 'Week 1', value: 85000 * dateScaleFactor },
-        { name: 'Week 2', value: 120000 * dateScaleFactor },
-        { name: 'Week 3', value: 165000 * dateScaleFactor },
-        { name: 'Week 4', value: 112000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'yearly') {
-      return [
-        { name: 'FY 2023-24', value: 3600000 * dateScaleFactor },
-        { name: 'FY 2024-25', value: 4200000 * dateScaleFactor },
-        { name: 'FY 2025-26', value: totalSales }
-      ]
-    }
-    // Default: monthly
-    return monthlySales.length > 0 ? monthlySales.map(m => ({ name: m.month, value: m.value * dateScaleFactor })) : [
-      { name: 'Jan 26', value: 32000 * dateScaleFactor },
-      { name: 'Feb 26', value: 45000 * dateScaleFactor },
-      { name: 'Mar 26', value: 60000 * dateScaleFactor },
-      { name: 'Apr 26', value: 55000 * dateScaleFactor },
-      { name: 'May 26', value: 72000 * dateScaleFactor },
-      { name: 'Jun 26', value: 90000 * dateScaleFactor },
-      { name: 'Jul 26', value: 85000 * dateScaleFactor },
-      { name: 'Aug 26', value: 98000 * dateScaleFactor }
-    ]
-  }, [timeframe, preset, monthlySales, totalSales, dateScaleFactor])
+    if (monthlySales.length === 0) return []
+    return monthlySales.map(m => ({ name: m.month, value: m.value * dateScaleFactor }))
+  }, [monthlySales, dateScaleFactor])
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Sales Analytics & Intelligence" subtitle="FY 2025-26 | Comprehensive sales intelligence" />
       {/* Title Block */}
       <div className="flex items-center justify-between">
         <div>
@@ -95,12 +64,12 @@ export default function SalesAnalytics() {
         <div className="flex gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV

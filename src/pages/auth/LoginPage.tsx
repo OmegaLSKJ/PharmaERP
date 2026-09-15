@@ -83,8 +83,9 @@ export default function LoginPage() {
             Powering pharmaceutical supply chains with <span className="whitespace-nowrap">end-to-end</span> batch tracking, automated compliance, and <span className="whitespace-nowrap">real-time</span> inventory visibility.
           </p>
         </div>
-        <div className="relative z-10 text-sm font-semibold text-muted-foreground">
-          ERP by The Alpha and Omega
+        <div className="relative z-10 text-sm text-muted-foreground space-y-1">
+          <div>ERP by The Alpha and Omega</div>
+          <div className="text-xs font-semibold text-foreground/80">Developed by TAO Solutions Pvt Ltd</div>
         </div>
       </div>
 
@@ -164,14 +165,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white h-11 px-4 rounded-xl text-sm font-semibold shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer border border-blue-500/60"
             >
               {loading ? (inviteTokens ? 'Activating...' : 'Signing in...') : (inviteTokens ? 'Activate account' : 'Sign In')}
               {!loading && <ArrowRight size={16} />}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">Authorized Borgang Drug Distributors users only.</p>
+          <div className="mt-6 text-center space-y-1 text-xs text-muted-foreground">
+            <p>Authorized Borgang Drug Distributors users only.</p>
+            <p className="font-medium text-foreground/80">Developed by TAO Solutions Pvt Ltd</p>
+          </div>
         </div>
       </div>
     </div>

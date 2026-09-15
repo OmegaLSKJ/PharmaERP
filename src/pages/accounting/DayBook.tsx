@@ -7,7 +7,7 @@ import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 
-interface DayBookEntry { id: string; date: string; vType: string; vNo: string; ledger: string; debit: number; credit: number; narration: string }
+interface DayBookEntry { id: string; date: string; vType: string; vNo: string; physicalVchNo?: string; ledger: string; debit: number; credit: number; narration: string }
 
 const TYPE_STYLE: Record<string, string> = {
   Receipt: 'bg-emerald-500/10 text-emerald-400', Payment: 'bg-rose-500/10 text-rose-400',
@@ -20,11 +20,47 @@ export default function DayBook() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra']
-
   const showToast = useUIStore((s) => s.showToast)
-  useEffect(() => { getErp<any[]>('ledgers').then((rows) => setEntries(rows.map((row) => ({ id: row.id, date: row.date, vType: String(row.vType).replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()), vNo: row.vNo, ledger: row.party, debit: Number(row.debit), credit: Number(row.credit), narration: row.narration })))).catch((e) => showToast(e.message)) }, [showToast])
+
+  useEffect(() => {
+    getErp<any[]>('ledgers')
+      .then((rows) => {
+        const seenKeys = new Set<string>()
+        const deduped = (rows || []).filter((r) => {
+          const dr = Number(r.debit || 0)
+          const cr = Number(r.credit || 0)
+          if (dr <= 0 && cr <= 0) return false
+          if (isNaN(dr) && isNaN(cr)) return false
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
+          if (seenKeys.has(key)) return false
+          seenKeys.add(key)
+          return true
+        })
+
+        setEntries(
+          deduped.map((row) => ({
+            id: row.id,
+            date: row.date,
+            vType: String(row.vType)
+              .replace('_', ' ')
+              .replace(/\b\w/g, (c) => c.toUpperCase()),
+            vNo: row.vNo,
+            physicalVchNo: row.physicalVchNo || '',
+            ledger: row.party,
+            debit: Number(row.debit),
+            credit: Number(row.credit),
+            narration: row.narration
+          }))
+        )
+      })
+      .catch((e) => showToast(e.message))
+  }, [showToast])
   const filtered = entries.filter(d => {
-    const ms = d.ledger.toLowerCase().includes(search.toLowerCase()) || d.vNo.toLowerCase().includes(search.toLowerCase()) || d.narration.toLowerCase().includes(search.toLowerCase())
+    const ms =
+      d.ledger.toLowerCase().includes(search.toLowerCase()) ||
+      d.vNo.toLowerCase().includes(search.toLowerCase()) ||
+      (d.physicalVchNo && d.physicalVchNo.toLowerCase().includes(search.toLowerCase())) ||
+      d.narration.toLowerCase().includes(search.toLowerCase())
     return ms && (typeFilter === 'all' || d.vType === typeFilter)
   })
 
@@ -39,7 +75,7 @@ export default function DayBook() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Day Book</h1>
           <p className="text-sm text-slate-400 mt-1">{filtered.length} entries | March 2026</p>
         </div>
-        <button onClick={() => exportVisibleTables('day-book')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
           <Download size={16} /> Export
         </button>
       </div>
@@ -74,7 +110,10 @@ export default function DayBook() {
               <tr key={d.id} className="hover:bg-slate-900/30">
                 <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', TYPE_STYLE[d.vType])}>{d.vType}</span></td>
-                <td className="px-4 py-3 font-mono text-white">{d.vNo}</td>
+                <td className="px-4 py-3">
+                  <div className="font-mono text-white">{d.vNo}</div>
+                  {d.physicalVchNo && <div className="text-[10px] text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
+                </td>
                 <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>
                 <td className="px-4 py-3 text-right font-mono">{d.debit > 0 ? formatCurrency(d.debit) : '-'}</td>
                 <td className="px-4 py-3 text-right font-mono">{d.credit > 0 ? formatCurrency(d.credit) : '-'}</td>

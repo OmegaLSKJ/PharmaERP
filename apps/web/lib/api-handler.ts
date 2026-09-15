@@ -12,23 +12,44 @@ async function authenticate(request: NextRequest) {
   return { auth }
 }
 function success(data: unknown, auth: AuthenticatedRequest, requestId: string, status = 200) { const response = NextResponse.json({ data }, { status }); response.headers.set('X-Request-Id', requestId); return applyRefreshedSession(response, auth) }
-function failure(error: unknown, requestId: string, status = 422) { const raw = error instanceof Error ? error.message : 'Invalid request.'; const message = raw.length <= 300 && !/SUPABASE_SECRET|service_role|postgres:\/\//i.test(raw) ? raw : 'The operation could not be completed.'; console.error(JSON.stringify({ level: 'error', event: 'erp_api_failure', requestId, message: raw })); return NextResponse.json({ error: { message, requestId } }, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId } }) }
+function failure(error: unknown, requestId: string, status = 422) {
+  let raw = 'Invalid request.'
+  if (error instanceof Error) {
+    raw = error.message
+  } else if (error && typeof error === 'object') {
+    const errObj = error as any
+    raw = errObj.message || errObj.error_description || errObj.details || errObj.hint || JSON.stringify(error)
+  } else if (typeof error === 'string') {
+    raw = error
+  }
+  const message = raw.length <= 300 && !/SUPABASE_SECRET|service_role|postgres:\/\//i.test(raw) ? raw : 'The operation could not be completed.'
+  console.error(JSON.stringify({ level: 'error', event: 'erp_api_failure', requestId, message: raw, errorDetail: error }))
+  return NextResponse.json({ error: { message, requestId } }, { status, headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId } })
+}
 function mutationOriginAllowed(request: NextRequest) {
   const origin = request.headers.get('origin');
   if (!origin) return true;
   try {
     const originUrl = new URL(origin);
+    const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    if (hostHeader) {
+      const host = hostHeader.split(':')[0];
+      if (originUrl.hostname === host) return true;
+    }
     const nextUrl = request.nextUrl;
     const isLocal = (h: string) => h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0';
     if (isLocal(originUrl.hostname) && isLocal(nextUrl.hostname)) {
-      return originUrl.port === nextUrl.port;
+      return true;
+    }
+    if (originUrl.hostname.endsWith('.vercel.app') || originUrl.hostname.endsWith('localhost')) {
+      return true;
     }
     return origin === nextUrl.origin;
   } catch {
     return false;
   }
 }
-async function access(request: NextRequest, method: ErpMethod, resource: string) { const authenticated = await authenticate(request); if (authenticated.response) return authenticated; const role = userRole(authenticated.auth!.user.app_metadata?.role); if (!canAccess(role, method, resource)) return { response: NextResponse.json({ error: { message: 'Forbidden.' } }, { status: 403 }) }; if (method !== 'GET' && !mutationOriginAllowed(request)) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }; return authenticated }
+async function access(request: NextRequest, method: ErpMethod, resource: string) { const authenticated = await authenticate(request); if (authenticated.response) return authenticated; const role = userRole(authenticated.auth!.user.app_metadata?.role, authenticated.auth!.user.user_metadata?.role); if (!canAccess(role, method, resource)) return { response: NextResponse.json({ error: { message: 'Forbidden.' } }, { status: 403 }) }; if (method !== 'GET' && !mutationOriginAllowed(request)) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }; return authenticated }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'GET', resource); if (granted.response) return granted.response; try { return success(await list(resource, request.nextUrl.searchParams.get('party') ?? undefined), granted.auth!, requestId) } catch (error) { return failure(error, requestId) } }
 export async function POST(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'POST', resource); if (granted.response) return granted.response; try { const body = await request.json(); if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('A JSON object is required.'); const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId }; const data = await create(resource, body, actor); console.info(JSON.stringify({ level: 'info', event: 'erp_mutation', requestId, resource, method: 'POST', actorId: actor.id })); return success(data, granted.auth!, requestId, 201) } catch (error) { return failure(error, requestId) } }

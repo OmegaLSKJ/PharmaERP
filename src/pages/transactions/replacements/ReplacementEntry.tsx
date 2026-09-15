@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Save, ArrowLeftRight } from 'lucide-react'
 import { useEffect } from 'react'
 import { cn, formatCurrency } from '../../../lib/utils'
@@ -33,17 +33,17 @@ export default function ReplacementEntry() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold tracking-tight text-white">Replacement Entry</h1>
-          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Issue or receive replacement stock</p></div>
-        <button onClick={saveReplacement} disabled={saving || !party || !lines.length} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md transition"><Save size={16} /> {saving ? 'Saving…' : 'Save'}</button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div><h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Replacement Entry</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Issue or receive replacement stock</p></div>
+        <button onClick={saveReplacement} disabled={saving || !party || !lines.length} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md active:scale-[0.98] transition cursor-pointer"><Save size={16} /> {saving ? 'Saving…' : 'Save'}</button>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 sm:p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Mode</label>
-            <div className="flex rounded-lg border border-slate-800 overflow-hidden">
-              <button onClick={() => setMode('issue')} className={cn('flex-1 p-2 text-sm font-medium transition', mode === 'issue' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400')}>Issue</button>
-              <button onClick={() => setMode('receive')} className={cn('flex-1 p-2 text-sm font-medium transition', mode === 'receive' ? 'bg-emerald-600 text-white' : 'bg-slate-950 text-slate-400')}>Receive</button>
+            <div className="flex rounded-lg border border-slate-800 overflow-hidden p-0.5 bg-slate-950/60">
+              <button onClick={() => setMode('issue')} className={cn('flex-1 h-9 px-3 text-xs font-semibold rounded-md transition active:scale-[0.98]', mode === 'issue' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white')}>Issue</button>
+              <button onClick={() => setMode('receive')} className={cn('flex-1 h-9 px-3 text-xs font-semibold rounded-md transition active:scale-[0.98]', mode === 'receive' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white')}>Receive</button>
             </div></div>
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Party</label>
             <input list="replacement-parties" type="text" value={party} onChange={(e) => setParty(e.target.value)} placeholder="Search party..." className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" /><datalist id="replacement-parties">{parties.map((name) => <option key={name} value={name} />)}</datalist></div>

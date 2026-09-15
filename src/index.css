@@ -127,16 +127,49 @@
     @apply px-4 py-3 align-middle;
   }
 
+  /* Center align content inside buttons by default */
+  button:not([class*='text-left']):not([class*='text-right']),
+  [role="button"]:not([class*='text-left']):not([class*='text-right']),
+  .btn {
+    text-align: center;
+  }
+
   /* Spacious and comfortable Form Inputs */
   input[type='text'],
   input[type='email'],
   input[type='password'],
   input[type='number'],
-  input[type='date'],
   input[type='search'],
-  select,
   textarea {
     @apply w-full px-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out;
+  }
+
+  input[type='date'] {
+    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.15em 1.15em !important;
+    padding-right: 2.25rem !important;
+  }
+
+  :root:not(.dark) input[type='date'] {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  }
+
+  select {
+    @apply w-full pl-3 py-2 text-sm rounded border border-input bg-card text-foreground transition-all duration-150 ease-out appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.15em 1.15em !important;
+    padding-right: 2.25rem !important;
+  }
+
+  :root:not(.dark) select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
   }
 
   input:focus, select:focus, textarea:focus {
@@ -200,9 +233,22 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
+  /* Completely hide native unpadded browser indicator to eliminate duplicate chevrons */
   input[type='date']::-webkit-calendar-picker-indicator {
-    filter: invert(0.5);
-    cursor: pointer;
+    display: none !important;
+    -webkit-appearance: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Ensure Chrome on Android/iOS gives proper internal clearance */
+  input[type='date']::-webkit-inner-spin-button,
+  input[type='date']::-webkit-clear-button {
+    display: none !important;
+    -webkit-appearance: none !important;
   }
 
   /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
@@ -267,12 +313,14 @@
 }
 
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media print {
-  /* ── Hide UI chrome ───────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     HIDE: UI chrome, nav, controls
+  ═══════════════════════════════════════════════════════════════ */
   aside,
   header,
   nav,
@@ -280,34 +328,77 @@
   .no-print,
   kbd,
   [role="button"],
-  input,
+  input:not([type="hidden"]),
   select,
   textarea,
   [class*="Command"],
-  [class*="Toast"] {
+  [class*="Toast"],
+  [class*="Sidebar"],
+  [class*="sidebar"],
+  [class*="Topbar"],
+  [class*="topbar"],
+  .overflow-x-auto::-webkit-scrollbar {
     display: none !important;
   }
 
-  /* ── Page setup ───────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE SETUP — A4, balanced print margins, branded footer
+  ═══════════════════════════════════════════════════════════════ */
   @page {
-    margin: 12mm 14mm 12mm 14mm;
     size: A4 portrait;
+    margin: 8mm 8mm 10mm 8mm;
+
+    @bottom-left {
+      content: "BORGANG DRUG DISTRIBUTORS";
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    @bottom-center {
+      content: "— Confidential —";
+      font-size: 7pt;
+      color: #9ca3af;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     BASE RESET & TYPOGRAPHY
+  ═══════════════════════════════════════════════════════════════ */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
   html, body {
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #111827 !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    font-size: 11px !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font-family: "Segoe UI", Arial, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
   }
 
-  /* ── Strip layout shells ──────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     LAYOUT SHELL — strip scroll containers, fix height
+  ═══════════════════════════════════════════════════════════════ */
   #root,
   div[class*="h-screen"],
+  div[class*="overflow-hidden"],
   div[class*="flex-1"],
   main,
   .page-enter {
@@ -317,102 +408,628 @@
     position: static !important;
     padding: 0 !important;
     margin: 0 !important;
+    display: block !important;
   }
 
-  /* ── Remove ALL page-level padding from containers ─────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE CONTENT WRAPPER
+  ═══════════════════════════════════════════════════════════════ */
   .p-6, .p-5, .p-4, .p-3 {
     padding: 0 !important;
   }
 
-  /* ── Space-y collapses: remove big vertical gaps ───────────── */
   .space-y-4 > * + *,
   .space-y-5 > * + *,
   .space-y-6 > * + * {
-    margin-top: 8px !important;
+    margin-top: 12pt !important;
   }
 
-  /* ── Section cards: minimal border, no bg, tight padding ───── */
+  /* ═══════════════════════════════════════════════════════════════
+     DOCUMENT TITLE BLOCK (h1 + subtitle paragraph)
+  ═══════════════════════════════════════════════════════════════ */
+  /* Hide on-screen action bars containing buttons during print so PrintHeader is the single clean header */
+  .flex.items-center.justify-between:has(button) {
+    display: none !important;
+  }
+
+  h1 {
+    font-size: 16pt !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+    margin: 0 0 2pt 0 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  h2 {
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin: 0 0 2pt 0 !important;
+  }
+
+  h3 {
+    font-size: 10pt !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin: 0 !important;
+  }
+
+  p {
+    font-size: 9pt !important;
+    color: #6b7280 !important;
+    margin: 0 !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION CARDS — professional document panel
+  ═══════════════════════════════════════════════════════════════ */
   .bg-card,
   .bg-secondary,
   .bg-slate-900,
   .bg-slate-950,
-  .bg-slate-900\/50,
+  [class*="bg-slate-900\\/"],
+  [class*="bg-slate-800"],
   .surface-card,
   [class*="rounded-xl"],
   [class*="rounded-lg"] {
     background: #ffffff !important;
-    color: #000000 !important;
-    border: 1px solid #d1d5db !important;
+    color: #111827 !important;
+    border: 1pt solid #d1d5db !important;
     box-shadow: none !important;
-    border-radius: 4px !important;
+    border-radius: 0 !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* ── Section inner padding ──────────────────────────────────── */
-  [class*="px-4"], [class*="py-3"],
-  [class*="px-6"], [class*="py-4"] {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
-  }
-
-  /* ── Table cells ────────────────────────────────────────────── */
-  th {
-    padding: 5px 8px !important;
-    font-size: 9px !important;
+  /* ── Section card header bar (the dark title strip) */
+  [class*="border-b"] > h3,
+  [class*="border-b"] > div > h3,
+  [class*="bg-slate-900\\/80"] > h3 {
     background: #f3f4f6 !important;
-    color: #374151 !important;
-    border-bottom: 1px solid #d1d5db !important;
-  }
-
-  td {
-    padding: 4px 8px !important;
-    font-size: 10px !important;
     color: #111827 !important;
-    border-bottom: 1px solid #e5e7eb !important;
+    border-bottom: 1pt solid #d1d5db !important;
+    padding: 4pt 8pt !important;
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
   }
 
-  /* ── Table pagination ───────────────────────────────────────── */
-  table { page-break-inside: auto; width: 100% !important; }
-  tr    { page-break-inside: avoid; page-break-after: auto; }
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
+  /* ═══════════════════════════════════════════════════════════════
+     METRIC / KPI CARDS (summary stat boxes at top of reports)
+  ═══════════════════════════════════════════════════════════════ */
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  [class*="grid-cols-2"],
+  [class*="grid-cols-3"],
+  [class*="grid-cols-4"],
+  [class*="grid-cols-5"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6pt !important;
+    margin-bottom: 10pt !important;
+  }
 
-  /* ── Grid / flex: collapse to block for print ───────────────── */
-  .grid, [class*="grid-cols"] {
+  [class*="grid-cols-2"] > *,
+  [class*="grid-cols-3"] > *,
+  [class*="grid-cols-4"] > *,
+  [class*="grid-cols-5"] > * {
+    flex: 1 1 18% !important;
+    min-width: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 6pt 8pt !important;
+    border: 1pt solid #e5e7eb !important;
+    background: #f9fafb !important;
+  }
+
+  /* But keep the main content grid as block */
+  .grid.grid-cols-1 {
     display: block !important;
   }
 
-  [class*="col-span"] {
+  /* ═══════════════════════════════════════════════════════════════
+     TABLES — professional bordered layout
+  ═══════════════════════════════════════════════════════════════ */
+  table {
     width: 100% !important;
-    display: block !important;
-    margin-bottom: 8px !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+    margin-bottom: 0 !important;
+    page-break-inside: auto !important;
   }
 
-  /* ── Typography ─────────────────────────────────────────────── */
-  h1 { font-size: 14px !important; margin: 0 0 2px 0 !important; }
-  h2 { font-size: 12px !important; margin: 0 0 2px 0 !important; }
-  h3 { font-size: 11px !important; margin: 0 0 2px 0 !important; }
-  p  { margin: 0 0 2px 0 !important; font-size: 10px !important; }
+  thead {
+    display: table-header-group !important;
+  }
 
-  /* ── Force text colours for readability ─────────────────────── */
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th,
+  th {
+    background: #d4ebf2 !important;
+    color: #000000 !important;
+    font-size: 8.5pt !important;
+    font-weight: 800 !important;
+    padding: 4pt 6pt !important;
+    text-align: left !important;
+    border: 1px solid #000000 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
+  }
+
+  th[class*="text-right"] {
+    text-align: right !important;
+  }
+
+  th[class*="text-center"] {
+    text-align: center !important;
+  }
+
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td,
+  td {
+    font-size: 9pt !important;
+    color: #111827 !important;
+    padding: 3.5pt 6pt !important;
+    border-bottom: 0.5pt solid #d1d5db !important;
+    border-left: 0.5pt solid #e5e7eb !important;
+    border-right: 0.5pt solid #e5e7eb !important;
+    vertical-align: middle !important;
+  }
+
+  td[class*="text-right"] {
+    text-align: right !important;
+  }
+
+  td[class*="text-center"] {
+    text-align: center !important;
+  }
+
+  /* Alternating row shading */
+  tbody tr:nth-child(even) td {
+    background: #fbfcfd !important;
+  }
+
+  tbody tr:nth-child(odd) td {
+    background: #ffffff !important;
+  }
+
+  /* Footer total row */
+  tfoot tr td,
+  tfoot tr th {
+    background: #f3f4f6 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+    font-size: 9.5pt !important;
+    border: 1.5px solid #000000 !important;
+    padding: 4pt 6pt !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TYPOGRAPHY — text colour overrides
+  ═══════════════════════════════════════════════════════════════ */
   .text-white, .text-slate-100, .text-slate-200, .text-slate-300 {
     color: #111827 !important;
   }
-  .text-slate-400, .text-slate-500, .text-muted-foreground {
+
+  .text-slate-400, .text-slate-500,
+  .text-muted-foreground, .text-gray-500 {
     color: #6b7280 !important;
   }
-  .text-emerald-400, .text-emerald-600 { color: #16a34a !important; }
-  .text-rose-400,    .text-rose-600    { color: #dc2626 !important; }
-  .text-blue-400,    .text-blue-600    { color: #1d4ed8 !important; }
 
-  /* ── Header row section labels ──────────────────────────────── */
-  [class*="border-b"] > h3 {
-    font-size: 10px !important;
+  .text-foreground, .text-gray-900 {
+    color: #111827 !important;
+  }
+
+  /* Status / accent colours — keep them on print */
+  .text-emerald-400, .text-emerald-500, .text-emerald-600 {
+    color: #059669 !important;
+  }
+
+  .text-rose-400, .text-rose-500, .text-rose-600 {
+    color: #dc2626 !important;
+  }
+
+  .text-blue-400, .text-blue-500, .text-blue-600 {
+    color: #2563eb !important;
+  }
+
+  .text-amber-400, .text-amber-500 {
+    color: #d97706 !important;
+  }
+
+  .text-purple-400, .text-purple-500 {
+    color: #7c3aed !important;
+  }
+
+  /* Mono font for numbers */
+  .font-mono {
+    font-family: "Courier New", Courier, monospace !important;
+  }
+
+  /* Font weights */
+  .font-bold, .font-semibold, .font-black, .font-extrabold {
     font-weight: 700 !important;
-    padding: 4px 8px !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION INNER PADDING RESET
+  ═══════════════════════════════════════════════════════════════ */
+  [class*="px-4"], [class*="px-6"] {
+    padding-left: 8pt !important;
+    padding-right: 8pt !important;
+  }
+
+  [class*="py-2"], [class*="py-3"], [class*="py-4"] {
+    padding-top: 4pt !important;
+    padding-bottom: 4pt !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     STATUS BADGES / PILLS
+  ═══════════════════════════════════════════════════════════════ */
+  [class*="bg-emerald-500\\/"] {
+    background: #d1fae5 !important;
+    color: #065f46 !important;
+    border: 0.5pt solid #6ee7b7 !important;
+    border-radius: 2pt !important;
+    padding: 1pt 4pt !important;
+  }
+
+  [class*="bg-rose-500\\/"], [class*="bg-red-500\\/"] {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 0.5pt solid #fca5a5 !important;
+    border-radius: 2pt !important;
+    padding: 1pt 4pt !important;
+  }
+
+  [class*="bg-amber-500\\/"], [class*="bg-yellow-500\\/"] {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 0.5pt solid #fcd34d !important;
+    border-radius: 2pt !important;
+    padding: 1pt 4pt !important;
+  }
+
+  [class*="bg-blue-500\\/"] {
+    background: #dbeafe !important;
+    color: #1e3a8a !important;
+    border: 0.5pt solid #93c5fd !important;
+    border-radius: 2pt !important;
+    padding: 1pt 4pt !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FLEX LAYOUT PRESERVATION (header/title rows, totals)
+  ═══════════════════════════════════════════════════════════════ */
+  .flex:not(.no-print):not(header):not(aside):not(nav):not([data-no-print]) {
+    display: flex !important;
+  }
+
+  .flex-col {
+    flex-direction: column !important;
+  }
+
+  .items-center {
+    align-items: center !important;
+  }
+
+  .justify-between {
+    justify-content: space-between !important;
+  }
+
+  .gap-2 { gap: 6pt !important; }
+  .gap-3 { gap: 8pt !important; }
+  .gap-4 { gap: 10pt !important; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DIVIDERS & BORDERS
+  ═══════════════════════════════════════════════════════════════ */
+  .divide-y > * + * {
+    border-top: 0.5pt solid #e5e7eb !important;
+  }
+
+  .border, [class*="border-"] {
+    border-color: #d1d5db !important;
+  }
+
+  .border-t {
+    border-top: 0.5pt solid #d1d5db !important;
+  }
+
+  .border-b {
+    border-bottom: 0.5pt solid #d1d5db !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SPECIALIZED: GOODS RECEIPT NOTE (Purchase Invoice)
+     Keep the existing grid layout intact
+  ═══════════════════════════════════════════════════════════════ */
+  .goods-receipt-note-print {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .goods-receipt-note-print * {
+    box-sizing: border-box !important;
+    color: #000000 !important;
+  }
+
+  .goods-receipt-note-print .grid {
+    display: grid !important;
+  }
+
+  .goods-receipt-note-print .grid-cols-12 {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+
+  .goods-receipt-note-print .col-span-3 {
+    grid-column: span 3 / span 3 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-4 {
+    grid-column: span 4 / span 4 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-5 {
+    grid-column: span 5 / span 5 !important;
+    width: auto !important;
+    display: flex !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print .col-span-8 {
+    grid-column: span 8 / span 8 !important;
+    width: auto !important;
+    display: block !important;
+    margin-bottom: 0 !important;
+  }
+
+  .goods-receipt-note-print table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .goods-receipt-note-print tr {
+    display: table-row !important;
+  }
+
+  .goods-receipt-note-print th,
+  .goods-receipt-note-print td {
+    display: table-cell !important;
+    padding: 2px 4px !important;
+  }
+
+  /* Override the global th/td styles for GRN */
+  .goods-receipt-note-print thead th {
+    background-color: #d4ebf2 !important;
+    color: #000000 !important;
+    font-size: 9px !important;
+    border: 1px solid #000 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+
+  .goods-receipt-note-print tbody td {
+    background: transparent !important;
+    color: #000000 !important;
+    border: none !important;
+    border-bottom: 1px solid #d1d5db !important;
+    font-size: 10px !important;
+  }
+
+  .goods-receipt-note-print tfoot td {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .goods-receipt-note-print .text-\[\#0c2f66\] {
+    color: #0c2f66 !important;
+  }
+
+  .goods-receipt-note-print tbody tr:nth-child(even) td {
+    background: transparent !important;
+  }
+
+  .goods-receipt-note-print tbody tr:nth-child(odd) td {
+    background: transparent !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SPECIALIZED: TAX INVOICE BILL & RETAIL CASH MEMO PRINT LAYOUT
+  ═══════════════════════════════════════════════════════════════ */
+  .tax-invoice-bill {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .tax-invoice-bill * {
+    box-sizing: border-box !important;
+    color: #000000 !important;
+  }
+
+  .tax-invoice-bill .grid {
+    display: grid !important;
+  }
+
+  .tax-invoice-bill .grid-cols-12 {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+
+  .tax-invoice-bill .col-span-4 {
+    grid-column: span 4 / span 4 !important;
+    width: auto !important;
+  }
+
+  .tax-invoice-bill .col-span-5 {
+    grid-column: span 5 / span 5 !important;
+    width: auto !important;
+  }
+
+  .tax-invoice-bill .col-span-7 {
+    grid-column: span 7 / span 7 !important;
+    width: auto !important;
+  }
+
+  .tax-invoice-bill .col-span-8 {
+    grid-column: span 8 / span 8 !important;
+    width: auto !important;
+  }
+
+  .tax-invoice-bill,
+  .goods-receipt-note-print,
+  .voucher-print-bill {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .tax-invoice-bill table,
+  .goods-receipt-note-print table,
+  .voucher-print-bill table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+
+  .tax-invoice-bill tr,
+  .goods-receipt-note-print tr,
+  .voucher-print-bill tr {
+    display: table-row !important;
+  }
+
+  .tax-invoice-bill th,
+  .tax-invoice-bill td,
+  .goods-receipt-note-print th,
+  .goods-receipt-note-print td,
+  .voucher-print-bill th,
+  .voucher-print-bill td {
+    display: table-cell !important;
+  }
+
+  .tax-invoice-bill table th,
+  .goods-receipt-note-print table th,
+  .voucher-print-bill table th {
+    background-color: #d4ebf2 !important;
+    color: #000000 !important;
+    font-size: 8.5px !important;
+    padding: 3px 2px !important;
+    border-right: 1px solid #000000 !important;
+    border-bottom: 1.5px solid #000000 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+    line-height: 1.1 !important;
+  }
+
+  .tax-invoice-bill table td,
+  .goods-receipt-note-print table td,
+  .voucher-print-bill table td {
+    background: transparent !important;
+    color: #000000 !important;
+    padding: 2.5px 2px !important;
+    font-size: 9px !important;
+    line-height: 1.15 !important;
+    border-left: none !important;
+  }
+
+  .tax-invoice-bill tbody tr:nth-child(even) td,
+  .tax-invoice-bill tbody tr:nth-child(odd) td,
+  .goods-receipt-note-print tbody tr:nth-child(even) td,
+  .goods-receipt-note-print tbody tr:nth-child(odd) td,
+  .voucher-print-bill tbody tr:nth-child(even) td,
+  .voucher-print-bill tbody tr:nth-child(odd) td {
+    background: transparent !important;
+  }
+
+  .tax-invoice-bill .text-\[\#0c2f66\],
+  .goods-receipt-note-print .text-\[\#0c2f66\],
+  .voucher-print-bill .text-\[\#0c2f66\] {
+    color: #0c2f66 !important;
+  }
+
+  .tax-invoice-bill .bg-\[\#d4ebf2\] {
+    background-color: #d4ebf2 !important;
+  }
+
+  .tax-invoice-bill .col-span-7 table th,
+  .tax-invoice-bill .col-span-7 table td {
+    padding: 2px 3px !important;
+    font-size: 8.5px !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     ABSOLUTE HIDE ENFORCEMENT FOR UI CHROME & TOPBAR
+  ═══════════════════════════════════════════════════════════════ */
+  header,
+  header *,
+  aside,
+  aside *,
+  nav,
+  nav *,
+  .no-print,
+  .no-print *,
+  [data-no-print],
+  [data-no-print] *,
+  .print\:hidden,
+  .print\:hidden *,
+  .print\:\!hidden,
+  .print\:\!hidden *,
+  [class*="glass-surface"],
+  [class*="glass-action"],
+  div[class*="glass-surface"],
+  header[class*="glass-surface"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -99999px !important;
+    top: -99999px !important;
+    z-index: -9999 !important;
   }
 }
 
@@ -427,3 +1044,133 @@
 .relative svg + input:focus {
   border-color: hsl(var(--primary)) !important;
 }
+
+/* Responsive Table Container & Touch Handling */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  position: relative;
+}
+
+.overflow-x-auto,
+div:has(> table:not(.print-table)) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+@media (max-width: 768px) {
+  /* Prevent full data tables from squeezing columns on small screens, excluding print bills */
+  table:not(.print-table):not(.compact-table) {
+    min-width: 620px;
+  }
+}
+
+/* Custom Sleek Scrollbar for Touch & Trackpad across all screen sizes */
+.sidebar-scroll,
+.overflow-x-auto,
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border) / 0.8) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border) / 0.8);
+  border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Remove spin buttons from number inputs for clean ERP data entry */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Touch targets and mobile responsiveness for inputs */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select {
+    min-height: 38px;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    min-height: 18px;
+  }
+  input[type='date'] {
+    background-position: right 0.75rem center !important;
+    padding-right: 2.25rem !important;
+    padding-left: 0.75rem !important;
+  }
+  select {
+    background-position: right 0.75rem center !important;
+    padding-right: 2.25rem !important;
+  }
+}
+
+/* ==========================================================================
+   GLOBAL DATE INPUT CHEVRON ENFORCEMENT ACROSS ALL PAGES
+   ========================================================================== */
+input[type='date'] {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.15em 1.15em !important;
+  padding-right: 2.25rem !important;
+  cursor: pointer !important;
+}
+
+:root:not(.dark) input[type='date'] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left !important;
+}
+
+input[type='date']::-webkit-datetime-edit {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+input[type='date']::-webkit-datetime-edit-fields-wrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+input[type='date']::-webkit-inner-spin-button,
+input[type='date']::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+

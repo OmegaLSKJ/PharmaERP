@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect, useState, useMemo } from 'react'
 import { getErp } from '../../lib/erpApi'
+import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 export default function PurchaseAnalytics() {
   const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
@@ -31,52 +33,19 @@ export default function PurchaseAnalytics() {
   }, [preset])
 
   const totalPurchases = useMemo(() => {
-    const originalTotal = monthlyPurchases.reduce((a, m) => a + m.value, 0) || 320000
+    const originalTotal = monthlyPurchases.reduce((a, m) => a + m.value, 0)
     return originalTotal * dateScaleFactor
   }, [monthlyPurchases, dateScaleFactor])
 
-  // Dynamic datasets based on selected timeframe & date filters
+  // Dynamic datasets strictly from software entered purchases
   const chartData = useMemo(() => {
-    if (timeframe === 'daily' || preset === 'Today') {
-      return [
-        { name: '01st', value: 3000 * dateScaleFactor },
-        { name: '05th', value: 8000 * dateScaleFactor },
-        { name: '10th', value: 12000 * dateScaleFactor },
-        { name: '15th', value: 25000 * dateScaleFactor },
-        { name: '20th', value: 18000 * dateScaleFactor },
-        { name: '25th', value: 36000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'weekly') {
-      return [
-        { name: 'Week 1', value: 62000 * dateScaleFactor },
-        { name: 'Week 2', value: 85000 * dateScaleFactor },
-        { name: 'Week 3', value: 110000 * dateScaleFactor },
-        { name: 'Week 4', value: 63000 * dateScaleFactor }
-      ]
-    }
-    if (timeframe === 'yearly') {
-      return [
-        { name: 'FY 2023-24', value: 2400000 * dateScaleFactor },
-        { name: 'FY 2024-25', value: 2850000 * dateScaleFactor },
-        { name: 'FY 2025-26', value: totalPurchases }
-      ]
-    }
-    // Default: monthly
-    return monthlyPurchases.length > 0 ? monthlyPurchases.map(m => ({ name: m.month, value: m.value * dateScaleFactor })) : [
-      { name: 'Jan 26', value: 25000 * dateScaleFactor },
-      { name: 'Feb 26', value: 28000 * dateScaleFactor },
-      { name: 'Mar 26', value: 35000 * dateScaleFactor },
-      { name: 'Apr 26', value: 30000 * dateScaleFactor },
-      { name: 'May 26', value: 42000 * dateScaleFactor },
-      { name: 'Jun 26', value: 50000 * dateScaleFactor },
-      { name: 'Jul 26', value: 48000 * dateScaleFactor },
-      { name: 'Aug 26', value: 62000 * dateScaleFactor }
-    ]
-  }, [timeframe, preset, monthlyPurchases, totalPurchases, dateScaleFactor])
+    if (monthlyPurchases.length === 0) return []
+    return monthlyPurchases.map(m => ({ name: m.month, value: m.value * dateScaleFactor }))
+  }, [monthlyPurchases, dateScaleFactor])
 
   return (
     <div className="p-6 space-y-4">
+      <PrintHeader title="Purchase Analytics & Intelligence" subtitle="FY 2025-26 | Supplier and purchase intelligence" />
       {/* Title block */}
       <div className="flex items-center justify-between">
         <div>
@@ -86,12 +55,12 @@ export default function PurchaseAnalytics() {
         <div className="flex gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
-            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics'))}
+            onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV

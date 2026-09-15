@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { CloudUpload, Cloud, RefreshCw, Database } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 
@@ -11,7 +11,7 @@ export default function ServerUpload() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold tracking-tight text-white">Manual Server Upload</h1>
-          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Database size={14} className="text-cyan-400"/>Push local transactions to MARG cloud / head office</p></div>
+          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Database size={14} className="text-cyan-400"/>Push local transactions to TAO Solutions Pvt Ltd cloud / head office</p></div>
         <button onClick={()=>setSyncing(true)} disabled={syncing} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md disabled:opacity-50">
           <RefreshCw size={16} className={syncing?'animate-spin':''}/> Sync Now ({PENDING_UPLOAD.length})
         </button>

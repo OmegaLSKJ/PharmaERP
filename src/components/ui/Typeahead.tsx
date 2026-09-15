@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 export interface TOption { label: string; sub?: string; right?: string }
@@ -50,7 +51,18 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
   const close = () => setOpen(false)
 
   const updateValue = onValueChange ?? onChange
-  const pick = (o: TOption) => { updateValue?.(o.label); onSelect?.(o); close(); inputRef.current?.blur() }
+  const pick = (o: TOption) => {
+    const cleaned = o.label.replace(/\s+/g, ' ').trim()
+    updateValue?.(cleaned)
+    onSelect?.({ ...o, label: cleaned })
+    close()
+    inputRef.current?.blur()
+  }
+
+  const displayValue = useMemo(() => {
+    if (open) return q
+    return (value || '').replace(/\s+/g, ' ')
+  }, [open, q, value])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); if (!open) openList(); else setActive(a => Math.min(a + 1, filtered.length - 1)) }
@@ -58,7 +70,7 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
     else if (e.key === 'Enter') {
       e.preventDefault()
       if (filtered[active]) pick(filtered[active])
-      else { updateValue?.(q); close() }
+      else { updateValue?.(q.replace(/\s+/g, ' ').trim()); close() }
     }
     else if (e.key === 'Escape') close()
     else if (e.key === 'Tab') close()
@@ -71,19 +83,42 @@ export default function Typeahead({ value, onValueChange, onChange, options, onS
         <input
           ref={inputRef}
           type="text"
-          value={open ? q : value}
+          value={displayValue}
           placeholder={placeholder}
           onFocus={openList}
+          onBlur={() => {
+            if (inputRef.current) inputRef.current.scrollLeft = 0
+          }}
           onChange={(e) => { if (!open) setOpen(true); setQ(e.target.value) }}
           onKeyDown={onKeyDown}
           autoComplete="off"
+          style={{ paddingRight: '3.75rem' }}
           className={cn(
-            'w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 pr-9 text-sm text-white outline-none',
-            'placeholder:text-slate-600 transition-colors',
+            'w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-3 pr-16 py-2 text-sm text-white outline-none truncate',
+            'placeholder:text-slate-500 placeholder:truncate transition-colors',
             'focus:border-indigo-500/60 focus:bg-slate-950 focus:ring-1 focus:ring-indigo-500/40'
           )}
         />
-        <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] font-mono text-slate-600">↓</kbd>
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (open) {
+              close()
+            } else {
+              inputRef.current?.focus()
+              openList()
+            }
+          }}
+          aria-label="Toggle options"
+          className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
+        >
+          <ChevronDown
+            size={16}
+            className={cn('transition-transform duration-200 text-slate-400', open && 'rotate-180 text-indigo-400')}
+          />
+        </button>
       </div>
       {open && filtered.length > 0 && (
         <div ref={listRef} className="absolute z-40 top-full mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-white/[0.08] bg-slate-950 shadow-dialog">

@@ -14,7 +14,20 @@ async function authorize(request: NextRequest) {
   if (!auth) return { response: clearSessionCookies(NextResponse.json({ error: { message: 'Unauthorized.' } }, { status: 401 })) }
   if (auth.user.app_metadata?.role !== 'admin') return { response: NextResponse.json({ error: { message: 'Administrator access is required.' } }, { status: 403 }) }
   const origin = request.headers.get('origin')
-  if (request.method !== 'GET' && origin && origin !== request.nextUrl.origin) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }
+  if (request.method !== 'GET' && origin) {
+    try {
+      const originUrl = new URL(origin)
+      const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host')
+      const isAllowed = (hostHeader && originUrl.hostname === hostHeader.split(':')[0]) ||
+        originUrl.hostname.endsWith('.vercel.app') ||
+        originUrl.hostname === 'localhost' ||
+        originUrl.hostname === '127.0.0.1' ||
+        origin === request.nextUrl.origin
+      if (!isAllowed) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }
+    } catch {
+      return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }
+    }
+  }
   return { auth }
 }
 function success(data: unknown, auth: AuthenticatedRequest, status=200) { return applyRefreshedSession(NextResponse.json({ data }, { status, headers: { 'Cache-Control':'private, no-store' } }),auth) }

@@ -58,16 +58,31 @@ export default function Dashboard() {
   const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Operations overview</h1><p className="text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p></div>
-        <div className="flex flex-wrap gap-2"><Link to="/transactions/sale/new" className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"><Plus size={15}/> New sale</Link><Link to="/transactions/orders" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"><ClipboardList size={15}/> Orders</Link></div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div><h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Operations overview</h1><p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p></div>
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
+          <Link
+            to="/transactions/sale/new"
+            className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:shadow-sm transition-all duration-150 active:scale-[0.98] border border-blue-500/50"
+          >
+            <Plus size={15} className="shrink-0" />
+            <span className="leading-none text-center">New sale</span>
+          </Link>
+          <Link
+            to="/transactions/orders"
+            className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg border border-border bg-card hover:bg-secondary px-3.5 text-xs sm:text-sm font-semibold text-foreground shadow-2xs transition-all duration-150 active:scale-[0.98]"
+          >
+            <ClipboardList size={15} className="shrink-0" />
+            <span className="leading-none text-center">Orders</span>
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard to="/transactions/sale" title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
         <KpiCard to="/transactions/purchase" title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
-        <KpiCard to="/inventory/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
+        <KpiCard to="/masters/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
         <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 

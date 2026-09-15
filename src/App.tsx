@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/auth/LoginPage'
@@ -61,6 +62,19 @@ import FastSlowMoving from './pages/reports/FastSlowMoving'
 import SettingsPage from './pages/settings/SettingsPage'
 
 export default function App() {
+  useEffect(() => {
+    const handleDateClick = (e: MouseEvent) => {
+      const el = e.target as HTMLElement
+      if (el && el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'date') {
+        try {
+          (el as HTMLInputElement).showPicker?.()
+        } catch {}
+      }
+    }
+    document.addEventListener('click', handleDateClick)
+    return () => document.removeEventListener('click', handleDateClick)
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
@@ -69,9 +83,10 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/masters/parties" element={<PartyList />} />
           <Route path="/masters/parties/:id" element={<Party360 />} />
-<Route path="/masters/items" element={<ItemList />} />
-<Route path="/masters/items/new" element={<ItemForm />} />
-<Route path="/masters/items/:id" element={<ItemForm />} />
+          <Route path="/masters/items" element={<ItemList />} />
+          <Route path="/inventory/items" element={<ItemList />} />
+          <Route path="/masters/items/new" element={<ItemForm />} />
+          <Route path="/masters/items/:id" element={<ItemForm />} />
           <Route path="/masters/batches" element={<BatchMaster />} />
           <Route path="/masters/manufacturers" element={<ManufacturerList />} />
           <Route path="/masters/ledgers" element={<LedgerList />} />
@@ -83,11 +98,15 @@ export default function App() {
           <Route path="/masters/communication" element={<CommunicationBlocking />} />
           <Route path="/transactions/sale" element={<SaleRegister />} />
           <Route path="/transactions/sale/new" element={<SaleEntry />} />
+          <Route path="/transactions/sale/edit/:id" element={<SaleEntry />} />
+          <Route path="/transactions/sale/:id" element={<SaleEntry />} />
           <Route path="/transactions/sale/challan" element={<ChallanEntry />} />
           <Route path="/transactions/sale/counter" element={<CounterSale />} />
           <Route path="/transactions/sale-return" element={<SaleReturn />} />
           <Route path="/transactions/purchase" element={<PurchaseRegister />} />
           <Route path="/transactions/purchase/new" element={<PurchaseEntry />} />
+          <Route path="/transactions/purchase/edit/:id" element={<PurchaseEntry />} />
+          <Route path="/transactions/purchase/:id" element={<PurchaseEntry />} />
           <Route path="/transactions/purchase-return" element={<PurchaseReturn />} />
           <Route path="/transactions/orders" element={<Orders />} />
           <Route path="/transactions/breakage" element={<BreakageEntry />} />

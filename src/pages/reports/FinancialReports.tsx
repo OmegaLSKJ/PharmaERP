@@ -1,9 +1,23 @@
+import { useState, useEffect } from 'react'
 import { FileText, Download } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { trialBalance, pnl as pnlData, balanceSheet } from '../../lib/financialData'
+import { fetchLiveFinancialData, type TrialBalanceItem, type PnLData, type BalanceSheetData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
+import { useUIStore } from '../../store/uiStore'
 
 export default function FinancialReports() {
+  const [trialBalance, setTrialBalance] = useState<TrialBalanceItem[]>([])
+  const [pnlData, setPnlData] = useState<PnLData>({ income: [], expenses: [] })
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData>({ assets: [], liabilities: [] })
+
+  useEffect(() => {
+    fetchLiveFinancialData().then((res) => {
+      setTrialBalance(res.trialBalance)
+      setPnlData(res.pnl)
+      setBalanceSheet(res.balanceSheet)
+    })
+  }, [])
+
   const totalDr = trialBalance.reduce((a, r) => a + r.debit, 0)
   const totalCr = trialBalance.reduce((a, r) => a + r.credit, 0)
 
@@ -27,7 +41,7 @@ export default function FinancialReports() {
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border">
             <FileText size={16} /> Export PDF
           </button>
-          <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('financial-report'))} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20">
+          <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('financial-report', useUIStore.getState().company))} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20">
             <Download size={16} /> Export Excel
           </button>
         </div>

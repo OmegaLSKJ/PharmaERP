@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { Search, Download, FileText, Eye } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { Search, Download, FileText, Eye, Edit2, RefreshCw } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
@@ -23,7 +24,54 @@ export default function LedgerView() {
   const [selectedLedger, setSelectedLedger] = useState('')
   const [search, setSearch] = useState('')
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  // Subscribe to the global ledger version so we re-fetch when any entry is saved
+  const ledgerVersion = useUIStore((s) => s.ledgerVersion)
+
+  const loadLedger = useCallback(
+    async (silent = false) => {
+      if (!silent) setRefreshing(true)
+      try {
+        const rows = await getErp<any[]>('ledgers')
+        const seenKeys = new Set<string>()
+        const deduped = (rows || []).filter((r) => {
+          const dr = Number(r.debit || 0)
+          const cr = Number(r.credit || 0)
+          if (dr <= 0 && cr <= 0) return false
+          if (isNaN(dr) && isNaN(cr)) return false
+          const key = `${(r.vNo || r.id || '').trim()}_${(r.party || '').trim()}_${dr}_${cr}`
+          if (seenKeys.has(key)) return false
+          seenKeys.add(key)
+          return true
+        })
+
+        const balances: Record<string, number> = {}
+        const mapped = deduped.map((row) => {
+          balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit)
+          return {
+            ...row,
+            balance: Math.abs(balances[row.party]),
+            balType: balances[row.party] < 0 ? 'Cr' : 'Dr',
+            vType: String(row.vType).replace('_', ' ')
+          }
+        })
+        setAllEntries(mapped)
+        if (mapped[0] && !selectedLedger) setSelectedLedger(mapped[0].party)
+      } catch (e: any) {
+        showToast(e.message)
+      } finally {
+        setRefreshing(false)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showToast]
+  )
+
+  // Re-fetch whenever ledgerVersion is bumped (new voucher/challan/walk-in saved)
+  useEffect(() => {
+    loadLedger(ledgerVersion > 0) // silent=true after first load to avoid spinner flicker
+  }, [ledgerVersion, loadLedger])
 
   const handleCancel = async (e: any) => {
     const reason = prompt('Enter reason for cancellation:')
@@ -46,44 +94,13 @@ export default function LedgerView() {
 
       await postErp('cancellations', { kind, id: e.id, reason })
       showToast('Transaction cancelled successfully.')
-      
-      // Reload
-      const rows = await getErp<any[]>('ledgers')
-      const balances: Record<string, number> = {}
-      const mapped = rows.map((row) => {
-        balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit)
-        return {
-          ...row,
-          balance: Math.abs(balances[row.party]),
-          balType: balances[row.party] < 0 ? 'Cr' : 'Dr',
-          vType: String(row.vType).replace('_', ' ')
-        }
-      })
-      setAllEntries(mapped)
       setSelectedTransaction(null)
+      // Reload via shared loadLedger
+      await loadLedger(true)
     } catch (err: any) {
       showToast(err.message || 'Failed to cancel transaction.')
     }
   }
-
-  useEffect(() => {
-    getErp<any[]>('ledgers')
-      .then((rows) => {
-        const balances: Record<string, number> = {}
-        const mapped = rows.map((row) => {
-          balances[row.party] = (balances[row.party] ?? 0) + Number(row.debit) - Number(row.credit)
-          return {
-            ...row,
-            balance: Math.abs(balances[row.party]),
-            balType: balances[row.party] < 0 ? 'Cr' : 'Dr',
-            vType: String(row.vType).replace('_', ' ')
-          }
-        })
-        setAllEntries(mapped)
-        if (mapped[0]) setSelectedLedger(mapped[0].party)
-      })
-      .catch((e) => showToast(e.message))
-  }, [showToast])
 
   const ledgerNames = [...new Set(allEntries.map((entry) => entry.party))]
   const entries = allEntries.filter((entry) => entry.party === selectedLedger)
@@ -97,9 +114,27 @@ export default function LedgerView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Ledger View</h1>
-          <p className="text-sm text-muted-foreground mt-1">{selectedLedger || 'Select a ledger'}</p>
+          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+            <span>{selectedLedger || 'Select a ledger'}</span>
+            {selectedLedger && (
+              <Link
+                to={`/masters/parties?search=${encodeURIComponent(selectedLedger)}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-xs font-medium border border-indigo-500/20 transition"
+              >
+                <Edit2 size={11} /> Edit Party Master
+              </Link>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => loadLedger()}
+            disabled={refreshing}
+            title="Refresh ledger"
+            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border no-print"
+          >
+            <RefreshCw size={15} className={cn(refreshing && 'animate-spin')} /> Refresh
+          </button>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
@@ -107,7 +142,7 @@ export default function LedgerView() {
             <FileText size={16} /> Export PDF
           </button>
           <button
-            onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`)}
+            onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`, useUIStore.getState().company)}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export Excel
