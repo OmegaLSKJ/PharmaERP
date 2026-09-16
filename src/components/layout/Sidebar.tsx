@@ -97,6 +97,9 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { label: 'Negative Stock', path: '/inventory/negative', icon: <AlertTriangle size={16} /> },
       { label: 'Dump Stock', path: '/inventory/dump', icon: <Flame size={16} /> },
       { label: 'Hold / Ban', path: '/inventory/holdban', icon: <Zap size={16} /> },
+      { label: 'Reservations', path: '/inventory/reservations', icon: <ClipboardList size={16} /> },
+      { label: 'Adjustments', path: '/inventory/adjustments', icon: <ArrowLeftRight size={16} /> },
+      { label: 'Adjustment Lines', path: '/inventory/adjustment-lines', icon: <Boxes size={16} /> },
     ],
   },
   {
@@ -109,6 +112,9 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { label: 'e-Invoice (IRN)', path: '/gst/einvoice', icon: <FileCheck size={16} /> },
       { label: 'GSTR-9 Annual', path: '/gst/gstr9', icon: <ClipboardList size={16} /> },
       { label: 'TDS / TCS', path: '/gst/tds-tcs', icon: <Calculator size={16} /> },
+      { label: 'Drug Licenses', path: '/compliance/drug-licenses', icon: <Shield size={16} /> },
+      { label: 'Product Recalls', path: '/compliance/recalls', icon: <AlertTriangle size={16} /> },
+      { label: 'Controlled Drugs', path: '/compliance/controlled-drugs', icon: <ClipboardList size={16} /> },
     ],
   },
   {

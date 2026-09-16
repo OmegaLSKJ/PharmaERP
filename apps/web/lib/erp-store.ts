@@ -7,6 +7,16 @@ import path from 'node:path'
 export type LedgerEntry = { id: string; party: string; date: string; vType: string; vNo: string; debit: number; credit: number; narration: string }
 type Line = { name: string; batch: string; qty: number; rate: number; amount?: number; expiry?: string; freeQty?: number; discount?: number; gstRate?: number; mrp?: number }
 export type MutationActor = { id?: string; email?: string; requestId?: string }
+type CrudConfig = { table: string; fields: string[]; organizationScoped?: boolean }
+const managedCrud: Record<string, CrudConfig> = {
+  'drug-licenses': { table: 'drug_licenses', organizationScoped: true, fields: ['party_id','license_number','license_type','issued_on','expires_on','issuing_authority','status','document_url'] },
+  'product-recalls': { table: 'product_recalls', organizationScoped: true, fields: ['recall_number','manufacturer_id','initiated_on','reason','severity','status','regulatory_reference','closed_at'] },
+  'controlled-drug-register': { table: 'controlled_drug_register', organizationScoped: true, fields: ['sale_invoice_id','sale_invoice_line_id','patient_name','prescriber_name','prescription_reference','dispensed_at'] },
+  reservations: { table: 'stock_reservations', organizationScoped: true, fields: ['item_batch_id','warehouse_id','source_type','source_id','quantity','status','expires_at','released_at'] },
+  'inventory-adjustment-records': { table: 'inventory_adjustments', organizationScoped: true, fields: ['adjustment_number','adjustment_date','reason','status','posted_at'] },
+  'inventory-adjustment-lines': { table: 'inventory_adjustment_lines', fields: ['adjustment_id','item_batch_id','warehouse_id','quantity_delta','reason'] },
+}
+const mutableValues = (body: any, fields: string[]) => Object.fromEntries(fields.filter((field) => Object.prototype.hasOwnProperty.call(body, field)).map((field) => [field, body[field] === '' ? null : body[field]]))
 const date = () => new Date().toISOString().slice(0, 10)
 const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 const organizationName = process.env.ERP_ORGANIZATION_NAME ?? 'Borgang Drug Distributors'
@@ -223,13 +233,13 @@ function persistCustomParty(party: any) {
     const targets = [rootCustom, localCustom]
     for (const target of targets) {
       let list: any[] = []
-      if (fs.existsSync(target)) {
-        try { list = JSON.parse(fs.readFileSync(target, 'utf8')) } catch {}
+      if (fs.existsSync(/* turbopackIgnore: true */ target)) {
+        try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
       }
       list = [party, ...list.filter((p: any) => p.id !== party.id && p.name.toLowerCase() !== party.name.toLowerCase())]
       const dir = path.dirname(target)
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(target, JSON.stringify(list, null, 2), 'utf8')
+      if (!fs.existsSync(/* turbopackIgnore: true */ dir)) fs.mkdirSync(/* turbopackIgnore: true */ dir, { recursive: true })
+      fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(list, null, 2), 'utf8')
     }
   } catch (err) {
     console.warn('Failed to persist custom party to disk:', err)
@@ -871,8 +881,8 @@ export async function list(resource: string, partyName?: string) {
       }))
     }))
   }
-  if (resource === 'challans') { const data = await fetchAll<any>((from, to) => client.from('delivery_challans').select('id,challan_number,challan_date,transport_name,status,parties(legal_name)').eq('organization_id', organizationId).order('challan_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.challan_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.challan_date, transport: v.transport_name ?? '', status: v.status })) }
-  if (resource === 'vouchers') { return await fetchAll<any>((from, to) => client.from('vouchers').select('*').order('voucher_date', { ascending: false }).range(from, to)) }
+  if (resource === 'challans') { const data = await fetchAll<any>((from, to) => client.from('delivery_challans').select('id,challan_number,challan_date,transport_name,status,parties(legal_name),delivery_challan_lines(id,quantity,item_batches(batch_number,items(name,sale_rate)))').eq('organization_id', organizationId).order('challan_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.challan_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.challan_date, transport: v.transport_name ?? '', status: v.status, lines:(v.delivery_challan_lines??[]).map((line:any)=>({id:line.id,name:line.item_batches?.items?.name??'Item',batch:line.item_batches?.batch_number??'',qty:Number(line.quantity||0),rate:Number(line.item_batches?.items?.sale_rate||0)})) })) }
+  if (resource === 'vouchers') { const data=await fetchAll<any>((from,to)=>client.from('vouchers').select('*,voucher_lines(id,account_id,debit,credit,narration,chart_of_accounts(name))').eq('organization_id',organizationId).order('voucher_date',{ascending:false}).range(from,to));return(data??[]).map((v:any)=>({...v,id:v.id,number:v.voucher_number,date:v.voucher_date,type:v.voucher_type,status:v.status,lines:(v.voucher_lines??[]).map((line:any)=>({id:line.id,accountId:line.account_id,ledger:line.chart_of_accounts?.name??'',debit:Number(line.debit||0),credit:Number(line.credit||0),narration:line.narration??''}))})) }
   if (resource === 'ledgers') {
     const { data: voucherLines, error: vlError } = await client.from('voucher_lines').select('id,debit,credit,narration,vouchers!inner(voucher_date,voucher_number,voucher_type),chart_of_accounts!inner(name)')
     if (vlError) throw vlError
@@ -942,6 +952,7 @@ export async function list(resource: string, partyName?: string) {
 
     return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
+  if (managedCrud[resource]) { const config=managedCrud[resource]; let query=client.from(config.table).select('*'); if(config.organizationScoped) query=query.eq('organization_id',organizationId); return await fetchAll<any>((from,to)=>query.range(from,to)) }
   throw new Error('Unknown ERP resource.')
   } catch (error) {
     console.warn(`Database query for resource ${resource} failed, falling back to mock:`, error)
@@ -1890,10 +1901,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
 
     return { id: voucherNumber, type: body.type ?? 'Journal', date: voucherDate, narration: body.narration ?? '', lines: body.lines }
   }
+  if (managedCrud[resource]) { const config=managedCrud[resource]; const values:any=mutableValues(body,config.fields); if(config.organizationScoped) values.organization_id=organizationId; if(['reservations','controlled-drug-register','inventory-adjustment-records'].includes(resource)) values.created_by_auth_id=actor.id??null; const {data,error}=await client.from(config.table).insert(values).select('*').single(); if(error) throw error; return data }
   throw new Error('Unknown ERP resource.')
 }
 
-export async function update(resource: string, id: string, body: any) {
+export async function update(resource: string, id: string, body: any, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
   if (!hasValidDb()) {
     const specialKeys: Record<string, string> = {
@@ -1916,14 +1928,48 @@ export async function update(resource: string, id: string, body: any) {
     return body
   }
 
-  const { client, organizationId } = await context()
-  if (resource === 'sales') {
-    const { data, error } = await client.from('sales_invoices').update(body).eq('id', id).eq('organization_id', organizationId).select('*').single()
-    if (error) throw error
-    return data
-  }
-  if (resource === 'purchases') {
-    const { data, error } = await client.from('purchase_invoices').update(body).eq('id', id).eq('organization_id', organizationId).select('*').single()
+  const { client, organizationId, financialYearId } = await context()
+  if (resource === 'sales' || resource === 'purchases') {
+    const table = resource === 'sales' ? 'sales_invoices' : 'purchase_invoices'
+    let invoiceId = id
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      const { data: invoice, error: lookupError } = await client.from(table).select('id').eq('organization_id', organizationId).eq('invoice_number', id).maybeSingle()
+      if (lookupError) throw lookupError
+      if (!invoice) throw new Error('Invoice was not found.')
+      invoiceId = invoice.id
+    }
+    const document = {
+      party: body.party || body.customer || body.supplier,
+      date: body.date,
+      supplierInvoice: body.supplierInvoice || body.invoiceNo,
+      lines: (body.lines || body.items || []).map((line: any) => ({
+        name: line.name || line.itemName,
+        itemCode: line.itemCode || line.code,
+        batch: line.batch,
+        expiry: line.expiry,
+        qty: Number(line.qty ?? line.quantity ?? 0),
+        freeQty: Number(line.freeQty ?? line.free ?? line.free_quantity ?? 0),
+        rate: Number(line.rate ?? 0),
+        discount: Number(line.discount ?? line.disc ?? line.discount_percent ?? 0),
+        gstRate: Number(line.gstRate ?? line.gst ?? line.gst_rate ?? 0),
+        mrp: Number(line.mrp ?? 0)
+      })),
+      grandTotal: body.grandTotal ?? body.total,
+      patientName: body.patientName,
+      prescriberName: body.prescriberName,
+      prescriptionReference: body.prescriptionReference
+    }
+    const { data, error } = await client.rpc('erp_amend_invoice', {
+      p_kind: resource,
+      p_organization_id: organizationId,
+      p_financial_year_id: financialYearId,
+      p_invoice_id: invoiceId,
+      p_document: document,
+      p_reason: body.reason || 'Invoice amended by user',
+      p_actor_auth_id: actor.id ?? null,
+      p_actor_email: actor.email ?? null,
+      p_request_id: actor.requestId ?? null
+    })
     if (error) throw error
     return data
   }
@@ -2104,12 +2150,15 @@ export async function update(resource: string, id: string, body: any) {
     if (error) throw error
     return data
   }
+  if (resource === 'challans') { const values:any={}; if('date' in body)values.challan_date=body.date;if('transport' in body)values.transport_name=body.transport||null;if('status' in body)values.status=body.status;if(body.party)values.party_id=await party(client,organizationId,body.party);const{data,error}=await client.from('delivery_challans').update(values).eq('id',id).eq('organization_id',organizationId).select('*').single();if(error)throw error;if(Array.isArray(body.lines)){const{error:deleteError}=await client.from('delivery_challan_lines').delete().eq('challan_id',id);if(deleteError)throw deleteError;for(const line of body.lines){const resolved=await stock(client,organizationId,line);const{error:lineError}=await client.from('delivery_challan_lines').insert({challan_id:id,item_batch_id:resolved.batchId,quantity:Number(line.qty)});if(lineError)throw lineError}}return data }
+  if (resource === 'vouchers') { const values:any={};if('date' in body)values.voucher_date=body.date;if('status' in body)values.status=body.status;if('narration' in body)values.narration=body.narration||null;const{data,error}=await client.from('vouchers').update(values).eq('id',id).eq('organization_id',organizationId).select('*').single();if(error)throw error;if(Array.isArray(body.lines)){const debit=body.lines.reduce((sum:number,line:any)=>sum+Number(line.debit||0),0);const credit=body.lines.reduce((sum:number,line:any)=>sum+Number(line.credit||0),0);if(Math.abs(debit-credit)>0.009)throw new Error('Voucher debits and credits must balance.');const{error:deleteError}=await client.from('voucher_lines').delete().eq('voucher_id',id);if(deleteError)throw deleteError;for(const line of body.lines){let accountId=line.accountId;if(!accountId&&line.ledger){const{data:account}=await client.from('chart_of_accounts').select('id').eq('organization_id',organizationId).eq('name',line.ledger).maybeSingle();accountId=account?.id}if(!accountId)throw new Error('Every voucher line requires a valid ledger.');const{error:lineError}=await client.from('voucher_lines').insert({voucher_id:id,account_id:accountId,debit:Number(line.debit||0),credit:Number(line.credit||0),narration:line.narration||null});if(lineError)throw lineError}}return data }
+  if (managedCrud[resource]) { const config=managedCrud[resource];let query=client.from(config.table).update(mutableValues(body,config.fields)).eq('id',id);if(config.organizationScoped)query=query.eq('organization_id',organizationId);const{data,error}=await query.select('*').single();if(error)throw error;return data }
   const masterTables: Record<string, string> = { manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { data, error } = await client.from(masterTables[resource]).update(body).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data
 }
 
-export async function remove(resource: string, id: string) {
+export async function remove(resource: string, id: string, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
   if (!hasValidDb()) {
     const specialKeys: Record<string, string> = {
@@ -2244,6 +2293,10 @@ export async function remove(resource: string, id: string) {
     if (error) throw error
     return { id }
   }
+  if(resource==='sales'||resource==='purchases'){const{error}=await client.rpc('erp_cancel_invoice',{p_kind:resource,p_organization_id:organizationId,p_invoice_id:id,p_reason:'Cancelled by user',p_actor_auth_id:actor.id??null,p_actor_email:actor.email??null,p_request_id:actor.requestId??null});if(error)throw error;return{id,status:'cancelled'}}
+  if(resource==='challans'){const{error:lineError}=await client.from('delivery_challan_lines').delete().eq('challan_id',id);if(lineError)throw lineError;const{error}=await client.from('delivery_challans').delete().eq('id',id).eq('organization_id',organizationId);if(error)throw error;return{id}}
+  if(resource==='vouchers'){const{error:lineError}=await client.from('voucher_lines').delete().eq('voucher_id',id);if(lineError)throw lineError;const{error}=await client.from('vouchers').delete().eq('id',id).eq('organization_id',organizationId);if(error)throw error;return{id}}
+  if(managedCrud[resource]){const config=managedCrud[resource];let query=client.from(config.table).delete().eq('id',id);if(config.organizationScoped)query=query.eq('organization_id',organizationId);const{error}=await query;if(error)throw error;return{id}}
   const masterTables: Record<string, string> = { parties: 'parties', warehouses: 'warehouses', accounts: 'chart_of_accounts', items: 'items', series: 'document_series', 'communication-blocks': 'communication_blocks' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { error } = await client.from(masterTables[resource]).delete().eq('id', id).eq('organization_id', organizationId); if (error) throw error

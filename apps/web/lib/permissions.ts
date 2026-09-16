@@ -2,7 +2,7 @@ export type ErpRole = 'admin' | 'manager' | 'operator'
 export type ErpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 const masters = new Set(['parties', 'items', 'item-batches', 'manufacturers', 'salts', 'hsn', 'warehouses', 'accounts', 'series', 'communication-blocks', 'item-mappings'])
-const inventory = new Set(['stock', 'stock-movements', 'stock-transfers', 'breakages', 'reservations', 'inventory-adjustments'])
+const inventory = new Set(['stock', 'stock-movements', 'stock-transfers', 'breakages', 'reservations', 'inventory-adjustments', 'inventory-adjustment-records', 'inventory-adjustment-lines'])
 const accounting = new Set(['ledger', 'ledgers', 'vouchers', 'day-book', 'trial-balance', 'accounting-periods', 'reconciliation', 'purge-zero-transactions'])
 const compliance = new Set(['drug-licenses', 'product-recalls', 'controlled-drug-register'])
 const transactions = new Set(['sales', 'purchases', 'cancellations', 'challans', 'sale-returns', 'purchase-returns', 'orders', 'replacements', 'counter-sales', 'pendings', 'price-differences'])

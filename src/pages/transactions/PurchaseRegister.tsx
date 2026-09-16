@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
 
@@ -97,6 +97,19 @@ export default function PurchaseRegister() {
     setTimeout(() => {
       window.print()
     }, 150)
+  }
+
+  const cancelPurchase = async (invoice: PurchaseInv) => {
+    if (invoice.status === 'cancelled') return
+    if (!window.confirm(`Cancel ${invoice.challanNo}? Stock and accounting postings will be reversed.`)) return
+    try {
+      await deleteErp('purchases', invoice.id)
+      setPurchases((rows) => rows.map((row) => row.id === invoice.id ? { ...row, status: 'cancelled' } : row))
+      setSelected((current) => current?.id === invoice.id ? { ...current, status: 'cancelled' } : current)
+      addToast(`${invoice.challanNo} cancelled and reversed.`, 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not cancel purchase.', 'error')
+    }
   }
 
   // Open the in-place challan editor
@@ -241,11 +254,7 @@ export default function PurchaseRegister() {
     }
 
     try {
-      try {
-        await patchErp('purchases', editing.id, payload)
-      } catch {
-        await postErp('purchases', payload)
-      }
+      await patchErp('purchases', editing.id, { ...payload, reason: `Amended purchase ${editing.challanNo}` })
 
       setPurchases((prev) =>
         prev.map((p) =>
@@ -266,6 +275,7 @@ export default function PurchaseRegister() {
 
       addToast(`Challan ${editing.challanNo} modified successfully!`, 'success')
       setEditing(null)
+      window.setTimeout(() => window.location.reload(), 400)
     } catch (e: any) {
       addToast(e.message || 'Failed to update challan', 'error')
     } finally {
@@ -426,6 +436,15 @@ export default function PurchaseRegister() {
                         title="Print Goods Receipt Note"
                       >
                         <Printer size={15} />
+                      </button>
+                      <button
+                        aria-label={`Cancel ${s.challanNo}`}
+                        onClick={() => cancelPurchase(s)}
+                        disabled={s.status === 'cancelled'}
+                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Cancel and reverse purchase"
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>

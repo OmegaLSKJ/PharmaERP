@@ -5,7 +5,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
-import { getErp, postErp } from '../../lib/erpApi'
+import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { calculateInvoice } from '../../lib/invoiceCalculations'
 
@@ -270,17 +270,17 @@ export default function SaleEntry() {
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
       const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
       if (isEditMode && invoiceIdentifier) {
-        await postErp('sales', {
-          id: invoiceIdentifier,
+        await patchErp('sales', String(existingInvoice?.dbId || existingInvoice?.id || invoiceIdentifier), {
           party: customer,
+          date: existingInvoice?.date || new Date().toISOString().split('T')[0],
           lines,
           grandTotal: totals.grandTotal,
           patientName,
           prescriberName,
           prescriptionReference,
-          status: existingInvoice?.status || 'posted',
+          reason: `Amended invoice ${invoiceIdentifier}`,
         })
-        showToast(`Invoice ${invoiceIdentifier} updated successfully.`)
+        showToast(`Invoice ${invoiceIdentifier} was amended. The original was retained as cancelled for audit history.`)
         navigate('/transactions/sale')
       } else {
         const saved = await postErp<{ id: string }>('sales', {

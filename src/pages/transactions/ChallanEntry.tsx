@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Save, Truck, Trash2, Printer, Plus, Minus, Package, X } from 'lucide-react'
+import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp, postErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
@@ -9,6 +9,7 @@ import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 
 interface AvailableItem { name: string; batch: string; rate: number; stock: number }
 interface Line { id: string; name: string; batch: string; qty: number; rate: number }
+interface SavedChallan { id: string; dbId: string; party: string; date: string; transport: string; status: string; lines: Line[] }
 
 export default function ChallanEntry() {
   const [availableItems, setAvailableItems] = useState<AvailableItem[]>([])
@@ -18,12 +19,14 @@ export default function ChallanEntry() {
   const [transport, setTransport] = useState('Surface')
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [savedChallans, setSavedChallans] = useState<SavedChallan[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
 
   useEffect(() => {
-    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
-      .then(([partyRows, productRows]) => {
+    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<SavedChallan[]>('challans')])
+      .then(([partyRows, productRows, challanRows]) => {
         setParties(partyRows.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => p.name))
         setAvailableItems(
           productRows.flatMap((p) =>
@@ -35,6 +38,7 @@ export default function ChallanEntry() {
             }))
           )
         )
+        setSavedChallans(challanRows || [])
       })
       .catch((e) => showToast(e.message))
   }, [showToast])
@@ -60,14 +64,42 @@ export default function ChallanEntry() {
   const saveChallan = async () => {
     try {
       setSaving(true)
-      const saved = await postErp<{ id: string }>('challans', { party, transport, lines })
-      showToast(`Challan ${saved.id} saved.`)
+      const payload = { party, transport, lines, date: new Date().toISOString().split('T')[0] }
+      if (editingId) {
+        await patchErp('challans', editingId, payload)
+        showToast('Challan updated.')
+      } else {
+        const saved = await postErp<{ id: string }>('challans', payload)
+        showToast(`Challan ${saved.id} saved.`)
+      }
       incrementLedgerVersion()
       setLines([])
+      setParty('')
+      setEditingId(null)
+      setSavedChallans(await getErp<SavedChallan[]>('challans'))
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save challan.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const editChallan = (challan: SavedChallan) => {
+    setEditingId(challan.dbId)
+    setParty(challan.party)
+    setTransport(challan.transport || 'Surface')
+    setLines(challan.lines || [])
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const removeChallan = async (challan: SavedChallan) => {
+    if (!window.confirm(`Delete challan ${challan.id}?`)) return
+    try {
+      await deleteErp('challans', challan.dbId)
+      setSavedChallans((rows) => rows.filter((row) => row.dbId !== challan.dbId))
+      showToast(`Challan ${challan.id} deleted.`)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not delete challan.')
     }
   }
 
@@ -244,6 +276,22 @@ export default function ChallanEntry() {
           </div>
         </div>
       )}
+
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <div className="px-4 py-3 border-b border-slate-800"><h2 className="text-sm font-semibold text-white">Saved Challans</h2></div>
+        <table className="min-w-[620px] w-full text-xs">
+          <thead className="text-slate-400 bg-slate-900/80"><tr><th className="text-left px-4 py-3">Number</th><th className="text-left px-4 py-3">Party</th><th className="text-left px-4 py-3">Date</th><th className="text-left px-4 py-3">Transport</th><th className="text-right px-4 py-3">Actions</th></tr></thead>
+          <tbody className="divide-y divide-slate-800">
+            {savedChallans.map((challan) => (
+              <tr key={challan.dbId} className="text-slate-300 hover:bg-slate-800/40">
+                <td className="px-4 py-3 font-mono text-cyan-400">{challan.id}</td><td className="px-4 py-3">{challan.party}</td><td className="px-4 py-3">{challan.date}</td><td className="px-4 py-3">{challan.transport}</td>
+                <td className="px-4 py-3"><div className="flex justify-end gap-1"><button onClick={() => editChallan(challan)} className="p-1.5 text-amber-400 hover:bg-slate-800 rounded" aria-label={`Edit ${challan.id}`}><Edit3 size={14}/></button><button onClick={() => removeChallan(challan)} className="p-1.5 text-rose-400 hover:bg-slate-800 rounded" aria-label={`Delete ${challan.id}`}><Trash2 size={14}/></button></div></td>
+              </tr>
+            ))}
+            {!savedChallans.length && <tr><td colSpan={5} className="p-6 text-center text-slate-500">No challans saved yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
 
       {/* Sticky Bottom Action Bar for Mobile */}
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 shadow-2xl">

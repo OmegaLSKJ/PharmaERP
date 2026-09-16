@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Plus, Hash, Save } from 'lucide-react'
+import { Plus, Hash, Save, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
-import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
 interface Series { id:string; doc:string; prefix:string; suffix:string; nextNo:number; padding:number; fyReset:boolean; active:boolean }
@@ -15,6 +15,7 @@ export default function SeriesMaster() {
   const update = (id:string, field:keyof Series, value:any) => setSeries(series.map(s=>s.id===id?{...s,[field]:value}:s))
   const preview = (s:Series) => `${s.prefix}${String(s.nextNo).padStart(s.padding,'0')}${s.suffix}`
   const saveAll = async () => { setSaving(true); try { const saved = await Promise.all(series.map((s) => s.id.startsWith('new-') ? postErp<Series>('series', s) : patchErp<Series>('series', s.id, s).then(() => s))); setSeries(saved); addToast('Document series saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save series', 'error') } finally { setSaving(false) } }
+  const removeSeries=async(s:Series)=>{if(!window.confirm(`Delete numbering series for ${s.doc}?`))return;if(s.id.startsWith('new-')){setSeries((rows)=>rows.filter((row)=>row.id!==s.id));return}try{await deleteErp('series',s.id);setSeries((rows)=>rows.filter((row)=>row.id!==s.id));addToast('Series deleted','success')}catch(error){addToast(error instanceof Error?error.message:'Unable to delete series','error')}}
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -27,7 +28,7 @@ export default function SeriesMaster() {
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm"><table className="min-w-[700px] w-full text-xs">
         <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-          <th className="text-left px-4 py-3 font-medium">Document</th><th className="text-left px-4 py-3 font-medium">Prefix</th><th className="text-right px-4 py-3 font-medium">Next No.</th><th className="text-right px-4 py-3 font-medium">Padding</th><th className="text-left px-4 py-3 font-medium">Suffix</th><th className="text-center px-4 py-3 font-medium">FY Reset</th><th className="text-center px-4 py-3 font-medium">Active</th><th className="text-left px-4 py-3 font-medium">Live Preview</th>
+          <th className="text-left px-4 py-3 font-medium">Document</th><th className="text-left px-4 py-3 font-medium">Prefix</th><th className="text-right px-4 py-3 font-medium">Next No.</th><th className="text-right px-4 py-3 font-medium">Padding</th><th className="text-left px-4 py-3 font-medium">Suffix</th><th className="text-center px-4 py-3 font-medium">FY Reset</th><th className="text-center px-4 py-3 font-medium">Active</th><th className="text-left px-4 py-3 font-medium">Live Preview</th><th></th>
         </tr></thead>
         <tbody className="divide-y divide-slate-800 text-slate-300">
           {series.map(s=>(<tr key={s.id} className={cn('hover:bg-slate-900/30',!s.active&&'opacity-40')}>
@@ -39,6 +40,7 @@ export default function SeriesMaster() {
             <td className="px-4 py-3 text-center"><input type="checkbox" checked={s.fyReset} onChange={e=>update(s.id,'fyReset',e.target.checked)} className="accent-indigo-600"/></td>
             <td className="px-4 py-3 text-center"><button onClick={()=>update(s.id,'active',!s.active)} className={cn('px-2 py-0.5 rounded text-[10px] font-semibold',s.active?'bg-emerald-500/10 text-emerald-400':'bg-slate-700/50 text-slate-400')}>{s.active?'ON':'OFF'}</button></td>
             <td className="px-4 py-3 font-mono font-bold text-indigo-400">{preview(s)}</td>
+            <td className="px-4 py-3"><button aria-label={`Delete ${s.doc}`} onClick={()=>removeSeries(s)} className="p-1 text-slate-400 hover:text-rose-400"><Trash2 size={14}/></button></td>
           </tr>))}
         </tbody></table></div>
     </div>

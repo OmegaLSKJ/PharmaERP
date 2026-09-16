@@ -23,10 +23,11 @@ import {
   TrendingUp,
   CreditCard,
   Building2,
-  UserCheck
+  UserCheck,
+  Edit3
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp, postErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import VoucherPrint, { VoucherPrintData } from '../../components/accounting/VoucherPrint'
 
@@ -114,6 +115,7 @@ export default function VoucherEntry() {
   const [recentVouchers, setRecentVouchers] = useState<SavedVoucher[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null)
 
   // ── Print Modal State ─────────────────────────────────────────
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -462,26 +464,15 @@ export default function VoucherEntry() {
         lines: finalLines
       }
 
-      const saved = await postErp<{ id: string }>('vouchers', payload)
+      const saved = editingVoucherId
+        ? await patchErp<{ id?: string }>('vouchers', editingVoucherId, payload)
+        : await postErp<{ id: string }>('vouchers', payload)
       const savedNumber = saved?.id || vNo
 
       showToast(`✓ ${vType} Voucher ${savedNumber} posted successfully! (${formatCurrency(finalTotal)})`)
       incrementLedgerVersion()
 
-      // Add to recent vouchers
-      setRecentVouchers((prev) => [
-        {
-          id: savedNumber,
-          number: savedNumber,
-          type: vType,
-          party: primaryPartyName,
-          date: vDate,
-          total: finalTotal,
-          narration: payload.narration,
-          lines: finalLines
-        },
-        ...prev.slice(0, 9)
-      ])
+      await loadMasterData()
 
       // Reset form
       setAmount('')
@@ -491,12 +482,37 @@ export default function VoucherEntry() {
       setLines([])
       setMultiNarration('')
       setVNo(generateVoucherNo())
+      setEditingVoucherId(null)
     } catch (err: any) {
       console.error('Error saving voucher:', err)
       setVNo(generateVoucherNo())
       showToast(err.message || 'Could not save voucher.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const editVoucher = (voucher: SavedVoucher) => {
+    setEditingVoucherId(voucher.id)
+    setActiveTab('multiline')
+    setVNo(voucher.number || voucher.voucher_number || voucher.id)
+    setVDate(voucher.date || voucher.voucher_date || new Date().toISOString().slice(0, 10))
+    setVType(((voucher.type || voucher.voucher_type || 'Journal').replace(/^./, (c) => c.toUpperCase())) as typeof vType)
+    setMultiNarration(voucher.narration || '')
+    setLines((voucher.lines || []).map((line, index) => ({ ...line, id: line.id || `voucher-line-${index}` })))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const removeVoucher = async (voucher: SavedVoucher) => {
+    const number = voucher.number || voucher.voucher_number || voucher.id
+    if (!window.confirm(`Delete voucher ${number}? This is only allowed for vouchers without protected downstream references.`)) return
+    try {
+      await deleteErp('vouchers', voucher.id)
+      setRecentVouchers((rows) => rows.filter((row) => row.id !== voucher.id))
+      showToast(`Voucher ${number} deleted.`)
+      incrementLedgerVersion()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not delete voucher.')
     }
   }
 
@@ -1375,7 +1391,7 @@ export default function VoucherEntry() {
                   <th className="text-left px-3 py-2.5 font-semibold">Party / Account</th>
                   <th className="text-right px-3 py-2.5 font-semibold">Amount (₹)</th>
                   <th className="text-center px-3 py-2.5 font-semibold">Status</th>
-                  <th className="text-center px-3 py-2.5 font-semibold w-16">Action</th>
+                  <th className="text-center px-3 py-2.5 font-semibold w-28">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -1417,6 +1433,7 @@ export default function VoucherEntry() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleOpenPrint(v)}
@@ -1425,6 +1442,9 @@ export default function VoucherEntry() {
                         >
                           <Printer size={14} />
                         </button>
+                        <button type="button" onClick={() => editVoucher(v)} className="p-1 rounded text-amber-400 hover:bg-slate-800 transition" title="Edit voucher"><Edit3 size={14}/></button>
+                        <button type="button" onClick={() => removeVoucher(v)} className="p-1 rounded text-rose-400 hover:bg-slate-800 transition" title="Delete voucher"><Trash2 size={14}/></button>
+                        </div>
                       </td>
                     </tr>
                   )

@@ -13,10 +13,11 @@ import {
   Layers,
   Receipt,
   Download,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp } from '../../lib/erpApi'
+import { deleteErp, getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -112,6 +113,20 @@ export default function SaleRegister() {
   const editInvoice = (invoiceNo: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     navigate(`/transactions/sale/edit/${encodeURIComponent(invoiceNo)}`)
+  }
+
+  const cancelInvoice = async (sale: SaleInv, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (sale.status === 'cancelled') return
+    if (!window.confirm(`Cancel ${sale.invoiceNo}? Stock and accounting postings will be reversed and the audit record retained.`)) return
+    try {
+      await deleteErp('sales', sale.id)
+      setSales((rows) => rows.map((row) => row.id === sale.id ? { ...row, status: 'cancelled' } : row))
+      setSelected((current) => current?.id === sale.id ? { ...current, status: 'cancelled' } : current)
+      addToast(`${sale.invoiceNo} cancelled and reversed.`, 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not cancel invoice.', 'error')
+    }
   }
 
   const getPrintDataForSelected = (s: SaleInv): TaxInvoicePrintData => {
@@ -306,6 +321,15 @@ export default function SaleRegister() {
                       >
                         <Printer size={14} />
                       </button>
+                      <button
+                        aria-label={`Cancel ${s.invoiceNo}`}
+                        onClick={(e) => cancelInvoice(s, e)}
+                        disabled={s.status === 'cancelled'}
+                        title="Cancel and reverse invoice"
+                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -400,6 +424,14 @@ export default function SaleRegister() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-md transition"
               >
                 <Edit2 size={14} /> Edit Invoice <ArrowRight size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelInvoice(selected)}
+                disabled={selected.status === 'cancelled'}
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 size={14} /> Cancel Invoice
               </button>
             </div>
           </div>
