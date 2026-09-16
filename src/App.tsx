@@ -62,6 +62,7 @@ import ProfitLoss from './pages/reports/ProfitLoss'
 import BalanceSheet from './pages/reports/BalanceSheet'
 import RatioAnalysis from './pages/reports/RatioAnalysis'
 import CashFlow from './pages/reports/CashFlow'
+import AccountsReports from './pages/reports/AccountsReports'
 import FastSlowMoving from './pages/reports/FastSlowMoving'
 import SettingsPage from './pages/settings/SettingsPage'
 import CrudTablePage from './pages/admin/CrudTablePage'
@@ -168,6 +169,7 @@ export default function App() {
           <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
           <Route path="/reports/ratio" element={<RatioAnalysis />} />
           <Route path="/reports/cash-flow" element={<CashFlow />} />
+          <Route path="/reports/accounts" element={<AccountsReports />} />
           <Route path="/reports/financial" element={<FinancialReports />} />
           <Route path="/delivery" element={<DeliveryManagement />} />
           <Route path="/pricing" element={<PricingSchemes />} />

@@ -129,6 +129,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { label: 'Balance Sheet', path: '/reports/balance-sheet', icon: <Landmark size={16} /> },
       { label: 'Ratio Analysis', path: '/reports/ratio', icon: <Activity size={16} /> },
       { label: 'Cash Flow', path: '/reports/cash-flow', icon: <IndianRupee size={16} /> },
+      { label: 'Accounts Report Centre', path: '/reports/accounts', icon: <Landmark size={16} /> },
       { label: 'Financial Hub', path: '/reports/financial', icon: <FileText size={16} /> },
     ],
   },
