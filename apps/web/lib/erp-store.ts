@@ -190,6 +190,32 @@ try {
   // Silent catch — first run or corrupted file
 }
 
+// Load persisted stock deltas and re-apply them on top of the base mock-stock-data
+try {
+  const rootDelta = path.resolve(process.cwd(), 'apps/web/lib/mock-stock-delta.json')
+  const localDelta = path.resolve(process.cwd(), 'lib/mock-stock-delta.json')
+  const deltaPath = fs.existsSync(rootDelta) ? rootDelta : fs.existsSync(localDelta) ? localDelta : null
+  if (deltaPath) {
+    const delta: Record<string, number> = JSON.parse(fs.readFileSync(deltaPath, 'utf8'))
+    for (const item of (mockStore.items || [])) {
+      for (const batch of (item.batches || [])) {
+        const key = `${item.id}|${batch.id || batch.batch}`
+        if (Object.prototype.hasOwnProperty.call(delta, key)) {
+          const adj = delta[key]
+          batch._baseMockStock = Number(batch.stock) || 0
+          batch.stock = Math.max(0, batch._baseMockStock + adj)
+          if (!batch.stockByLocation) batch.stockByLocation = {}
+          const loc = 'Main Warehouse'
+          batch.stockByLocation[loc] = Math.max(0, (Number(batch.stockByLocation[loc]) || 0) + adj)
+          item.stock = (item.batches || []).reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
+        }
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch — delta file may not exist yet
+}
+
 function persistCustomParty(party: any) {
   try {
     const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-parties.json')
@@ -234,6 +260,74 @@ function persistTransactions() {
   } catch (err) {
     console.warn('Failed to persist transactions to disk:', err)
   }
+}
+
+/**
+ * Persist stock quantity deltas to disk so they survive Next.js worker restarts.
+ * Format: Record<"itemId|batchId", cumulativeDelta>
+ */
+function persistStockDelta() {
+  try {
+    const delta: Record<string, number> = {}
+    for (const item of (mockStore.items || [])) {
+      for (const batch of (item.batches || [])) {
+        const key = `${item.id}|${batch.id || batch.batch}`
+        // Store current stock minus the original base stock (0 for new batches)
+        if (typeof batch._baseMockStock === 'number' && batch.stock !== batch._baseMockStock) {
+          delta[key] = batch.stock - batch._baseMockStock
+        }
+      }
+    }
+    if (Object.keys(delta).length === 0) return
+    const rootPath = path.resolve(process.cwd(), 'apps/web/lib/mock-stock-delta.json')
+    const localPath = path.resolve(process.cwd(), 'lib/mock-stock-delta.json')
+    for (const target of [rootPath, localPath]) {
+      const dir = path.dirname(target)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(target, JSON.stringify(delta, null, 2), 'utf8')
+    }
+  } catch (err) {
+    console.warn('Failed to persist stock delta:', err)
+  }
+}
+
+/**
+ * Apply sale (deduct) or purchase (add) stock movement to mockStore.items.
+ * Matches by item name (case-insensitive) + batch number.
+ */
+function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
+  if (!Array.isArray(lines) || lines.length === 0) return
+  let changed = false
+  for (const line of lines) {
+    const qty = Number(line.qty || line.quantity || 0) + Number(line.free || line.freeQty || 0)
+    if (qty <= 0) continue
+    const delta = direction === 'deduct' ? -qty : qty
+    const lineName = (line.name || line.itemName || '').toLowerCase().trim()
+    const lineBatch = (line.batch || line.batchNumber || '').trim()
+    const item = (mockStore.items || []).find((i: any) =>
+      i.name && i.name.toLowerCase().trim() === lineName
+    )
+    if (!item) continue
+    // Update overall item stock
+    item.stock = Math.max(0, (Number(item.stock) || 0) + delta)
+    // Update batch-level stock
+    const batch = (item.batches || []).find((b: any) =>
+      !lineBatch || (b.batch || b.batchNumber || '').trim() === lineBatch
+    ) || (item.batches || [])[0]
+    if (batch) {
+      // Record base stock on first mutation so we can compute deltas
+      if (typeof batch._baseMockStock !== 'number') {
+        batch._baseMockStock = Number(batch.stock) || 0
+      }
+      batch.stock = Math.max(0, (Number(batch.stock) || 0) + delta)
+      // Mirror into stockByLocation for 'Main Warehouse'
+      if (!batch.stockByLocation) batch.stockByLocation = {}
+      const loc = 'Main Warehouse'
+      batch.stockByLocation[loc] = Math.max(0, (Number(batch.stockByLocation[loc]) || 0) + delta)
+    }
+    changed = true
+  }
+  if (changed) persistStockDelta()
 }
 
 function isValidUrl(urlString?: string): boolean {
@@ -1231,7 +1325,9 @@ export async function create(resource: string, body: any, actor: MutationActor =
       'communication-blocks': 'communication-blocks',
       sales: 'sales',
       purchases: 'purchases',
-      challans: 'challans'
+      challans: 'challans',
+      'debit-notes': 'debit-notes',
+      'credit-notes': 'credit-notes',
     }
     const storeKey = specialKeys[resource] || resource
     if (mockStore[storeKey]) {
@@ -1261,6 +1357,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
       mockStore[storeKey].unshift(doc)
       // Persist sales/purchases/challans so they survive across requests
       if (['sales', 'purchases', 'challans'].includes(storeKey)) persistTransactions()
+      // AUTO-SYNC STOCK: deduct on sale, add on purchase, reverse on notes
+      if (storeKey === 'sales') applyStockDelta(doc.lines || [], 'deduct')
+      if (storeKey === 'purchases') applyStockDelta(doc.lines || [], 'add')
+      if (storeKey === 'credit-notes') applyStockDelta(doc.lines || [], 'add')    // sale return: stock comes back
+      if (storeKey === 'debit-notes') applyStockDelta(doc.lines || [], 'deduct')  // purchase return: stock goes out
       return doc
     }
 
@@ -1609,6 +1710,66 @@ export async function create(resource: string, body: any, actor: MutationActor =
       return { ...body, id: inv.invoice_number, dbId: inv.id }
     }
   }
+  if (resource === 'debit-notes' || resource === 'credit-notes') {
+    const noteKind = resource === 'credit-notes' ? 'credit_note' : 'debit_note'
+    const notePrefix = resource === 'credit-notes' ? 'CN' : 'DN'
+    const noteDoc = {
+      ...body,
+      id: body.id || number(notePrefix),
+      date: body.date || date(),
+    }
+    try {
+      const { data, error } = await client.rpc('erp_post_note', {
+        p_kind: noteKind,
+        p_organization_id: organizationId,
+        p_financial_year_id: financialYearId,
+        p_document: noteDoc,
+        p_actor_auth_id: actor.id ?? null,
+        p_actor_email: actor.email ?? null,
+        p_request_id: actor.requestId ?? null,
+      })
+      if (error) throw error
+      return data
+    } catch (rpcError: any) {
+      console.warn(`erp_post_note ${noteKind} fallback to direct insert:`, rpcError)
+      // Fallback: save the note document and manually reverse stock movements
+      const docNumber = noteDoc.id
+      const docTotal = Number(body.total ?? body.grandTotal ?? 0)
+      const partyId = body.party ? await party(client, organizationId, body.party, noteKind === 'credit_note' ? 'customer' : 'supplier') : null
+      const { data: doc, error: docError } = await client.from('business_documents').insert({
+        organization_id: organizationId,
+        document_type: noteKind === 'credit_note' ? 'sale_return' : 'purchase_return',
+        document_number: docNumber,
+        document_date: noteDoc.date,
+        party_id: partyId,
+        status: 'posted',
+        total: docTotal,
+        details: body,
+      }).select('id').single()
+      if (docError) throw new Error(rpcError?.message || docError.message || `Could not save ${resource}.`)
+      // Reverse stock for each line
+      for (const line of (body.lines || []) as Line[]) {
+        try {
+          const s = await stock(client, organizationId, line)
+          const reverseQty = noteKind === 'credit_note'
+            ? Math.abs(+line.qty + +(line.freeQty ?? 0))   // sale return: stock comes back
+            : -Math.abs(+line.qty + +(line.freeQty ?? 0))  // purchase return: stock goes out
+          await client.from('stock_movements').insert({
+            organization_id: organizationId,
+            item_batch_id: s.batchId,
+            warehouse_id: s.warehouseId,
+            movement_type: noteKind === 'credit_note' ? 'sale_return' : 'purchase_return',
+            quantity: reverseQty,
+            source_type: noteKind,
+            source_id: doc.id,
+          })
+        } catch (stockErr) {
+          console.warn('Stock reversal failed for line:', line.name, stockErr)
+        }
+      }
+      return { ...body, id: docNumber, dbId: doc.id, status: 'posted' }
+    }
+  }
   if (resource === 'challans') {
     if (!body.party || !body.lines?.length) throw new Error('Party and at least one challan line are required.')
     const challanNumber = body.id || number('CH'), challanDate = body.date || date(), partyId = await party(client, organizationId, body.party)
@@ -1616,6 +1777,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
     for (const line of body.lines as Line[]) { const s = await stock(client, organizationId, line); const { error: lineError } = await client.from('delivery_challan_lines').insert({ challan_id: challan.id, item_batch_id: s.batchId, quantity: +line.qty }); if (lineError) throw lineError }
     return { id: challanNumber, party: body.party, transport: body.transport ?? '', date: challanDate, lines: body.lines }
   }
+
   if (resource === 'vouchers') {
     let vLines = Array.isArray(body.lines) ? [...body.lines] : []
     const rawAmt = Number(body.amount ?? body.total ?? 0)
