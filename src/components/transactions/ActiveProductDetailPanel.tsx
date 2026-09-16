@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { cn, formatCurrency } from '../../lib/utils'
+import { getErp } from '../../lib/erpApi'
 
 export interface ActiveProductDetail {
+  id?: string
+  batchId?: string
   name: string
   packing?: string
   manufacturer?: string
@@ -96,6 +99,8 @@ export default function ActiveProductDetailPanel({
 }: ActiveProductDetailPanelProps) {
   const hasBillSummary = Boolean(billSummary)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [liveDetail, setLiveDetail] = useState<ActiveProductDetail | null>(null)
+  const [liveError, setLiveError] = useState('')
   const initialized = useRef(false)
   const previousKey = useRef('')
   const productKey = activeProduct ? `${activeProduct.name}|${activeProduct.batch || ''}` : ''
@@ -109,8 +114,25 @@ export default function ActiveProductDetailPanel({
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [])
+  useEffect(() => {
+    if (!detailOpen || !activeProduct) { setLiveDetail(null); setLiveError(''); return }
+    let current = true
+    const refresh = async () => {
+      try {
+        const detail = await getErp<ActiveProductDetail>('product-detail', {
+          ...(activeProduct.id ? { itemId: activeProduct.id } : { itemName: activeProduct.name }),
+          ...(activeProduct.batchId ? { batchId: activeProduct.batchId } : activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
+        })
+        if (current) { setLiveDetail(detail); setLiveError('') }
+      } catch (error) { if (current) setLiveError(error instanceof Error ? error.message : 'Live product details could not be loaded.') }
+    }
+    void refresh()
+    const timer = window.setInterval(() => void refresh(), 15_000)
+    return () => { current = false; window.clearInterval(timer) }
+  }, [detailOpen, activeProduct?.id, activeProduct?.name, activeProduct?.batchId, activeProduct?.batch])
+  const displayedProduct = liveDetail ? { ...activeProduct, ...liveDetail } : activeProduct
   const money = (value?: number) => typeof value === 'number' && Number.isFinite(value) ? `₹${value.toFixed(2)}` : '—'
-  const margins = calculateRateMargins(activeProduct || {})
+  const margins = calculateRateMargins(displayedProduct || {})
 
   return (
     <div className={cn('border-t border-slate-300 dark:border-slate-800 pt-3', className)}>
@@ -321,22 +343,23 @@ export default function ActiveProductDetailPanel({
           </div>
         )}
       </div>
-      {detailOpen && activeProduct && (
+      {detailOpen && displayedProduct && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm" role="presentation" onMouseDown={() => setDetailOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-label={`${activeProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-600 bg-slate-50 text-slate-900 shadow-2xl dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
+          <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-600 bg-slate-50 text-slate-900 shadow-2xl dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
             <header className="flex items-start justify-between gap-4 border-b border-slate-300 bg-emerald-950 px-5 py-3 text-emerald-50 dark:border-slate-700">
-              <div><p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-200">Batch detail window</p><h2 className="mt-1 font-mono text-lg font-bold">{activeProduct.name}</h2></div>
+              <div><p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-200">Batch detail window · live refresh every 15 seconds</p><h2 className="mt-1 font-mono text-lg font-bold">{displayedProduct.name}</h2></div>
               <button type="button" onClick={() => setDetailOpen(false)} className="rounded border border-emerald-600 px-3 py-1.5 text-xs font-semibold hover:bg-emerald-800">Close</button>
             </header>
             <div className="grid gap-px bg-slate-300 text-xs dark:bg-slate-700 md:grid-cols-2">
-              <Detail label="HSN / SAC" value={activeProduct.hsn} /><Detail label="GST" value={typeof activeProduct.gstRate === 'number' ? `${activeProduct.gstRate}% (CGST ${activeProduct.gstRate / 2}% + SGST ${activeProduct.gstRate / 2}%)` : undefined} />
-              <Detail label="Batch" value={activeProduct.batch} /><Detail label="Expiry" value={formatDisplayExpiry(activeProduct.expiry)} />
-              <Detail label="Stock" value={typeof activeProduct.stock === 'number' ? `${activeProduct.stock} units` : undefined} /><Detail label="Rack / Location" value={activeProduct.location} />
-              <Detail label="Purchase rate" value={money(activeProduct.purchaseRate)} /><Detail label="Cost price" value={money(activeProduct.costPrice)} />
-              <Detail label="Purchase scheme" value={scheme(activeProduct.purchaseSchemeDeal, activeProduct.purchaseSchemeFree)} /><Detail label="Sales scheme" value={scheme(activeProduct.salesSchemeDeal, activeProduct.salesSchemeFree)} />
-              <Detail label="MRP" value={money(activeProduct.mrp)} /><Detail label="Sale price" value={money(activeProduct.saleRate)} />
-              <Detail label="Supplier invoice" value={activeProduct.refNo} /><Detail label="Invoice date" value={activeProduct.date} />
+              <Detail label="HSN / SAC" value={displayedProduct.hsn} /><Detail label="GST" value={typeof displayedProduct.gstRate === 'number' ? `${displayedProduct.gstRate}% (CGST ${displayedProduct.gstRate / 2}% + SGST ${displayedProduct.gstRate / 2}%)` : undefined} />
+              <Detail label="Batch" value={displayedProduct.batch} /><Detail label="Expiry" value={formatDisplayExpiry(displayedProduct.expiry)} />
+              <Detail label="Stock" value={typeof displayedProduct.stock === 'number' ? `${displayedProduct.stock} units` : undefined} /><Detail label="Rack / Location" value={displayedProduct.location} />
+              <Detail label="Purchase rate" value={money(displayedProduct.purchaseRate)} /><Detail label="Cost price" value={money(displayedProduct.costPrice)} />
+              <Detail label="Purchase scheme" value={scheme(displayedProduct.purchaseSchemeDeal, displayedProduct.purchaseSchemeFree)} /><Detail label="Sales scheme" value={scheme(displayedProduct.salesSchemeDeal, displayedProduct.salesSchemeFree)} />
+              <Detail label="MRP" value={money(displayedProduct.mrp)} /><Detail label="Sale price" value={money(displayedProduct.saleRate)} />
+              <Detail label="Supplier invoice" value={displayedProduct.refNo} /><Detail label="Invoice date" value={displayedProduct.date} />
             </div>
+            {liveError && <p className="border-t border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">{liveError}</p>}
             <section className="border-t border-slate-300 p-4 dark:border-slate-700"><h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-slate-500">Rate and margin comparison</h3><div className="mt-3 grid gap-3 sm:grid-cols-3"><Margin label="MRP vs sale" value={margins.mrpVsSale} /><Margin label="MRP vs purchase" value={margins.mrpVsPurchase} /><Margin label="Sale vs cost" value={margins.saleVsCost} /></div></section>
           </section>
         </div>
