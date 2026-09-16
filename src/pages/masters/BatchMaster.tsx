@@ -68,6 +68,8 @@ export default function BatchMaster() {
           activeBatch
             ? {
                 name: activeBatch.itemName,
+                id: activeBatch.itemId,
+                batchId: activeBatch.id,
                 batch: activeBatch.batchNumber,
                 expiry: activeBatch.expiryOn,
                 stock: activeBatch.stock,

@@ -462,6 +462,7 @@ export default function ItemList() {
           activeItem
             ? {
                 name: activeItem.name,
+                id: activeItem.id,
                 packing: activeItem.packing,
                 manufacturer: activeItem.manufacturer,
                 salt: activeItem.salt,
