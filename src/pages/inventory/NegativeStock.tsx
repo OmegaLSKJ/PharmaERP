@@ -20,6 +20,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 export interface NegativeStockRow {
   id: string
@@ -42,6 +43,7 @@ export default function NegativeStock() {
   const [data, setData] = useState<NegativeStockRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [itemsList, setItemsList] = useState<any[]>([])
   const [showAdjustModal, setShowAdjustModal] = useState(false)
   const [targetRow, setTargetRow] = useState<NegativeStockRow | null>(null)
@@ -170,6 +172,8 @@ export default function NegativeStock() {
         (d.cause && d.cause.toLowerCase().includes(q))
     )
   }, [data, search])
+
+  const activeRow = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
 
   // Key metrics
   const totalShortfallVal = filtered.reduce((a, d) => a + Math.abs(d.qty) * d.rate, 0)
@@ -387,8 +391,17 @@ export default function NegativeStock() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-foreground">
-              {filtered.map((d) => (
-                <tr key={d.id} className="hover:bg-secondary/20 transition-colors">
+              {filtered.map((d, idx) => (
+                <tr
+                  key={d.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={cn(
+                    'transition-colors cursor-pointer',
+                    idx === activeIndex
+                      ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-rose-500'
+                      : 'hover:bg-secondary/20'
+                  )}
+                >
                   <td className="px-4 py-3 font-semibold text-foreground">
                     <div>{d.name}</div>
                     {d.packing && (
@@ -413,7 +426,7 @@ export default function NegativeStock() {
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => navigate('/transactions/purchase/new')}
-                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition"
+                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
                         title="Inward Missing Stock via Purchase Entry"
                       >
                         <Truck size={13} />
@@ -432,6 +445,37 @@ export default function NegativeStock() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Marg ERP Style Inspection Panel for Negative Stock */}
+      {filtered.length > 0 && (
+        <ActiveProductDetailPanel
+          activeProduct={
+            activeRow
+              ? {
+                  name: activeRow.name,
+                  packing: activeRow.packing,
+                  batch: activeRow.batch,
+                  location: activeRow.location,
+                  stock: activeRow.qty,
+                  purchaseRate: activeRow.rate,
+                  mrp: activeRow.mrp,
+                  saleRate: activeRow.mrp || activeRow.rate,
+                  category: activeRow.cause || 'Shortfall',
+                }
+              : null
+          }
+          billSummary={{
+            title: 'Shortfall Valuation',
+            partyLabel: 'Reconciliation',
+            partyName: `${locationsCount} Locations Affected`,
+            valueOfGoods: totalShortfallVal,
+            grandTotal: totalShortfallVal,
+          }}
+          totalRows={filtered.length}
+          activeIndex={activeIndex}
+          emptyMessage="Select any negative stock row to inspect batch discrepancy details and shortage valuation."
+        />
       )}
 
       {/* Stock Reconciliation Adjustment Modal */}

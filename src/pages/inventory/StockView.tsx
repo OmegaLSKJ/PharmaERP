@@ -1,23 +1,63 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Download, Filter } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { useEffect } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 interface StockItem {
-  id: string; name: string; packing: string; manufacturer: string; batch: string;
-  expiry: string; mrp: number; purchaseRate: number; stock: number; location: string;
+  id: string
+  name: string
+  packing: string
+  manufacturer: string
+  salt: string
+  hsn: string
+  batch: string
+  expiry: string
+  mrp: number
+  saleRate: number
+  purchaseRate: number
+  stock: number
+  location: string
+  category?: string
 }
 
 export default function StockView() {
   const [stockData, setStockData] = useState<StockItem[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('all')
   const showToast = useUIStore((s) => s.showToast)
-  useEffect(() => { getErp<any[]>('items').then((items) => setStockData(items.flatMap((item) => (item.batches ?? []).map((batch: any) => ({ id: batch.id, name: item.name, packing: item.packing, manufacturer: item.manufacturer, batch: batch.batch, expiry: batch.expiry ?? '', mrp: batch.mrp || item.mrp, purchaseRate: item.purchaseRate, stock: batch.stock, location: 'Main Warehouse' }))))).catch((e) => showToast(e.message)) }, [showToast])
+
+  useEffect(() => {
+    getErp<any[]>('items')
+      .then((items) => {
+        const list = items.flatMap((item) =>
+          (item.batches ?? []).map((batch: any) => ({
+            id: batch.id || `${item.id}-${batch.batch}`,
+            name: item.name,
+            packing: item.packing || '',
+            manufacturer: item.manufacturer || item.company || '',
+            salt: item.salt || item.composition || '',
+            hsn: item.hsn || '',
+            batch: batch.batch,
+            expiry: batch.expiry ?? '',
+            mrp: batch.mrp || item.mrp || 0,
+            saleRate: item.saleRate || 0,
+            purchaseRate: item.purchaseRate || 0,
+            stock: batch.stock,
+            location: 'Main Warehouse',
+            category: item.category || '',
+          }))
+        )
+        setStockData(list)
+        if (list.length > 0) setActiveIndex(0)
+      })
+      .catch((e) => showToast(e.message))
+  }, [showToast])
+
   const locations = ['all', ...new Set(stockData.map((s) => s.location))]
 
   const filtered = stockData.filter((s) => {
@@ -28,6 +68,8 @@ export default function StockView() {
 
   const totalValue = filtered.reduce((sum, s) => sum + s.purchaseRate * s.stock, 0)
   const mrpValue = filtered.reduce((sum, s) => sum + s.mrp * s.stock, 0)
+
+  const activeStockItem = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
 
   return (
     <div className="p-6 space-y-4">
@@ -85,10 +127,18 @@ export default function StockView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
-              {filtered.map((item) => {
+              {filtered.map((item, idx) => {
                 const daysLeft = Math.ceil((new Date(item.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                const isActive = idx === activeIndex
                 return (
-                  <tr key={item.id} className="hover:bg-slate-900/30">
+                  <tr
+                    key={item.id}
+                    onClick={() => setActiveIndex(idx)}
+                    className={cn(
+                      'cursor-pointer transition-colors',
+                      isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-900/30'
+                    )}
+                  >
                     <td className="px-4 py-3 font-medium text-white">{item.name}</td>
                     <td className="px-4 py-3 text-slate-400">{item.packing}</td>
                     <td className="px-4 py-3 text-slate-400">{item.manufacturer}</td>
@@ -109,6 +159,40 @@ export default function StockView() {
           </table>
         </div>
       </div>
+
+      {/* Marg ERP Style Live Product Description & Batch Detail Panel */}
+      <ActiveProductDetailPanel
+        activeProduct={
+          activeStockItem
+            ? {
+                name: activeStockItem.name,
+                packing: activeStockItem.packing,
+                manufacturer: activeStockItem.manufacturer,
+                salt: activeStockItem.salt,
+                hsn: activeStockItem.hsn,
+                batch: activeStockItem.batch,
+                expiry: activeStockItem.expiry,
+                stock: activeStockItem.stock,
+                saleRate: activeStockItem.saleRate,
+                mrp: activeStockItem.mrp,
+                purchaseRate: activeStockItem.purchaseRate,
+                location: activeStockItem.location,
+                category: activeStockItem.category,
+              }
+            : null
+        }
+        billSummary={{
+          title: 'Inventory Valuation',
+          partyLabel: 'Location',
+          partyName: locationFilter === 'all' ? 'All Warehouses' : locationFilter,
+          mrpValue: mrpValue,
+          valueOfGoods: totalValue,
+          grandTotal: totalValue,
+        }}
+        totalRows={filtered.length}
+        activeIndex={activeIndex}
+        emptyMessage="Click any inventory batch above to inspect product composition, batch expiry, margin rates and stock location."
+      />
     </div>
   )
 }

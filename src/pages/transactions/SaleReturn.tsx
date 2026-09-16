@@ -5,6 +5,7 @@ import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 interface ReturnEntry {
   id: string
@@ -27,6 +28,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function SaleReturn() {
   const [returns, setReturns] = useState<ReturnEntry[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [showForm, setShowForm] = useState(false)
   const [party, setParty] = useState('')
   const [origInvoice, setOrigInvoice] = useState('')
@@ -63,6 +65,7 @@ export default function SaleReturn() {
   const filtered = returns.filter(
     (s) => s.party.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase())
   )
+  const activeReturn = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
   const totalVal = filtered.reduce((a, s) => a + s.total, 0)
 
   const saveReturn = async (e: React.FormEvent) => {
@@ -114,64 +117,92 @@ export default function SaleReturn() {
 
       {/* Mobile Card View */}
       <div className="space-y-3 block md:hidden">
-        {filtered.map((s) => (
-          <div key={s.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2.5 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="font-mono text-xs font-semibold text-indigo-400">{s.returnNo}</div>
-                <div className="font-semibold text-white text-sm mt-0.5">{s.party}</div>
+        {filtered.map((s, idx) => {
+          const isActive = idx === activeIndex
+          return (
+            <div
+              key={s.id}
+              onClick={() => setActiveIndex(idx)}
+              className={cn(
+                'bg-slate-900 border rounded-xl p-3.5 space-y-2.5 shadow-sm cursor-pointer transition',
+                isActive ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800'
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-mono text-xs font-semibold text-indigo-400">{s.returnNo}</div>
+                  <div className="font-semibold text-white text-sm mt-0.5">{s.party}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono font-bold text-rose-400 text-sm">{formatCurrency(s.total)}</div>
+                  <span className="text-[10px] text-slate-500 font-mono">{s.date}</span>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="font-mono font-bold text-rose-400 text-sm">{formatCurrency(s.total)}</div>
-                <span className="text-[10px] text-slate-500 font-mono">{s.date}</span>
+
+              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800 text-slate-400">
+                <div>Orig. Invoice: <span className="font-mono text-slate-300">{s.origInvoice || 'N/A'}</span></div>
+                <div>Items: <span className="font-mono text-white">{s.items}</span></div>
+              </div>
+
+              {s.reason && (
+                <div className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                  <span className="text-slate-500 font-medium">Reason: </span>{s.reason}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+                <select
+                  aria-label={`Change status of ${s.returnNo}`}
+                  value={s.status}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value
+                    try {
+                      await patchErp('sale-returns', s.id, { status: newStatus })
+                      showToast('Status updated successfully.')
+                      await load()
+                    } catch (err: any) {
+                      showToast(err.message || 'Failed to update status.')
+                    }
+                  }}
+                  className={cn(
+                    'px-2 py-1 rounded text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer',
+                    STATUS_STYLE[s.status]
+                  )}
+                >
+                  <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
+                  <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
+                  <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
+                </select>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    aria-label={`Print ${s.returnNo}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedReturn(s)
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                    title="View Credit Note"
+                  >
+                    <Eye size={15} />
+                  </button>
+                  <button
+                    aria-label={`Direct Print ${s.returnNo}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedReturn(s)
+                      setTimeout(() => window.print(), 100)
+                    }}
+                    className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                    title="Print Credit Note"
+                  >
+                    <Printer size={15} />
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800 text-slate-400">
-              <div>Orig. Invoice: <span className="font-mono text-slate-300">{s.origInvoice || 'N/A'}</span></div>
-              <div>Items: <span className="font-mono text-white">{s.items}</span></div>
-            </div>
-
-            {s.reason && (
-              <div className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                <span className="text-slate-500 font-medium">Reason: </span>{s.reason}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-1 border-t border-slate-800">
-              <select
-                aria-label={`Change status of ${s.returnNo}`}
-                value={s.status}
-                onChange={async (e) => {
-                  const newStatus = e.target.value
-                  try {
-                    await patchErp('sale-returns', s.id, { status: newStatus })
-                    showToast('Status updated successfully.')
-                    await load()
-                  } catch (err: any) {
-                    showToast(err.message || 'Failed to update status.')
-                  }
-                }}
-                className={cn(
-                  'px-2 py-1 rounded text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer',
-                  STATUS_STYLE[s.status]
-                )}
-              >
-                <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
-                <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
-              </select>
-
-              <button
-                aria-label={`Print ${s.returnNo}`}
-                onClick={() => window.print()}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              >
-                <Eye size={15} />
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Desktop Table View */}
@@ -187,58 +218,115 @@ export default function SaleReturn() {
               <th className="text-right px-4 py-3 font-medium">Total</th>
               <th className="text-left px-4 py-3 font-medium">Reason</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium"></th>
+              <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 text-slate-300">
-            {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-slate-900/30 transition">
-                <td className="px-4 py-3 font-mono text-white">{s.returnNo}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
-                <td className="px-4 py-3 font-medium text-white">{s.party}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{s.origInvoice}</td>
-                <td className="px-4 py-3 text-right">{s.items}</td>
-                <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
-                <td className="px-4 py-3 text-slate-400">{s.reason}</td>
-                <td className="px-4 py-3">
-                  <select
-                    aria-label={`Change status of ${s.returnNo}`}
-                    value={s.status}
-                    onChange={async (e) => {
-                      const newStatus = e.target.value
-                      try {
-                        await patchErp('sale-returns', s.id, { status: newStatus })
-                        showToast('Status updated successfully.')
-                        await load()
-                      } catch (err: any) {
-                        showToast(err.message || 'Failed to update status.')
-                      }
-                    }}
-                    className={cn(
-                      'px-2 py-0.5 rounded text-[10px] font-semibold capitalize border border-transparent bg-slate-950 text-white outline-none focus:border-indigo-500 cursor-pointer',
-                      STATUS_STYLE[s.status]
-                    )}
-                  >
-                    <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                    <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
-                    <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    aria-label={`Print ${s.returnNo}`}
-                    onClick={() => setSelectedReturn(s)}
-                    className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition"
-                    title="View & Print Credit Note"
-                  >
-                    <Eye size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((s, idx) => {
+              const isActive = idx === activeIndex
+              return (
+                <tr
+                  key={s.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={cn(
+                    'transition cursor-pointer',
+                    isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-900/30'
+                  )}
+                >
+                  <td className="px-4 py-3 font-mono text-white">{s.returnNo}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
+                  <td className="px-4 py-3 font-medium text-white">{s.party}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{s.origInvoice}</td>
+                  <td className="px-4 py-3 text-right">{s.items}</td>
+                  <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
+                  <td className="px-4 py-3 text-slate-400">{s.reason}</td>
+                  <td className="px-4 py-3">
+                    <select
+                      aria-label={`Change status of ${s.returnNo}`}
+                      value={s.status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value
+                        try {
+                          await patchErp('sale-returns', s.id, { status: newStatus })
+                          showToast('Status updated successfully.')
+                          await load()
+                        } catch (err: any) {
+                          showToast(err.message || 'Failed to update status.')
+                        }
+                      }}
+                      className={cn(
+                        'px-2 py-0.5 rounded text-[10px] font-semibold capitalize border border-transparent bg-slate-950 text-white outline-none focus:border-indigo-500 cursor-pointer',
+                        STATUS_STYLE[s.status]
+                      )}
+                    >
+                      <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
+                      <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
+                      <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        aria-label={`Print ${s.returnNo}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedReturn(s)
+                        }}
+                        className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                        title="View & Print Credit Note"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Direct print ${s.returnNo}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedReturn(s)
+                          setTimeout(() => window.print(), 100)
+                        }}
+                        className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                        title="Direct Print (Ctrl+P)"
+                      >
+                        <Printer size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Marg ERP Style Inspection Panel for Credit Notes / Returns */}
+      <ActiveProductDetailPanel
+        activeProduct={
+          activeReturn
+            ? {
+                name: `Credit Note: ${activeReturn.returnNo}`,
+                manufacturer: activeReturn.party,
+                refNo: activeReturn.origInvoice || 'N/A',
+                date: activeReturn.date,
+                category: activeReturn.reason || 'Sale Return',
+                saleRate: activeReturn.total,
+                mrp: activeReturn.total,
+                stock: activeReturn.items,
+              }
+            : null
+        }
+        billSummary={{
+          title: 'Credit Note Value',
+          partyLabel: 'Customer',
+          partyName: activeReturn?.party,
+          valueOfGoods: activeReturn?.total ?? 0,
+          grandTotal: activeReturn?.total ?? 0,
+        }}
+        totalRows={filtered.length}
+        activeIndex={activeIndex}
+        emptyMessage="Click any return record to inspect credit note values, customer details, and original invoice."
+      />
 
       {showForm && (
         <div className="no-print fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">

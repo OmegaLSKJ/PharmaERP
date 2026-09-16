@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Edit2, Plus, Save, Trash2, X } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { cn } from '../../lib/utils'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 type Item = { id: string; code: string; name: string }
 type Batch = { id: string; itemId: string; itemCode: string; itemName: string; batchNumber: string; expiryOn: string; receivedOn: string; manufacturedOn: string; mrp: number; costPrice: number; purchasePrice: number; salePrice: number; salesSchemeDeal: number; salesSchemeFree: number; purchaseSchemeDeal: number; purchaseSchemeFree: number; supplier: string; supplierInvoiceNumber: string; supplierInvoiceDate: string; rackNumber: string; sourceReportValue: number; stock: number }
@@ -16,11 +18,13 @@ export default function BatchMaster() {
   const [form, setForm] = useState<BatchForm>(empty)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [saving, setSaving] = useState(false)
   const showToast = useUIStore((state) => state.showToast)
   const load = () => Promise.all([getErp<Item[]>('items'), getErp<Batch[]>('item-batches')]).then(([itemRows, batchRows]) => { setItems(itemRows); setBatches(batchRows) }).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load batches.'))
   useEffect(() => { load() }, [showToast])
   const filtered = useMemo(() => { const term = search.trim().toLowerCase(); return term ? batches.filter((batch) => [batch.itemName, batch.itemCode, batch.batchNumber, batch.supplier, batch.rackNumber].some((value) => value.toLowerCase().includes(term))) : batches }, [batches, search])
+  const activeBatch = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
   const set = <K extends keyof BatchForm>(key: K, value: BatchForm[K]) => setForm((current) => ({ ...current, [key]: value }))
   const reset = () => { setForm(empty()); setEditingId(null) }
   const edit = (batch: Batch) => { setEditingId(batch.id); setForm({ itemId: batch.itemId, batchNumber: batch.batchNumber, expiryOn: batch.expiryOn, receivedOn: batch.receivedOn, manufacturedOn: batch.manufacturedOn, mrp: batch.mrp, costPrice: batch.costPrice, purchasePrice: batch.purchasePrice, salePrice: batch.salePrice, salesSchemeDeal: batch.salesSchemeDeal, salesSchemeFree: batch.salesSchemeFree, purchaseSchemeDeal: batch.purchaseSchemeDeal, purchaseSchemeFree: batch.purchaseSchemeFree, supplier: batch.supplier, supplierInvoiceNumber: batch.supplierInvoiceNumber, supplierInvoiceDate: batch.supplierInvoiceDate, rackNumber: batch.rackNumber, sourceReportValue: batch.sourceReportValue }); window.scrollTo({ top: 0, behavior: 'smooth' }) }
@@ -52,7 +56,43 @@ export default function BatchMaster() {
       <div className="flex items-end justify-end gap-3 lg:col-span-4"><button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm"><X size={16} /> Clear</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} /> {saving ? 'Saving…' : editingId ? 'Save batch' : 'Create batch'}</button></div>
     </form>
     <div className="flex max-w-md items-center gap-2 rounded-lg border border-input bg-background px-3 py-2"><input className="w-full bg-transparent text-sm outline-none" placeholder="Search item, batch, supplier or rack…" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-    <div className="overflow-x-auto rounded-xl border border-border"><table className="min-w-[1500px] w-full text-left text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr><th className="p-3">Item / batch</th><th className="p-3">Stock</th><th className="p-3">MFG / expiry</th><th className="p-3">Cost / purchase / sale / MRP</th><th className="p-3">Schemes</th><th className="p-3">Supplier invoice</th><th className="p-3">Rack</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>{filtered.map((batch) => <tr key={batch.id} className="border-t border-border"><td className="p-3"><div className="font-medium">{batch.itemName}</div><div className="font-mono text-xs text-muted-foreground">{batch.itemCode} · {batch.batchNumber}</div></td><td className="p-3 font-mono">{batch.stock}</td><td className="p-3 text-xs">{batch.manufacturedOn || '—'}<br />{batch.expiryOn || '—'}</td><td className="p-3 text-xs leading-6">{money(batch.costPrice)} / {money(batch.purchasePrice)} / {money(batch.salePrice)} / {money(batch.mrp)}</td><td className="p-3 text-xs">Sales {batch.salesSchemeDeal}+{batch.salesSchemeFree}<br />Purchase {batch.purchaseSchemeDeal}+{batch.purchaseSchemeFree}</td><td className="p-3 text-xs">{batch.supplier || '—'}<br />{batch.supplierInvoiceNumber || '—'} {batch.supplierInvoiceDate ? `· ${batch.supplierInvoiceDate}` : ''}</td><td className="p-3">{batch.rackNumber || '—'}</td><td className="p-3 text-right"><button aria-label={`Edit ${batch.batchNumber}`} onClick={() => edit(batch)} className="mr-2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"><Edit2 size={16} /></button><button aria-label={`Delete ${batch.batchNumber}`} onClick={() => remove(batch)} className="rounded p-1 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={16} /></button></td></tr>)}</tbody></table></div>
+    <div className="overflow-x-auto rounded-xl border border-border"><table className="min-w-[1500px] w-full text-left text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr><th className="p-3">Item / batch</th><th className="p-3">Stock</th><th className="p-3">MFG / expiry</th><th className="p-3">Cost / purchase / sale / MRP</th><th className="p-3">Schemes</th><th className="p-3">Supplier invoice</th><th className="p-3">Rack</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>{filtered.map((batch, idx) => {
+      const isActive = idx === activeIndex
+      return <tr key={batch.id} onClick={() => setActiveIndex(idx)} className={cn("border-t border-border cursor-pointer transition-colors", isActive ? "bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500" : "hover:bg-muted/30")}><td className="p-3"><div className="font-medium">{batch.itemName}</div><div className="font-mono text-xs text-muted-foreground">{batch.itemCode} · {batch.batchNumber}</div></td><td className="p-3 font-mono">{batch.stock}</td><td className="p-3 text-xs">{batch.manufacturedOn || '—'}<br />{batch.expiryOn || '—'}</td><td className="p-3 text-xs leading-6">{money(batch.costPrice)} / {money(batch.purchasePrice)} / {money(batch.salePrice)} / {money(batch.mrp)}</td><td className="p-3 text-xs">Sales {batch.salesSchemeDeal}+{batch.salesSchemeFree}<br />Purchase {batch.purchaseSchemeDeal}+{batch.purchaseSchemeFree}</td><td className="p-3 text-xs">{batch.supplier || '—'}<br />{batch.supplierInvoiceNumber || '—'} {batch.supplierInvoiceDate ? `· ${batch.supplierInvoiceDate}` : ''}</td><td className="p-3">{batch.rackNumber || '—'}</td><td className="p-3 text-right"><button aria-label={`Edit ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); edit(batch) }} className="mr-2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"><Edit2 size={16} /></button><button aria-label={`Delete ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); remove(batch) }} className="rounded p-1 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={16} /></button></td></tr>
+    })}</tbody></table></div>
+
+    {/* Marg ERP Style Inspection Panel for Batch Master */}
+    {filtered.length > 0 && (
+      <ActiveProductDetailPanel
+        activeProduct={
+          activeBatch
+            ? {
+                name: activeBatch.itemName,
+                batch: activeBatch.batchNumber,
+                expiry: activeBatch.expiryOn,
+                stock: activeBatch.stock,
+                saleRate: activeBatch.salePrice,
+                purchaseRate: activeBatch.purchasePrice,
+                mrp: activeBatch.mrp,
+                manufacturer: activeBatch.supplier,
+                location: activeBatch.rackNumber,
+                refNo: activeBatch.supplierInvoiceNumber,
+                date: activeBatch.supplierInvoiceDate,
+              }
+            : null
+        }
+        billSummary={{
+          title: 'Batch Valuation',
+          partyLabel: 'Supplier',
+          partyName: activeBatch?.supplier || 'All Suppliers',
+          valueOfGoods: filtered.reduce((s, b) => s + ((b.stock || 0) * (b.purchasePrice || 0)), 0),
+          grandTotal: filtered.reduce((s, b) => s + ((b.stock || 0) * (b.purchasePrice || 0)), 0),
+        }}
+        totalRows={filtered.length}
+        activeIndex={activeIndex}
+        emptyMessage="Click any batch row to inspect live rates, stock, schemes, expiry, and supplier details."
+      />
+    )}
   </div>
 }
 

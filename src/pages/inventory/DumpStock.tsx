@@ -20,6 +20,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, postErp } from '../../lib/erpApi'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 export interface DumpItem {
   id: string
@@ -47,6 +48,7 @@ export default function DumpStock() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'all' | 'expired' | 'dead' | 'breakage'>('all')
   const [search, setSearch] = useState('')
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [showModal, setShowModal] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
@@ -227,6 +229,8 @@ export default function DumpStock() {
       return matchTab && matchSearch
     })
   }, [dumpItems, tab, search])
+
+  const activeDumpItem = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
 
   // Metric totals
   const totalPurchaseLost = filtered.reduce((a, d) => a + d.qty * d.rate, 0)
@@ -498,8 +502,17 @@ export default function DumpStock() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-foreground">
-              {filtered.map((d) => (
-                <tr key={d.id} className="hover:bg-secondary/20 transition-colors">
+              {filtered.map((d, idx) => (
+                <tr
+                  key={d.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={cn(
+                    'transition-colors cursor-pointer',
+                    idx === activeIndex
+                      ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-amber-500'
+                      : 'hover:bg-secondary/20'
+                  )}
+                >
                   <td className="px-4 py-3 font-semibold text-foreground">
                     <div>{d.name}</div>
                     {d.packing && (
@@ -546,7 +559,7 @@ export default function DumpStock() {
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => navigate('/transactions/purchase-return')}
-                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition"
+                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
                         title="Return to Supplier via Debit Note"
                       >
                         <ExternalLink size={13} />
@@ -571,6 +584,39 @@ export default function DumpStock() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Marg ERP Style Inspection Panel for Dump Stock */}
+      {filtered.length > 0 && (
+        <ActiveProductDetailPanel
+          activeProduct={
+            activeDumpItem
+              ? {
+                  name: activeDumpItem.name,
+                  packing: activeDumpItem.packing,
+                  batch: activeDumpItem.batch,
+                  expiry: activeDumpItem.expiry,
+                  category: activeDumpItem.category.toUpperCase(),
+                  stock: activeDumpItem.qty,
+                  purchaseRate: activeDumpItem.rate,
+                  mrp: activeDumpItem.mrp,
+                  saleRate: activeDumpItem.rate,
+                  refNo: activeDumpItem.reason,
+                }
+              : null
+          }
+          billSummary={{
+            title: 'Dump Stock Loss Valuation',
+            partyLabel: 'Category',
+            partyName: tab.toUpperCase(),
+            mrpValue: totalMrpLost,
+            valueOfGoods: totalPurchaseLost,
+            grandTotal: totalPurchaseLost,
+          }}
+          totalRows={filtered.length}
+          activeIndex={activeIndex}
+          emptyMessage="Select any dump, expired, or breakage item to inspect batch shelf-life and loss valuation."
+        />
       )}
 
       {/* Manual Flag Modal */}

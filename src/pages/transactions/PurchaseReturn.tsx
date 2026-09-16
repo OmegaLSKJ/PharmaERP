@@ -4,6 +4,8 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import PrintHeader from '../../components/layout/PrintHeader'
 
 interface ReturnEntry {
   id: string
@@ -24,6 +26,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function PurchaseReturn() {
   const [returns, setReturns] = useState<ReturnEntry[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [showForm, setShowForm] = useState(false)
   const [supplier, setSupplier] = useState('')
   const [origChallan, setOrigChallan] = useState('')
@@ -109,140 +112,198 @@ export default function PurchaseReturn() {
     grandTotal: r.total,
   })
 
+  const activeReturn = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
+  const totalVal = filtered.reduce((acc, s) => acc + s.total, 0)
+
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
-      {/* Screen Interactive UI (Hidden during print) */}
+      {/* Screen List (Hidden when printing) */}
       <div className="no-print space-y-4">
+        <PrintHeader title="Purchase Returns" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Purchase Returns</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">{filtered.length} return entries</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md active:scale-[0.98] transition cursor-pointer"
-        >
-          <Plus size={16} /> New Return
-        </button>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search supplier or return no..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500 transition"
-        />
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="space-y-3 block md:hidden">
-        {filtered.map((s) => (
-          <div key={s.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2.5 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="font-mono text-xs font-semibold text-indigo-400">{s.returnNo}</div>
-                <div className="font-semibold text-white text-sm mt-0.5">{s.supplier}</div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono font-bold text-rose-400 text-sm">{formatCurrency(s.total)}</div>
-                <span className="text-[10px] text-slate-500 font-mono">{s.date}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800 text-slate-400">
-              <div>Orig. Challan: <span className="font-mono text-slate-300">{s.origChallan || 'N/A'}</span></div>
-              <div>Items: <span className="font-mono text-white">{s.items}</span></div>
-            </div>
-
-            {s.reason && (
-              <div className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                <span className="text-slate-500 font-medium">Reason: </span>{s.reason}
-              </div>
-            )}
-
-            <div className="pt-1 border-t border-slate-800">
-              <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize border', STATUS_STYLE[s.status] || 'border-slate-800 text-slate-400')}>
-                {s.status}
-              </span>
-            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+              {filtered.length} returns &bull; Total: <span className="font-mono font-semibold text-rose-400">{formatCurrency(totalVal)}</span>
+            </p>
           </div>
-        ))}
-      </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md active:scale-[0.98] transition cursor-pointer"
+          >
+            <Plus size={16} /> New Return
+          </button>
+        </div>
 
-      {/* Desktop Table View */}
-      <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-              <th className="text-left px-4 py-3 font-medium">Return No</th>
-              <th className="text-left px-4 py-3 font-medium">Date</th>
-              <th className="text-left px-4 py-3 font-medium">Supplier</th>
-              <th className="text-left px-4 py-3 font-medium">Orig. Challan</th>
-              <th className="text-right px-4 py-3 font-medium">Items</th>
-              <th className="text-right px-4 py-3 font-medium">Total</th>
-              <th className="text-left px-4 py-3 font-medium">Reason</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-slate-900/30 transition">
-                <td className="px-4 py-3 font-mono text-white">{s.returnNo}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
-                <td className="px-4 py-3 font-medium text-white">{s.supplier}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{s.origChallan}</td>
-                <td className="px-4 py-3 text-right">{s.items}</td>
-                <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
-                <td className="px-4 py-3 text-slate-400">{s.reason}</td>
-                <td className="px-4 py-3">
-                  <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>
+        <div className="relative max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search supplier or return no..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500 transition"
+          />
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="space-y-3 block md:hidden">
+          {filtered.map((s, idx) => {
+            const isActive = idx === activeIndex
+            return (
+              <div
+                key={s.id}
+                onClick={() => setActiveIndex(idx)}
+                className={cn(
+                  'bg-slate-900 border rounded-xl p-3.5 space-y-2.5 shadow-sm cursor-pointer transition',
+                  isActive ? 'border-indigo-500 ring-1 ring-indigo-500/50' : 'border-slate-800'
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-xs font-semibold text-indigo-400">{s.returnNo}</div>
+                    <div className="font-semibold text-white text-sm mt-0.5">{s.supplier}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-rose-400 text-sm">{formatCurrency(s.total)}</div>
+                    <span className="text-[10px] text-slate-500 font-mono">{s.date}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800 text-slate-400">
+                  <div>Orig. Challan: <span className="font-mono text-slate-300">{s.origChallan || 'N/A'}</span></div>
+                  <div>Items: <span className="font-mono text-white">{s.items}</span></div>
+                </div>
+
+                {s.reason && (
+                  <div className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 font-medium">Reason: </span>{s.reason}
+                  </div>
+                )}
+
+                <div className="pt-1 border-t border-slate-800">
+                  <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize border', STATUS_STYLE[s.status] || 'border-slate-800 text-slate-400')}>
                     {s.status}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedReturn(s)}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
-                      title="View & Print Debit Note"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedReturn(s)
-                        setTimeout(() => window.print(), 100)
-                      }}
-                      className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
-                      title="Direct Print (Ctrl+P)"
-                    >
-                      <Printer size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">
-          <form onSubmit={saveReturn} className="bg-slate-900 border border-slate-800 w-full max-w-lg space-y-4 rounded-2xl p-5 sm:p-6 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h2 className="text-base sm:text-lg font-semibold text-white">New Purchase Return</h2>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white text-sm">
-                Close
-              </button>
-            </div>
-            <label className="grid gap-1 text-xs text-slate-400">
-              Supplier / Vendor *
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                <th className="text-left px-4 py-3 font-medium">Return No</th>
+                <th className="text-left px-4 py-3 font-medium">Date</th>
+                <th className="text-left px-4 py-3 font-medium">Supplier</th>
+                <th className="text-left px-4 py-3 font-medium">Orig. Challan</th>
+                <th className="text-right px-4 py-3 font-medium">Items</th>
+                <th className="text-right px-4 py-3 font-medium">Total</th>
+                <th className="text-left px-4 py-3 font-medium">Reason</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {filtered.map((s, idx) => {
+                const isActive = idx === activeIndex
+                return (
+                  <tr
+                    key={s.id}
+                    onClick={() => setActiveIndex(idx)}
+                    className={cn(
+                      'transition cursor-pointer',
+                      isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-900/30'
+                    )}
+                  >
+                    <td className="px-4 py-3 font-mono text-white">{s.returnNo}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
+                    <td className="px-4 py-3 font-medium text-white">{s.supplier}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400">{s.origChallan}</td>
+                    <td className="px-4 py-3 text-right">{s.items}</td>
+                    <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
+                    <td className="px-4 py-3 text-slate-400">{s.reason}</td>
+                    <td className="px-4 py-3">
+                      <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status])}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedReturn(s)
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                          title="View & Print Debit Note"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedReturn(s)
+                            setTimeout(() => window.print(), 100)
+                          }}
+                          className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                          title="Direct Print (Ctrl+P)"
+                        >
+                          <Printer size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Marg ERP Style Inspection Panel for Debit Notes / Returns */}
+        <ActiveProductDetailPanel
+          activeProduct={
+            activeReturn
+              ? {
+                  name: `Debit Note: ${activeReturn.returnNo}`,
+                  manufacturer: activeReturn.supplier,
+                  refNo: activeReturn.origChallan || 'N/A',
+                  date: activeReturn.date,
+                  category: activeReturn.reason || 'Purchase Return',
+                  saleRate: activeReturn.total,
+                  mrp: activeReturn.total,
+                  stock: activeReturn.items,
+                }
+              : null
+          }
+          billSummary={{
+            title: 'Debit Note Value',
+            partyLabel: 'Supplier',
+            partyName: activeReturn?.supplier,
+            valueOfGoods: activeReturn?.total ?? 0,
+            grandTotal: activeReturn?.total ?? 0,
+          }}
+          totalRows={filtered.length}
+          activeIndex={activeIndex}
+          emptyMessage="Click any return record to inspect debit note values, vendor details, and referenced invoices."
+        />
+
+        {showForm && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">
+            <form onSubmit={saveReturn} className="bg-slate-900 border border-slate-800 w-full max-w-lg space-y-4 rounded-2xl p-5 sm:p-6 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h2 className="text-base sm:text-lg font-semibold text-white">New Purchase Return</h2>
+                <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white text-sm">
+                  Close
+                </button>
+              </div>
+              <label className="grid gap-1 text-xs text-slate-400">
+                Supplier / Vendor *
               <input required autoFocus value={supplier} onChange={(e) => setSupplier(e.target.value)} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500" />
             </label>
             <label className="grid gap-1 text-xs text-slate-400">

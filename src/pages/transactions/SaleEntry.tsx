@@ -8,6 +8,7 @@ import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { calculateInvoice } from '../../lib/invoiceCalculations'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 interface LineItem {
   id: string
@@ -20,9 +21,29 @@ interface LineItem {
   disc: number
   gst: number
   amount: number
+  mrp?: number
+  purchaseRate?: number
+  packing?: string
+  manufacturer?: string
+  salt?: string
+  hsn?: string
+  expiry?: string
 }
 type CustomerOption = { label: string; value: string }
-type ItemOption = { label: string; batch: string; stock: number; rate: number; gst: number }
+type ItemOption = {
+  label: string
+  batch: string
+  stock: number
+  rate: number
+  gst: number
+  mrp?: number
+  purchaseRate?: number
+  packing?: string
+  manufacturer?: string
+  salt?: string
+  hsn?: string
+  expiry?: string
+}
 
 export default function SaleEntry() {
   const { id: editInvoiceId } = useParams<{ id?: string }>()
@@ -33,6 +54,7 @@ export default function SaleEntry() {
   const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([])
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [items, setItems] = useState<LineItem[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [customer, setCustomer] = useState('')
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [itemSearchQuery, setItemSearchQuery] = useState('')
@@ -86,6 +108,13 @@ export default function SaleEntry() {
               stock: b.stock,
               rate: p.saleRate,
               gst: p.gstRate,
+              mrp: b.mrp || p.mrp || 0,
+              purchaseRate: b.purchaseRate || p.purchaseRate || 0,
+              packing: p.packing || '',
+              manufacturer: p.manufacturer || p.company || '',
+              salt: p.salt || p.composition || '',
+              hsn: p.hsn || '',
+              expiry: b.expiry || '',
             }))
           )
         )
@@ -180,6 +209,13 @@ export default function SaleEntry() {
                 disc: d,
                 gst: g,
                 amount: amt,
+                mrp: Number(l.mrp || 0),
+                purchaseRate: Number(l.purchaseRate || 0),
+                packing: l.packing || '',
+                manufacturer: l.manufacturer || '',
+                salt: l.salt || '',
+                hsn: l.hsn || '',
+                expiry: l.expiry || '',
               }
             })
             setItems(mappedLines)
@@ -217,28 +253,46 @@ export default function SaleEntry() {
     const existingIndex = items.findIndex((i) => i.name === item.label && i.batch === item.batch)
     if (existingIndex >= 0) {
       updateLine(items[existingIndex].id, 'qty', items[existingIndex].qty + 1)
+      setActiveIndex(existingIndex)
     } else {
-      setItems((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          name: item.label,
-          batch: item.batch,
-          stock: item.stock,
-          qty: 0,
-          free: 0,
-          rate: item.rate,
-          disc: 0,
-          gst: item.gst,
-          amount: 0,
-        },
-      ])
+      setItems((prev) => {
+        const next = [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            name: item.label,
+            batch: item.batch,
+            stock: item.stock,
+            qty: 1,
+            free: 0,
+            rate: item.rate,
+            disc: 0,
+            gst: item.gst,
+            amount: item.rate,
+            mrp: item.mrp,
+            purchaseRate: item.purchaseRate,
+            packing: item.packing,
+            manufacturer: item.manufacturer,
+            salt: item.salt,
+            hsn: item.hsn,
+            expiry: item.expiry,
+          },
+        ]
+        setActiveIndex(next.length - 1)
+        return next
+      })
     }
     setShowItemSearch(false)
   }
 
   const removeRow = (id: string) => {
-    setItems((rows) => rows.filter((r) => r.id !== id))
+    setItems((rows) => {
+      const next = rows.filter((r) => r.id !== id)
+      if (activeIndex >= next.length) {
+        setActiveIndex(Math.max(0, next.length - 1))
+      }
+      return next
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent, row: number, field: string) => {
@@ -358,6 +412,11 @@ export default function SaleEntry() {
     sub: `Batch: ${item.batch} | Stock: ${item.stock}`,
     right: formatCurrency(item.rate),
   }))
+
+  const activeItem = items[activeIndex] || (items.length > 0 ? items[items.length - 1] : null)
+  const currentParty = partiesList.find((p) => (p.name || '').trim().toLowerCase() === customer.trim().toLowerCase())
+  const customerBalance = currentParty ? Number(currentParty.balance || currentParty.outstanding || 0) : 0
+  const totalMrpValue = items.reduce((sum, i) => sum + (Number(i.mrp) || Number(i.rate) || 0) * (Number(i.qty) || 0), 0)
 
   return (
     <div className="p-2.5 sm:p-4 md:p-6 space-y-4 pb-28 md:pb-12 w-full max-w-7xl mx-auto">
@@ -504,93 +563,116 @@ export default function SaleEntry() {
           <>
             {/* Mobile View: Touch-friendly item cards */}
             <div className="space-y-3 block md:hidden">
-              {items.map((item) => (
-                <div key={item.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-sm font-semibold text-white">{item.name}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                          Batch: {item.batch}
-                        </span>
-                        <span className="text-[11px] text-slate-500">Stock: {item.stock}</span>
+              {items.map((item, idx) => {
+                const isActive = idx === activeIndex
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveIndex(idx)}
+                    className={cn(
+                      'bg-slate-950 border rounded-xl p-3.5 space-y-3 cursor-pointer transition',
+                      isActive
+                        ? 'border-indigo-500 ring-1 ring-indigo-500/50'
+                        : 'border-slate-800 hover:border-slate-700'
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-semibold text-white">{item.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                            Batch: {item.batch}
+                          </span>
+                          <span className="text-[11px] text-slate-500">Stock: {item.stock}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeRow(item.id)
+                        }}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-900">
+                      {/* Qty */}
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Qty</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={item.stock}
+                          value={item.qty}
+                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
+                          onFocus={(e) => {
+                            e.target.select()
+                            setActiveIndex(idx)
+                          }}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          inputMode="numeric"
+                        />
+                      </div>
+
+                      {/* Free Qty */}
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Free Qty</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.free}
+                          onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                          onFocus={(e) => {
+                            e.target.select()
+                            setActiveIndex(idx)
+                          }}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          inputMode="numeric"
+                        />
+                      </div>
+
+                      {/* Rate */}
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Rate (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.rate}
+                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value))}
+                          onFocus={() => setActiveIndex(idx)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          inputMode="decimal"
+                        />
+                      </div>
+
+                      {/* Discount */}
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Disc %</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.disc}
+                          onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
+                          onFocus={() => setActiveIndex(idx)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          inputMode="numeric"
+                        />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeRow(item.id)}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-900">
-                    {/* Qty */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Qty</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={item.stock}
-                        value={item.qty}
-                        onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
-                        onFocus={(e) => e.target.select()}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
-                        inputMode="numeric"
-                      />
-                    </div>
-
-                    {/* Free Qty */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Free Qty</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.free}
-                        onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
-                        onFocus={(e) => e.target.select()}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
-                        inputMode="numeric"
-                      />
-                    </div>
-
-                    {/* Rate */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Rate (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.rate}
-                        onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
-                        inputMode="decimal"
-                      />
-                    </div>
-
-                    {/* Discount */}
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Disc %</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={item.disc}
-                        onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
-                        inputMode="numeric"
-                      />
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
+                      <span className="text-slate-400 font-medium">Item Total:</span>
+                      <span className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
-                    <span className="text-slate-400 font-medium">Item Total:</span>
-                    <span className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Desktop Table View */}
@@ -610,80 +692,146 @@ export default function SaleEntry() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {items.map((item, i) => (
-                    <tr key={item.id} className="hover:bg-slate-800/30 transition">
-                      <td className="p-3 font-medium text-white">{item.name}</td>
-                      <td className="p-3 font-mono text-slate-400">{item.batch}</td>
-                      <td className="p-3 text-right text-slate-400">{item.stock}</td>
-                      <td className="p-2 text-right">
-                        <input
-                          id={`row-${i}-qty`}
-                          min="0"
-                          max={item.stock}
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
-                          onFocus={(e) => e.target.select()}
-                          placeholder="0"
-                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                          onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          id={`row-${i}-free`}
-                          min="0"
-                          type="number"
-                          value={item.free}
-                          onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
-                          onFocus={(e) => e.target.select()}
-                          placeholder="0"
-                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                          onKeyDown={(e) => handleKeyDown(e, i, 'free')}
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          id={`row-${i}-rate`}
-                          min="0"
-                          type="number"
-                          step="0.01"
-                          value={item.rate === 0 ? '' : item.rate}
-                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
-                          placeholder="0.00"
-                          className="w-24 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                          onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          id={`row-${i}-disc`}
-                          min="0"
-                          max="100"
-                          type="number"
-                          value={item.disc === 0 ? '' : item.disc}
-                          onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
-                          placeholder="0"
-                          className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                          onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
-                        />
-                      </td>
-                      <td className="p-3 text-right font-mono font-semibold text-emerald-400">{formatCurrency(item.amount)}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeRow(item.id)}
-                          className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
-                          title="Remove item"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {items.map((item, i) => {
+                    const isActive = i === activeIndex
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() => setActiveIndex(i)}
+                        className={cn(
+                          'transition cursor-pointer',
+                          isActive
+                            ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500'
+                            : 'hover:bg-slate-800/30'
+                        )}
+                      >
+                        <td className="p-3 font-medium text-white">
+                          {item.name}
+                          {item.packing && (
+                            <span className="block text-[11px] text-slate-500 font-normal">{item.packing}</span>
+                          )}
+                        </td>
+                        <td className="p-3 font-mono text-amber-400">{item.batch}</td>
+                        <td className="p-3 text-right font-mono text-slate-400">{item.stock}</td>
+                        <td className="p-2 text-right">
+                          <input
+                            id={`row-${i}-qty`}
+                            min="0"
+                            max={item.stock}
+                            type="number"
+                            value={item.qty}
+                            onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
+                            onFocus={(e) => {
+                              e.target.select()
+                              setActiveIndex(i)
+                            }}
+                            placeholder="0"
+                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            id={`row-${i}-free`}
+                            min="0"
+                            type="number"
+                            value={item.free}
+                            onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                            onFocus={(e) => {
+                              e.target.select()
+                              setActiveIndex(i)
+                            }}
+                            placeholder="0"
+                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            onKeyDown={(e) => handleKeyDown(e, i, 'free')}
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            id={`row-${i}-rate`}
+                            min="0"
+                            type="number"
+                            step="0.01"
+                            value={item.rate === 0 ? '' : item.rate}
+                            onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                            onFocus={() => setActiveIndex(i)}
+                            placeholder="0.00"
+                            className="w-24 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            id={`row-${i}-disc`}
+                            min="0"
+                            max="100"
+                            type="number"
+                            value={item.disc === 0 ? '' : item.disc}
+                            onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
+                            onFocus={() => setActiveIndex(i)}
+                            placeholder="0"
+                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
+                          />
+                        </td>
+                        <td className="p-3 text-right font-mono font-semibold text-emerald-400">{formatCurrency(item.amount)}</td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeRow(item.id)
+                            }}
+                            className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
+                            title="Remove item"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* Marg ERP Style Active Product Description & Inspection Panel */}
+            <ActiveProductDetailPanel
+              activeProduct={
+                activeItem
+                  ? {
+                      name: activeItem.name,
+                      packing: activeItem.packing,
+                      manufacturer: activeItem.manufacturer,
+                      salt: activeItem.salt,
+                      hsn: activeItem.hsn,
+                      gstRate: activeItem.gst,
+                      batch: activeItem.batch,
+                      expiry: activeItem.expiry,
+                      stock: activeItem.stock,
+                      saleRate: activeItem.rate,
+                      mrp: activeItem.mrp,
+                      purchaseRate: activeItem.purchaseRate,
+                      refNo: existingInvoice?.invoiceNo || existingInvoice?.number,
+                      date: existingInvoice?.date || new Date().toISOString().split('T')[0],
+                    }
+                  : null
+              }
+              billSummary={{
+                title: 'Bill Values & Ledger',
+                partyLabel: 'Customer',
+                partyName: customer,
+                partyBalance: customerBalance,
+                mrpValue: totalMrpValue,
+                valueOfGoods: totals.subtotal,
+                discount: totals.discountTotal,
+                gstTotal: totals.taxTotal,
+                grandTotal: totals.grandTotal,
+              }}
+              totalRows={items.length}
+              activeIndex={activeIndex}
+              emptyMessage="Select or focus on any item row to inspect live batch, warehouse stock, rates, composition and margins."
+            />
           </>
         )}
       </div>

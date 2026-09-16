@@ -19,6 +19,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 interface Item {
   id: string
@@ -42,6 +43,7 @@ export default function ItemList() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [items, setItems] = useState<Item[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Continuous Page Chunking Controls
@@ -117,6 +119,10 @@ export default function ItemList() {
   const handleLoadMore = () => {
     setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
   }
+
+  const activeItem = items.find((i) => i.id === activeId) || (displayedItems.length > 0 ? displayedItems[0] : null)
+  const totalCatalogPurchaseVal = filtered.reduce((s, i) => s + (i.purchaseRate || 0) * (i.stock || 0), 0)
+  const totalCatalogMrpVal = filtered.reduce((s, i) => s + (i.mrp || 0) * (i.stock || 0), 0)
 
   return (
     <div className="space-y-4">
@@ -296,8 +302,17 @@ export default function ItemList() {
               </tr>
             </thead>
             <tbody>
-              {displayedItems.map((item) => (
-                <tr key={item.id} className="border-b border-border table-row-hover transition-colors">
+              {displayedItems.map((item) => {
+                const isActive = item.id === activeItem?.id
+                return (
+                  <tr
+                    key={item.id}
+                    onClick={() => setActiveId(item.id)}
+                    className={cn(
+                      'border-b border-border table-row-hover transition-colors cursor-pointer',
+                      isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : ''
+                    )}
+                  >
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
                     <span className="font-semibold text-foreground">{item.code || item.id}</span>
                   </td>
@@ -361,7 +376,8 @@ export default function ItemList() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
               {!loading && displayedItems.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
@@ -439,6 +455,37 @@ export default function ItemList() {
           </div>
         )}
       </div>
+
+      {/* Marg ERP Style Live Product Inspection Panel */}
+      <ActiveProductDetailPanel
+        activeProduct={
+          activeItem
+            ? {
+                name: activeItem.name,
+                packing: activeItem.packing,
+                manufacturer: activeItem.manufacturer,
+                salt: activeItem.salt,
+                hsn: activeItem.hsn,
+                gstRate: activeItem.gstRate,
+                stock: activeItem.stock,
+                saleRate: activeItem.saleRate,
+                mrp: activeItem.mrp,
+                purchaseRate: activeItem.purchaseRate,
+                category: activeItem.category,
+              }
+            : null
+        }
+        billSummary={{
+          title: 'Catalogue Valuation',
+          partyLabel: 'Category',
+          partyName: categoryFilter === 'all' ? 'All Categories' : categoryFilter,
+          mrpValue: totalCatalogMrpVal,
+          valueOfGoods: totalCatalogPurchaseVal,
+          grandTotal: totalCatalogPurchaseVal,
+        }}
+        totalRows={filtered.length}
+        emptyMessage="Click any medicine row to inspect detailed salt composition, margin rates, and live stock."
+      />
     </div>
   )
 }

@@ -6,9 +6,36 @@ import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
-interface AvailableItem { name: string; batch: string; rate: number; stock: number }
-interface Line { id: string; name: string; batch: string; qty: number; rate: number }
+interface AvailableItem {
+  name: string
+  batch: string
+  rate: number
+  stock: number
+  mrp?: number
+  purchaseRate?: number
+  packing?: string
+  manufacturer?: string
+  salt?: string
+  hsn?: string
+  expiry?: string
+}
+interface Line {
+  id: string
+  name: string
+  batch: string
+  qty: number
+  rate: number
+  stock?: number
+  mrp?: number
+  purchaseRate?: number
+  packing?: string
+  manufacturer?: string
+  salt?: string
+  hsn?: string
+  expiry?: string
+}
 interface SavedChallan { id: string; dbId: string; party: string; date: string; transport: string; status: string; lines: Line[] }
 
 export default function ChallanEntry() {
@@ -16,6 +43,7 @@ export default function ChallanEntry() {
   const [parties, setParties] = useState<string[]>([])
   const [party, setParty] = useState('')
   const [lines, setLines] = useState<Line[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [transport, setTransport] = useState('Surface')
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -35,6 +63,13 @@ export default function ChallanEntry() {
               batch: b.batch,
               rate: p.saleRate,
               stock: b.stock,
+              mrp: b.mrp || p.mrp || 0,
+              purchaseRate: b.purchaseRate || p.purchaseRate || 0,
+              packing: p.packing || '',
+              manufacturer: p.manufacturer || p.company || '',
+              salt: p.salt || p.composition || '',
+              hsn: p.hsn || '',
+              expiry: b.expiry || '',
             }))
           )
         )
@@ -44,16 +79,42 @@ export default function ChallanEntry() {
   }, [showToast])
 
   const addItem = (i: AvailableItem) => {
-    const existing = lines.find((l) => l.name === i.name && l.batch === i.batch)
-    if (existing) {
-      setLines(lines.map((l) => (l.id === existing.id ? { ...l, qty: l.qty + 1 } : l)))
+    const existingIndex = lines.findIndex((l) => l.name === i.name && l.batch === i.batch)
+    if (existingIndex >= 0) {
+      setLines((prev) => prev.map((l, idx) => (idx === existingIndex ? { ...l, qty: l.qty + 1 } : l)))
+      setActiveIndex(existingIndex)
     } else {
-      setLines([...lines, { id: Date.now().toString(), name: i.name, batch: i.batch, qty: 1, rate: i.rate }])
+      const newLine: Line = {
+        id: Date.now().toString(),
+        name: i.name,
+        batch: i.batch,
+        qty: 1,
+        rate: i.rate,
+        stock: i.stock,
+        mrp: i.mrp,
+        purchaseRate: i.purchaseRate,
+        packing: i.packing,
+        manufacturer: i.manufacturer,
+        salt: i.salt,
+        hsn: i.hsn,
+        expiry: i.expiry,
+      }
+      setLines((prev) => {
+        const next = [...prev, newLine]
+        setActiveIndex(next.length - 1)
+        return next
+      })
     }
   }
 
   const removeLine = (id: string) => {
-    setLines(lines.filter((l) => l.id !== id))
+    setLines((prev) => {
+      const next = prev.filter((l) => l.id !== id)
+      if (activeIndex >= next.length) {
+        setActiveIndex(Math.max(0, next.length - 1))
+      }
+      return next
+    })
   }
 
   const updateQty = (id: string, qty: number) => {
@@ -109,6 +170,10 @@ export default function ChallanEntry() {
     sub: `Batch: ${i.batch} | Stock: ${i.stock}`,
     right: formatCurrency(i.rate),
   }))
+
+  const activeLine = lines[activeIndex] || (lines.length > 0 ? lines[lines.length - 1] : null)
+  const totalValue = lines.reduce((sum, l) => sum + (Number(l.rate) || 0) * (Number(l.qty) || 0), 0)
+  const totalMrp = lines.reduce((sum, l) => sum + (Number(l.mrp) || Number(l.rate) || 0) * (Number(l.qty) || 0), 0)
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
@@ -191,48 +256,71 @@ export default function ChallanEntry() {
 
           {/* Mobile Card View */}
           <div className="space-y-2.5 block md:hidden">
-            {lines.map((l) => (
-              <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{l.name}</div>
-                  <div className="text-xs font-mono text-slate-400 mt-0.5">Batch: {l.batch}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+            {lines.map((l, idx) => {
+              const isActive = idx === activeIndex
+              return (
+                <div
+                  key={l.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={cn(
+                    'bg-slate-950 border rounded-xl p-3 flex items-center justify-between gap-3 cursor-pointer transition',
+                    isActive ? 'border-cyan-500 ring-1 ring-cyan-500/50' : 'border-slate-800'
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white truncate">{l.name}</div>
+                    <div className="text-xs font-mono text-cyan-400 mt-0.5">Batch: {l.batch}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateQty(l.id, l.qty - 1)
+                        }}
+                        className="px-2 py-1.5 text-slate-400 hover:text-white"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={l.qty}
+                        onChange={(e) => updateQty(l.id, Number(e.target.value))}
+                        onFocus={(e) => {
+                          e.target.select()
+                          setActiveIndex(idx)
+                        }}
+                        className="w-12 text-center bg-transparent text-xs font-mono text-white outline-none py-1"
+                        inputMode="numeric"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateQty(l.id, l.qty + 1)
+                        }}
+                        className="px-2 py-1.5 text-slate-400 hover:text-white"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => updateQty(l.id, l.qty - 1)}
-                      className="px-2 py-1.5 text-slate-400 hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeLine(l.id)
+                      }}
+                      className="p-1.5 text-slate-500 hover:text-rose-400"
+                      aria-label="Remove item"
                     >
-                      <Minus size={12} />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      value={l.qty}
-                      onChange={(e) => updateQty(l.id, Number(e.target.value))}
-                      className="w-12 text-center bg-transparent text-xs font-mono text-white outline-none py-1"
-                      inputMode="numeric"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => updateQty(l.id, l.qty + 1)}
-                      className="px-2 py-1.5 text-slate-400 hover:text-white"
-                    >
-                      <Plus size={12} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeLine(l.id)}
-                    className="p-1.5 text-slate-500 hover:text-rose-400"
-                    aria-label="Remove item"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Desktop Table View */}
@@ -247,33 +335,87 @@ export default function ChallanEntry() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-slate-300">
-                {lines.map((l) => (
-                  <tr key={l.id}>
-                    <td className="px-4 py-3 font-medium text-white">{l.name}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td>
-                    <td className="px-4 py-3 text-right">
-                      <input
-                        type="number"
-                        min="1"
-                        value={l.qty}
-                        onChange={(e) => updateQty(l.id, Number(e.target.value))}
-                        className="w-20 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        aria-label={`Remove ${l.name}`}
-                        onClick={() => removeLine(l.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {lines.map((l, idx) => {
+                  const isActive = idx === activeIndex
+                  return (
+                    <tr
+                      key={l.id}
+                      onClick={() => setActiveIndex(idx)}
+                      className={cn(
+                        'transition cursor-pointer',
+                        isActive ? 'bg-cyan-950/40 ring-1 ring-inset ring-cyan-500/40 border-l-4 border-l-cyan-500' : 'hover:bg-slate-800/30'
+                      )}
+                    >
+                      <td className="px-4 py-3 font-medium text-white">
+                        {l.name}
+                        {l.packing && <span className="block text-[11px] text-slate-500 font-normal">{l.packing}</span>}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-cyan-400">{l.batch}</td>
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          type="number"
+                          min="1"
+                          value={l.qty}
+                          onChange={(e) => updateQty(l.id, Number(e.target.value))}
+                          onFocus={(e) => {
+                            e.target.select()
+                            setActiveIndex(idx)
+                          }}
+                          className="w-20 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          aria-label={`Remove ${l.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeLine(l.id)
+                          }}
+                          className="text-slate-500 hover:text-rose-400 p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
+
+          {/* Marg ERP Style Active Product Description & Inspection Panel */}
+          <ActiveProductDetailPanel
+            activeProduct={
+              activeLine
+                ? {
+                    name: activeLine.name,
+                    packing: activeLine.packing,
+                    manufacturer: activeLine.manufacturer,
+                    salt: activeLine.salt,
+                    hsn: activeLine.hsn,
+                    batch: activeLine.batch,
+                    expiry: activeLine.expiry,
+                    stock: activeLine.stock,
+                    saleRate: activeLine.rate,
+                    mrp: activeLine.mrp,
+                    purchaseRate: activeLine.purchaseRate,
+                    refNo: editingId ? `CH-${editingId}` : 'CH-NEW',
+                    date: new Date().toISOString().split('T')[0],
+                  }
+                : null
+            }
+            billSummary={{
+              title: 'Challan Dispatch Values',
+              partyLabel: 'Consignee',
+              partyName: party,
+              mrpValue: totalMrp,
+              valueOfGoods: totalValue,
+              grandTotal: totalValue,
+            }}
+            totalRows={lines.length}
+            activeIndex={activeIndex}
+            emptyMessage="Click any dispatched item to inspect live batch, warehouse stock, rates, composition and margins."
+          />
         </div>
       )}
 

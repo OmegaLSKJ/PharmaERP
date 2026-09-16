@@ -7,6 +7,7 @@ import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import defaultHsnMaster from '../../data/hsnMasterData.json'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 interface LineItem {
   id: string
@@ -1129,136 +1130,42 @@ export default function PurchaseEntry() {
         )}
 
         {/* Active Product Description & Totals Summary Panel (Marg ERP Style) */}
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-            {/* Left: Active Product Live Description Box */}
-            <div className="lg:col-span-7 bg-slate-100/90 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2.5 font-mono shadow-xs text-xs">
-              <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
-                    Product Description
-                  </span>
-                  {activeItem && (
-                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                      Row #{activeIndex + 1} of {items.length}
-                    </span>
-                  )}
-                </div>
-                {activeItem?.hsn && (
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                    HSN: <strong className="text-slate-800 dark:text-white font-mono">{activeItem.hsn}</strong> (GST {activeItem.gstRate}%)
-                  </span>
-                )}
-              </div>
-
-              {activeItem ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-slate-700 dark:text-slate-300">
-                  <div className="sm:col-span-2 flex items-baseline flex-wrap gap-1.5">
-                    <span className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Item:</span>
-                    <span className="text-slate-900 dark:text-white font-extrabold text-sm tracking-tight">{activeItem.itemName}</span>
-                    {activeItem.packing && (
-                      <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-sans font-semibold">
-                        {activeItem.packing}
-                      </span>
-                    )}
-                    {activeItem.manufacturer && (
-                      <span className="text-[10px] text-slate-500 italic">({activeItem.manufacturer})</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">Batch: </span>
-                    <span className="text-amber-600 dark:text-amber-300 font-bold font-mono text-xs">{activeItem.batch || '—'}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">Stock: </span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">{activeStock} Units</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">Expiry: </span>
-                    <span className="text-slate-800 dark:text-white font-bold font-mono text-xs">{formatDisplayExpiry(activeItem.expiry) || '—'}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">SRate: </span>
-                    <span className="text-indigo-600 dark:text-indigo-300 font-bold font-mono text-xs">₹{Number(activeItem.saleRate || 0).toFixed(2)}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">M.R.P.: </span>
-                    <span className="text-slate-900 dark:text-white font-bold font-mono text-xs">₹{Number(activeItem.mrp || 0).toFixed(2)}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">P.Rate: </span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">₹{Number(activeItem.purchaseRate || 0).toFixed(2)}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">Chall./Inv: </span>
-                    <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{invoiceNo || '—'}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500 font-bold uppercase text-[10px]">Date: </span>
-                    <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{invoiceDate || entryDate}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-7 text-center text-slate-400 text-xs">
-                  No products added yet. Click &ldquo;Add Product&rdquo; above or search to inspect live batch, stock, rates, and margins.
-                </div>
-              )}
-            </div>
-
-            {/* Right: Bill Values & Account Summary */}
-            <div className="lg:col-span-5 bg-slate-100/90 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2 font-mono shadow-xs text-xs">
-              <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5">
-                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">
-                  Bill Values & Ledger
-                </span>
-                {supplier && (
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[170px]" title={supplier}>
-                    Party: <strong className="text-slate-800 dark:text-white">{supplier}</strong>
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-1 text-slate-700 dark:text-slate-300 pt-0.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">MRP Value :</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(totalValue)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">VALUE OF GOODS :</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">DISCOUNT :</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400">
-                    {totalDiscount > 0 ? `-${formatCurrency(totalDiscount)}` : '₹0.00'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">GST% Total :</span>
-                  <span className="font-bold text-primary">+{formatCurrency(totalGst)}</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-300 dark:border-slate-800/80 pt-1">
-                  <span className="text-slate-500">Party Balance :</span>
-                  <span className={cn('font-bold', supplierOutstanding < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-200')}>
-                    {formatCurrency(Math.abs(supplierOutstanding))} {supplierOutstanding < 0 ? 'Dr' : 'Cr'}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-300 dark:border-slate-700 pt-1.5 text-sm font-bold text-slate-900 dark:text-white">
-                  <span className="uppercase text-xs tracking-wider">Grand Total :</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(grandTotal)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ActiveProductDetailPanel
+          activeProduct={
+            activeItem
+              ? {
+                  name: activeItem.itemName,
+                  packing: activeItem.packing,
+                  manufacturer: activeItem.manufacturer,
+                  salt: activeItem.salt,
+                  hsn: activeItem.hsn,
+                  gstRate: activeItem.gstRate,
+                  batch: activeItem.batch,
+                  expiry: activeItem.expiry,
+                  stock: activeStock,
+                  saleRate: activeItem.saleRate,
+                  mrp: activeItem.mrp,
+                  purchaseRate: activeItem.purchaseRate,
+                  refNo: invoiceNo,
+                  date: invoiceDate || entryDate,
+                }
+              : null
+          }
+          billSummary={{
+            title: 'Bill Values & Ledger',
+            partyLabel: 'Supplier',
+            partyName: supplier,
+            partyBalance: supplierOutstanding,
+            mrpValue: totalValue,
+            valueOfGoods: subtotal,
+            discount: totalDiscount,
+            gstTotal: totalGst,
+            grandTotal: grandTotal,
+          }}
+          totalRows={items.length}
+          activeIndex={activeIndex}
+          emptyMessage="No products added yet. Click &ldquo;Add Product&rdquo; above or search to inspect live batch, stock, rates, and margins."
+        />
       </div>
 
       {/* Item Search Modal */}

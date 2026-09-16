@@ -7,12 +7,29 @@ import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
+import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { Printer } from 'lucide-react'
 
+interface CounterItem {
+  name: string
+  rate: number
+  batch: string
+  stock: number
+  gst: number
+  mrp?: number
+  purchaseRate?: number
+  packing?: string
+  manufacturer?: string
+  salt?: string
+  hsn?: string
+  expiry?: string
+}
+
 export default function CounterSale() {
-  const [available, setAvailable] = useState<Array<{name:string;rate:number;batch:string;stock:number;gst:number}>>([])
-  const [cart,setCart] = useState<Array<{name:string;qty:number;rate:number;batch:string;stock:number;gst:number}>>([])
-  const [pay,setPay] = useState<'cash'|'upi'>('cash')
+  const [available, setAvailable] = useState<CounterItem[]>([])
+  const [cart, setCart] = useState<Array<CounterItem & { qty: number }>>([])
+  const [activeItem, setActiveItem] = useState<CounterItem | null>(null)
+  const [pay, setPay] = useState<'cash'|'upi'>('cash')
   const [saving, setSaving] = useState(false)
   const [completedSale, setCompletedSale] = useState<{
     invoiceNo: string
@@ -23,11 +40,37 @@ export default function CounterSale() {
   } | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
-  useEffect(() => { getErp<any[]>('items').then((items) => setAvailable(items.flatMap((item) => (item.batches ?? []).filter((b:any) => b.stock > 0).map((b:any) => ({ name:item.name, rate:item.saleRate, batch:b.batch, stock:b.stock, gst:item.gstRate }))))).catch((e) => showToast(e.message)) }, [showToast])
-  const add = (i:{name:string;rate:number;batch:string;stock:number;gst:number}) => {
-    const ex = cart.find(c=>c.name===i.name && c.batch===i.batch)
-    if (ex) setCart(cart.map(c=>c.name===i.name&&c.batch===i.batch?{...c,qty:Math.min(c.qty+1,c.stock)}:c))
-    else setCart([...cart,{...i,qty:1}])
+
+  useEffect(() => {
+    getErp<any[]>('items')
+      .then((items) => {
+        const mapped = items.flatMap((item) =>
+          (item.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
+            name: item.name,
+            rate: item.saleRate,
+            batch: b.batch,
+            stock: b.stock,
+            gst: item.gstRate,
+            mrp: b.mrp || item.mrp || 0,
+            purchaseRate: b.purchaseRate || item.purchaseRate || 0,
+            packing: item.packing || '',
+            manufacturer: item.manufacturer || item.company || '',
+            salt: item.salt || item.composition || '',
+            hsn: item.hsn || '',
+            expiry: b.expiry || '',
+          }))
+        )
+        setAvailable(mapped)
+        if (mapped.length > 0) setActiveItem(mapped[0])
+      })
+      .catch((e) => showToast(e.message))
+  }, [showToast])
+
+  const add = (i: CounterItem) => {
+    setActiveItem(i)
+    const ex = cart.find((c) => c.name === i.name && c.batch === i.batch)
+    if (ex) setCart(cart.map((c) => (c.name === i.name && c.batch === i.batch ? { ...c, qty: Math.min(c.qty + 1, c.stock) } : c)))
+    else setCart([...cart, { ...i, qty: 1 }])
   }
   const total = cart.reduce((a,c)=>a+c.qty*c.rate,0)
   const complete = async () => {
@@ -92,26 +135,85 @@ export default function CounterSale() {
 
         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Quick Add Items</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {available.map(i=>(<button key={`${i.name}-${i.batch}`} onClick={()=>add(i)} className="bg-slate-900/50 border border-slate-800 hover:border-indigo-500 rounded-xl p-4 text-left transition">
-            <div className="text-sm font-medium text-white truncate">{i.name}</div>
-            <div className="text-xs text-slate-400 mt-1">{formatCurrency(i.rate)}</div>
-          </button>))}
+          {available.map((i) => {
+            const isSelected = activeItem?.name === i.name && activeItem?.batch === i.batch
+            return (
+              <button
+                key={`${i.name}-${i.batch}`}
+                onClick={() => add(i)}
+                className={cn(
+                  'bg-slate-900/50 border rounded-xl p-3.5 text-left transition cursor-pointer',
+                  isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-indigo-950/30' : 'border-slate-800 hover:border-indigo-500'
+                )}
+              >
+                <div className="text-sm font-medium text-white truncate">{i.name}</div>
+                <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
+                  <span>{formatCurrency(i.rate)}</span>
+                  <span className="text-[10px] font-mono text-amber-400">{i.batch}</span>
+                </div>
+              </button>
+            )
+          })}
         </div>
+
+        {/* Marg ERP Active Product Description & Margin Panel */}
+        <ActiveProductDetailPanel
+          activeProduct={
+            activeItem
+              ? {
+                  name: activeItem.name,
+                  packing: activeItem.packing,
+                  manufacturer: activeItem.manufacturer,
+                  salt: activeItem.salt,
+                  hsn: activeItem.hsn,
+                  gstRate: activeItem.gst,
+                  batch: activeItem.batch,
+                  expiry: activeItem.expiry,
+                  stock: activeItem.stock,
+                  saleRate: activeItem.rate,
+                  mrp: activeItem.mrp,
+                  purchaseRate: activeItem.purchaseRate,
+                  refNo: 'POS-COUNTER',
+                  date: new Date().toISOString().split('T')[0],
+                }
+              : null
+          }
+          billSummary={{
+            title: 'Counter Total',
+            partyLabel: 'Customer',
+            partyName: 'Walk-in Retail Customer',
+            valueOfGoods: total,
+            grandTotal: total,
+          }}
+          emptyMessage="Select or tap any medicine to inspect live batch, warehouse stock, rates, composition and margins."
+        />
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-white"><ShoppingCart size={16} className="text-indigo-400"/>Cart ({cart.reduce((a,c)=>a+c.qty,0)})</div>
         {cart.length===0 ? <div className="flex-1 flex items-center justify-center text-xs text-slate-500">Tap items to add</div> :
           <div className="flex-1 overflow-y-auto max-h-[300px] lg:max-h-[calc(100vh-320px)] space-y-1 pr-1">
-            {cart.map(c=>(<div key={c.name} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-800/50">
-              <span className="text-slate-300 truncate">{c.name}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={()=>setCart(cart.map(x=>x.name===c.name&&x.qty>1?{...x,qty:x.qty-1}:x.name===c.name?{...x,qty:0}:x).filter(Boolean) as typeof cart)} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">-</button>
-                <span className="font-mono w-6 text-right text-white">{c.qty}</span>
-                <button onClick={()=>setCart(cart.map(x=>x.name===c.name?{...x,qty:x.qty+1}:x))} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">+</button>
-                <span className="font-mono w-14 text-right text-emerald-400">{formatCurrency(c.qty*c.rate)}</span>
-                <button onClick={()=>setCart(cart.filter(x=>x.name!==c.name))} className="p-0.5 text-slate-500 hover:text-rose-400"><Trash2 size={12}/></button>
-              </div>
-            </div>))}
+            {cart.map((c) => {
+              const isSelected = activeItem?.name === c.name && activeItem?.batch === c.batch
+              return (
+                <div
+                  key={`${c.name}-${c.batch}`}
+                  onClick={() => setActiveItem(c)}
+                  className={cn(
+                    'flex items-center justify-between text-sm py-1.5 px-2 rounded-lg border-b border-slate-800/50 cursor-pointer transition',
+                    isSelected ? 'bg-indigo-950/40 text-white' : 'hover:bg-slate-800/20'
+                  )}
+                >
+                  <span className="text-slate-300 truncate max-w-[120px] sm:max-w-none">{c.name}</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={(e)=>{ e.stopPropagation(); setCart(cart.map(x=>x.name===c.name&&x.batch===c.batch&&x.qty>1?{...x,qty:x.qty-1}:x.name===c.name&&x.batch===c.batch?{...x,qty:0}:x).filter((x)=>x.qty>0)) }} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">-</button>
+                    <span className="font-mono w-6 text-center text-white">{c.qty}</span>
+                    <button onClick={(e)=>{ e.stopPropagation(); setCart(cart.map(x=>x.name===c.name&&x.batch===c.batch?{...x,qty:Math.min(x.qty+1,x.stock)}:x)) }} className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs">+</button>
+                    <span className="font-mono w-14 text-right text-emerald-400">{formatCurrency(c.qty*c.rate)}</span>
+                    <button onClick={(e)=>{ e.stopPropagation(); setCart(cart.filter(x=>!(x.name===c.name&&x.batch===c.batch))) }} className="p-0.5 text-slate-500 hover:text-rose-400"><Trash2 size={12}/></button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         }
         <div className="mt-auto pt-3 border-t border-slate-700 space-y-3">
