@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { cn, formatCurrency } from '../../lib/utils'
 
 export interface ActiveProductDetail {
@@ -14,10 +14,24 @@ export interface ActiveProductDetail {
   saleRate?: number
   mrp?: number
   purchaseRate?: number
+  costPrice?: number
+  purchaseSchemeDeal?: number
+  purchaseSchemeFree?: number
+  salesSchemeDeal?: number
+  salesSchemeFree?: number
   refNo?: string
   date?: string
   category?: string
   location?: string
+}
+
+export function calculateRateMargins({ mrp, saleRate, purchaseRate, costPrice }: Pick<ActiveProductDetail, 'mrp' | 'saleRate' | 'purchaseRate' | 'costPrice'>) {
+  const percent = (numerator?: number, denominator?: number) => typeof numerator === 'number' && typeof denominator === 'number' && denominator > 0 ? ((numerator / denominator) * 100) : null
+  return {
+    mrpVsSale: percent(typeof mrp === 'number' && typeof saleRate === 'number' ? mrp - saleRate : undefined, mrp),
+    mrpVsPurchase: percent(typeof mrp === 'number' && typeof purchaseRate === 'number' ? mrp - purchaseRate : undefined, mrp),
+    saleVsCost: percent(typeof saleRate === 'number' && typeof costPrice === 'number' ? saleRate - costPrice : undefined, saleRate),
+  }
 }
 
 export interface ActiveBillSummary {
@@ -81,6 +95,22 @@ export default function ActiveProductDetailPanel({
   className,
 }: ActiveProductDetailPanelProps) {
   const hasBillSummary = Boolean(billSummary)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const initialized = useRef(false)
+  const previousKey = useRef('')
+  const productKey = activeProduct ? `${activeProduct.name}|${activeProduct.batch || ''}` : ''
+  useEffect(() => {
+    if (!initialized.current) { initialized.current = true; previousKey.current = productKey; return }
+    if (productKey && productKey !== previousKey.current) setDetailOpen(true)
+    previousKey.current = productKey
+  }, [productKey])
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setDetailOpen(false) }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [])
+  const money = (value?: number) => typeof value === 'number' && Number.isFinite(value) ? `₹${value.toFixed(2)}` : '—'
+  const margins = calculateRateMargins(activeProduct || {})
 
   return (
     <div className={cn('border-t border-slate-300 dark:border-slate-800 pt-3', className)}>
@@ -95,9 +125,9 @@ export default function ActiveProductDetailPanel({
           {/* Header Strip */}
           <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5 gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+              <button type="button" onClick={() => activeProduct && setDetailOpen(true)} disabled={!activeProduct} className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px] disabled:opacity-50">
                 Product Description
-              </span>
+              </button>
               {typeof totalRows === 'number' && totalRows > 0 && activeProduct && (
                 <span className="text-slate-500 dark:text-slate-400 text-[11px]">
                   Row #{activeIndex + 1} of {totalRows}
@@ -168,7 +198,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">SRate: </span>
                 <span className="text-indigo-600 dark:text-indigo-300 font-bold font-mono text-xs">
-                  ₹{Number(activeProduct.saleRate || 0).toFixed(2)}
+                  {money(activeProduct.saleRate)}
                 </span>
               </div>
 
@@ -176,7 +206,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">M.R.P.: </span>
                 <span className="text-slate-900 dark:text-white font-bold font-mono text-xs">
-                  ₹{Number(activeProduct.mrp || 0).toFixed(2)}
+                  {money(activeProduct.mrp)}
                 </span>
               </div>
 
@@ -184,7 +214,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">P.Rate: </span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">
-                  ₹{Number(activeProduct.purchaseRate || 0).toFixed(2)}
+                  {money(activeProduct.purchaseRate)}
                 </span>
               </div>
 
@@ -291,6 +321,30 @@ export default function ActiveProductDetailPanel({
           </div>
         )}
       </div>
+      {detailOpen && activeProduct && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm" role="presentation" onMouseDown={() => setDetailOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label={`${activeProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-600 bg-slate-50 text-slate-900 shadow-2xl dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="flex items-start justify-between gap-4 border-b border-slate-300 bg-emerald-950 px-5 py-3 text-emerald-50 dark:border-slate-700">
+              <div><p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-200">Batch detail window</p><h2 className="mt-1 font-mono text-lg font-bold">{activeProduct.name}</h2></div>
+              <button type="button" onClick={() => setDetailOpen(false)} className="rounded border border-emerald-600 px-3 py-1.5 text-xs font-semibold hover:bg-emerald-800">Close</button>
+            </header>
+            <div className="grid gap-px bg-slate-300 text-xs dark:bg-slate-700 md:grid-cols-2">
+              <Detail label="HSN / SAC" value={activeProduct.hsn} /><Detail label="GST" value={typeof activeProduct.gstRate === 'number' ? `${activeProduct.gstRate}% (CGST ${activeProduct.gstRate / 2}% + SGST ${activeProduct.gstRate / 2}%)` : undefined} />
+              <Detail label="Batch" value={activeProduct.batch} /><Detail label="Expiry" value={formatDisplayExpiry(activeProduct.expiry)} />
+              <Detail label="Stock" value={typeof activeProduct.stock === 'number' ? `${activeProduct.stock} units` : undefined} /><Detail label="Rack / Location" value={activeProduct.location} />
+              <Detail label="Purchase rate" value={money(activeProduct.purchaseRate)} /><Detail label="Cost price" value={money(activeProduct.costPrice)} />
+              <Detail label="Purchase scheme" value={scheme(activeProduct.purchaseSchemeDeal, activeProduct.purchaseSchemeFree)} /><Detail label="Sales scheme" value={scheme(activeProduct.salesSchemeDeal, activeProduct.salesSchemeFree)} />
+              <Detail label="MRP" value={money(activeProduct.mrp)} /><Detail label="Sale price" value={money(activeProduct.saleRate)} />
+              <Detail label="Supplier invoice" value={activeProduct.refNo} /><Detail label="Invoice date" value={activeProduct.date} />
+            </div>
+            <section className="border-t border-slate-300 p-4 dark:border-slate-700"><h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-slate-500">Rate and margin comparison</h3><div className="mt-3 grid gap-3 sm:grid-cols-3"><Margin label="MRP vs sale" value={margins.mrpVsSale} /><Margin label="MRP vs purchase" value={margins.mrpVsPurchase} /><Margin label="Sale vs cost" value={margins.saleVsCost} /></div></section>
+          </section>
+        </div>
+      )}
     </div>
   )
 }
+
+function Detail({ label, value }: { label: string; value?: string }) { return <div className="bg-white px-5 py-3 dark:bg-slate-900"><span className="font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</span><strong className="mt-1 block font-mono text-sm text-slate-900 dark:text-slate-100">{value || '—'}</strong></div> }
+function Margin({ label, value }: { label: string; value: number | null }) { return <div className="rounded border border-slate-300 bg-slate-100 p-3 dark:border-slate-700 dark:bg-slate-900"><span className="font-mono text-[10px] uppercase text-slate-500">{label}</span><strong className={`mt-1 block font-mono text-base ${value === null ? 'text-slate-500' : value < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{value === null ? '—' : `${value.toFixed(2)}%`}</strong></div> }
+function scheme(deal?: number, free?: number) { return typeof deal === 'number' || typeof free === 'number' ? `${deal ?? 0} + ${free ?? 0}` : undefined }
