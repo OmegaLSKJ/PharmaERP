@@ -35,6 +35,9 @@ import ClaimSettlement from './pages/transactions/claims/ClaimSettlement'
 import VoucherEntry from './pages/accounting/VoucherEntry'
 import DayBook from './pages/accounting/DayBook'
 import LedgerView from './pages/accounting/LedgerView'
+import SelectedBook from './pages/accounting/SelectedBook'
+import NoteBook from './pages/accounting/NoteBook'
+import ItemDayBook from './pages/accounting/ItemDayBook'
 import StockView from './pages/inventory/StockView'
 import StockAgeing from './pages/inventory/StockAgeing'
 import StockMovement from './pages/inventory/StockMovement'
@@ -119,6 +122,10 @@ export default function App() {
           <Route path="/accounting/vouchers" element={<VoucherEntry />} />
           <Route path="/accounting/daybook" element={<DayBook />} />
           <Route path="/accounting/ledger" element={<LedgerView />} />
+          <Route path="/accounting/selected-book" element={<SelectedBook />} />
+          <Route path="/accounting/debit-note" element={<NoteBook type="debit" />} />
+          <Route path="/accounting/credit-note" element={<NoteBook type="credit" />} />
+          <Route path="/accounting/item-daybook" element={<ItemDayBook />} />
           <Route path="/inventory/stock" element={<StockView />} />
           <Route path="/inventory/batches" element={<StockView />} />
           <Route path="/inventory/expiry" element={<StockAgeing />} />

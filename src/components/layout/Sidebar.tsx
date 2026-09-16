@@ -76,9 +76,15 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Accounting',
     items: [
-      { label: 'Vouchers', path: '/accounting/vouchers', icon: <Receipt size={16} /> },
-      { label: 'Day Book', path: '/accounting/daybook', icon: <FileText size={16} /> },
-      { label: 'Ledger View', path: '/accounting/ledger', icon: <Landmark size={16} /> },
+      { label: 'Vouchers', path: '/accounting/vouchers', icon: <Receipt size={16} />, children: [
+        { label: 'New Voucher', path: '/accounting/vouchers' },
+        { label: 'Day Book', path: '/accounting/daybook' },
+        { label: 'Selected Book', path: '/accounting/selected-book' },
+        { label: 'Ledger View', path: '/accounting/ledger' },
+        { label: 'Debit Note Book', path: '/accounting/debit-note' },
+        { label: 'Credit Note Book', path: '/accounting/credit-note' },
+        { label: 'Item Day Book', path: '/accounting/item-daybook' },
+      ]},
     ],
   },
   {
