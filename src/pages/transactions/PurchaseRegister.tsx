@@ -30,9 +30,10 @@ interface EditableLine {
   qty: number
   freeQty: number
   rate: number
+  saleRate?: number
+  mrp?: number
   discount: number
   gstRate: number
-  mrp?: number
   amount: number
 }
 
@@ -138,6 +139,7 @@ export default function PurchaseRegister() {
             rate,
             discount: disc,
             gstRate: gst,
+            saleRate: Number(l.saleRate || rate * 1.2),
             mrp: Number(l.mrp || rate * 1.35),
             amount: Math.round(amt * 100) / 100,
           }
@@ -159,6 +161,8 @@ export default function PurchaseRegister() {
           rate,
           discount: 0,
           gstRate: 12,
+          saleRate: Math.round(rate * 1.2 * 100) / 100,
+          mrp: Math.round(rate * 1.35 * 100) / 100,
           amount: inv.total || 1120,
         },
       ])
@@ -201,6 +205,8 @@ export default function PurchaseRegister() {
         rate: 100,
         discount: 0,
         gstRate: 12,
+        saleRate: 120,
+        mrp: 135,
         amount: 1120,
       },
     ])
@@ -249,7 +255,8 @@ export default function PurchaseRegister() {
         discount: l.discount,
         gstRate: l.gstRate,
         amount: l.amount,
-        mrp: l.mrp,
+        saleRate: Number(l.saleRate || 0),
+        mrp: Number(l.mrp || 0),
       })),
     }
 
@@ -557,15 +564,17 @@ export default function PurchaseRegister() {
                 <table className="w-full text-xs min-w-[980px]">
                   <thead>
                     <tr className="bg-slate-900 border-b border-slate-800 text-slate-300 uppercase text-[10px] font-semibold">
-                      <th className="text-left px-3.5 py-2.5 w-60 min-w-[200px]">Item Description</th>
-                      <th className="text-left px-2.5 py-2.5 w-28 min-w-[100px]">Batch</th>
-                      <th className="text-left px-2.5 py-2.5 w-24 min-w-[85px]">Expiry</th>
-                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Qty</th>
-                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Free</th>
-                      <th className="text-right px-2.5 py-2.5 w-28 min-w-[100px]">Rate (₹)</th>
-                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">Disc %</th>
-                      <th className="text-right px-2.5 py-2.5 w-20 min-w-[75px]">GST %</th>
-                      <th className="text-right px-3.5 py-2.5 w-28 min-w-[105px]">Amount (₹)</th>
+                      <th className="text-left px-3.5 py-2.5 w-52 min-w-[180px]">Item Description</th>
+                      <th className="text-left px-2 py-2.5 w-24 min-w-[90px]">Batch</th>
+                      <th className="text-left px-2 py-2.5 w-20 min-w-[80px]">Expiry</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[65px]">Qty</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[65px]">Free</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[90px]">Rate (₹)</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[90px] text-primary">Sale Price</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[90px]">MRP (₹)</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[65px]">Disc %</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[65px]">GST %</th>
+                      <th className="text-right px-3.5 py-2.5 w-24 min-w-[95px]">Amount (₹)</th>
                       <th className="w-10 px-2 py-2.5"></th>
                     </tr>
                   </thead>
@@ -620,6 +629,30 @@ export default function PurchaseRegister() {
                             value={line.rate}
                             onChange={(e) => updateLine(idx, 'rate', e.target.value)}
                             className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                          />
+                        </td>
+                        {/* Sale Price */}
+                        <td className="px-2 py-2 text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={line.saleRate || ''}
+                            onChange={(e) => updateLine(idx, 'saleRate', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-indigo-400/60 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            title="Sale Price (₹)"
+                          />
+                        </td>
+                        {/* MRP */}
+                        <td className="px-2 py-2 text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={line.mrp || ''}
+                            onChange={(e) => updateLine(idx, 'mrp', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            title="MRP (₹)"
                           />
                         </td>
                         <td className="px-2 py-2 text-right">

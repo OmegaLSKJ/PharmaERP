@@ -324,11 +324,25 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
     if (!item) continue
     // Update overall item stock
     item.stock = Math.max(0, (Number(item.stock) || 0) + delta)
-    // Update batch-level stock
-    const batch = (item.batches || []).find((b: any) =>
-      !lineBatch || (b.batch || b.batchNumber || '').trim() === lineBatch
+    // Update batch-level stock and price attributes
+    let batch = (item.batches || []).find((b: any) =>
+      !lineBatch || (b.batch || b.batchNumber || '').trim().toLowerCase() === lineBatch.toLowerCase()
     ) || (item.batches || [])[0]
-    if (batch) {
+
+    if (!batch && direction === 'add' && lineBatch) {
+      batch = {
+        id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        batch: lineBatch,
+        expiry: line.expiry || '',
+        mrp: Number(line.mrp || item.mrp || 0),
+        saleRate: Number(line.saleRate || item.saleRate || 0),
+        purchaseRate: Number(line.rate || line.purchaseRate || item.purchaseRate || 0),
+        stock: delta,
+        stockByLocation: { 'Main Warehouse': delta }
+      }
+      if (!item.batches) item.batches = []
+      item.batches.push(batch)
+    } else if (batch) {
       // Record base stock on first mutation so we can compute deltas
       if (typeof batch._baseMockStock !== 'number') {
         batch._baseMockStock = Number(batch.stock) || 0
@@ -338,6 +352,20 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
       if (!batch.stockByLocation) batch.stockByLocation = {}
       const loc = 'Main Warehouse'
       batch.stockByLocation[loc] = Math.max(0, (Number(batch.stockByLocation[loc]) || 0) + delta)
+
+      if (direction === 'add') {
+        if (line.mrp && Number(line.mrp) > 0) {
+          batch.mrp = Number(line.mrp)
+          item.mrp = Number(line.mrp)
+        }
+        if (line.saleRate && Number(line.saleRate) > 0) {
+          batch.saleRate = Number(line.saleRate)
+          item.saleRate = Number(line.saleRate)
+        }
+        if (line.rate || line.purchaseRate) {
+          item.purchaseRate = Number(line.rate || line.purchaseRate)
+        }
+      }
     }
     changed = true
   }

@@ -322,6 +322,7 @@ export default function PurchaseEntry() {
           scheme: item.scheme,
           gstRate: item.gstRate,
           mrp: item.mrp,
+          saleRate: item.saleRate,
           amount: item.amount,
         })),
       }
@@ -737,8 +738,8 @@ export default function PurchaseEntry() {
                     </div>
                   </div>
 
-                  {/* Rates */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
+                  {/* Rates: Purc Rate, Sale Price, MRP */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/40">
                     <div>
                       <label className="text-[10px] uppercase font-semibold text-muted-foreground block mb-1">Purc Rate (₹)</label>
                       <input
@@ -748,7 +749,20 @@ export default function PurchaseEntry() {
                         value={item.purchaseRate === 0 ? '' : item.purchaseRate}
                         onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
                         placeholder="0.00"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-semibold text-primary block mb-1">Sale Price (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.saleRate === 0 ? '' : item.saleRate}
+                        onChange={(e) => updateItem(item.id, 'saleRate', e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="0.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500/60 rounded-lg px-2 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
@@ -761,7 +775,7 @@ export default function PurchaseEntry() {
                         value={item.mrp === 0 ? '' : item.mrp}
                         onChange={(e) => updateItem(item.id, 'mrp', e.target.value === '' ? '' : Number(e.target.value))}
                         placeholder="0.00"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
                         inputMode="decimal"
                       />
                     </div>
@@ -850,17 +864,19 @@ export default function PurchaseEntry() {
                 <thead>
                   <tr className="bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 uppercase tracking-wider text-[11px] font-semibold">
                     <th className="p-3 text-center w-12">#</th>
-                    <th className="p-3 text-left min-w-[220px]">Item / Description</th>
-                    <th className="p-3 text-left w-28 min-w-[105px]">HSN</th>
-                    <th className="p-3 text-left w-32 min-w-[115px]">Batch</th>
-                    <th className="p-3 text-left w-44 min-w-[155px]">Expiry</th>
-                    <th className="p-2.5 text-right w-24 min-w-[85px]">Qty</th>
-                    <th className="p-2.5 text-right w-24 min-w-[85px]">Free</th>
-                    <th className="p-2.5 text-right w-32 min-w-[115px]">Purc. Rate</th>
-                    <th className="p-2.5 text-right w-24 min-w-[85px]">Disc%</th>
-                    <th className="p-2.5 text-right w-24 min-w-[85px]">Scheme%</th>
-                    <th className="p-2.5 text-right w-24 min-w-[85px] text-indigo-600 dark:text-indigo-400">GST% *</th>
-                    <th className="p-3 text-right w-36 min-w-[120px]">Amount</th>
+                    <th className="p-3 text-left min-w-[200px]">Item / Description</th>
+                    <th className="p-3 text-left w-24 min-w-[95px]">HSN</th>
+                    <th className="p-3 text-left w-28 min-w-[105px]">Batch</th>
+                    <th className="p-3 text-left w-36 min-w-[130px]">Expiry</th>
+                    <th className="p-2 text-right w-20 min-w-[70px]">Qty</th>
+                    <th className="p-2 text-right w-20 min-w-[70px]">Free</th>
+                    <th className="p-2 text-right w-28 min-w-[95px]">Purc. Rate</th>
+                    <th className="p-2 text-right w-28 min-w-[95px] text-primary">Sale Price</th>
+                    <th className="p-2 text-right w-28 min-w-[95px]">MRP</th>
+                    <th className="p-2 text-right w-20 min-w-[70px]">Disc%</th>
+                    <th className="p-2 text-right w-20 min-w-[70px]">Scheme%</th>
+                    <th className="p-2 text-right w-20 min-w-[75px] text-indigo-600 dark:text-indigo-400">GST% *</th>
+                    <th className="p-3 text-right w-32 min-w-[110px]">Amount</th>
                     <th className="p-3 text-center w-12"></th>
                   </tr>
                 </thead>
@@ -936,7 +952,35 @@ export default function PurchaseEntry() {
                           onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
                           onKeyDown={handleRowKeyDown}
                           placeholder="0.00"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </td>
+                      {/* Sale Price */}
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.saleRate === 0 ? '' : item.saleRate}
+                          onChange={(e) => updateItem(item.id, 'saleRate', e.target.value === '' ? '' : Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          placeholder="0.00"
+                          className="w-full bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/70 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Selling Price / Rate to customer"
+                        />
+                      </td>
+                      {/* MRP */}
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.mrp === 0 ? '' : item.mrp}
+                          onChange={(e) => updateItem(item.id, 'mrp', e.target.value === '' ? '' : Number(e.target.value))}
+                          onKeyDown={handleRowKeyDown}
+                          placeholder="0.00"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Maximum Retail Price (MRP)"
                         />
                       </td>
                       <td className="p-2 text-right">
@@ -1080,7 +1124,10 @@ export default function PurchaseEntry() {
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.purchaseRate)}</div>
-                    <div className="text-[10px] text-muted-foreground">MRP: ₹{item.mrp}</div>
+                    <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-2 mt-0.5">
+                      {item.saleRate > 0 && <span className="text-indigo-400 font-medium">Sale: ₹{item.saleRate}</span>}
+                      <span>MRP: ₹{item.mrp}</span>
+                    </div>
                   </div>
                 </button>
               ))}

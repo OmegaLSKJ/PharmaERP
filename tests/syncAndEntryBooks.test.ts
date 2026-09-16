@@ -56,7 +56,7 @@ describe('Inventory & Ledger Synchronization and Entry Books', () => {
     const initialBatchStock = batch ? Number(batch.stock || 0) : 0
     const purchaseQty = 15
 
-    // Create a purchase bill
+    // Create a purchase bill with MRP and Sale Price
     const purchase = await create('purchases', {
       party: 'Cipla Ltd',
       supplier: 'Cipla Ltd',
@@ -68,6 +68,8 @@ describe('Inventory & Ledger Synchronization and Entry Books', () => {
           batch: batch?.batch,
           quantity: purchaseQty,
           rate: 80,
+          saleRate: 110,
+          mrp: 150,
           amount: 1200,
         },
       ],
@@ -76,14 +78,18 @@ describe('Inventory & Ledger Synchronization and Entry Books', () => {
 
     expect(purchase).toBeDefined()
 
-    // Verify stock is incremented
+    // Verify stock is incremented and MRP/saleRate are synchronized
     const itemsAfter: any = await list('items')
     const updatedItem = itemsAfter.find((i: any) => i.id === item.id)
     expect(Number(updatedItem.stock)).toBe(initialStock + purchaseQty)
+    expect(Number(updatedItem.mrp)).toBe(150)
+    expect(Number(updatedItem.saleRate)).toBe(110)
 
     if (batch) {
       const updatedBatch = updatedItem.batches?.find((b: any) => b.batch === batch.batch)
       expect(Number(updatedBatch.stock)).toBe(initialBatchStock + purchaseQty)
+      expect(Number(updatedBatch.mrp)).toBe(150)
+      expect(Number(updatedBatch.saleRate)).toBe(110)
     }
   })
 
