@@ -1,6 +1,7 @@
-import { Search, Moon, Sun, Bell, Command, Menu, LogOut, User as UserIcon, Shield, ChevronDown } from 'lucide-react'
+import { Search, Moon, Sun, Bell, Command, Menu, LogOut, User as UserIcon, Shield, ChevronDown, RefreshCw, Zap } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
+import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
@@ -9,6 +10,11 @@ export default function Topbar() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const { theme, setTheme, toggleCommandPalette, setMobileSidebarOpen } = useUIStore()
+  const syncStatus = usePreloaderStore((s) => s.status)
+  const syncPercent = usePreloaderStore((s) => s.percent)
+  const completed = usePreloaderStore((s) => s.completed)
+  const total = usePreloaderStore((s) => s.total)
+  const startPreload = usePreloaderStore((s) => s.startPreload)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const navigate = useNavigate()
@@ -98,6 +104,40 @@ export default function Topbar() {
           title="Search (⌘K)"
         >
           <Search size={18} />
+        </button>
+
+        {/* Cache Sync Status Indicator */}
+        <button
+          type="button"
+          onClick={() => void startPreload({ force: true })}
+          className={cn(
+            "h-8 px-2 sm:px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer border",
+            syncStatus === 'syncing' && "bg-blue-500/10 text-blue-400 border-blue-500/30",
+            syncStatus === 'synced' && "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20",
+            syncStatus === 'error' && "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20",
+            syncStatus === 'idle' && "text-muted-foreground hover:bg-secondary border-transparent"
+          )}
+          title={
+            syncStatus === 'syncing'
+              ? `Caching Supabase data into browser: ${completed}/${total} (${syncPercent}%)`
+              : syncStatus === 'synced'
+              ? "All ERP data cached in browser • 0ms instant page loads. Click to refresh cache."
+              : "Sync all ERP data to browser cache"
+          }
+        >
+          {syncStatus === 'syncing' ? (
+            <>
+              <RefreshCw size={13} className="animate-spin text-blue-400" />
+              <span className="hidden sm:inline text-[11px] font-mono">{syncPercent}%</span>
+            </>
+          ) : (
+            <>
+              <Zap size={13} className={syncStatus === 'synced' ? "text-emerald-400 fill-emerald-400/20" : "text-slate-400"} />
+              <span className="hidden sm:inline text-[11px]">
+                {syncStatus === 'synced' ? 'Cached' : 'Cache'}
+              </span>
+            </>
+          )}
         </button>
 
         {/* Theme Toggle */}

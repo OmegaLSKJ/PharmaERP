@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { usePreloaderStore } from '../../lib/erpPreloader'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
@@ -32,6 +33,7 @@ export default function LoginPage() {
     const ok = await login(email, password)
     setLoading(false)
     if (ok) {
+      void usePreloaderStore.getState().startPreload()
       navigate('/')
     } else {
       setError('Invalid email or password')

@@ -1,10 +1,11 @@
-import { TrendingUp, TrendingDown, Package, AlertTriangle, IndianRupee, ShoppingCart, Truck, Plus, ClipboardList } from 'lucide-react'
+import { TrendingUp, TrendingDown, Package, AlertTriangle, IndianRupee, ShoppingCart, Truck, Plus, ClipboardList, Zap, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 import { useEffect, useState } from 'react'
 import { getErp } from '../../lib/erpApi'
+import { usePreloaderStore } from '../../lib/erpPreloader'
 
 type DashboardData = {
   kpis: { sales: number; purchases: number; activeItems: number; pendingInvoices: number }
@@ -54,12 +55,35 @@ function StatusBadge({ status }: { status: string }) {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData>(emptyDashboard)
   const [loading, setLoading] = useState(true)
-  useEffect(() => { getErp<DashboardData>('dashboard').then(setData).finally(() => setLoading(false)) }, [])
+  const syncStatus = usePreloaderStore((s) => s.status)
+  const syncPercent = usePreloaderStore((s) => s.percent)
+
+  useEffect(() => {
+    void usePreloaderStore.getState().startPreload()
+    getErp<DashboardData>('dashboard').then(setData).finally(() => setLoading(false))
+  }, [])
   const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div><h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Operations overview</h1><p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p></div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Operations overview</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground">FY 2025-26 · March 2026 · Live operational view</p>
+            <span className="text-muted-foreground/40 hidden sm:inline">·</span>
+            {syncStatus === 'syncing' ? (
+              <span className="inline-flex items-center gap-1.5 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-medium">
+                <RefreshCw size={11} className="animate-spin" />
+                <span>Caching ERP data ({syncPercent}%)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">
+                <Zap size={11} className="fill-emerald-400/20" />
+                <span>Instant Browser Cache Active</span>
+              </span>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
           <Link
             to="/transactions/sale/new"

@@ -6,6 +6,7 @@ import Toast from '../ui/Toast'
 import ErrorBoundary from '../common/ErrorBoundary'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
+import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { useKeyboardFormNavigation } from '../../hooks/useKeyboardFormNavigation'
 import { useEffect } from 'react'
@@ -22,6 +23,12 @@ export default function AppLayout() {
   useKeyboardFormNavigation()
 
   useEffect(() => { void hydrate() }, [hydrate])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void usePreloaderStore.getState().startPreload()
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')

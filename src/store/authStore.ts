@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 
+import { clearAllCache } from '../lib/erpCache'
+import { usePreloaderStore } from '../lib/erpPreloader'
+
 export interface User {
   id: string
   name: string
@@ -51,7 +54,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
   logout: async () => {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }) } finally {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    } finally {
+      void clearAllCache()
+      usePreloaderStore.getState().reset()
       set({ user: null, isAuthenticated: false, initialized: true })
     }
   },
