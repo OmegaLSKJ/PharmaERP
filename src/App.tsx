@@ -55,7 +55,7 @@ import DeliveryManagement from './pages/delivery/DeliveryManagement'
 import PricingSchemes from './pages/pricing/PricingSchemes'
 import SalesAnalytics from './pages/reports/SalesAnalytics'
 import SaleAnalysis from './modules/sale-analysis/SaleAnalysis'
-import PurchaseAnalytics from './pages/reports/PurchaseAnalytics'
+import PurchaseAnalysis from './modules/purchase-analysis/PurchaseAnalysis'
 import FinancialReports from './pages/reports/FinancialReports'
 import TrialBalance from './pages/reports/TrialBalance'
 import ProfitLoss from './pages/reports/ProfitLoss'
@@ -161,7 +161,7 @@ export default function App() {
           <Route path="/compliance/controlled-drugs" element={<CrudTablePage title="Controlled Drug Register" description="Maintain patient, prescriber and prescription dispensing records." resource="controlled-drug-register" fields={complianceCrud.controlled} />} />
           <Route path="/reports/sales" element={<SalesAnalytics />} />
           <Route path="/reports/sale-analysis" element={<SaleAnalysis />} />
-          <Route path="/reports/purchases" element={<PurchaseAnalytics />} />
+          <Route path="/reports/purchases" element={<PurchaseAnalysis />} />
           <Route path="/reports/fastslow" element={<FastSlowMoving />} />
           <Route path="/reports/trial-balance" element={<TrialBalance />} />
           <Route path="/reports/profit-loss" element={<ProfitLoss />} />
