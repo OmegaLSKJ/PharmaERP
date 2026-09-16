@@ -120,9 +120,11 @@ export default function ActiveProductDetailPanel({
     const refresh = async () => {
       try {
         const detail = await getErp<ActiveProductDetail>('product-detail', {
-          ...(activeProduct.id ? { itemId: activeProduct.id } : { itemName: activeProduct.name }),
-          ...(activeProduct.batchId ? { batchId: activeProduct.batchId } : activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
-        })
+          ...(activeProduct.id ? { itemId: activeProduct.id } : {}),
+          itemName: activeProduct.name,
+          ...(activeProduct.batchId ? { batchId: activeProduct.batchId } : {}),
+          ...(activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
+        }, { forceRefresh: true })
         if (current) { setLiveDetail(detail); setLiveError('') }
       } catch (error) { if (current) setLiveError(error instanceof Error ? error.message : 'Live product details could not be loaded.') }
     }
