@@ -1,8 +1,8 @@
 ﻿import { useState } from 'react'
-import { Plus, Mail, MessageSquare, Ban, Trash2 } from 'lucide-react'
+import { Plus, Mail, MessageSquare, Ban, Trash2, Pencil } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
-import { deleteErp, getErp, postErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 
 interface Block { id:string; type:'email'|'sms'|'whatsapp'; value:string; reason:string; blockedOn:string }
@@ -22,6 +22,7 @@ export default function CommunicationBlocking() {
     try { const created = await postErp<Block>('communication-blocks', { type, value, reason }); setBlocks((rows) => [created, ...rows]); setValue(''); setReason(''); addToast('Communication blocked', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to add block', 'error') }
   }
   const removeBlock = async (block: Block) => { try { await deleteErp('communication-blocks', block.id); setBlocks((rows) => rows.filter((row) => row.id !== block.id)); addToast('Block removed', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to remove block', 'error') } }
+  const editBlock=async(block:Block)=>{const value=window.prompt('Email / mobile',block.value);if(!value)return;const reason=window.prompt('Reason',block.reason)??block.reason;try{const updated=await patchErp<Block>('communication-blocks',block.id,{value,reason,type:block.type});setBlocks((rows)=>rows.map((row)=>row.id===block.id?updated:row));addToast('Block updated','success')}catch(error){addToast(error instanceof Error?error.message:'Unable to update block','error')}}
   return (
     <div className="p-6 space-y-4">
       <div><h1 className="text-2xl font-bold tracking-tight text-white">Communication Blocking</h1>
@@ -49,7 +50,7 @@ export default function CommunicationBlocking() {
               <td className="px-4 py-3 font-mono text-white">{b.value}</td>
               <td className="px-4 py-3 text-slate-400">{b.reason}</td>
               <td className="px-4 py-3 font-mono text-slate-500">{b.blockedOn}</td>
-              <td className="px-4 py-3 text-right"><button aria-label={`Remove ${b.value}`} onClick={()=>removeBlock(b)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={13}/></button></td>
+              <td className="px-4 py-3 text-right"><button aria-label={`Edit ${b.value}`} onClick={()=>editBlock(b)} className="p-1 hover:text-blue-400 text-slate-400"><Pencil size={13}/></button><button aria-label={`Remove ${b.value}`} onClick={()=>removeBlock(b)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 size={13}/></button></td>
             </tr>))}
           </tbody></table>
         </div>
