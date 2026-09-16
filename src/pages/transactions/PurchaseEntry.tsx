@@ -24,6 +24,9 @@ interface LineItem {
   amount: number
   saleRate: number
   mrp: number
+  stock?: number
+  manufacturer?: string
+  salt?: string
 }
 
 type SupplierOption = { name: string; gstin: string; outstanding: number }
@@ -36,6 +39,32 @@ type ItemOption = {
   purchaseRate: number
   saleRate: number
   gstRate: number
+  stock: number
+  manufacturer: string
+  salt: string
+}
+
+function formatDisplayExpiry(dateStr?: string): string {
+  if (!dateStr) return ''
+  const trimmed = dateStr.trim()
+  const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})/)
+  if (ymdMatch) {
+    const year = ymdMatch[1]
+    const monthNum = parseInt(ymdMatch[2], 10)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthName = months[monthNum - 1] || ymdMatch[2]
+    return `${monthName}, ${year}`
+  }
+  const myMatch = trimmed.match(/^(\d{1,2})\/(\d{2,4})/)
+  if (myMatch) {
+    const monthNum = parseInt(myMatch[1], 10)
+    let year = myMatch[2]
+    if (year.length === 2) year = `20${year}`
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthName = months[monthNum - 1] || myMatch[1]
+    return `${monthName}, ${year}`
+  }
+  return trimmed
 }
 
 export default function PurchaseEntry() {
@@ -58,6 +87,7 @@ export default function PurchaseEntry() {
   const [invoiceDate, setInvoiceDate] = useState('')
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [items, setItems] = useState<LineItem[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(0)
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [showSupplierSearch, setShowSupplierSearch] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -115,6 +145,9 @@ export default function PurchaseEntry() {
               purchaseRate: Number(p.purchaseRate),
               saleRate: Number(p.saleRate),
               gstRate: resolvedGstRate,
+              stock: Number(p.stock ?? p.quantity ?? 0),
+              manufacturer: String(p.manufacturer ?? p.mfr ?? ''),
+              salt: String(p.salt ?? ''),
             }
           })
         )
@@ -217,26 +250,33 @@ export default function PurchaseEntry() {
     // Auto-fill GST% based on product's HSN / master value
     const initialGstRate = Number(item.gstRate ?? 12)
 
-    setItems((prev) => [
-      ...prev,
-      {
-        id: newId,
-        itemName: item.name,
-        packing: item.packing,
-        hsn: item.hsn || '',
-        batch: '',
-        expiry: '',
-        qty: 1,
-        freeQty: 0,
-        purchaseRate: item.purchaseRate,
-        discount: 0,
-        scheme: 0,
-        gstRate: initialGstRate,
-        amount: item.purchaseRate,
-        saleRate: item.saleRate,
-        mrp: item.mrp,
-      },
-    ])
+    setItems((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: newId,
+          itemName: item.name,
+          packing: item.packing,
+          hsn: item.hsn || '',
+          batch: '',
+          expiry: '',
+          qty: 1,
+          freeQty: 0,
+          purchaseRate: item.purchaseRate,
+          discount: 0,
+          scheme: 0,
+          gstRate: initialGstRate,
+          amount: item.purchaseRate,
+          saleRate: item.saleRate,
+          mrp: item.mrp,
+          stock: item.stock,
+          manufacturer: item.manufacturer,
+          salt: item.salt,
+        },
+      ]
+      setActiveIndex(next.length - 1)
+      return next
+    })
     setShowItemSearch(false)
     setItemQuery('')
 
@@ -276,13 +316,34 @@ export default function PurchaseEntry() {
   }
 
   const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id))
+    setItems((prev) => {
+      const next = prev.filter((i) => i.id !== id)
+      if (activeIndex >= next.length) {
+        setActiveIndex(Math.max(0, next.length - 1))
+      }
+      return next
+    })
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.amount, 0)
   const totalGst = items.reduce((sum, i) => sum + (i.amount * (Number(i.gstRate) || 0)) / 100, 0)
   const grandTotal = subtotal + totalGst
   const totalValue = items.reduce((sum, i) => sum + i.mrp * (i.qty + i.freeQty), 0)
+  const totalDiscount = items.reduce((sum, i) => {
+    const base = Number(i.purchaseRate || 0) * Number(i.qty || 0)
+    const discAmt = (base * (Number(i.discount || 0) + Number(i.scheme || 0))) / 100
+    return sum + discAmt
+  }, 0)
+  const currentSupplier = supplierOptions.find((s) => s.name.toLowerCase() === supplier.toLowerCase())
+  const supplierOutstanding = currentSupplier ? currentSupplier.outstanding : 0
+
+  const activeItem = items[activeIndex] || (items.length > 0 ? items[items.length - 1] : null)
+  const activeStock = (() => {
+    if (!activeItem) return 0
+    if (typeof activeItem.stock === 'number' && activeItem.stock > 0) return activeItem.stock
+    const found = itemOptions.find((o) => o.name.toLowerCase() === activeItem.itemName.toLowerCase())
+    return found?.stock ?? 0
+  })()
 
   const filteredItems = itemOptions.filter(
     (i) =>
@@ -881,184 +942,320 @@ export default function PurchaseEntry() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-foreground">
-                  {items.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-secondary/30 transition-colors">
-                      <td className="p-3 text-center text-muted-foreground font-mono font-medium">{idx + 1}</td>
-                      <td className="p-3 font-semibold text-foreground">
-                        {item.itemName}
-                        {item.packing && (
-                          <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
+                  {items.map((item, idx) => {
+                    const isActive = idx === activeIndex
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() => setActiveIndex(idx)}
+                        className={cn(
+                          'transition-colors cursor-pointer',
+                          isActive
+                            ? 'bg-indigo-50/80 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-600 dark:border-l-indigo-400'
+                            : 'hover:bg-slate-50 dark:hover:bg-secondary/30'
                         )}
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          list="hsn-list"
-                          value={item.hsn}
-                          onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="HSN"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium shadow-2xs transition"
-                          title="HSN Code (changing this updates GST%)"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          value={item.batch}
-                          onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="Batch"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium uppercase shadow-2xs transition"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="date"
-                          value={item.expiry}
-                          onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
-                          onKeyDown={handleRowKeyDown}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium shadow-2xs transition"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.qty === 0 ? '' : item.qty}
-                          onChange={(e) => updateItem(item.id, 'qty', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="1"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.freeQty === 0 ? '' : item.freeQty}
-                          onChange={(e) => updateItem(item.id, 'freeQty', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.purchaseRate === 0 ? '' : item.purchaseRate}
-                          onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0.00"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      {/* Sale Price */}
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.saleRate === 0 ? '' : item.saleRate}
-                          onChange={(e) => updateItem(item.id, 'saleRate', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0.00"
-                          className="w-full bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/70 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          title="Selling Price / Rate to customer"
-                        />
-                      </td>
-                      {/* MRP */}
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.mrp === 0 ? '' : item.mrp}
-                          onChange={(e) => updateItem(item.id, 'mrp', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0.00"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          title="Maximum Retail Price (MRP)"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discount === 0 ? '' : item.discount}
-                          onChange={(e) => updateItem(item.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.scheme === 0 ? '' : item.scheme}
-                          onChange={(e) => updateItem(item.id, 'scheme', e.target.value === '' ? '' : Number(e.target.value))}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.5"
-                          value={item.gstRate === 0 ? '' : item.gstRate}
-                          onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value) || 0)}
-                          onKeyDown={handleRowKeyDown}
-                          placeholder="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          title="GST percentage (Auto-filled from HSN, editable)"
-                        />
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs whitespace-nowrap">
-                        {formatCurrency(item.amount)}
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-500/10 rounded-lg"
-                          title="Remove row"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                      >
+                        <td className="p-3 text-center text-muted-foreground font-mono font-medium">{idx + 1}</td>
+                        <td className="p-3 font-semibold text-foreground">
+                          {item.itemName}
+                          {item.packing && (
+                            <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            list="hsn-list"
+                            value={item.hsn}
+                            onChange={(e) => updateItem(item.id, 'hsn', e.target.value)}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="HSN"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium shadow-2xs transition"
+                            title="HSN Code (changing this updates GST%)"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={item.batch}
+                            onChange={(e) => updateItem(item.id, 'batch', e.target.value)}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="Batch"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs font-medium uppercase shadow-2xs transition"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="date"
+                            value={item.expiry}
+                            onChange={(e) => updateItem(item.id, 'expiry', e.target.value)}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium shadow-2xs transition"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.qty === 0 ? '' : item.qty}
+                            onChange={(e) => updateItem(item.id, 'qty', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="1"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.freeQty === 0 ? '' : item.freeQty}
+                            onChange={(e) => updateItem(item.id, 'freeQty', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.purchaseRate === 0 ? '' : item.purchaseRate}
+                            onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0.00"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                        {/* Sale Price */}
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.saleRate === 0 ? '' : item.saleRate}
+                            onChange={(e) => updateItem(item.id, 'saleRate', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0.00"
+                            className="w-full bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/70 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            title="Selling Price / Rate to customer"
+                          />
+                        </td>
+                        {/* MRP */}
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.mrp === 0 ? '' : item.mrp}
+                            onChange={(e) => updateItem(item.id, 'mrp', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0.00"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            title="Maximum Retail Price (MRP)"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={item.discount === 0 ? '' : item.discount}
+                            onChange={(e) => updateItem(item.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={item.scheme === 0 ? '' : item.scheme}
+                            onChange={(e) => updateItem(item.id, 'scheme', e.target.value === '' ? '' : Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            value={item.gstRate === 0 ? '' : item.gstRate}
+                            onChange={(e) => updateItem(item.id, 'gstRate', Number(e.target.value) || 0)}
+                            onFocus={() => setActiveIndex(idx)}
+                            onKeyDown={handleRowKeyDown}
+                            placeholder="0"
+                            className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500 rounded-lg px-2.5 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            title="GST percentage (Auto-filled from HSN, editable)"
+                          />
+                        </td>
+                        <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs whitespace-nowrap">
+                          {formatCurrency(item.amount)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeItem(item.id)
+                            }}
+                            className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-500/10 rounded-lg"
+                            title="Remove row"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           </>
         )}
 
-        {/* Totals Summary */}
-        <div className="border-t border-border pt-4 flex justify-end">
-          <div className="w-full md:w-80 space-y-2 text-xs bg-slate-950/60 p-4 rounded-xl border border-border">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal (Excl. Tax)</span>
-              <span className="font-mono">{formatCurrency(subtotal)}</span>
+        {/* Active Product Description & Totals Summary Panel (Marg ERP Style) */}
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+            {/* Left: Active Product Live Description Box */}
+            <div className="lg:col-span-7 bg-slate-100/90 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2.5 font-mono shadow-xs text-xs">
+              <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+                    Product Description
+                  </span>
+                  {activeItem && (
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                      Row #{activeIndex + 1} of {items.length}
+                    </span>
+                  )}
+                </div>
+                {activeItem?.hsn && (
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    HSN: <strong className="text-slate-800 dark:text-white font-mono">{activeItem.hsn}</strong> (GST {activeItem.gstRate}%)
+                  </span>
+                )}
+              </div>
+
+              {activeItem ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-slate-700 dark:text-slate-300">
+                  <div className="sm:col-span-2 flex items-baseline flex-wrap gap-1.5">
+                    <span className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Item:</span>
+                    <span className="text-slate-900 dark:text-white font-extrabold text-sm tracking-tight">{activeItem.itemName}</span>
+                    {activeItem.packing && (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-sans font-semibold">
+                        {activeItem.packing}
+                      </span>
+                    )}
+                    {activeItem.manufacturer && (
+                      <span className="text-[10px] text-slate-500 italic">({activeItem.manufacturer})</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Batch: </span>
+                    <span className="text-amber-600 dark:text-amber-300 font-bold font-mono text-xs">{activeItem.batch || '—'}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Stock: </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">{activeStock} Units</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Expiry: </span>
+                    <span className="text-slate-800 dark:text-white font-bold font-mono text-xs">{formatDisplayExpiry(activeItem.expiry) || '—'}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">SRate: </span>
+                    <span className="text-indigo-600 dark:text-indigo-300 font-bold font-mono text-xs">₹{Number(activeItem.saleRate || 0).toFixed(2)}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">M.R.P.: </span>
+                    <span className="text-slate-900 dark:text-white font-bold font-mono text-xs">₹{Number(activeItem.mrp || 0).toFixed(2)}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">P.Rate: </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">₹{Number(activeItem.purchaseRate || 0).toFixed(2)}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Chall./Inv: </span>
+                    <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{invoiceNo || '—'}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Date: </span>
+                    <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{invoiceDate || entryDate}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-7 text-center text-slate-400 text-xs">
+                  No products added yet. Click &ldquo;Add Product&rdquo; above or search to inspect live batch, stock, rates, and margins.
+                </div>
+              )}
             </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Total GST Amount</span>
-              <span className="font-mono text-primary font-semibold">+{formatCurrency(totalGst)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>MRP Value</span>
-              <span className="font-mono">{formatCurrency(totalValue)}</span>
-            </div>
-            <div className="flex justify-between text-base font-bold text-foreground border-t border-border pt-2">
-              <span>Grand Total</span>
-              <span className="font-mono text-emerald-400 text-base sm:text-lg">{formatCurrency(grandTotal)}</span>
+
+            {/* Right: Bill Values & Account Summary */}
+            <div className="lg:col-span-5 bg-slate-100/90 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2 font-mono shadow-xs text-xs">
+              <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5">
+                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+                  Bill Values & Ledger
+                </span>
+                {supplier && (
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[170px]" title={supplier}>
+                    Party: <strong className="text-slate-800 dark:text-white">{supplier}</strong>
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-1 text-slate-700 dark:text-slate-300 pt-0.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">MRP Value :</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(totalValue)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">VALUE OF GOODS :</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">DISCOUNT :</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400">
+                    {totalDiscount > 0 ? `-${formatCurrency(totalDiscount)}` : '₹0.00'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">GST% Total :</span>
+                  <span className="font-bold text-primary">+{formatCurrency(totalGst)}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-300 dark:border-slate-800/80 pt-1">
+                  <span className="text-slate-500">Party Balance :</span>
+                  <span className={cn('font-bold', supplierOutstanding < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-200')}>
+                    {formatCurrency(Math.abs(supplierOutstanding))} {supplierOutstanding < 0 ? 'Dr' : 'Cr'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-slate-300 dark:border-slate-700 pt-1.5 text-sm font-bold text-slate-900 dark:text-white">
+                  <span className="uppercase text-xs tracking-wider">Grand Total :</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(grandTotal)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
