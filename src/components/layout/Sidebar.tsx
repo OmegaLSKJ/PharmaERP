@@ -121,7 +121,6 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Reports',
     items: [
       { label: 'Sales Analytics', path: '/reports/sales', icon: <TrendingUp size={16} /> },
-      { label: 'Sale Analysis Reports', path: '/reports/sale-analysis', icon: <ClipboardList size={16} /> },
       { label: 'Purchase Analytics', path: '/reports/purchases', icon: <BarChart3 size={16} /> },
       { label: 'Fast / Slow Moving', path: '/reports/fastslow', icon: <Turtle size={16} /> },
       { label: 'Trial Balance', path: '/reports/trial-balance', icon: <Scale size={16} /> },
