@@ -4,12 +4,15 @@ import { adminClient, applyRefreshedSession, hasRealSupabase, verifyRequest } fr
 import { canAccess, userRole } from '../../../../apps/web/lib/permissions'
 
 const numberOrUndefined = (value: unknown) => value === null || value === undefined ? undefined : Number(value)
+const isUuid = (value: string | null) => Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
 
 export async function GET(request: NextRequest) {
   const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' }
   const fail = (message: string, status: number) => NextResponse.json({ error: { message } }, { status, headers })
-  const itemId = request.nextUrl.searchParams.get('itemId'), itemName = request.nextUrl.searchParams.get('itemName')
-  const batchId = request.nextUrl.searchParams.get('batchId'), batchNumber = request.nextUrl.searchParams.get('batchNumber')
+  const requestedItemId = request.nextUrl.searchParams.get('itemId'), itemId = isUuid(requestedItemId) ? requestedItemId : null
+  const itemName = request.nextUrl.searchParams.get('itemName')
+  const requestedBatchId = request.nextUrl.searchParams.get('batchId'), batchId = isUuid(requestedBatchId) ? requestedBatchId : null
+  const batchNumber = request.nextUrl.searchParams.get('batchNumber')
   if (!itemId && !itemName) return fail('An item is required.', 400)
   if (!hasRealSupabase()) return fail('The live Supabase connection is not configured for this environment.', 503)
   try {
