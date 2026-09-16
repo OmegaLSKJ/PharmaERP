@@ -125,7 +125,9 @@ const mockStore: Record<string, any[]> = {
   challans: [
     { id: 'ch1', number: 'CH-2026-0001', party: 'Apollo Pharmacy', date: '2026-08-24', transport: 'Express Cargo', status: 'delivered' }
   ],
-  orders: []
+  orders: [],
+  'credit-notes': [],
+  'debit-notes': []
 }
 
 // Load dynamic mock stock data from Excel backup if it exists
@@ -314,8 +316,10 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
     const delta = direction === 'deduct' ? -qty : qty
     const lineName = (line.name || line.itemName || '').toLowerCase().trim()
     const lineBatch = (line.batch || line.batchNumber || '').trim()
+    const lineId = line.itemId || line.id || line.productId
     const item = (mockStore.items || []).find((i: any) =>
-      i.name && i.name.toLowerCase().trim() === lineName
+      (lineId && (i.id === lineId || i.code === lineId)) ||
+      (lineName && i.name && i.name.toLowerCase().trim() === lineName)
     )
     if (!item) continue
     // Update overall item stock
@@ -582,6 +586,49 @@ function listMock(resource: string, partyName?: string) {
     return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
 
+  if (resource === 'item-day-book') {
+    const movements: any[] = []
+    for (const s of mockStore.sales || []) {
+      for (const l of s.lines || []) {
+        movements.push({
+          id: `mv-sale-${s.id}-${l.id || l.name}`,
+          date: s.date,
+          vType: 'Sale',
+          vNo: s.number || s.id,
+          party: s.party,
+          name: l.name,
+          qty: Number(l.qty || l.quantity || 0),
+          rate: Number(l.rate || 0),
+          amount: Number(l.amount || (l.qty * l.rate) || 0),
+          batch: l.batch || '',
+          direction: 'out'
+        })
+      }
+    }
+    for (const p of mockStore.purchases || []) {
+      for (const l of p.lines || []) {
+        movements.push({
+          id: `mv-pur-${p.id}-${l.id || l.name}`,
+          date: p.date,
+          vType: 'Purchase',
+          vNo: p.number || p.id,
+          party: p.party,
+          name: l.name,
+          qty: Number(l.qty || l.quantity || 0),
+          rate: Number(l.rate || 0),
+          amount: Number(l.amount || (l.qty * l.rate) || 0),
+          batch: l.batch || '',
+          direction: 'in'
+        })
+      }
+    }
+    return movements
+  }
+
+  if (resource === 'selected-book') {
+    return listMock('ledgers', partyName)
+  }
+
   if (mockStore[resource]) {
     return mockStore[resource]
   }
@@ -589,7 +636,9 @@ function listMock(resource: string, partyName?: string) {
   const specialKeys: Record<string, string> = {
     'sale-returns': 'sales',
     'purchase-returns': 'purchases',
-    'communication-blocks': 'communication-blocks'
+    'communication-blocks': 'communication-blocks',
+    'credit-note-book': 'credit-notes',
+    'debit-note-book': 'debit-notes'
   }
   if (specialKeys[resource] && mockStore[specialKeys[resource]]) {
     return mockStore[specialKeys[resource]]

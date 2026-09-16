@@ -27,3 +27,6 @@ public/textures/
 .vercel
 .env*
 scratch/
+*mock-stock-delta.json
+*mock-transactions.json
+
