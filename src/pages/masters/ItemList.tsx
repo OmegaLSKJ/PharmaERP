@@ -151,21 +151,22 @@ export default function ItemList() {
 
       {/* Filter & Continuous Chunking Controls */}
       <div className="bg-card border border-border p-3 rounded-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xs">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-1 min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1 max-w-2xl">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search 2,016 items by name, code, manufacturer, HSN, or salt..."
+              placeholder={`Search ${items.length.toLocaleString()} items by name, code, manufacturer, HSN, or salt...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Search items"
+              className="w-full min-w-0 pl-9 pr-3 py-1.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-muted-foreground"
+            className="!w-auto shrink-0 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-muted-foreground"
           >
             {categories.map((c) => (
               <option key={c} value={c}>
