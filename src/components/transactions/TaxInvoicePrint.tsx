@@ -185,194 +185,234 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
       {/* Main Box Outer Border */}
       <div className="border-[1.5px] border-black">
         {/* Header: Company Details & Invoice Type */}
-        <div
-          className="flex flex-row border-b-[1.5px] border-black w-full"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        <table
+          className="invoice-layout-table w-full border-b-[1.5px] border-black"
+          style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
         >
-          {/* Company Branding (Left 58%) */}
-          <div
-            className="p-2.5 border-r-[1.5px] border-black flex items-start gap-2.5"
-            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
-          >
-            <img
-              src="/favicon.png"
-              alt="Logo"
-              className="w-10 h-10 object-contain mt-0.5 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
-                {company.companyName}
-              </h1>
-              <div className="text-[10px] text-gray-800 font-semibold leading-tight">
-                <div>WHOLESALE PHARMACEUTICAL DISTRIBUTORS</div>
-                <div>
-                  {company.address}
-                  {company.city ? `, ${company.city}` : ''}
-                  {company.pincode ? ` - ${company.pincode}` : ''}
+          <tbody>
+            <tr>
+              {/* Company Branding (Left 58%) */}
+              <td
+                className="col-left p-2.5"
+                style={{
+                  width: '58%',
+                  verticalAlign: 'top',
+                  borderRight: '1.5px solid black',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <img
+                    src="/favicon.png"
+                    alt="Logo"
+                    className="w-10 h-10 object-contain mt-0.5 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
+                      {company.companyName}
+                    </h1>
+                    <div className="text-[10px] text-gray-800 font-semibold leading-tight">
+                      <div>WHOLESALE PHARMACEUTICAL DISTRIBUTORS</div>
+                      <div>
+                        {company.address}
+                        {company.city ? `, ${company.city}` : ''}
+                        {company.pincode ? ` - ${company.pincode}` : ''}
+                      </div>
+                      <div>State: {company.state || 'Assam'} (State Code: 18)</div>
+                      <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                        {company.phone && <span>Ph: {company.phone}</span>}
+                        {company.email && <span>E: {company.email.toLowerCase()}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
+                        {company.gstin && (
+                          <span>
+                            GSTIN: <span className="font-mono">{company.gstin}</span>
+                          </span>
+                        )}
+                        {company.dlNo && (
+                          <span>
+                            D.L. No: <span className="font-mono">{company.dlNo}</span>
+                          </span>
+                        )}
+                        {company.pan && <span>PAN: {company.pan}</span>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>State: {company.state || 'Assam'} (State Code: 18)</div>
-                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
-                  {company.phone && <span>Ph: {company.phone}</span>}
-                  {company.email && <span>E: {company.email.toLowerCase()}</span>}
-                </div>
-                <div className="flex flex-wrap gap-x-3 text-[9.5px] mt-0.5 font-bold text-black">
-                  {company.gstin && (
-                    <span>
-                      GSTIN: <span className="font-mono">{company.gstin}</span>
-                    </span>
-                  )}
-                  {company.dlNo && (
-                    <span>
-                      D.L. No: <span className="font-mono">{company.dlNo}</span>
-                    </span>
-                  )}
-                  {company.pan && <span>PAN: {company.pan}</span>}
-                </div>
-              </div>
-            </div>
-          </div>
+              </td>
 
-          {/* Invoice Document Header Badge (Right 42%) */}
-          <div
-            className="p-2.5 flex flex-col justify-between text-right"
-            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
-          >
-            <div>
-              <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase">
-                {docTitle}
-              </div>
-              <div className="text-center text-[8.5px] font-bold text-gray-700 uppercase tracking-wider mt-0.5">
-                ({copyType})
-              </div>
-            </div>
-            <div className="text-[10px] text-left space-y-0.5 mt-1 border border-black p-1.5 bg-gray-50/50">
-              <div className="flex justify-between font-bold">
-                <span>Invoice No:</span>
-                <span className="font-mono text-[11px] text-[#0c2f66]">{invNo}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Dated:</span>
-                <span className="font-bold">{formatDate(invDate)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment Mode:</span>
-                <span className="font-bold uppercase">{payMode}</span>
-              </div>
-              {data.dueDate && (
-                <div className="flex justify-between text-[9px] text-gray-700">
-                  <span>Due Date:</span>
-                  <span>{formatDate(data.dueDate)}</span>
+              {/* Invoice Document Header Badge (Right 42%) */}
+              <td
+                className="col-right p-2.5 text-right"
+                style={{
+                  width: '42%',
+                  verticalAlign: 'top',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex flex-col justify-between h-full">
+                  <div>
+                    <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase">
+                      {docTitle}
+                    </div>
+                    <div className="text-center text-[8.5px] font-bold text-gray-700 uppercase tracking-wider mt-0.5">
+                      ({copyType})
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-left space-y-0.5 mt-2 border border-black p-1.5 bg-gray-50/50">
+                    <div className="flex justify-between font-bold">
+                      <span>Invoice No:</span>
+                      <span className="font-mono text-[11px] text-[#0c2f66]">{invNo}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Dated:</span>
+                      <span className="font-bold">{formatDate(invDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Payment Mode:</span>
+                      <span className="font-bold uppercase">{payMode}</span>
+                    </div>
+                    {data.dueDate && (
+                      <div className="flex justify-between text-[9px] text-gray-700">
+                        <span>Due Date:</span>
+                        <span>{formatDate(data.dueDate)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Billed To / Party Details Section */}
-        <div
-          className="flex flex-row border-b-[1.5px] border-black text-[10px] w-full"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        <table
+          className="invoice-layout-table w-full border-b-[1.5px] border-black text-[10px]"
+          style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
         >
-          {/* Billed To (Left 58%) */}
-          <div
-            className="p-2 border-r-[1.5px] border-black flex flex-col justify-between"
-            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
-          >
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
-                Billed To / Buyer (Consignee):
-              </div>
-              <div className="text-[12px] font-black uppercase text-[#0c2f66]">
-                {data.buyer.name || 'CASH SALE / WALK-IN CUSTOMER'}
-              </div>
-              <div className="font-semibold text-gray-800 leading-tight mt-0.5">
-                {data.buyer.address && <div>{data.buyer.address}</div>}
-                <div>
-                  {data.buyer.city ? data.buyer.city : ''}
-                  {data.buyer.city && data.buyer.state ? ', ' : ''}
-                  {data.buyer.state ? data.buyer.state : ''}
-                  {data.buyer.pincode ? ` - ${data.buyer.pincode}` : ''}
-                </div>
-                {data.buyer.phone && (
+          <tbody>
+            <tr>
+              {/* Billed To (Left 58%) */}
+              <td
+                className="col-left p-2"
+                style={{
+                  width: '58%',
+                  verticalAlign: 'top',
+                  borderRight: '1.5px solid black',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex flex-col justify-between h-full">
                   <div>
-                    Ph / Mobile: <span className="font-mono">{data.buyer.phone}</span>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
+                      Billed To / Buyer (Consignee):
+                    </div>
+                    <div className="text-[12px] font-black uppercase text-[#0c2f66]">
+                      {data.buyer.name || 'CASH SALE / WALK-IN CUSTOMER'}
+                    </div>
+                    <div className="font-semibold text-gray-800 leading-tight mt-0.5">
+                      {data.buyer.address && <div>{data.buyer.address}</div>}
+                      <div>
+                        {data.buyer.city ? data.buyer.city : ''}
+                        {data.buyer.city && data.buyer.state ? ', ' : ''}
+                        {data.buyer.state ? data.buyer.state : ''}
+                        {data.buyer.pincode ? ` - ${data.buyer.pincode}` : ''}
+                      </div>
+                      {data.buyer.phone && (
+                        <div>
+                          Ph / Mobile: <span className="font-mono">{data.buyer.phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1 border-t border-gray-300 font-bold text-[9px]">
-              <div>
-                <span className="text-gray-600">GSTIN: </span>
-                <span className="font-mono text-black">{data.buyer.gstin || '—'}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">D.L. No: </span>
-                <span className="font-mono text-black">{data.buyer.dlNo || '—'}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">PAN: </span>
-                <span className="font-mono text-black">{data.buyer.pan || '—'}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">State Code: </span>
-                <span className="font-mono text-black">
-                  {data.buyer.stateCode || (data.buyer.state?.toLowerCase().includes('assam') ? '18' : '18')}
-                </span>
-              </div>
-            </div>
-          </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1 border-t border-gray-300 font-bold text-[9px]">
+                    <div>
+                      <span className="text-gray-600">GSTIN: </span>
+                      <span className="font-mono text-black">{data.buyer.gstin || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">D.L. No: </span>
+                      <span className="font-mono text-black">{data.buyer.dlNo || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">PAN: </span>
+                      <span className="font-mono text-black">{data.buyer.pan || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">State Code: </span>
+                      <span className="font-mono text-black">
+                        {data.buyer.stateCode || (data.buyer.state?.toLowerCase().includes('assam') ? '18 (Assam)' : '18')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </td>
 
-          {/* Dispatch & Supply Details (Right 42%) */}
-          <div
-            className="p-2 flex flex-col justify-between text-[9.5px]"
-            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
-          >
-            <div className="space-y-1">
-              <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
-                Dispatch &amp; Supply Details:
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Place of Supply:</span>
-                <span className="font-bold">{data.placeOfSupply || '18 - ASSAM'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Reverse Charge:</span>
-                <span className="font-bold">{data.reverseCharge || 'NO'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Transport / Mode:</span>
-                <span className="font-bold">{data.transport || 'Direct Delivery'}</span>
-              </div>
-              {(data.vehicleNo || data.lrNo) && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Vehicle / LR:</span>
-                  <span className="font-mono font-bold">{data.vehicleNo || data.lrNo}</span>
+              {/* Dispatch & Supply Details (Right 42%) */}
+              <td
+                className="col-right p-2 text-[9.5px]"
+                style={{
+                  width: '42%',
+                  verticalAlign: 'top',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex flex-col justify-between h-full space-y-1">
+                  <div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                      Dispatch &amp; Supply Details:
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Place of Supply:</span>
+                        <span className="font-bold">{data.placeOfSupply || '18 - ASSAM'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reverse Charge:</span>
+                        <span className="font-bold">{data.reverseCharge || 'NO'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transport / Mode:</span>
+                        <span className="font-bold">{data.transport || 'Direct Delivery'}</span>
+                      </div>
+                      {(data.vehicleNo || data.lrNo) && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Vehicle / LR:</span>
+                          <span className="font-mono font-bold">{data.vehicleNo || data.lrNo}</span>
+                        </div>
+                      )}
+                      {data.orderNo && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Order / PO No:</span>
+                          <span className="font-bold">{data.orderNo}</span>
+                        </div>
+                      )}
+                      {data.prescriberName && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Doctor / Rx:</span>
+                          <span className="font-bold">{data.prescriberName}</span>
+                        </div>
+                      )}
+                      {data.patientName && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Patient:</span>
+                          <span className="font-bold">{data.patientName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-[8.5px] text-gray-600 pt-1 border-t border-gray-300">
+                    Supply Type: Intra-State Supply (Taxable under GST)
+                  </div>
                 </div>
-              )}
-              {data.orderNo && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Order / PO No:</span>
-                  <span className="font-bold">{data.orderNo}</span>
-                </div>
-              )}
-              {data.prescriberName && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Doctor / Rx:</span>
-                  <span className="font-bold">{data.prescriberName}</span>
-                </div>
-              )}
-              {data.patientName && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Patient:</span>
-                  <span className="font-bold">{data.patientName}</span>
-                </div>
-              )}
-            </div>
-            <div className="text-[8.5px] text-gray-600 pt-1 border-t border-gray-300">
-              Supply Type: Intra-State Supply (Taxable under GST)
-            </div>
-          </div>
-        </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Line Items Table */}
         <table className="w-full border-collapse text-[9.5px]" style={{ tableLayout: 'fixed', width: '100%' }}>
@@ -465,134 +505,151 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
         </table>
 
         {/* GST Slab Breakdown & Totals Section */}
-        <div
-          className="flex flex-row border-t-[1.5px] border-black text-[9.5px] w-full"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        <table
+          className="invoice-layout-table w-full border-t-[1.5px] border-black text-[9.5px]"
+          style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
         >
-          {/* Left: GST Slabs Summary Table (58%) */}
-          <div
-            className="p-2 border-r-[1.5px] border-black flex flex-col justify-between"
-            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
-          >
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-1">
-                GST Tax Analysis:
-              </div>
-              <table
-                className="w-full border border-black text-[8.5px] border-collapse"
-                style={{ tableLayout: 'fixed', width: '100%', boxSizing: 'border-box' }}
+          <tbody>
+            <tr>
+              {/* Left: GST Slabs Summary Table (58%) */}
+              <td
+                className="col-left p-2"
+                style={{
+                  width: '58%',
+                  verticalAlign: 'top',
+                  borderRight: '1.5px solid black',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
               >
-                <thead>
-                  <tr className="bg-[#d4ebf2] text-black font-bold border-b border-black">
-                    <th className="border-r border-black px-1 py-0.5 text-center" style={{ width: '18%' }}>Tax Slab</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '24%' }}>Taxable Val</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>CGST</th>
-                    <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>SGST</th>
-                    <th className="px-1 py-0.5 text-right" style={{ width: '22%' }}>Total Tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(gstBreakdown)
-                    .filter(([_, v]) => v.taxable > 0)
-                    .map(([slab, v]) => (
-                      <tr key={slab} className="border-b border-gray-300 font-mono">
-                        <td className="border-r border-black px-1 py-0.5 text-center font-sans font-bold">
-                          {slab}% GST
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    GST Tax Analysis:
+                  </div>
+                  <table
+                    className="w-full border border-black text-[8.5px] border-collapse"
+                    style={{ tableLayout: 'fixed', width: '100%', boxSizing: 'border-box' }}
+                  >
+                    <thead>
+                      <tr className="bg-[#d4ebf2] text-black font-bold border-b border-black">
+                        <th className="border-r border-black px-1 py-0.5 text-center" style={{ width: '18%' }}>Tax Slab</th>
+                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '24%' }}>Taxable Val</th>
+                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>CGST</th>
+                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>SGST</th>
+                        <th className="px-1 py-0.5 text-right" style={{ width: '22%' }}>Total Tax</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(gstBreakdown)
+                        .filter(([_, v]) => v.taxable > 0)
+                        .map(([slab, v]) => (
+                          <tr key={slab} className="border-b border-gray-300 font-mono">
+                            <td className="border-r border-black px-1 py-0.5 text-center font-sans font-bold">
+                              {slab}% GST
+                            </td>
+                            <td className="border-r border-black px-1 py-0.5 text-right">
+                              {v.taxable.toFixed(2)}
+                            </td>
+                            <td className="border-r border-black px-1 py-0.5 text-right">
+                              {v.cgst.toFixed(2)}
+                            </td>
+                            <td className="border-r border-black px-1 py-0.5 text-right">
+                              {v.sgst.toFixed(2)}
+                            </td>
+                            <td className="px-1 py-0.5 text-right font-bold">
+                              {(v.cgst + v.sgst).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      <tr className="bg-gray-50 font-mono font-bold border-t border-black">
+                        <td className="border-r border-black px-1 py-0.5 text-center font-sans">TOTAL</td>
+                        <td className="border-r border-black px-1 py-0.5 text-right">
+                          {totalTaxable.toFixed(2)}
                         </td>
                         <td className="border-r border-black px-1 py-0.5 text-right">
-                          {v.taxable.toFixed(2)}
+                          {totalCgst.toFixed(2)}
                         </td>
                         <td className="border-r border-black px-1 py-0.5 text-right">
-                          {v.cgst.toFixed(2)}
+                          {totalSgst.toFixed(2)}
                         </td>
-                        <td className="border-r border-black px-1 py-0.5 text-right">
-                          {v.sgst.toFixed(2)}
-                        </td>
-                        <td className="px-1 py-0.5 text-right font-bold">
-                          {(v.cgst + v.sgst).toFixed(2)}
+                        <td className="px-1 py-0.5 text-right">
+                          {(totalCgst + totalSgst).toFixed(2)}
                         </td>
                       </tr>
-                    ))}
-                  <tr className="bg-gray-50 font-mono font-bold border-t border-black">
-                    <td className="border-r border-black px-1 py-0.5 text-center font-sans">TOTAL</td>
-                    <td className="border-r border-black px-1 py-0.5 text-right">
-                      {totalTaxable.toFixed(2)}
-                    </td>
-                    <td className="border-r border-black px-1 py-0.5 text-right">
-                      {totalCgst.toFixed(2)}
-                    </td>
-                    <td className="border-r border-black px-1 py-0.5 text-right">
-                      {totalSgst.toFixed(2)}
-                    </td>
-                    <td className="px-1 py-0.5 text-right">
-                      {(totalCgst + totalSgst).toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bank Details Box */}
-            <div className="border border-black p-1.5 mt-2 bg-gray-50/60 leading-tight text-[9px]">
-              <div className="font-bold text-black uppercase mb-1">Bank Payment Details:</div>
-              <div className="flex items-center justify-between text-[8.5px] gap-2">
-                <div><span className="text-gray-600">Bank:</span> <strong className="font-bold">{company.bankName || 'PUNJAB NATIONAL BANK'}</strong></div>
-                <div><span className="text-gray-600">A/C:</span> <strong className="font-mono font-bold">{company.accountNo || '1125250029704'}</strong></div>
-                <div><span className="text-gray-600">IFSC:</span> <strong className="font-mono font-bold">{company.ifsc || 'PUNB0112520'}</strong></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Totals Calculation Summary (42%) */}
-          <div
-            className="p-2 flex flex-col justify-between"
-            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
-          >
-            <div className="space-y-1 font-bold">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Items:</span>
-                <span>{processedItems.length} (Qty: {totalQty}{totalFreeQty > 0 ? ` + ${totalFreeQty} Free` : ''})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Gross Amount:</span>
-                <span className="font-mono">₹{calcSubtotal.toFixed(2)}</span>
-              </div>
-              {calcDiscount > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Discount:</span>
-                  <span className="font-mono">-₹{calcDiscount.toFixed(2)}</span>
+                    </tbody>
+                  </table>
                 </div>
-              )}
-              <div className="flex justify-between text-gray-700">
-                <span>Taxable Value:</span>
-                <span className="font-mono">₹{totalTaxable.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Central GST (CGST):</span>
-                <span className="font-mono">₹{totalCgst.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>State GST (SGST):</span>
-                <span className="font-mono">₹{totalSgst.toFixed(2)}</span>
-              </div>
-              {roundoff !== 0 && (
-                <div className="flex justify-between text-gray-600 text-[9px]">
-                  <span>Round Off:</span>
-                  <span className="font-mono">{roundoff > 0 ? `+₹${roundoff.toFixed(2)}` : `-₹${Math.abs(roundoff).toFixed(2)}`}</span>
-                </div>
-              )}
-            </div>
 
-            {/* Grand Total Box */}
-            <div className="border-[1.5px] border-black bg-gray-100/70 p-2 mt-2">
-              <div className="text-[9.5px] uppercase tracking-wider font-bold text-gray-800">Grand Total Payable</div>
-              <div className="text-[19px] font-black font-mono tracking-tight flex items-baseline justify-between text-black">
-                <span>₹</span>
-                <span>{finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+                {/* Bank Details Box */}
+                <div className="border border-black p-1.5 mt-2 bg-gray-50/60 leading-tight text-[9px]">
+                  <div className="font-bold text-black uppercase mb-1">Bank Payment Details:</div>
+                  <div className="flex items-center justify-between text-[8.5px] gap-2">
+                    <div><span className="text-gray-600">Bank:</span> <strong className="font-bold">{company.bankName || 'PUNJAB NATIONAL BANK'}</strong></div>
+                    <div><span className="text-gray-600">A/C:</span> <strong className="font-mono font-bold">{company.accountNo || '1125250029704'}</strong></div>
+                    <div><span className="text-gray-600">IFSC:</span> <strong className="font-mono font-bold">{company.ifsc || 'PUNB0112520'}</strong></div>
+                  </div>
+                </div>
+              </td>
+
+              {/* Right: Totals Calculation Summary (42%) */}
+              <td
+                className="col-right p-2"
+                style={{
+                  width: '42%',
+                  verticalAlign: 'top',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex flex-col justify-between h-full">
+                  <div className="space-y-1 font-bold">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Items:</span>
+                      <span>{processedItems.length} (Qty: {totalQty}{totalFreeQty > 0 ? ` + ${totalFreeQty} Free` : ''})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Gross Amount:</span>
+                      <span className="font-mono">₹{calcSubtotal.toFixed(2)}</span>
+                    </div>
+                    {calcDiscount > 0 && (
+                      <div className="flex justify-between text-red-600">
+                        <span>Discount:</span>
+                        <span className="font-mono">-₹{calcDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-700">
+                      <span>Taxable Value:</span>
+                      <span className="font-mono">₹{totalTaxable.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-700">
+                      <span>Central GST (CGST):</span>
+                      <span className="font-mono">₹{totalCgst.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-700">
+                      <span>State GST (SGST):</span>
+                      <span className="font-mono">₹{totalSgst.toFixed(2)}</span>
+                    </div>
+                    {roundoff !== 0 && (
+                      <div className="flex justify-between text-gray-600 text-[9px]">
+                        <span>Round Off:</span>
+                        <span className="font-mono">{roundoff > 0 ? `+₹${roundoff.toFixed(2)}` : `-₹${Math.abs(roundoff).toFixed(2)}`}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grand Total Box */}
+                  <div className="border-[1.5px] border-black bg-gray-100/70 p-2 mt-2">
+                    <div className="text-[9.5px] uppercase tracking-wider font-bold text-gray-800">Grand Total Payable</div>
+                    <div className="text-[19px] font-black font-mono tracking-tight flex items-baseline justify-between text-black">
+                      <span>₹</span>
+                      <span>{finalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Amount in Words */}
         <div className="border-t-[1.5px] border-black px-2.5 py-1.5 bg-gray-50 text-[10px] font-bold">
@@ -601,44 +658,61 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
         </div>
 
         {/* Terms & Signatures Footer */}
-        <div
-          className="flex flex-row border-t-[1.5px] border-black text-[9px] w-full"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        <table
+          className="invoice-layout-table w-full border-t-[1.5px] border-black text-[9px]"
+          style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
         >
-          {/* Terms & Conditions (Left 58%) */}
-          <div
-            className="p-2 border-r-[1.5px] border-black leading-snug"
-            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
-          >
-            <div className="font-bold underline mb-0.5 uppercase text-gray-800">
-              Terms &amp; Conditions:
-            </div>
-            <ol className="list-decimal list-inside text-gray-700 space-y-0.5 text-[8.5px]">
-              <li>Goods once sold will not be accepted back or exchanged without prior consent.</li>
-              <li>Interest @ 18% p.a. will be levied if payment is not cleared within agreed credit period.</li>
-              <li>Discrepancies in quantity or price must be notified within 24 hours of receipt.</li>
-              <li>All disputes are subject to {jurisdiction.toUpperCase()} jurisdiction only.</li>
-            </ol>
-          </div>
+          <tbody>
+            <tr>
+              {/* Terms & Conditions (Left 58%) */}
+              <td
+                className="col-left p-2 leading-snug"
+                style={{
+                  width: '58%',
+                  verticalAlign: 'top',
+                  borderRight: '1.5px solid black',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="font-bold underline mb-0.5 uppercase text-gray-800">
+                  Terms &amp; Conditions:
+                </div>
+                <ol className="list-decimal list-inside text-gray-700 space-y-0.5 text-[8.5px]">
+                  <li>Goods once sold will not be accepted back or exchanged without prior consent.</li>
+                  <li>Interest @ 18% p.a. will be levied if payment is not cleared within agreed credit period.</li>
+                  <li>Discrepancies in quantity or price must be notified within 24 hours of receipt.</li>
+                  <li>All disputes are subject to {jurisdiction.toUpperCase()} jurisdiction only.</li>
+                </ol>
+              </td>
 
-          {/* Signatures (Right 42%) */}
-          <div
-            className="p-2 flex flex-col justify-between"
-            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
-          >
-            <div className="text-right">
-              <div className="text-[9px] font-bold uppercase text-gray-700">For {company.companyName}</div>
-            </div>
-            <div className="flex justify-between items-end pt-8">
-              <div className="text-center text-[8.5px] text-gray-700">
-                <div className="border-t border-black w-24 pt-0.5">Receiver's Sign</div>
-              </div>
-              <div className="text-center text-[8.5px] font-bold text-black">
-                <div className="border-t border-black w-28 pt-0.5">Authorised Signatory</div>
-              </div>
-            </div>
-          </div>
-        </div>
+              {/* Signatures (Right 42%) */}
+              <td
+                className="col-right p-2"
+                style={{
+                  width: '42%',
+                  verticalAlign: 'top',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div className="flex flex-col justify-between h-full">
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase text-gray-700">For {company.companyName}</div>
+                  </div>
+                  <div className="flex justify-between items-end pt-8">
+                    <div className="text-center text-[8.5px] text-gray-700">
+                      <div className="border-t border-black w-24 pt-0.5">Receiver's Sign</div>
+                    </div>
+                    <div className="text-center text-[8.5px] font-bold text-black">
+                      <div className="border-t border-black w-28 pt-0.5">Authorised Signatory</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="text-center text-[8px] text-gray-500 mt-1">

@@ -877,51 +877,37 @@
     color: #000000 !important;
   }
 
-  .tax-invoice-bill .flex-row,
-  .tax-invoice-bill .invoice-row {
-    display: flex !important;
-    flex-direction: row !important;
+  .tax-invoice-bill .invoice-layout-table {
+    display: table !important;
     width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .tax-invoice-bill .invoice-layout-table > tbody > tr,
+  .tax-invoice-bill .invoice-layout-table > tr {
+    display: table-row !important;
+  }
+
+  .tax-invoice-bill .invoice-layout-table > tbody > tr > td,
+  .tax-invoice-bill .invoice-layout-table > tr > td {
+    display: table-cell !important;
+    vertical-align: top !important;
+    background: transparent !important;
     box-sizing: border-box !important;
   }
 
-  .tax-invoice-bill .invoice-col-left {
+  .tax-invoice-bill td.col-left {
     width: 58% !important;
     max-width: 58% !important;
-    flex: 0 0 58% !important;
-    box-sizing: border-box !important;
+    border-right: 1.5px solid #000000 !important;
   }
 
-  .tax-invoice-bill .invoice-col-right {
+  .tax-invoice-bill td.col-right {
     width: 42% !important;
     max-width: 42% !important;
-    flex: 0 0 42% !important;
-    box-sizing: border-box !important;
-  }
-
-  .tax-invoice-bill .grid {
-    display: grid !important;
-  }
-
-  .tax-invoice-bill .grid-cols-12 {
-    display: grid !important;
-    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
-  }
-
-  .tax-invoice-bill .col-span-4 {
-    grid-column: span 4 !important;
-  }
-
-  .tax-invoice-bill .col-span-5 {
-    grid-column: span 5 !important;
-  }
-
-  .tax-invoice-bill .col-span-7 {
-    grid-column: span 7 !important;
-  }
-
-  .tax-invoice-bill .col-span-8 {
-    grid-column: span 8 !important;
   }
 
   .tax-invoice-bill,
