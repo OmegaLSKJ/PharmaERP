@@ -34,8 +34,8 @@ const mockStore: Record<string, any[]> = {
   ],
   'item-batches': [],
   hsn: [
-    { id: 'h1', code: '30049011', description: 'Formulations of Paracetamol', gst_rate: 12 },
-    { id: 'h2', code: '30041010', description: 'Penicillins / Amoxicillin', gst_rate: 18 }
+    { id: 'h1', code: '30049011', description: 'Formulations of Paracetamol', gst_rate: 5 },
+    { id: 'h2', code: '30041010', description: 'Penicillins / Amoxicillin', gst_rate: 5 }
   ],
   manufacturers: [
     { id: 'm1', name: 'Cipla Ltd', code: 'CIPLA', is_active: true },

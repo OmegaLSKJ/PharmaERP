@@ -752722,48 +752722,48 @@
       "id": "hsn-42",
       "code": "3004",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-43",
       "code": "3004084",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-44",
       "code": "30041010",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-45",
       "code": "30041030",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-46",
       "code": "30041060",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-47",
       "code": "30041090",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -752778,56 +752778,56 @@
       "id": "hsn-49",
       "code": "30042013",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-50",
       "code": "30042019",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-51",
       "code": "30042020",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-52",
       "code": "30042033",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-53",
       "code": "30042034",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-54",
       "code": "30042039",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-55",
       "code": "30042047",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -752842,72 +752842,72 @@
       "id": "hsn-57",
       "code": "30042050",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-58",
       "code": "30042063",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-59",
       "code": "30042064",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-60",
       "code": "30042066",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-61",
       "code": "30042069",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-62",
       "code": "30042090",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-63",
       "code": "30042095",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-64",
       "code": "30042099",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-65",
       "code": "30043039",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -752922,40 +752922,40 @@
       "id": "hsn-67",
       "code": "30043190",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-68",
       "code": "30043200",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-69",
       "code": "30043912",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-70",
       "code": "30043913",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-71",
       "code": "30043919",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -752970,104 +752970,104 @@
       "id": "hsn-73",
       "code": "30043990",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-74",
       "code": "30044040",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-75",
       "code": "30044090",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-76",
       "code": "30045010",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-77",
       "code": "30045020",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 18,
-      "gstRate": 18,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-78",
       "code": "30045031",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-79",
       "code": "30045032",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-80",
       "code": "30045034",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-81",
       "code": "30045036",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-82",
       "code": "30045037",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-83",
       "code": "30045039",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 18,
-      "gstRate": 18,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-84",
       "code": "30045090",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-85",
       "code": "30045099",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753082,104 +753082,104 @@
       "id": "hsn-87",
       "code": "30049001",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-88",
       "code": "30049009",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-89",
       "code": "30049011",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-90",
       "code": "30049015",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-91",
       "code": "30049021",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-92",
       "code": "30049022",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-93",
       "code": "30049023",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-94",
       "code": "30049029",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 18,
-      "gstRate": 18,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-95",
       "code": "30049031",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-96",
       "code": "30049032",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-97",
       "code": "30049033",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-98",
       "code": "30049034",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-99",
       "code": "30049035",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753194,8 +753194,8 @@
       "id": "hsn-101",
       "code": "30049039",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753210,24 +753210,24 @@
       "id": "hsn-103",
       "code": "30049049",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-104",
       "code": "30049050",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-105",
       "code": "30049052",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753250,8 +753250,8 @@
       "id": "hsn-108",
       "code": "30049057",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753266,120 +753266,120 @@
       "id": "hsn-110",
       "code": "30049061",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-111",
       "code": "30049062",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-112",
       "code": "30049063",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-113",
       "code": "30049065",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-114",
       "code": "30049066",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-115",
       "code": "30049067",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-116",
       "code": "30049069",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-117",
       "code": "30049071",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-118",
       "code": "30049072",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-119",
       "code": "30049074",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-120",
       "code": "30049079",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-121",
       "code": "30049081",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-122",
       "code": "30049082",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-123",
       "code": "30049084",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-124",
       "code": "30049085",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
@@ -753394,80 +753394,80 @@
       "id": "hsn-126",
       "code": "30049087",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-127",
       "code": "30049088",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-128",
       "code": "30049089",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-129",
       "code": "30049091",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-130",
       "code": "3004909111",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 0,
-      "gstRate": 0,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-131",
       "code": "30049092",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-132",
       "code": "30049093",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-133",
       "code": "30049094",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-134",
       "code": "30049097",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
       "id": "hsn-135",
       "code": "30049099",
       "description": "Medicaments consisting of mixed/unmixed therapeutic formulations",
-      "gst_rate": 12,
-      "gstRate": 12,
+      "gst_rate": 5,
+      "gstRate": 5,
       "type": "Goods"
     },
     {
