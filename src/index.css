@@ -6,79 +6,78 @@
 
 @layer base {
   :root {
-    --background: 215 20% 96.5%;      /* #f4f6fa - Soft paper-slate, eliminates white glare */
-    --foreground: 217 24% 18%;        /* #222a38 - Gentle deep slate, high legibility */
+    --background: 210 16% 96%;        /* #f5f6f7 - SAP Horizon Light Gray */
+    --foreground: 215 15% 15%;        /* #1e293b - Slate 800 */
     --card: 0 0% 100%;                /* #ffffff */
-    --card-foreground: 217 24% 18%;
+    --card-foreground: 215 15% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 217 24% 18%;
-    --primary: 187 75% 38%;            /* Medical Teal brand accent */
+    --popover-foreground: 215 15% 15%;
+    --primary: 215 15% 15%;            /* #1e293b - Slate brand accent */
     --primary-foreground: 0 0% 100%;  /* #ffffff */
-    --secondary: 215 16% 92.5%;        /* #e9eff6 */
-    --secondary-foreground: 217 24% 18%;
-    --muted: 215 14% 90%;              /* #e2e7ef */
-    --muted-foreground: 217 14% 45%;   /* #616e82 */
-    --accent: 215 16% 92.5%;
-    --accent-foreground: 217 24% 18%;
-    --destructive: 350 72% 54%;        /* Soft coral red */
+    --secondary: 210 12% 92%;          /* #eaf0f6 */
+    --secondary-foreground: 215 15% 15%;
+    --muted: 210 10% 90%;              /* #e1e4e7 */
+    --muted-foreground: 215 16% 47%;   /* #64748b */
+    --accent: 215 15% 15%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 354 86% 52%;        /* SAP Destructive Red */
     --destructive-foreground: 0 0% 100%;
-    --border: 215 14% 86%;             /* #d6dee8 */
-    --input: 215 14% 86%;
-    --ring: 187 75% 38%;
-    --radius: 8px;                     /* Consistent modern radius */
-    --sidebar: 0 0% 100%;              /* Clean Light Sidebar */
-    --sidebar-foreground: 217 14% 38%; /* Muted slate gray */
+    --border: 210 12% 87%;             /* #ccd1d7 */
+    --input: 210 12% 87%;
+    --ring: 215 15% 30%;
+    --radius: 6px;                     /* Consistent professional border radius */
+    --sidebar: 0 0% 100%;              /* Option B: Clean Light Sidebar */
+    --sidebar-foreground: 215 16% 36%; /* Muted slate gray */
 
-    /* Clean light theme slate color steps */
-    --slate-50: 210 40% 98%;           /* #f8fafc */
-    --slate-100: 210 40% 96.1%;        /* #f1f5f9 */
-    --slate-200: 214 32% 91.4%;        /* #e2e8f0 */
-    --slate-300: 213 27% 84%;          /* #cbd5e1 */
-    --slate-400: 215 20% 65%;          /* #94a3b8 */
-    --slate-500: 215 16% 47%;          /* #64748b */
-    --slate-600: 215 19% 35%;          /* #475569 */
-    --slate-700: 215 25% 27%;          /* #334155 */
-    --slate-800: 217 33% 17.5%;        /* #1e293b */
-    --slate-900: 222 47% 11%;          /* #0f172a - crisp dark text */
-    --slate-950: 222 84% 5%;           /* #020617 */
+    /* Option B: Light theme mappings for hardcoded slate colors */
+    --slate-50: 210 16% 96%;
+    --slate-100: 210 16% 96%;
+    --slate-200: 210 12% 92%;
+    --slate-300: 215 15% 15%;
+    --slate-400: 215 15% 30%;
+    --slate-500: 215 16% 47%;
+    --slate-600: 215 16% 47%;
+    --slate-700: 210 10% 80%;
+    --slate-800: 210 12% 87%;
+    --slate-900: 0 0% 100%;
+    --slate-950: 210 16% 96%;
   }
 
   .dark {
-    /* ── Eye-Care Dark Obsidian Palette (Anti-fatigue, zero harsh contrast) ── */
-    --background: 222 18% 10.5%;       /* #141924 - Soft obsidian slate, eliminates pupil fatigue */
-    --foreground: 218 16% 87%;         /* #d8dee9 - Soothing silver-slate text, zero halation */
-    --card: 222 18% 14%;               /* #1c2331 - Relaxing surface depth */
-    --card-foreground: 218 16% 87%;
-    --popover: 222 18% 14%;
-    --popover-foreground: 218 16% 87%;
-    --primary: 187 72% 46%;            /* Calm medical teal - soothing accent */
-    --primary-foreground: 222 24% 8%;
-    --secondary: 222 16% 18.5%;        /* #273142 - Gentle button & header backgrounds */
-    --secondary-foreground: 218 16% 87%;
-    --muted: 222 15% 16%;              /* #222a38 */
-    --muted-foreground: 218 12% 64%;   /* #94a1b3 - Balanced guidance text */
-    --accent: 222 16% 18.5%;
-    --accent-foreground: 218 16% 87%;
-    --destructive: 350 68% 58%;        /* Soothing rose-coral */
+    --background: 216 24% 6%;         /* #0c1015 - Clean dark slate */
+    --foreground: 210 15% 94%;        /* #eff1f5 */
+    --card: 216 26% 11%;              /* #141a22 - Pop out cards */
+    --card-foreground: 210 15% 94%;
+    --popover: 216 26% 11%;
+    --popover-foreground: 210 15% 94%;
+    --primary: 210 20% 90%;           /* Clean slate/silver accent in dark mode */
+    --primary-foreground: 216 24% 6%;
+    --secondary: 215 20% 18%;         /* #232d3a */
+    --secondary-foreground: 210 15% 94%;
+    --muted: 215 20% 16%;
+    --muted-foreground: 212 9% 60%;
+    --accent: 210 20% 90%;
+    --accent-foreground: 216 24% 6%;
+    --destructive: 354 85% 62%;
     --destructive-foreground: 0 0% 100%;
-    --border: 222 14% 22%;             /* #2f3b4e - Low-strain hairline border */
-    --input: 222 14% 22%;
-    --ring: 187 72% 46%;
-    --sidebar: 223 20% 12%;            /* #171f2c - Harmonious sidebar depth */
-    --sidebar-foreground: 218 14% 85%;
+    --border: 215 24% 18%;            /* #222b37 */
+    --input: 215 24% 18%;
+    --ring: 210 20% 90%;
+    --sidebar: 216 30% 8%;            /* Deep corporate dark sidebar in dark mode */
+    --sidebar-foreground: 210 15% 90%;
 
-    /* Smooth, non-jarring dark slate color steps */
-    --slate-50: 218 20% 96%;
-    --slate-100: 218 18% 92%;
-    --slate-200: 218 16% 86%;
-    --slate-300: 218 14% 78%;
-    --slate-400: 218 12% 66%;
-    --slate-500: 218 10% 53%;
-    --slate-600: 220 12% 38%;
-    --slate-700: 222 14% 26%;
-    --slate-800: 222 16% 19%;
-    --slate-900: 222 18% 14%;
-    --slate-950: 222 20% 9.5%;
+    /* Standard Dark theme mappings for slate colors */
+    --slate-50: 210 40% 99%;
+    --slate-100: 210 40% 98%;
+    --slate-200: 210 40% 96%;
+    --slate-300: 213 27% 84%;
+    --slate-400: 215 20% 65%;
+    --slate-500: 215 16% 47%;
+    --slate-600: 215 16% 35%;
+    --slate-700: 215 25% 27%;
+    --slate-800: 217 33% 17%;
+    --slate-900: 222 47% 11%;
+    --slate-950: 222 47% 5%;
   }
 }
 
@@ -184,11 +183,6 @@
 
   /* Global typography corrections in light mode for hardcoded slate dark-theme text */
   :root:not(.dark) .text-white:not(button):not(a):not(.bg-primary *):not(.bg-indigo-600 *):not(.bg-emerald-700 *):not(.bg-emerald-600 *):not(.bg-rose-600 *):not(.bg-blue-600 *) {
-    color: hsl(var(--foreground)) !important;
-  }
-  
-  :root:not(.dark) .text-slate-900,
-  :root:not(.dark) .text-slate-800 {
     color: hsl(var(--foreground)) !important;
   }
   

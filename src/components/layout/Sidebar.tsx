@@ -151,11 +151,9 @@ export default function Sidebar() {
       mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
     )}>
       {/* Brand Logo Header */}
-      <div className={cn('flex items-center gap-3 px-3.5 h-14 border-b border-border/80 shrink-0', collapsed && 'justify-center px-0')}>
+      <div className={cn('flex items-center gap-3 px-4 h-14 border-b border-border/80 shrink-0', collapsed && 'justify-center px-0')}>
         <div className="relative shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-white p-1 shadow-xs border border-border/60 flex items-center justify-center transition-transform hover:scale-105">
-            <img src="/favicon.png" alt={`${company.companyName} Logo`} className="w-full h-full object-contain" />
-          </div>
+          <img src="/favicon.png" alt={`${company.companyName} Logo`} className="w-8 h-8 object-contain rounded" />
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-[hsl(var(--sidebar))]" />
         </div>
         {!collapsed && (

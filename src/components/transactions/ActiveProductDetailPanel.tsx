@@ -386,32 +386,32 @@ export default function ActiveProductDetailPanel({
       {detailOpen && displayedProduct && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm" role="presentation" onMouseDown={() => setDetailOpen(false)}>
           <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-300 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="flex items-start justify-between gap-4 border-b border-emerald-900/40 bg-emerald-950 px-5 py-3.5 text-emerald-50">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-300 bg-slate-100 px-5 py-3 text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
               <div>
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-300">
-                  Batch detail window · live refresh every 15 seconds
+                <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Live batch inventory
                 </p>
                 <div className="mt-1 flex items-baseline flex-wrap gap-2">
-                  <h2 className="font-mono text-lg font-bold text-white tracking-wide">{displayedProduct.name}</h2>
+                  <h2 className="font-mono text-base font-semibold">{displayedProduct.name}</h2>
                   {displayedProduct.packing && (
-                    <span className="rounded bg-emerald-900/90 border border-emerald-700/60 px-2 py-0.5 font-mono text-xs font-semibold text-emerald-200">
+                    <span className="rounded bg-slate-200 dark:bg-slate-800 px-2 py-0.5 font-mono text-xs text-slate-700 dark:text-slate-300">
                       {displayedProduct.packing}
                     </span>
                   )}
                   {displayedProduct.manufacturer && (
-                    <span className="text-xs font-medium text-emerald-300/90">({displayedProduct.manufacturer})</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">({displayedProduct.manufacturer})</span>
                   )}
                 </div>
                 {displayedProduct.salt && (
-                  <p className="mt-1 text-xs text-emerald-200/90 font-mono">
-                    <span className="text-emerald-400 font-semibold">Salt: </span>{displayedProduct.salt}
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                    Composition: {displayedProduct.salt}
                   </p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
-                className="rounded border border-emerald-500/70 bg-emerald-900/40 px-3.5 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800 transition-colors shadow-xs"
+                className="rounded border border-slate-300 px-3 py-1 font-mono text-xs hover:bg-slate-200 dark:border-slate-700 dark:hover:bg-slate-800 transition-colors"
               >
                 Close
               </button>

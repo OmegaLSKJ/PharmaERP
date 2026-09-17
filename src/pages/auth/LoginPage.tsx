@@ -69,12 +69,10 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar text-sidebar-foreground flex-col justify-between p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
         <div className="relative z-10">
-          <div className="flex items-center gap-3.5 mb-16">
-            <div className="w-11 h-11 rounded-xl bg-white p-1.5 shadow-md border border-white/20 flex items-center justify-center shrink-0">
-              <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-full h-full object-contain" />
-            </div>
+          <div className="flex items-center gap-3 mb-16">
+            <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-10 h-10 object-contain rounded-xl" />
             <div>
-              <div className="text-lg font-semibold tracking-tight">Borgang Drug Distributors</div>
+              <div className="text-lg font-semibold">Borgang Drug Distributors</div>
               <div className="text-xs text-muted-foreground">Distribution Management System</div>
             </div>
           </div>
@@ -98,11 +96,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-xl bg-white p-1.5 shadow-xs border border-border flex items-center justify-center shrink-0">
-              <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-full h-full object-contain" />
-            </div>
+            <img src="/favicon.png" alt="Borgang Drug Distributors Logo" className="w-10 h-10 object-contain rounded-xl" />
             <div>
-              <div className="text-lg font-semibold tracking-tight">Borgang Drug Distributors</div>
+              <div className="text-lg font-semibold">Borgang Drug Distributors</div>
               <div className="text-xs text-muted-foreground">Distribution Management System</div>
             </div>
           </div>

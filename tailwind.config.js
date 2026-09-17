@@ -62,9 +62,9 @@ export default {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 20px -4px hsl(187 70% 45% / 0.25)',
-        card: '0 4px 20px -4px hsl(222 25% 6% / 0.35)',
-        'card-hover': '0 8px 24px -6px hsl(222 25% 6% / 0.45)',
+        glow: '0 0 24px -4px hsl(239 84% 67% / 0.45)',
+        card: '0 8px 24px -8px hsl(230 40% 3% / 0.6)',
+        'card-hover': '0 12px 32px -8px hsl(238 60% 12% / 0.7)',
       },
       keyframes: {
         pageIn: {

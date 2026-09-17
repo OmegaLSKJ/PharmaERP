@@ -325,7 +325,6 @@ export default function ItemForm() {
               <select
                 value={form.gstRate}
                 onChange={(e) => change('gstRate', Number(e.target.value))}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-[38px]"
               >
                 <option value={0}>0% - Exempt / Nil</option>
                 <option value={5}>5% - Medicaments / Formulations (3004)</option>
@@ -334,8 +333,8 @@ export default function ItemForm() {
                 <option value={28}>28% - Luxury / Maximum Rate</option>
               </select>
               {form.hsn && (
-                <span className="shrink-0 text-xs px-2.5 py-1.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20 whitespace-nowrap">
-                  Mapped: {getGstRateForHsn(form.hsn)}%
+                <span className="shrink-0 text-xs px-2 py-1 rounded bg-secondary text-secondary-foreground font-semibold border border-border whitespace-nowrap">
+                  {getGstRateForHsn(form.hsn)}% GST
                 </span>
               )}
             </div>
