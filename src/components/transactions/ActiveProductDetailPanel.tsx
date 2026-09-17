@@ -4,6 +4,7 @@ import { getErp } from '../../lib/erpApi'
 
 export interface ActiveProductDetail {
   id?: string
+  code?: string
   batchId?: string
   name: string
   packing?: string
@@ -26,6 +27,8 @@ export interface ActiveProductDetail {
   date?: string
   category?: string
   location?: string
+  supplier?: string
+  status?: string
 }
 
 export function calculateRateMargins({ mrp, saleRate, purchaseRate, costPrice }: Pick<ActiveProductDetail, 'mrp' | 'saleRate' | 'purchaseRate' | 'costPrice'>) {
@@ -160,7 +163,14 @@ export default function ActiveProductDetailPanel({
     const timer = window.setInterval(() => void refresh(), 15_000)
     return () => { current = false; window.clearInterval(timer) }
   }, [detailOpen, activeProduct?.id, activeProduct?.name, activeProduct?.batchId, activeProduct?.batch])
-  const displayedProduct = liveDetail ? { ...activeProduct, ...liveDetail } : activeProduct
+  const displayedProduct = liveDetail
+    ? {
+        ...activeProduct,
+        ...Object.fromEntries(
+          Object.entries(liveDetail).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+        )
+      }
+    : activeProduct
   const money = (value?: number) => typeof value === 'number' && Number.isFinite(value) ? `₹${value.toFixed(2)}` : '—'
   const margins = calculateRateMargins(displayedProduct || {})
 
@@ -375,22 +385,90 @@ export default function ActiveProductDetailPanel({
       </div>
       {detailOpen && displayedProduct && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm" role="presentation" onMouseDown={() => setDetailOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-600 bg-slate-50 text-slate-900 shadow-2xl dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="flex items-start justify-between gap-4 border-b border-slate-300 bg-emerald-950 px-5 py-3 text-emerald-50 dark:border-slate-700">
-              <div><p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-200">Batch detail window · live refresh every 15 seconds</p><h2 className="mt-1 font-mono text-lg font-bold">{displayedProduct.name}</h2></div>
-              <button type="button" onClick={() => setDetailOpen(false)} className="rounded border border-emerald-600 px-3 py-1.5 text-xs font-semibold hover:bg-emerald-800">Close</button>
+          <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-300 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="flex items-start justify-between gap-4 border-b border-emerald-900/40 bg-emerald-950 px-5 py-3.5 text-emerald-50">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-emerald-300">
+                  Batch detail window · live refresh every 15 seconds
+                </p>
+                <div className="mt-1 flex items-baseline flex-wrap gap-2">
+                  <h2 className="font-mono text-lg font-bold text-white tracking-wide">{displayedProduct.name}</h2>
+                  {displayedProduct.packing && (
+                    <span className="rounded bg-emerald-900/90 border border-emerald-700/60 px-2 py-0.5 font-mono text-xs font-semibold text-emerald-200">
+                      {displayedProduct.packing}
+                    </span>
+                  )}
+                  {displayedProduct.manufacturer && (
+                    <span className="text-xs font-medium text-emerald-300/90">({displayedProduct.manufacturer})</span>
+                  )}
+                </div>
+                {displayedProduct.salt && (
+                  <p className="mt-1 text-xs text-emerald-200/90 font-mono">
+                    <span className="text-emerald-400 font-semibold">Salt: </span>{displayedProduct.salt}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailOpen(false)}
+                className="rounded border border-emerald-500/70 bg-emerald-900/40 px-3.5 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800 transition-colors shadow-xs"
+              >
+                Close
+              </button>
             </header>
-            <div className="grid gap-px bg-slate-300 text-xs dark:bg-slate-700 md:grid-cols-2">
-              <Detail label="HSN / SAC" value={displayedProduct.hsn} /><Detail label="GST" value={typeof displayedProduct.gstRate === 'number' ? `${displayedProduct.gstRate}% (CGST ${displayedProduct.gstRate / 2}% + SGST ${displayedProduct.gstRate / 2}%)` : undefined} />
-              <Detail label="Batch" value={displayedProduct.batch} /><Detail label="Expiry" value={formatDisplayExpiry(displayedProduct.expiry)} />
-              <Detail label="Stock" value={typeof displayedProduct.stock === 'number' ? `${displayedProduct.stock} units` : undefined} /><Detail label="Rack / Location" value={displayedProduct.location} />
-              <Detail label="Purchase rate" value={money(displayedProduct.purchaseRate)} /><Detail label="Cost price" value={money(displayedProduct.costPrice)} />
-              <Detail label="Purchase scheme" value={scheme(displayedProduct.purchaseSchemeDeal, displayedProduct.purchaseSchemeFree)} /><Detail label="Sales scheme" value={scheme(displayedProduct.salesSchemeDeal, displayedProduct.salesSchemeFree)} />
-              <Detail label="MRP" value={money(displayedProduct.mrp)} /><Detail label="Sale price" value={money(displayedProduct.saleRate)} />
-              <Detail label="Supplier invoice" value={displayedProduct.refNo} /><Detail label="Invoice date" value={displayedProduct.date} />
+
+            <div className="grid gap-px bg-slate-200 text-xs dark:bg-slate-800 md:grid-cols-2">
+              <Detail label="Item Code / ID" value={displayedProduct.code || displayedProduct.id} />
+              <Detail label="Category" value={displayedProduct.category} />
+              <Detail label="HSN / SAC" value={displayedProduct.hsn} />
+              <Detail
+                label="GST"
+                value={
+                  typeof displayedProduct.gstRate === 'number'
+                    ? `${displayedProduct.gstRate}% (CGST ${(displayedProduct.gstRate / 2).toFixed(1)}% + SGST ${(displayedProduct.gstRate / 2).toFixed(1)}%)`
+                    : undefined
+                }
+              />
+              <Detail label="Batch" value={displayedProduct.batch} />
+              <Detail label="Expiry" value={formatDisplayExpiry(displayedProduct.expiry)} />
+              <Detail
+                label="Stock"
+                value={typeof displayedProduct.stock === 'number' ? `${displayedProduct.stock} units` : undefined}
+              />
+              <Detail label="Rack / Location" value={displayedProduct.location} />
+              <Detail label="Purchase rate" value={money(displayedProduct.purchaseRate)} />
+              <Detail label="Cost price" value={money(displayedProduct.costPrice)} />
+              <Detail
+                label="Purchase scheme"
+                value={scheme(displayedProduct.purchaseSchemeDeal, displayedProduct.purchaseSchemeFree)}
+              />
+              <Detail
+                label="Sales scheme"
+                value={scheme(displayedProduct.salesSchemeDeal, displayedProduct.salesSchemeFree)}
+              />
+              <Detail label="MRP" value={money(displayedProduct.mrp)} />
+              <Detail label="Sale price" value={money(displayedProduct.saleRate)} />
+              <Detail label="Supplier" value={displayedProduct.supplier} />
+              <Detail label="Supplier invoice" value={displayedProduct.refNo} />
+              <Detail label="Invoice date" value={displayedProduct.date} />
             </div>
-            {liveError && <p className="border-t border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">{liveError}</p>}
-            <section className="border-t border-slate-300 p-4 dark:border-slate-700"><h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-slate-500">Rate and margin comparison</h3><div className="mt-3 grid gap-3 sm:grid-cols-3"><Margin label="MRP vs sale" value={margins.mrpVsSale} /><Margin label="MRP vs purchase" value={margins.mrpVsPurchase} /><Margin label="Sale vs cost" value={margins.saleVsCost} /></div></section>
+
+            {liveError && (
+              <p className="border-t border-amber-300 bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                {liveError}
+              </p>
+            )}
+
+            <section className="border-t border-slate-200 p-4 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+              <h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-slate-500 dark:text-slate-400">
+                Rate and margin comparison
+              </h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <Margin label="MRP vs sale" value={margins.mrpVsSale} />
+                <Margin label="MRP vs purchase" value={margins.mrpVsPurchase} />
+                <Margin label="Sale vs cost" value={margins.saleVsCost} />
+              </div>
+            </section>
           </section>
         </div>
       )}
@@ -398,6 +476,47 @@ export default function ActiveProductDetailPanel({
   )
 }
 
-function Detail({ label, value }: { label: string; value?: string }) { return <div className="bg-white px-5 py-3 dark:bg-slate-900"><span className="font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</span><strong className="mt-1 block font-mono text-sm text-slate-900 dark:text-slate-100">{value || '—'}</strong></div> }
-function Margin({ label, value }: { label: string; value: number | null }) { return <div className="rounded border border-slate-300 bg-slate-100 p-3 dark:border-slate-700 dark:bg-slate-900"><span className="font-mono text-[10px] uppercase text-slate-500">{label}</span><strong className={`mt-1 block font-mono text-base ${value === null ? 'text-slate-500' : value < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{value === null ? '—' : `${value.toFixed(2)}%`}</strong></div> }
-function scheme(deal?: number, free?: number) { return typeof deal === 'number' || typeof free === 'number' ? `${deal ?? 0} + ${free ?? 0}` : undefined }
+function Detail({ label, value }: { label: string; value?: string }) {
+  const hasValue = Boolean(value && value !== '—' && value.trim() !== '')
+  return (
+    <div className="bg-white px-5 py-3 dark:bg-slate-900">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+      <strong
+        className={cn(
+          'mt-1 block font-mono text-sm tracking-tight',
+          hasValue
+            ? 'text-slate-900 dark:text-slate-100 font-bold'
+            : 'text-slate-400 dark:text-slate-600 font-normal'
+        )}
+      >
+        {hasValue ? value : '—'}
+      </strong>
+    </div>
+  )
+}
+
+function Margin({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="rounded border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+      <span className="font-mono text-[10px] uppercase font-medium text-slate-500 dark:text-slate-400">{label}</span>
+      <strong
+        className={cn(
+          'mt-1 block font-mono text-base font-bold',
+          value === null
+            ? 'text-slate-400 dark:text-slate-600 font-normal'
+            : value < 0
+            ? 'text-rose-600 dark:text-rose-400'
+            : 'text-emerald-600 dark:text-emerald-400'
+        )}
+      >
+        {value === null ? '—' : `${value.toFixed(2)}%`}
+      </strong>
+    </div>
+  )
+}
+
+function scheme(deal?: number, free?: number) {
+  return typeof deal === 'number' || typeof free === 'number' ? `${deal ?? 0} + ${free ?? 0}` : undefined
+}

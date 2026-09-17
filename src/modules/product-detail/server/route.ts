@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
         : null
       const detail = {
         id: found.id,
+        code: found.code ?? undefined,
+        category: found.category ?? undefined,
         batchId: batch?.id,
         name: found.name,
         packing: found.packing ?? undefined,
@@ -59,17 +61,18 @@ export async function GET(request: NextRequest) {
         batch: batch?.batch ?? undefined,
         expiry: batch?.expiry ?? undefined,
         stock: typeof batch?.stock === 'number' ? batch.stock : typeof found.stock === 'number' ? found.stock : undefined,
-        location: batch?.location ?? undefined,
+        location: batch?.location ?? batch?.rackNumber ?? batch?.rack_number ?? undefined,
         mrp: numberOrUndefined(batch?.mrp ?? found.mrp),
-        saleRate: numberOrUndefined(batch?.saleRate ?? batch?.sale_price ?? found.saleRate),
-        purchaseRate: numberOrUndefined(batch?.purchaseRate ?? batch?.purchase_price ?? found.purchaseRate),
+        saleRate: numberOrUndefined(batch?.saleRate ?? batch?.salePrice ?? batch?.sale_price ?? found.saleRate),
+        purchaseRate: numberOrUndefined(batch?.purchaseRate ?? batch?.purchasePrice ?? batch?.purchase_price ?? found.purchaseRate),
         costPrice: numberOrUndefined(batch?.costPrice ?? batch?.cost_price ?? found.costPrice),
         purchaseSchemeDeal: numberOrUndefined(batch?.purchaseSchemeDeal ?? found.purchaseSchemeDeal),
         purchaseSchemeFree: numberOrUndefined(batch?.purchaseSchemeFree ?? found.purchaseSchemeFree),
         salesSchemeDeal: numberOrUndefined(batch?.salesSchemeDeal ?? found.salesSchemeDeal),
         salesSchemeFree: numberOrUndefined(batch?.salesSchemeFree ?? found.salesSchemeFree),
-        refNo: batch?.refNo ?? undefined,
-        date: batch?.date ?? undefined,
+        refNo: batch?.refNo ?? batch?.invoiceNumber ?? batch?.supplier_invoice_number ?? undefined,
+        date: batch?.date ?? batch?.invoiceDate ?? batch?.supplier_invoice_date ?? batch?.receivedOn ?? undefined,
+        supplier: batch?.supplier ?? undefined,
       }
       return applyRefreshedSession(NextResponse.json({ data: detail }, { headers }), auth)
     }
@@ -81,6 +84,7 @@ export async function GET(request: NextRequest) {
     const batch = batches?.[0]
     const detail = {
       id: item.id,
+      code: item.code ?? undefined,
       batchId: batch?.id,
       name: item.name,
       packing: item.packing ?? undefined,
@@ -102,6 +106,7 @@ export async function GET(request: NextRequest) {
       salesSchemeFree: numberOrUndefined(batch?.sales_scheme_free),
       refNo: batch?.supplier_invoice_number ?? undefined,
       date: batch?.supplier_invoice_date ?? undefined,
+      supplier: (batch?.parties as any)?.legal_name ?? undefined,
     }
     return applyRefreshedSession(NextResponse.json({ data: detail }, { headers }), auth)
   } catch { return fail('Live product details could not be loaded. Please refresh or check the Supabase connection.', 503) }

@@ -29,18 +29,18 @@
     --sidebar: 0 0% 100%;              /* Clean Light Sidebar */
     --sidebar-foreground: 217 14% 38%; /* Muted slate gray */
 
-    /* Light theme mappings for hardcoded slate colors */
-    --slate-50: 215 20% 96.5%;
-    --slate-100: 215 18% 95%;
-    --slate-200: 215 16% 91%;
-    --slate-300: 217 24% 18%;
-    --slate-400: 217 18% 34%;
-    --slate-500: 217 14% 45%;
-    --slate-600: 217 14% 45%;
-    --slate-700: 215 14% 82%;
-    --slate-800: 215 14% 86%;
-    --slate-900: 0 0% 100%;
-    --slate-950: 215 20% 96.5%;
+    /* Clean light theme slate color steps */
+    --slate-50: 210 40% 98%;           /* #f8fafc */
+    --slate-100: 210 40% 96.1%;        /* #f1f5f9 */
+    --slate-200: 214 32% 91.4%;        /* #e2e8f0 */
+    --slate-300: 213 27% 84%;          /* #cbd5e1 */
+    --slate-400: 215 20% 65%;          /* #94a3b8 */
+    --slate-500: 215 16% 47%;          /* #64748b */
+    --slate-600: 215 19% 35%;          /* #475569 */
+    --slate-700: 215 25% 27%;          /* #334155 */
+    --slate-800: 217 33% 17.5%;        /* #1e293b */
+    --slate-900: 222 47% 11%;          /* #0f172a - crisp dark text */
+    --slate-950: 222 84% 5%;           /* #020617 */
   }
 
   .dark {
@@ -184,6 +184,11 @@
 
   /* Global typography corrections in light mode for hardcoded slate dark-theme text */
   :root:not(.dark) .text-white:not(button):not(a):not(.bg-primary *):not(.bg-indigo-600 *):not(.bg-emerald-700 *):not(.bg-emerald-600 *):not(.bg-rose-600 *):not(.bg-blue-600 *) {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  :root:not(.dark) .text-slate-900,
+  :root:not(.dark) .text-slate-800 {
     color: hsl(var(--foreground)) !important;
   }
   

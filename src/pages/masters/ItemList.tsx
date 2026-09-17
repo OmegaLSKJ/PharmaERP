@@ -470,6 +470,7 @@ export default function ItemList() {
             ? {
                 name: activeItem.name,
                 id: activeItem.id,
+                code: activeItem.code,
                 packing: activeItem.packing,
                 manufacturer: activeItem.manufacturer,
                 salt: activeItem.salt,
@@ -479,15 +480,18 @@ export default function ItemList() {
                 saleRate: activeItem.saleRate,
                 mrp: activeItem.mrp,
                 purchaseRate: activeItem.purchaseRate,
-                costPrice: (activeItem as any).costPrice,
+                costPrice: (activeItem as any).costPrice ?? (activeItem as any).batches?.[0]?.costPrice ?? (activeItem as any).batches?.[0]?.cost_price,
                 category: activeItem.category,
                 batch: (activeItem as any).batches?.[0]?.batch || (activeItem as any).batch,
                 expiry: (activeItem as any).batches?.[0]?.expiry || (activeItem as any).expiry,
-                location: (activeItem as any).batches?.[0]?.location || (activeItem as any).location,
-                purchaseSchemeDeal: (activeItem as any).purchaseSchemeDeal,
-                purchaseSchemeFree: (activeItem as any).purchaseSchemeFree,
-                salesSchemeDeal: (activeItem as any).salesSchemeDeal,
-                salesSchemeFree: (activeItem as any).salesSchemeFree,
+                location: (activeItem as any).batches?.[0]?.location || (activeItem as any).batches?.[0]?.rackNumber || (activeItem as any).batches?.[0]?.rack_number || (activeItem as any).location,
+                purchaseSchemeDeal: (activeItem as any).batches?.[0]?.purchaseSchemeDeal ?? (activeItem as any).purchaseSchemeDeal,
+                purchaseSchemeFree: (activeItem as any).batches?.[0]?.purchaseSchemeFree ?? (activeItem as any).purchaseSchemeFree,
+                salesSchemeDeal: (activeItem as any).batches?.[0]?.salesSchemeDeal ?? (activeItem as any).salesSchemeDeal,
+                salesSchemeFree: (activeItem as any).batches?.[0]?.salesSchemeFree ?? (activeItem as any).salesSchemeFree,
+                refNo: (activeItem as any).batches?.[0]?.invoiceNumber || (activeItem as any).batches?.[0]?.supplier_invoice_number || (activeItem as any).batches?.[0]?.refNo || (activeItem as any).refNo,
+                date: (activeItem as any).batches?.[0]?.invoiceDate || (activeItem as any).batches?.[0]?.supplier_invoice_date || (activeItem as any).batches?.[0]?.receivedOn || (activeItem as any).batches?.[0]?.date || (activeItem as any).date,
+                supplier: (activeItem as any).batches?.[0]?.supplier || (activeItem as any).supplier,
               }
             : null
         }
