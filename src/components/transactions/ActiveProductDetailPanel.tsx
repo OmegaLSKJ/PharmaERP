@@ -146,7 +146,15 @@ export default function ActiveProductDetailPanel({
           ...(activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
         }, { forceRefresh: true })
         if (current) { setLiveDetail(detail); setLiveError('') }
-      } catch (error) { if (current) setLiveError(error instanceof Error ? error.message : 'Live product details could not be loaded.') }
+      } catch (error) {
+        if (current) {
+          if (!activeProduct || !activeProduct.name) {
+            setLiveError(error instanceof Error ? error.message : 'Live product details could not be loaded.')
+          } else {
+            setLiveError('')
+          }
+        }
+      }
     }
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15_000)

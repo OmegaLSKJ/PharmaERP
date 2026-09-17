@@ -479,7 +479,15 @@ export default function ItemList() {
                 saleRate: activeItem.saleRate,
                 mrp: activeItem.mrp,
                 purchaseRate: activeItem.purchaseRate,
+                costPrice: (activeItem as any).costPrice,
                 category: activeItem.category,
+                batch: (activeItem as any).batches?.[0]?.batch || (activeItem as any).batch,
+                expiry: (activeItem as any).batches?.[0]?.expiry || (activeItem as any).expiry,
+                location: (activeItem as any).batches?.[0]?.location || (activeItem as any).location,
+                purchaseSchemeDeal: (activeItem as any).purchaseSchemeDeal,
+                purchaseSchemeFree: (activeItem as any).purchaseSchemeFree,
+                salesSchemeDeal: (activeItem as any).salesSchemeDeal,
+                salesSchemeFree: (activeItem as any).salesSchemeFree,
               }
             : null
         }
