@@ -87,15 +87,23 @@ export default function SaleEntry() {
         const allParties = Array.from(partyMap.values())
         setPartiesList(allParties)
         setProductsList(products)
+        const sortedParties = [...allParties].sort((a, b) => {
+          const aIsCustomer = a.type === 'customer' || a.type === 'both' ? 1 : 0
+          const bIsCustomer = b.type === 'customer' || b.type === 'both' ? 1 : 0
+          if (aIsCustomer !== bIsCustomer) return bIsCustomer - aIsCustomer
+          return (a.name || '').localeCompare(b.name || '')
+        })
         setCustomerOptions(
-          allParties
+          sortedParties
             .filter((p) => p.name && p.name.trim())
             .map((p) => {
               const cleanName = String(p.name || '').replace(/\s+/g, ' ').trim()
+              const partyTypeLabel = (p.type || p.party_type || 'PARTY').toUpperCase()
+              const locationPart = p.city || p.station || ''
               return {
                 label: cleanName,
                 value: cleanName,
-                sub: p.city || p.station ? `${p.city || p.station}${p.type ? ` • ${p.type.toUpperCase()}` : ''}` : (p.type ? p.type.toUpperCase() : undefined),
+                sub: locationPart ? `${locationPart} • ${partyTypeLabel}` : partyTypeLabel,
                 right: p.phone || p.mobile || undefined,
               }
             })
