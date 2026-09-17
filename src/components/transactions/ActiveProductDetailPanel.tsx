@@ -56,6 +56,9 @@ export interface ActiveProductDetailPanelProps {
   activeIndex?: number
   emptyMessage?: string
   className?: string
+  open?: boolean
+  onClose?: () => void
+  autoOpenOnChange?: boolean
 }
 
 export function formatDisplayExpiry(val?: string): string {
@@ -96,19 +99,36 @@ export default function ActiveProductDetailPanel({
   activeIndex = 0,
   emptyMessage = 'Select or focus on any product to inspect live batch, stock, rates, composition and margins.',
   className,
+  open,
+  onClose,
+  autoOpenOnChange = false,
 }: ActiveProductDetailPanelProps) {
   const hasBillSummary = Boolean(billSummary)
-  const [detailOpen, setDetailOpen] = useState(false)
+  const [internalDetailOpen, setInternalDetailOpen] = useState(false)
+  const detailOpen = open !== undefined ? open : internalDetailOpen
+
+  const setDetailOpen = (val: boolean) => {
+    setInternalDetailOpen(val)
+    if (!val) onClose?.()
+  }
+
   const [liveDetail, setLiveDetail] = useState<ActiveProductDetail | null>(null)
   const [liveError, setLiveError] = useState('')
   const initialized = useRef(false)
   const previousKey = useRef('')
   const productKey = activeProduct ? `${activeProduct.name}|${activeProduct.batch || ''}` : ''
+
   useEffect(() => {
-    if (!initialized.current) { initialized.current = true; previousKey.current = productKey; return }
-    if (productKey && productKey !== previousKey.current) setDetailOpen(true)
+    if (!initialized.current) {
+      initialized.current = true
+      previousKey.current = productKey
+      return
+    }
+    if (autoOpenOnChange && productKey && productKey !== previousKey.current) {
+      setDetailOpen(true)
+    }
     previousKey.current = productKey
-  }, [productKey])
+  }, [productKey, autoOpenOnChange])
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setDetailOpen(false) }
     window.addEventListener('keydown', closeOnEscape)

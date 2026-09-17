@@ -44,6 +44,7 @@ export default function ItemList() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [items, setItems] = useState<Item[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Continuous Page Chunking Controls
@@ -120,7 +121,7 @@ export default function ItemList() {
     setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
   }
 
-  const activeItem = items.find((i) => i.id === activeId) || (displayedItems.length > 0 ? displayedItems[0] : null)
+  const activeItem = activeId ? items.find((i) => i.id === activeId) || null : null
   const totalCatalogPurchaseVal = filtered.reduce((s, i) => s + (i.purchaseRate || 0) * (i.stock || 0), 0)
   const totalCatalogMrpVal = filtered.reduce((s, i) => s + (i.mrp || 0) * (i.stock || 0), 0)
 
@@ -308,7 +309,10 @@ export default function ItemList() {
                 return (
                   <tr
                     key={item.id}
-                    onClick={() => setActiveId(item.id)}
+                    onClick={() => {
+                      setActiveId(item.id)
+                      setDetailModalOpen(true)
+                    }}
                     className={cn(
                       'border-b border-border table-row-hover transition-colors cursor-pointer',
                       isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : ''
@@ -459,6 +463,8 @@ export default function ItemList() {
 
       {/* Marg ERP Style Live Product Inspection Panel */}
       <ActiveProductDetailPanel
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
         activeProduct={
           activeItem
             ? {
