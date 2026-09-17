@@ -131,7 +131,23 @@ export default function SaleEntry() {
   }, [showToast])
 
   const getPrintData = (): TaxInvoicePrintData => {
-    const partyInfo = partiesList.find((p) => p.name === customer) || {}
+    const custClean = (customer || '').trim().toLowerCase()
+    const partyInfo = partiesList.find((p) => {
+      const pName = (p.name || '').trim().toLowerCase()
+      return pName === custClean || (p.id && p.id === customer)
+    }) || {}
+
+    const buyerName = customer || partyInfo.name || 'CASH CUSTOMER / WALK-IN'
+    const buyerAddress = partyInfo.address || partyInfo.address1 || partyInfo.station || existingInvoice?.partyAddress || 'Local'
+    const buyerCity = partyInfo.city || partyInfo.station || existingInvoice?.partyCity || ''
+    const buyerState = partyInfo.state || existingInvoice?.partyState || 'Assam'
+    const buyerPincode = partyInfo.pincode || partyInfo.pin || existingInvoice?.partyPincode || ''
+    const buyerPhone = partyInfo.phone || partyInfo.mobile || existingInvoice?.partyPhone || ''
+    const buyerGstin = partyInfo.gstin || existingInvoice?.partyGstin || ''
+    const buyerDlNo = partyInfo.dlNumber || partyInfo.dlNo || existingInvoice?.partyDlNo || ''
+    const buyerPan = partyInfo.pan || existingInvoice?.partyPan || ''
+    const stateCode = partyInfo.stateCode || (buyerState.toLowerCase().includes('assam') ? '18' : '')
+
     return {
       title: 'TAX INVOICE',
       copyType: 'Original for Recipient',
@@ -140,37 +156,44 @@ export default function SaleEntry() {
         existingInvoice?.number ||
         `SI-${new Date().getFullYear()}/${String(Math.floor(100 + Math.random() * 900))}`,
       invoiceDate: existingInvoice?.date || new Date().toISOString().split('T')[0],
-      dueDate: '',
-      paymentMode: 'Credit',
+      dueDate: existingInvoice?.dueDate || '',
+      paymentMode: existingInvoice?.paymentMode || 'Credit',
+      orderNo: existingInvoice?.orderNo || '',
       patientName,
       prescriberName,
       prescriptionReference,
       buyer: {
-        name: customer || 'CASH CUSTOMER / WALK-IN',
-        address: partyInfo.address || partyInfo.city || 'Local',
-        city: partyInfo.city || '',
-        state: partyInfo.state || 'Assam',
-        phone: partyInfo.phone || '',
-        gstin: partyInfo.gstin || '',
-        dlNo: partyInfo.dlNumber || partyInfo.dlNo || '',
-        pan: partyInfo.pan || '',
+        name: buyerName,
+        address: buyerAddress,
+        city: buyerCity,
+        state: buyerState,
+        pincode: buyerPincode,
+        phone: buyerPhone,
+        gstin: buyerGstin,
+        dlNo: buyerDlNo,
+        pan: buyerPan,
+        stateCode: stateCode,
       },
       items: items.map((i) => {
         const prod = productsList.find((p) => p.name === i.name)
+        const qty = Number(i.qty || 0)
+        const rate = Number(i.rate || 0)
+        const discount = Number(i.disc || 0)
+        const lineTaxable = (qty * rate) - ((qty * rate) * (discount / 100))
         return {
           name: i.name,
-          packing: prod?.packing || '1x10',
-          mfr: prod?.manufacturer || '',
-          hsn: prod?.hsn || '3004',
+          packing: prod?.packing || i.packing || '1x10',
+          mfr: prod?.manufacturer || i.manufacturer || '',
+          hsn: prod?.hsn || i.hsn || '3004',
           batch: i.batch,
-          expiry: prod?.batches?.find((b: any) => b.batch === i.batch)?.expiry || '',
+          expiry: prod?.batches?.find((b: any) => b.batch === i.batch)?.expiry || i.expiry || '',
           qty: i.qty,
-          freeQty: i.free,
-          mrp: i.rate * 1.2,
+          freeQty: i.free || 0,
+          mrp: i.mrp || prod?.mrp || (i.rate > 0 ? i.rate * 1.2 : 0),
           rate: i.rate,
-          discount: i.disc,
-          gstRate: i.gst,
-          amount: i.amount,
+          discount: i.disc || 0,
+          gstRate: i.gst || 12,
+          amount: lineTaxable,
         }
       }),
       subtotal: totals.subtotal,
@@ -331,9 +354,24 @@ export default function SaleEntry() {
       setSaving(true)
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
       const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
+      const custClean = (customer || '').trim().toLowerCase()
+      const partyInfo = partiesList.find((p) => (p.name || '').trim().toLowerCase() === custClean) || {}
+
+      const partyPayload = {
+        party: customer,
+        partyAddress: partyInfo.address || partyInfo.address1 || '',
+        partyCity: partyInfo.city || '',
+        partyState: partyInfo.state || 'Assam',
+        partyPincode: partyInfo.pincode || partyInfo.pin || '',
+        partyPhone: partyInfo.phone || partyInfo.mobile || '',
+        partyGstin: partyInfo.gstin || '',
+        partyDlNo: partyInfo.dlNumber || partyInfo.dlNo || '',
+        partyPan: partyInfo.pan || '',
+      }
+
       if (isEditMode && invoiceIdentifier) {
         await patchErp('sales', String(existingInvoice?.dbId || existingInvoice?.id || invoiceIdentifier), {
-          party: customer,
+          ...partyPayload,
           date: existingInvoice?.date || new Date().toISOString().split('T')[0],
           lines,
           grandTotal: totals.grandTotal,
@@ -346,7 +384,7 @@ export default function SaleEntry() {
         navigate('/transactions/sale')
       } else {
         const saved = await postErp<{ id: string }>('sales', {
-          party: customer,
+          ...partyPayload,
           lines,
           grandTotal: totals.grandTotal,
           patientName,

@@ -51,6 +51,17 @@ interface SaleInv {
   patientName?: string
   prescriberName?: string
   prescriptionReference?: string
+  paymentMode?: string
+  dueDate?: string
+  orderNo?: string
+  partyAddress?: string
+  partyCity?: string
+  partyState?: string
+  partyPincode?: string
+  partyPhone?: string
+  partyGstin?: string
+  partyDlNo?: string
+  partyPan?: string
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -65,6 +76,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function SaleRegister() {
   const [sales, setSales] = useState<SaleInv[]>([])
+  const [parties, setParties] = useState<any[]>([])
   const [selected, setSelected] = useState<SaleInv | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -73,8 +85,12 @@ export default function SaleRegister() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    getErp<any[]>('sales')
-      .then((rows) =>
+    Promise.all([
+      getErp<any[]>('sales'),
+      getErp<any[]>('parties').catch(() => [])
+    ])
+      .then(([rows, partyRows]) => {
+        setParties(partyRows || [])
         setSales(
           (rows || []).map((row) => ({
             id: String(row.dbId || row.id || row.number || ''),
@@ -87,10 +103,21 @@ export default function SaleRegister() {
             lines: row.lines || [],
             patientName: row.patientName || row.patient_name || '',
             prescriberName: row.prescriberName || row.prescriber_name || '',
-            prescriptionReference: row.prescriptionReference || row.prescription_reference || ''
+            prescriptionReference: row.prescriptionReference || row.prescription_reference || '',
+            paymentMode: row.paymentMode || row.payment_mode || 'Credit',
+            dueDate: row.dueDate || row.due_date || '',
+            orderNo: row.orderNo || row.order_no || '',
+            partyAddress: row.partyAddress || row.address || '',
+            partyCity: row.partyCity || row.city || '',
+            partyState: row.partyState || row.state || 'Assam',
+            partyPincode: row.partyPincode || row.pincode || row.pin || '',
+            partyPhone: row.partyPhone || row.phone || row.mobile || '',
+            partyGstin: row.partyGstin || row.gstin || '',
+            partyDlNo: row.partyDlNo || row.dlNo || row.dlNumber || '',
+            partyPan: row.partyPan || row.pan || ''
           }))
         )
-      )
+      })
       .catch((e) => addToast(e.message, 'error'))
       .finally(() => setLoading(false))
   }, [addToast])
@@ -133,43 +160,72 @@ export default function SaleRegister() {
   }
 
   const getPrintDataForSelected = (s: SaleInv): TaxInvoicePrintData => {
+    const custClean = (s.customer || '').trim().toLowerCase()
+    const party = parties.find((p) => {
+      const pName = (p.name || '').trim().toLowerCase()
+      return pName === custClean || (p.id && (p.id === s.customer || p.id === (s as any).partyId))
+    }) || {}
+
+    const buyerName = s.customer || party.name || 'CASH CUSTOMER / WALK-IN'
+    const buyerAddress = party.address || party.address1 || party.station || s.partyAddress || 'Local'
+    const buyerCity = party.city || party.station || s.partyCity || ''
+    const buyerState = party.state || s.partyState || 'Assam'
+    const buyerPincode = party.pincode || party.pin || s.partyPincode || ''
+    const buyerPhone = party.phone || party.mobile || s.partyPhone || ''
+    const buyerGstin = party.gstin || s.partyGstin || ''
+    const buyerDlNo = party.dlNo || party.dlNumber || s.partyDlNo || ''
+    const buyerPan = party.pan || s.partyPan || ''
+    const stateCode = party.stateCode || (buyerState.toLowerCase().includes('assam') ? '18' : '')
+
     return {
       title: 'TAX INVOICE',
       copyType: 'Original for Recipient',
       invoiceNo: s.invoiceNo,
       invoiceDate: s.date,
-      dueDate: '',
-      paymentMode: 'Credit',
+      dueDate: s.dueDate || '',
+      paymentMode: s.paymentMode || 'Credit',
+      orderNo: s.orderNo || '',
       patientName: s.patientName,
       prescriberName: s.prescriberName,
       prescriptionReference: s.prescriptionReference,
       buyer: {
-        name: s.customer,
-        address: 'Assam, India',
-        city: 'Local',
-        state: 'Assam',
-        phone: '',
-        gstin: '',
-        dlNo: '',
-        pan: '',
+        name: buyerName,
+        address: buyerAddress,
+        city: buyerCity,
+        state: buyerState,
+        pincode: buyerPincode,
+        phone: buyerPhone,
+        gstin: buyerGstin,
+        dlNo: buyerDlNo,
+        pan: buyerPan,
+        stateCode: stateCode,
       },
       items:
         s.lines && s.lines.length > 0
-          ? s.lines.map((l, i) => ({
-              name: l.name,
-              packing: l.packing || '1x10',
-              mfr: l.manufacturer,
-              hsn: l.hsn || '3004',
-              batch: l.batch || 'BAT-00' + (i + 1),
-              expiry: l.expiry || '',
-              qty: l.qty,
-              freeQty: l.free || 0,
-              mrp: l.rate * 1.2,
-              rate: l.rate,
-              discount: l.disc || 0,
-              gstRate: l.gst || 12,
-              amount: l.amount || l.qty * l.rate,
-            }))
+          ? s.lines.map((l: any, i: number) => {
+              const qty = Number(l.qty ?? l.quantity ?? 0)
+              const freeQty = Number(l.freeQty ?? l.free ?? 0)
+              const rate = Number(l.rate || 0)
+              const mrp = Number(l.mrp || (rate > 0 ? rate * 1.2 : 0))
+              const discount = Number(l.discount ?? l.disc ?? 0)
+              const gstRate = Number(l.gstRate ?? l.gst ?? 12)
+              const lineTaxable = (qty * rate) - ((qty * rate) * (discount / 100))
+              return {
+                name: l.name || l.itemName || 'Item',
+                packing: l.packing || '1x10',
+                mfr: l.manufacturer || l.mfr || '',
+                hsn: l.hsn || '3004',
+                batch: l.batch || 'BAT-00' + (i + 1),
+                expiry: l.expiry || '',
+                qty,
+                freeQty,
+                mrp,
+                rate,
+                discount,
+                gstRate,
+                amount: lineTaxable,
+              }
+            })
           : [
               {
                 name: 'Pharmaceutical Supplies & Medicines',
@@ -179,6 +235,8 @@ export default function SaleRegister() {
                 batch: 'GEN-' + s.invoiceNo,
                 expiry: '',
                 qty: s.items || 1,
+                freeQty: 0,
+                mrp: s.total / Math.max(1, s.items || 1),
                 rate: s.total / Math.max(1, s.items || 1),
                 amount: s.total,
               },

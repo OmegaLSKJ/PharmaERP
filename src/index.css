@@ -251,8 +251,8 @@
     -webkit-appearance: none !important;
   }
 
-  /* Automatically wrap and allow horizontal scrolling for all tables across all screen aspect ratios */
-  div:has(> table) {
+  /* Automatically wrap and allow horizontal scrolling for all data tables across all screen aspect ratios (excluding print bill layouts) */
+  div:not(.tax-invoice-bill):not(.tax-invoice-bill *):not(.goods-receipt-note-print):not(.goods-receipt-note-print *):not(.voucher-print-bill):not(.voucher-print-bill *):has(> table) {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -553,8 +553,7 @@
     page-break-after: auto !important;
   }
 
-  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th,
-  th {
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th {
     background: #d4ebf2 !important;
     color: #000000 !important;
     font-size: 8.5pt !important;
@@ -575,8 +574,7 @@
     text-align: center !important;
   }
 
-  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td,
-  td {
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td {
     font-size: 9pt !important;
     color: #111827 !important;
     padding: 3.5pt 6pt !important;
@@ -942,6 +940,15 @@
     display: table-cell !important;
   }
 
+  .tax-invoice-bill,
+  .tax-invoice-bill *,
+  .goods-receipt-note-print,
+  .goods-receipt-note-print *,
+  .voucher-print-bill,
+  .voucher-print-bill * {
+    overflow: visible !important;
+  }
+
   .tax-invoice-bill table th,
   .goods-receipt-note-print table th,
   .voucher-print-bill table th {
@@ -966,6 +973,21 @@
     font-size: 9px !important;
     line-height: 1.15 !important;
     border-left: none !important;
+  }
+
+  .tax-invoice-bill th.text-right,
+  .tax-invoice-bill td.text-right {
+    text-align: right !important;
+  }
+
+  .tax-invoice-bill th.text-center,
+  .tax-invoice-bill td.text-center {
+    text-align: center !important;
+  }
+
+  .tax-invoice-bill th.text-left,
+  .tax-invoice-bill td.text-left {
+    text-align: left !important;
   }
 
   .tax-invoice-bill tbody tr:nth-child(even) td,
