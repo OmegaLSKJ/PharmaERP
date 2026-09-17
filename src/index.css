@@ -532,7 +532,7 @@
   /* ═══════════════════════════════════════════════════════════════
      TABLES — professional bordered layout
   ═══════════════════════════════════════════════════════════════ */
-  table {
+  table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) {
     width: 100% !important;
     border-collapse: collapse !important;
     font-size: 9pt !important;
@@ -903,11 +903,15 @@
     width: 58% !important;
     max-width: 58% !important;
     border-right: 1.5px solid #000000 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .tax-invoice-bill td.col-right {
     width: 42% !important;
     max-width: 42% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .tax-invoice-bill,
@@ -945,11 +949,8 @@
   }
 
   .tax-invoice-bill,
-  .tax-invoice-bill *,
   .goods-receipt-note-print,
-  .goods-receipt-note-print *,
-  .voucher-print-bill,
-  .voucher-print-bill * {
+  .voucher-print-bill {
     overflow: visible !important;
   }
 

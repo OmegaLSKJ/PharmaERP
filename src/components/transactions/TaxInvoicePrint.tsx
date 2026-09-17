@@ -526,58 +526,81 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
                   <div className="text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-1">
                     GST Tax Analysis:
                   </div>
-                  <table
-                    className="w-full border border-black text-[8.5px] border-collapse"
-                    style={{ tableLayout: 'fixed', width: '100%', boxSizing: 'border-box' }}
+                  <div
+                    className="border border-black text-[8.5px] w-full"
+                    style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#fff' }}
                   >
-                    <thead>
-                      <tr className="bg-[#d4ebf2] text-black font-bold border-b border-black">
-                        <th className="border-r border-black px-1 py-0.5 text-center" style={{ width: '18%' }}>Tax Slab</th>
-                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '24%' }}>Taxable Val</th>
-                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>CGST</th>
-                        <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>SGST</th>
-                        <th className="px-1 py-0.5 text-right" style={{ width: '22%' }}>Total Tax</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(gstBreakdown)
-                        .filter(([_, v]) => v.taxable > 0)
-                        .map(([slab, v]) => (
-                          <tr key={slab} className="border-b border-gray-300 font-mono">
-                            <td className="border-r border-black px-1 py-0.5 text-center font-sans font-bold">
-                              {slab}% GST
-                            </td>
-                            <td className="border-r border-black px-1 py-0.5 text-right">
-                              {v.taxable.toFixed(2)}
-                            </td>
-                            <td className="border-r border-black px-1 py-0.5 text-right">
-                              {v.cgst.toFixed(2)}
-                            </td>
-                            <td className="border-r border-black px-1 py-0.5 text-right">
-                              {v.sgst.toFixed(2)}
-                            </td>
-                            <td className="px-1 py-0.5 text-right font-bold">
-                              {(v.cgst + v.sgst).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      <tr className="bg-gray-50 font-mono font-bold border-t border-black">
-                        <td className="border-r border-black px-1 py-0.5 text-center font-sans">TOTAL</td>
-                        <td className="border-r border-black px-1 py-0.5 text-right">
-                          {totalTaxable.toFixed(2)}
-                        </td>
-                        <td className="border-r border-black px-1 py-0.5 text-right">
-                          {totalCgst.toFixed(2)}
-                        </td>
-                        <td className="border-r border-black px-1 py-0.5 text-right">
-                          {totalSgst.toFixed(2)}
-                        </td>
-                        <td className="px-1 py-0.5 text-right">
-                          {(totalCgst + totalSgst).toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                    {/* Header */}
+                    <div
+                      className="bg-[#d4ebf2] text-black font-bold border-b border-black flex"
+                      style={{ display: 'flex', width: '100%' }}
+                    >
+                      <div style={{ width: '22%', borderRight: '1px solid black', textAlign: 'center', padding: '2px 2px', boxSizing: 'border-box' }}>
+                        Tax Slab
+                      </div>
+                      <div style={{ width: '26%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        Taxable Val
+                      </div>
+                      <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        CGST
+                      </div>
+                      <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        SGST
+                      </div>
+                      <div style={{ width: '18%', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        Total Tax
+                      </div>
+                    </div>
+
+                    {/* Data Rows */}
+                    {Object.entries(gstBreakdown)
+                      .filter(([_, v]) => v.taxable > 0)
+                      .map(([slab, v]) => (
+                        <div
+                          key={slab}
+                          className="border-b border-gray-300 font-mono flex"
+                          style={{ display: 'flex', width: '100%' }}
+                        >
+                          <div style={{ width: '22%', borderRight: '1px solid black', textAlign: 'center', fontFamily: 'sans-serif', fontWeight: 'bold', padding: '2px 2px', boxSizing: 'border-box' }}>
+                            {slab}% GST
+                          </div>
+                          <div style={{ width: '26%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                            {v.taxable.toFixed(2)}
+                          </div>
+                          <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                            {v.cgst.toFixed(2)}
+                          </div>
+                          <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                            {v.sgst.toFixed(2)}
+                          </div>
+                          <div style={{ width: '18%', textAlign: 'right', fontWeight: 'bold', padding: '2px 4px', boxSizing: 'border-box' }}>
+                            {(v.cgst + v.sgst).toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Totals Row */}
+                    <div
+                      className="bg-gray-50 font-mono font-bold border-t border-black flex"
+                      style={{ display: 'flex', width: '100%' }}
+                    >
+                      <div style={{ width: '22%', borderRight: '1px solid black', textAlign: 'center', fontFamily: 'sans-serif', padding: '2px 2px', boxSizing: 'border-box' }}>
+                        TOTAL
+                      </div>
+                      <div style={{ width: '26%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        {totalTaxable.toFixed(2)}
+                      </div>
+                      <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        {totalCgst.toFixed(2)}
+                      </div>
+                      <div style={{ width: '17%', borderRight: '1px solid black', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        {totalSgst.toFixed(2)}
+                      </div>
+                      <div style={{ width: '18%', textAlign: 'right', padding: '2px 4px', boxSizing: 'border-box' }}>
+                        {(totalCgst + totalSgst).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bank Details Box */}
