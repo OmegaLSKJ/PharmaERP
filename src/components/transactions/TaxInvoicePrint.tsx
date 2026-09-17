@@ -185,15 +185,21 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
       {/* Main Box Outer Border */}
       <div className="border-[1.5px] border-black">
         {/* Header: Company Details & Invoice Type */}
-        <div className="grid grid-cols-12 border-b-[1.5px] border-black">
-          {/* Company Branding (7 cols) */}
-          <div className="col-span-7 p-2.5 border-r-[1.5px] border-black flex items-start gap-2.5">
+        <div
+          className="flex flex-row border-b-[1.5px] border-black w-full"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        >
+          {/* Company Branding (Left 58%) */}
+          <div
+            className="p-2.5 border-r-[1.5px] border-black flex items-start gap-2.5"
+            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
+          >
             <img
               src="/favicon.png"
               alt="Logo"
               className="w-10 h-10 object-contain mt-0.5 flex-shrink-0"
             />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h1 className="text-[17px] font-extrabold text-[#0c2f66] tracking-tight leading-none uppercase mb-1">
                 {company.companyName}
               </h1>
@@ -226,8 +232,11 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
             </div>
           </div>
 
-          {/* Invoice Document Header Badge (5 cols) */}
-          <div className="col-span-5 p-2.5 flex flex-col justify-between text-right">
+          {/* Invoice Document Header Badge (Right 42%) */}
+          <div
+            className="p-2.5 flex flex-col justify-between text-right"
+            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
+          >
             <div>
               <div className="text-center border-[1.5px] border-black bg-white py-1 px-3 font-black tracking-widest text-[13px] text-black uppercase">
                 {docTitle}
@@ -260,9 +269,15 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
         </div>
 
         {/* Billed To / Party Details Section */}
-        <div className="grid grid-cols-12 border-b-[1.5px] border-black text-[10px]">
-          {/* Billed To (7 cols) */}
-          <div className="col-span-7 p-2 border-r-[1.5px] border-black flex flex-col justify-between">
+        <div
+          className="flex flex-row border-b-[1.5px] border-black text-[10px] w-full"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        >
+          {/* Billed To (Left 58%) */}
+          <div
+            className="p-2 border-r-[1.5px] border-black flex flex-col justify-between"
+            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
+          >
             <div>
               <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
                 Billed To / Buyer (Consignee):
@@ -285,7 +300,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1.5 pt-1 border-t border-gray-300 font-bold text-[9px]">
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1 border-t border-gray-300 font-bold text-[9px]">
               <div>
                 <span className="text-gray-600">GSTIN: </span>
                 <span className="font-mono text-black">{data.buyer.gstin || '—'}</span>
@@ -301,14 +316,17 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
               <div>
                 <span className="text-gray-600">State Code: </span>
                 <span className="font-mono text-black">
-                  {data.buyer.stateCode || (data.buyer.state?.toLowerCase().includes('assam') ? '18 (Assam)' : '18')}
+                  {data.buyer.stateCode || (data.buyer.state?.toLowerCase().includes('assam') ? '18' : '18')}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Dispatch & Supply Details (5 cols) */}
-          <div className="col-span-5 p-2 flex flex-col justify-between text-[9.5px]">
+          {/* Dispatch & Supply Details (Right 42%) */}
+          <div
+            className="p-2 flex flex-col justify-between text-[9.5px]"
+            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
+          >
             <div className="space-y-1">
               <div className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
                 Dispatch &amp; Supply Details:
@@ -447,21 +465,30 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
         </table>
 
         {/* GST Slab Breakdown & Totals Section */}
-        <div className="grid grid-cols-12 border-t-[1.5px] border-black text-[9.5px]">
-          {/* Left: GST Slabs Summary Table (7 cols) */}
-          <div className="col-span-7 p-2 border-r-[1.5px] border-black flex flex-col justify-between">
+        <div
+          className="flex flex-row border-t-[1.5px] border-black text-[9.5px] w-full"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        >
+          {/* Left: GST Slabs Summary Table (58%) */}
+          <div
+            className="p-2 border-r-[1.5px] border-black flex flex-col justify-between"
+            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
+          >
             <div>
               <div className="text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-1">
                 GST Tax Analysis:
               </div>
-              <table className="w-full border border-black text-[8.5px] border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <table
+                className="w-full border border-black text-[8.5px] border-collapse"
+                style={{ tableLayout: 'fixed', width: '100%', boxSizing: 'border-box' }}
+              >
                 <thead>
-                  <tr className="bg-gray-100 font-bold border-b border-black">
-                    <th className="border-r border-black px-1 py-0.5 text-center" style={{ width: '20%' }}>Tax Slab</th>
+                  <tr className="bg-[#d4ebf2] text-black font-bold border-b border-black">
+                    <th className="border-r border-black px-1 py-0.5 text-center" style={{ width: '18%' }}>Tax Slab</th>
                     <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '24%' }}>Taxable Val</th>
                     <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>CGST</th>
                     <th className="border-r border-black px-1 py-0.5 text-right" style={{ width: '18%' }}>SGST</th>
-                    <th className="px-1 py-0.5 text-right" style={{ width: '20%' }}>Total Tax</th>
+                    <th className="px-1 py-0.5 text-right" style={{ width: '22%' }}>Total Tax</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -508,7 +535,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
             {/* Bank Details Box */}
             <div className="border border-black p-1.5 mt-2 bg-gray-50/60 leading-tight text-[9px]">
               <div className="font-bold text-black uppercase mb-1">Bank Payment Details:</div>
-              <div className="grid grid-cols-3 gap-2 text-[8.5px]">
+              <div className="flex items-center justify-between text-[8.5px] gap-2">
                 <div><span className="text-gray-600">Bank:</span> <strong className="font-bold">{company.bankName || 'PUNJAB NATIONAL BANK'}</strong></div>
                 <div><span className="text-gray-600">A/C:</span> <strong className="font-mono font-bold">{company.accountNo || '1125250029704'}</strong></div>
                 <div><span className="text-gray-600">IFSC:</span> <strong className="font-mono font-bold">{company.ifsc || 'PUNB0112520'}</strong></div>
@@ -516,8 +543,11 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
             </div>
           </div>
 
-          {/* Right: Totals Calculation Summary (5 cols) */}
-          <div className="col-span-5 p-2 flex flex-col justify-between">
+          {/* Right: Totals Calculation Summary (42%) */}
+          <div
+            className="p-2 flex flex-col justify-between"
+            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
+          >
             <div className="space-y-1 font-bold">
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Items:</span>
@@ -571,9 +601,15 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
         </div>
 
         {/* Terms & Signatures Footer */}
-        <div className="grid grid-cols-12 border-t-[1.5px] border-black text-[9px]">
-          {/* Terms & Conditions */}
-          <div className="col-span-7 p-2 border-r-[1.5px] border-black leading-snug">
+        <div
+          className="flex flex-row border-t-[1.5px] border-black text-[9px] w-full"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', boxSizing: 'border-box' }}
+        >
+          {/* Terms & Conditions (Left 58%) */}
+          <div
+            className="p-2 border-r-[1.5px] border-black leading-snug"
+            style={{ width: '58%', flex: '0 0 58%', maxWidth: '58%', boxSizing: 'border-box' }}
+          >
             <div className="font-bold underline mb-0.5 uppercase text-gray-800">
               Terms &amp; Conditions:
             </div>
@@ -585,8 +621,11 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
             </ol>
           </div>
 
-          {/* Signatures */}
-          <div className="col-span-5 p-2 flex flex-col justify-between">
+          {/* Signatures (Right 42%) */}
+          <div
+            className="p-2 flex flex-col justify-between"
+            style={{ width: '42%', flex: '0 0 42%', maxWidth: '42%', boxSizing: 'border-box' }}
+          >
             <div className="text-right">
               <div className="text-[9px] font-bold uppercase text-gray-700">For {company.companyName}</div>
             </div>

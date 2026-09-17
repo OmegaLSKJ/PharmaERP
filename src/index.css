@@ -498,14 +498,14 @@
   /* ═══════════════════════════════════════════════════════════════
      METRIC / KPI CARDS (summary stat boxes at top of reports)
   ═══════════════════════════════════════════════════════════════ */
-  .grid.grid-cols-2,
-  .grid.grid-cols-3,
-  .grid.grid-cols-4,
-  .grid.grid-cols-5,
-  [class*="grid-cols-2"],
-  [class*="grid-cols-3"],
-  [class*="grid-cols-4"],
-  [class*="grid-cols-5"] {
+  .grid.grid-cols-2:not(.tax-invoice-bill *),
+  .grid.grid-cols-3:not(.tax-invoice-bill *),
+  .grid.grid-cols-4:not(.tax-invoice-bill *),
+  .grid.grid-cols-5:not(.tax-invoice-bill *),
+  [class*="grid-cols-2"]:not(.tax-invoice-bill *):not(.tax-invoice-bill),
+  [class*="grid-cols-3"]:not(.tax-invoice-bill *):not(.tax-invoice-bill),
+  [class*="grid-cols-4"]:not(.tax-invoice-bill *):not(.tax-invoice-bill),
+  [class*="grid-cols-5"]:not(.tax-invoice-bill *):not(.tax-invoice-bill) {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 6pt !important;
@@ -877,6 +877,28 @@
     color: #000000 !important;
   }
 
+  .tax-invoice-bill .flex-row,
+  .tax-invoice-bill .invoice-row {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tax-invoice-bill .invoice-col-left {
+    width: 58% !important;
+    max-width: 58% !important;
+    flex: 0 0 58% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tax-invoice-bill .invoice-col-right {
+    width: 42% !important;
+    max-width: 42% !important;
+    flex: 0 0 42% !important;
+    box-sizing: border-box !important;
+  }
+
   .tax-invoice-bill .grid {
     display: grid !important;
   }
@@ -887,23 +909,19 @@
   }
 
   .tax-invoice-bill .col-span-4 {
-    grid-column: span 4 / span 4 !important;
-    width: auto !important;
+    grid-column: span 4 !important;
   }
 
   .tax-invoice-bill .col-span-5 {
-    grid-column: span 5 / span 5 !important;
-    width: auto !important;
+    grid-column: span 5 !important;
   }
 
   .tax-invoice-bill .col-span-7 {
-    grid-column: span 7 / span 7 !important;
-    width: auto !important;
+    grid-column: span 7 !important;
   }
 
   .tax-invoice-bill .col-span-8 {
-    grid-column: span 8 / span 8 !important;
-    width: auto !important;
+    grid-column: span 8 !important;
   }
 
   .tax-invoice-bill,
