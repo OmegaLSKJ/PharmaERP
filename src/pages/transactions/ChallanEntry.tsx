@@ -500,6 +500,7 @@ export default function ChallanEntry() {
                   items: lines.map((l) => ({
                     name: l.name,
                     packing: '1x10',
+                    mfr: l.manufacturer,
                     batch: l.batch,
                     qty: l.qty,
                     rate: l.rate,
@@ -530,6 +531,7 @@ export default function ChallanEntry() {
             items: lines.map((l) => ({
               name: l.name,
               packing: '1x10',
+              mfr: l.manufacturer,
               batch: l.batch,
               qty: l.qty,
               rate: l.rate,

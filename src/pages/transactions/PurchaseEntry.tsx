@@ -455,7 +455,7 @@ export default function PurchaseEntry() {
             id: i.id,
             itemName: i.itemName,
             packing: i.packing || '50ML',
-            mfr: 'CONCEP',
+            mfr: i.manufacturer,
             hsn: i.hsn || '3004',
             batch: i.batch || 'CT251459',
             expiry: i.expiry || '1/28',
@@ -472,7 +472,7 @@ export default function PurchaseEntry() {
             {
               itemName: 'CUTIROSE',
               packing: '50ML',
-              mfr: 'CONCEP',
+              mfr: '',
               hsn: '3004',
               batch: 'CT251459',
               expiry: '1/28',

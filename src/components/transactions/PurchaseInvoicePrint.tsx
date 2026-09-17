@@ -1,5 +1,6 @@
 import React from 'react'
 import { numberToWordsIndian } from '../../lib/numberToWords'
+import { manufacturerShortName } from '../../lib/manufacturerShortName'
 import { useUIStore } from '../../store/uiStore'
 
 export interface InvoicePrintItem {
@@ -160,6 +161,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
       cgstAmount,
       discPercent,
       schPercent,
+      mfr: manufacturerShortName(item.mfr),
       expDisplay: formatExp(item.expiry),
     }
   })
@@ -317,7 +319,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
                 <td className="border-r border-black py-1 px-1.5 text-left uppercase font-black text-black">
                   {item.itemName}
                 </td>
-                <td className="border-r border-black py-1 px-0.5 text-center uppercase whitespace-nowrap">{item.mfr || 'CONCEP'}</td>
+                <td className="border-r border-black py-1 px-0.5 text-center uppercase whitespace-nowrap">{item.mfr}</td>
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono">{item.hsn || '3004'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono whitespace-nowrap">{item.batch || '—'}</td>
                 <td className="border-r border-black py-1 px-0.5 text-center font-mono">{item.expDisplay || '—'}</td>

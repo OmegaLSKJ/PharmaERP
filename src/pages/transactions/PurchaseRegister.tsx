@@ -298,7 +298,7 @@ export default function PurchaseRegister() {
         ? inv.lines.map((l: any) => ({
             itemName: l.name || l.itemName || 'CUTIROSE',
             packing: l.packing || '50ML',
-            mfr: l.manufacturer || l.mfr || 'CONCEP',
+            mfr: l.manufacturer || l.mfr || '',
             hsn: l.hsn || '3004',
             batch: l.batch || 'CT251459',
             expiry: l.expiry || '1/28',
@@ -315,7 +315,7 @@ export default function PurchaseRegister() {
             {
               itemName: 'CUTIROSE',
               packing: '50ML',
-              mfr: 'CONCEP',
+              mfr: '',
               hsn: '3004',
               batch: 'CT251459',
               expiry: '1/28',

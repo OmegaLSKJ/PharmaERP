@@ -160,7 +160,7 @@ export default function SaleEntry() {
         return {
           name: i.name,
           packing: prod?.packing || '1x10',
-          mfr: prod?.manufacturer || 'PHARMA',
+          mfr: prod?.manufacturer || '',
           hsn: prod?.hsn || '3004',
           batch: i.batch,
           expiry: prod?.batches?.find((b: any) => b.batch === i.batch)?.expiry || '',

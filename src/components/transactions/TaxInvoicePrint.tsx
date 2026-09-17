@@ -1,5 +1,6 @@
 import React from 'react'
 import { numberToWordsIndian } from '../../lib/numberToWords'
+import { manufacturerShortName } from '../../lib/manufacturerShortName'
 import { useUIStore } from '../../store/uiStore'
 
 export interface TaxInvoiceItem {
@@ -129,7 +130,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
       sNo: idx + 1,
       name: item.name,
       packing: item.packing || '1x10',
-      mfr: item.mfr || 'PHARMA',
+      mfr: manufacturerShortName(item.mfr),
       hsn: item.hsn || '3004',
       batch: item.batch || 'BAT-' + (idx + 101),
       expiry: formatExp(item.expiry),

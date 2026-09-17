@@ -893,7 +893,7 @@ export async function list(resource: string, partyName?: string) {
       client
         .from('sales_invoices')
         .select(
-          'id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,sale_rate,mrp),item_batches(batch_number,expiry_on,mrp))'
+          'id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,sale_rate,mrp,manufacturers(name,code),hsn_codes(code)),item_batches(batch_number,expiry_on,mrp))'
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
@@ -911,6 +911,9 @@ export async function list(resource: string, partyName?: string) {
         id: l.id,
         name: l.items?.name ?? 'Item',
         code: l.items?.code ?? '',
+        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
+        packing: l.items?.packing ?? '',
+        hsn: l.items?.hsn_codes?.code ?? '',
         batch: l.item_batches?.batch_number ?? 'DEFAULT',
         expiry: l.item_batches?.expiry_on ?? '',
         qty: Number(l.quantity || 0),
@@ -928,7 +931,7 @@ export async function list(resource: string, partyName?: string) {
       client
         .from('purchase_invoices')
         .select(
-          'id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code),item_batches(batch_number,expiry_on))'
+          'id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,mrp,manufacturers(name,code),hsn_codes(code)),item_batches(batch_number,expiry_on,mrp))'
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
@@ -947,6 +950,10 @@ export async function list(resource: string, partyName?: string) {
         id: l.id,
         name: l.items?.name ?? 'Item',
         code: l.items?.code ?? '',
+        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
+        packing: l.items?.packing ?? '',
+        hsn: l.items?.hsn_codes?.code ?? '',
+        mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
         batch: l.item_batches?.batch_number ?? 'DEFAULT',
         expiry: l.item_batches?.expiry_on ?? '',
         qty: Number(l.quantity || 0),

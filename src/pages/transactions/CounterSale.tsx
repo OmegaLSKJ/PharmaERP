@@ -34,7 +34,7 @@ export default function CounterSale() {
   const [completedSale, setCompletedSale] = useState<{
     invoiceNo: string
     date: string
-    lines: Array<{ name: string; qty: number; rate: number; batch: string; stock: number; gst: number }>
+    lines: Array<{ name: string; qty: number; rate: number; batch: string; stock: number; gst: number; manufacturer?: string; packing?: string; hsn?: string }>
     total: number
     paymentMode: string
   } | null>(null)
@@ -272,7 +272,9 @@ export default function CounterSale() {
               },
               items: completedSale.lines.map((l) => ({
                 name: l.name,
-                packing: '1x10',
+                packing: l.packing || '1x10',
+                mfr: l.manufacturer,
+                hsn: l.hsn,
                 batch: l.batch,
                 qty: l.qty,
                 rate: l.rate,

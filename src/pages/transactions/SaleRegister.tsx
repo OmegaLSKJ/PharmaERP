@@ -34,6 +34,9 @@ interface SaleLine {
   disc?: number
   gst?: number
   amount?: number
+  manufacturer?: string
+  packing?: string
+  hsn?: string
 }
 
 interface SaleInv {
@@ -154,9 +157,9 @@ export default function SaleRegister() {
         s.lines && s.lines.length > 0
           ? s.lines.map((l, i) => ({
               name: l.name,
-              packing: '1x10',
-              mfr: 'PHARMA',
-              hsn: '3004',
+              packing: l.packing || '1x10',
+              mfr: l.manufacturer,
+              hsn: l.hsn || '3004',
               batch: l.batch || 'BAT-00' + (i + 1),
               expiry: l.expiry || '',
               qty: l.qty,
@@ -171,7 +174,7 @@ export default function SaleRegister() {
               {
                 name: 'Pharmaceutical Supplies & Medicines',
                 packing: '1x10',
-                mfr: 'GENERIC',
+                mfr: '',
                 hsn: '3004',
                 batch: 'GEN-' + s.invoiceNo,
                 expiry: '',
