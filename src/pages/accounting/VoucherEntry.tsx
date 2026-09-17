@@ -792,9 +792,6 @@ export default function VoucherEntry() {
                   {vType === 'Contra' && 'Bank & Cash Transfer (Contra)'}
                   {vType === 'Journal' && 'Journal Adjustment Entry'}
                 </span>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Instant Auto-Balance
-                </span>
               </div>
 
               {selectedPartyObj && (
@@ -1020,48 +1017,7 @@ export default function VoucherEntry() {
               />
             </div>
 
-            {/* ── Live Balanced Preview Box ────────────────────────────── */}
-            {Number(amount) > 0 && (
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-400 flex items-center gap-1.5">
-                    <CheckCircle2 size={14} className="text-emerald-400" />
-                    Live Accounting Double-Entry Preview
-                  </span>
-                  <span className="font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono text-[11px]">
-                    ✓ Balanced ({formatCurrency(Number(amount))})
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                  {/* Line 1: Debit */}
-                  <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-emerald-400 uppercase bg-emerald-500/15 px-1.5 py-0.5 rounded mr-2">
-                        DR
-                      </span>
-                      <span className="text-white font-medium">{quickBuiltLines[0]?.ledger}</span>
-                    </div>
-                    <span className="font-bold text-emerald-300">
-                      {formatCurrency(quickBuiltLines[0]?.debit || 0)}
-                    </span>
-                  </div>
-
-                  {/* Line 2: Credit */}
-                  <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-rose-400 uppercase bg-rose-500/15 px-1.5 py-0.5 rounded mr-2">
-                        CR
-                      </span>
-                      <span className="text-white font-medium">{quickBuiltLines[1]?.ledger}</span>
-                    </div>
-                    <span className="font-bold text-rose-300">
-                      {formatCurrency(quickBuiltLines[1]?.credit || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* ── Big Primary Action Button ────────────────────────────── */}
             <div className="pt-2">
