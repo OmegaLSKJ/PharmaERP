@@ -282,11 +282,13 @@ export default function HsnList() {
         <div className="flex items-center gap-2">
           {is3004Filtered && (
             <button
+              type="button"
               onClick={handleBulkSet3004}
-              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs"
               title="Set all 3004 codes to 5% GST"
             >
-              <Percent size={14} /> Set 3004 to 5% GST
+              <Percent size={13} className="text-slate-500 dark:text-slate-400" />
+              <span>Set 3004 to 5% GST</span>
             </button>
           )}
           <button
@@ -434,14 +436,14 @@ export default function HsnList() {
                     className={cn(
                       'inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold border',
                       i.gstRate === 5
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                         : i.gstRate === 12
-                        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
                         : i.gstRate === 18
-                        ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
                         : i.gstRate === 28
-                        ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                        : 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                        : 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30'
                     )}
                   >
                     {i.gstRate}%
