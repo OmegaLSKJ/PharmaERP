@@ -9,6 +9,7 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { Printer } from 'lucide-react'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface CounterItem {
   name: string
@@ -50,7 +51,7 @@ export default function CounterSale() {
             rate: item.saleRate,
             batch: b.batch,
             stock: b.stock,
-            gst: item.gstRate,
+            gst: item.gstRate !== undefined && item.gstRate !== null ? Number(item.gstRate) : getGstRateForHsn(item.hsn),
             mrp: b.mrp || item.mrp || 0,
             purchaseRate: b.purchaseRate || item.purchaseRate || 0,
             packing: item.packing || '',

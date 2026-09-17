@@ -4,9 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { formatCurrency } from '../../lib/utils'
+import { getGstRateForHsn, getAllHsnCodes, HsnMasterEntry } from '../../lib/hsnUtils'
 
-type FormState = { code: string; name: string; packing: string; unit: string; manufacturer: string; salt: string; hsn: string; stock: number; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean; recalled:boolean }
-const EMPTY: FormState = { code: '', name: '', packing: '', unit: '', manufacturer: '', salt: '', hsn: '', stock: 0, mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false, recalled:false }
+type FormState = { code: string; name: string; packing: string; unit: string; manufacturer: string; salt: string; hsn: string; gstRate: number; stock: number; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean; recalled:boolean }
+const EMPTY: FormState = { code: '', name: '', packing: '', unit: '', manufacturer: '', salt: '', hsn: '', gstRate: 5, stock: 0, mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false, recalled:false }
 
 export default function ItemForm() {
   const { id } = useParams()
@@ -14,7 +15,7 @@ export default function ItemForm() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [manufacturers, setManufacturers] = useState<string[]>([])
   const [salts, setSalts] = useState<string[]>([])
-  const [hsnCodes, setHsnCodes] = useState<string[]>([])
+  const [hsnOptions, setHsnOptions] = useState<HsnMasterEntry[]>(() => getAllHsnCodes())
   const [batches, setBatches] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [showAddBatch, setShowAddBatch] = useState(false)
@@ -38,7 +39,22 @@ export default function ItemForm() {
     ]).then(([m, s, h, items]) => {
       setManufacturers(m.map((row) => row.name))
       setSalts(s.map((row) => row.name))
-      setHsnCodes(h.map((row) => row.code))
+
+      const mergedHsnMap = new Map<string, HsnMasterEntry>()
+      getAllHsnCodes().forEach((entry) => mergedHsnMap.set(entry.code, entry))
+      if (Array.isArray(h)) {
+        h.forEach((row: any) => {
+          const code = String(row.code || '').trim()
+          if (code) {
+            mergedHsnMap.set(code, {
+              code,
+              description: row.description || '',
+              gstRate: Number(row.gstRate ?? row.gst_rate ?? getGstRateForHsn(code))
+            })
+          }
+        })
+      }
+      setHsnOptions(Array.from(mergedHsnMap.values()))
 
       if (id) {
         const item = items.find((row) => String(row.id) === String(id) || String(row.code) === String(id))
@@ -48,6 +64,10 @@ export default function ItemForm() {
             ? batchList.reduce((acc: number, b: any) => acc + (Number(b.stock) || 0), 0)
             : Number(item.stock || 0)
 
+          const resolvedGst = item.gstRate !== undefined && item.gstRate !== null
+            ? Number(item.gstRate)
+            : getGstRateForHsn(item.hsn)
+
           setForm({
             code: item.code ?? '',
             name: item.name,
@@ -56,6 +76,7 @@ export default function ItemForm() {
             manufacturer: item.manufacturer ?? '',
             salt: item.salt ?? '',
             hsn: item.hsn ?? '',
+            gstRate: resolvedGst,
             stock: initialStock,
             mrp: Number(item.mrp || 0),
             saleRate: Number(item.saleRate || 0),
@@ -73,13 +94,23 @@ export default function ItemForm() {
         // Auto-generate item code for new items if blank
         setForm((prev) => ({
           ...prev,
-          code: prev.code || `ITM-${Math.floor(100000 + Math.random() * 900000)}`
+          code: prev.code || `ITM-${Math.floor(100000 + Math.random() * 900000)}`,
+          gstRate: prev.gstRate ?? 5
         }))
       }
     }).catch((e) => showToast(e.message))
   }, [id, showToast])
 
   const change = (field: keyof FormState, value: string | number | boolean) => setForm((current) => ({ ...current, [field]: value }))
+
+  const handleHsnChange = (codeVal: string) => {
+    const mappedGst = getGstRateForHsn(codeVal)
+    setForm((prev) => ({
+      ...prev,
+      hsn: codeVal,
+      gstRate: mappedGst
+    }))
+  }
 
   const handleMainStockChange = (val: number) => {
     const qty = Math.max(0, val)
@@ -171,6 +202,7 @@ export default function ItemForm() {
       manufacturer: form.manufacturer.trim(),
       salt: form.salt.trim(),
       hsn: form.hsn.trim(),
+      gstRate: Number(form.gstRate ?? getGstRateForHsn(form.hsn)),
       stock: totalStock,
       mrp: Number(form.mrp || 0),
       saleRate: Number(form.saleRate || 0),
@@ -280,13 +312,33 @@ export default function ItemForm() {
               list="item-hsn"
               placeholder="e.g. 30049011"
               value={form.hsn}
-              onChange={(e) => change('hsn', e.target.value)}
+              onChange={(e) => handleHsnChange(e.target.value)}
             />
             <datalist id="item-hsn">
-              {hsnCodes.map((v) => (
-                <option key={v} value={v} />
+              {hsnOptions.map((v) => (
+                <option key={v.code} value={v.code} label={`${v.code} (${v.gstRate}% GST) - ${v.description}`} />
               ))}
             </datalist>
+          </Field>
+          <Field label="GST rate (%)">
+            <div className="flex items-center gap-2">
+              <select
+                value={form.gstRate}
+                onChange={(e) => change('gstRate', Number(e.target.value))}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-[38px]"
+              >
+                <option value={0}>0% - Exempt / Nil</option>
+                <option value={5}>5% - Medicaments / Formulations (3004)</option>
+                <option value={12}>12% - General / Surgical</option>
+                <option value={18}>18% - Nutraceuticals / Foods (2106)</option>
+                <option value={28}>28% - Luxury / Maximum Rate</option>
+              </select>
+              {form.hsn && (
+                <span className="shrink-0 text-xs px-2.5 py-1.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20 whitespace-nowrap">
+                  Mapped: {getGstRateForHsn(form.hsn)}%
+                </span>
+              )}
+            </div>
           </Field>
           <Field label="Purchase rate (₹)">
             <input

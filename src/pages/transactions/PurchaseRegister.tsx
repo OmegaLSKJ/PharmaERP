@@ -5,6 +5,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface PurchaseInv {
   id: string
@@ -122,7 +123,7 @@ export default function PurchaseRegister() {
           const qty = Number(l.qty || l.quantity || 1)
           const rate = Number(l.rate || l.purchaseRate || 0)
           const disc = Number(l.disc || l.discount || 0)
-          const gst = Number(l.gst || l.gstRate || 12)
+          const gst = Number(l.gst ?? l.gstRate ?? getGstRateForHsn(l.hsn))
           const base = qty * rate
           const afterDisc = base - (base * disc) / 100
           const amt = Number(l.amount) || afterDisc + (afterDisc * gst) / 100
@@ -147,7 +148,7 @@ export default function PurchaseRegister() {
       )
     } else {
       // Create fallback item from total
-      const rate = inv.total ? Math.round((inv.total / 1.12) * 100) / 100 : 1000
+      const rate = inv.total ? Math.round((inv.total / 1.05) * 100) / 100 : 1000
       setEditLines([
         {
           id: `line-${Date.now()}-0`,
@@ -160,10 +161,10 @@ export default function PurchaseRegister() {
           freeQty: 0,
           rate,
           discount: 0,
-          gstRate: 12,
+          gstRate: 5,
           saleRate: Math.round(rate * 1.2 * 100) / 100,
           mrp: Math.round(rate * 1.35 * 100) / 100,
-          amount: inv.total || 1120,
+          amount: inv.total || 1050,
         },
       ])
     }
@@ -173,6 +174,10 @@ export default function PurchaseRegister() {
     setEditLines((prev) => {
       const updated = [...prev]
       const current = { ...updated[idx], [field]: val }
+
+      if (field === 'hsn') {
+        current.gstRate = getGstRateForHsn(val)
+      }
 
       // Auto recalculate amount when quantity, rate, discount, or gst changes
       const q = Number(field === 'qty' ? val : current.qty || 0)
@@ -204,10 +209,10 @@ export default function PurchaseRegister() {
         freeQty: 0,
         rate: 100,
         discount: 0,
-        gstRate: 12,
+        gstRate: 5,
         saleRate: 120,
         mrp: 135,
-        amount: 1120,
+        amount: 1050,
       },
     ])
   }

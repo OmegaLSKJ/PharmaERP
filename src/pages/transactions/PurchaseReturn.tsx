@@ -105,7 +105,7 @@ export default function PurchaseReturn() {
         packing: '1x1',
         qty: r.items || 1,
         rate: r.total,
-        gstRate: 12,
+        gstRate: 5,
         amount: r.total,
       },
     ],

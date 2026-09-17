@@ -8,6 +8,7 @@ import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import defaultHsnMaster from '../../data/hsnMasterData.json'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface LineItem {
   id: string
@@ -136,7 +137,7 @@ export default function PurchaseEntry() {
             const matchedHsn = parsedHsn.find((h) => h.code === hsnCode)
             const resolvedGstRate = matchedHsn
               ? matchedHsn.gstRate
-              : Number(p.gstRate ?? p.hsn_codes?.gst_rate ?? 12)
+              : (p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(hsnCode))
 
             return {
               name: p.name,
@@ -181,7 +182,7 @@ export default function PurchaseEntry() {
               const q = Number(l.qty || l.quantity || 1)
               const rate = Number(l.rate || l.purchaseRate || 100)
               const disc = Number(l.disc || l.discount || 0)
-              const gst = Number(l.gst || l.gstRate || 12)
+              const gst = Number(l.gst ?? l.gstRate ?? getGstRateForHsn(l.hsn))
               const free = Number(l.free || l.freeQty || 0)
               const baseAmt = q * rate
               const afterDisc = baseAmt - (baseAmt * disc) / 100
@@ -249,7 +250,7 @@ export default function PurchaseEntry() {
   const addItem = (item: ItemOption) => {
     const newId = Date.now().toString()
     // Auto-fill GST% based on product's HSN / master value
-    const initialGstRate = Number(item.gstRate ?? 12)
+    const initialGstRate = Number(item.gstRate !== undefined && item.gstRate !== null ? item.gstRate : getGstRateForHsn(item.hsn))
 
     setItems((prev) => {
       const next = [
@@ -298,11 +299,13 @@ export default function PurchaseEntry() {
         if (item.id !== id) return item
         const updated = { ...item, [field]: value }
 
-        // If HSN is changed, auto-update the GST rate if matching HSN is found
+        // If HSN is changed, auto-update the GST rate based on authoritative HSN mapping
         if (field === 'hsn') {
           const matchedHsn = hsnList.find((h) => h.code === String(value).trim())
           if (matchedHsn) {
             updated.gstRate = matchedHsn.gstRate
+          } else {
+            updated.gstRate = getGstRateForHsn(String(value))
           }
         }
 

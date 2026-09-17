@@ -21,6 +21,7 @@ import { deleteErp, getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface SaleLine {
   id?: string
@@ -208,7 +209,7 @@ export default function SaleRegister() {
               const rate = Number(l.rate || 0)
               const mrp = Number(l.mrp || (rate > 0 ? rate * 1.2 : 0))
               const discount = Number(l.discount ?? l.disc ?? 0)
-              const gstRate = Number(l.gstRate ?? l.gst ?? 12)
+              const gstRate = Number(l.gstRate ?? l.gst ?? getGstRateForHsn(l.hsn))
               const lineTaxable = (qty * rate) - ((qty * rate) * (discount / 100))
               return {
                 name: l.name || l.itemName || 'Item',

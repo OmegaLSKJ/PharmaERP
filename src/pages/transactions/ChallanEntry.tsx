@@ -7,12 +7,14 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface AvailableItem {
   name: string
   batch: string
   rate: number
   stock: number
+  gstRate?: number
   mrp?: number
   purchaseRate?: number
   packing?: string
@@ -27,6 +29,7 @@ interface Line {
   batch: string
   qty: number
   rate: number
+  gstRate?: number
   stock?: number
   mrp?: number
   purchaseRate?: number
@@ -69,6 +72,7 @@ export default function ChallanEntry() {
               manufacturer: p.manufacturer || p.company || '',
               salt: p.salt || p.composition || '',
               hsn: p.hsn || '',
+              gstRate: p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
               expiry: b.expiry || '',
             }))
           )
@@ -90,6 +94,7 @@ export default function ChallanEntry() {
         batch: i.batch,
         qty: 1,
         rate: i.rate,
+        gstRate: i.gstRate ?? getGstRateForHsn(i.hsn),
         stock: i.stock,
         mrp: i.mrp,
         purchaseRate: i.purchaseRate,
@@ -504,7 +509,7 @@ export default function ChallanEntry() {
                     batch: l.batch,
                     qty: l.qty,
                     rate: l.rate,
-                    gstRate: 12,
+                    gstRate: l.gstRate ?? getGstRateForHsn(l.hsn, 5),
                     amount: l.qty * l.rate,
                   })),
                   grandTotal: lines.reduce((a, l) => a + l.qty * l.rate, 0),
@@ -535,7 +540,7 @@ export default function ChallanEntry() {
               batch: l.batch,
               qty: l.qty,
               rate: l.rate,
-              gstRate: 12,
+              gstRate: l.gstRate ?? getGstRateForHsn(l.hsn, 5),
               amount: l.qty * l.rate,
             })),
             grandTotal: lines.reduce((a, l) => a + l.qty * l.rate, 0),

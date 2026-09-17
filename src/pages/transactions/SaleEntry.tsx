@@ -9,6 +9,7 @@ import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { calculateInvoice } from '../../lib/invoiceCalculations'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface LineItem {
   id: string
@@ -115,7 +116,7 @@ export default function SaleEntry() {
               batch: b.batch,
               stock: b.stock,
               rate: p.saleRate,
-              gst: p.gstRate,
+              gst: p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
               mrp: b.mrp || p.mrp || 0,
               purchaseRate: b.purchaseRate || p.purchaseRate || 0,
               packing: p.packing || '',
@@ -192,7 +193,7 @@ export default function SaleEntry() {
           mrp: i.mrp || prod?.mrp || (i.rate > 0 ? i.rate * 1.2 : 0),
           rate: i.rate,
           discount: i.disc || 0,
-          gstRate: i.gst || 12,
+          gstRate: i.gst !== undefined && i.gst !== null ? Number(i.gst) : getGstRateForHsn(i.hsn),
           amount: lineTaxable,
         }
       }),

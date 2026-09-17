@@ -50,7 +50,7 @@ export default function Orders() {
         packing: 'BULK',
         qty: o.items || 1,
         rate: o.total,
-        gstRate: 12,
+        gstRate: 5,
         amount: o.total,
       },
     ],
