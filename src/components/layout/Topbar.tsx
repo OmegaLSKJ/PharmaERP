@@ -50,7 +50,7 @@ export default function Topbar() {
   return (
     <header
       data-no-print
-      className="no-print print:hidden print:!hidden glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs"
+      className="no-print print:hidden print:!hidden glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-background/90 dark:bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs"
     >
       {/* Left: Mobile Hamburger & Brand Name */}
       <div className="flex items-center gap-2">
@@ -58,7 +58,7 @@ export default function Topbar() {
           type="button"
           aria-label="Open navigation menu"
           onClick={() => setMobileSidebarOpen(true)}
-          className="p-2 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 active:bg-slate-800 md:hidden transition"
+          className="p-2 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:bg-secondary md:hidden transition"
         >
           <Menu size={20} />
         </button>
@@ -83,11 +83,11 @@ export default function Topbar() {
         <button
           type="button"
           onClick={toggleCommandPalette}
-          className="glass-action group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800/80 text-sm transition-all w-full shadow-xs hover:border-slate-700"
+          className="group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground bg-muted/60 dark:bg-slate-900/60 border border-border text-sm transition-all w-full shadow-2xs hover:border-primary/50"
         >
-          <Search size={14} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
-          <span className="flex-1 text-left text-xs text-slate-400 group-hover:text-slate-200">Search pages, items, parties...</span>
-          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-slate-800 bg-slate-950 text-[10px] font-mono text-slate-400">
+          <Search size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+          <span className="flex-1 text-left text-xs text-muted-foreground group-hover:text-foreground">Search pages, items, parties...</span>
+          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border bg-background text-[10px] font-mono text-muted-foreground">
             <Command size={10} />K
           </kbd>
         </button>

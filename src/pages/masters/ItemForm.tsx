@@ -383,14 +383,14 @@ export default function ItemForm() {
       </form>
 
     {id && (
-      <div className="space-y-3 pt-4 border-t border-slate-800">
+      <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-semibold text-white">Registered Batches &amp; Import History</h2>
-            <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
+            <h2 className="text-lg font-semibold text-foreground">Registered Batches &amp; Import History</h2>
+            <span className="rounded-full bg-muted border border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
               {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
             </span>
-            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               Total Stock: {form.stock}
             </span>
           </div>
@@ -408,58 +408,58 @@ export default function ItemForm() {
               })
               setShowAddBatch(true)
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:text-white transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition cursor-pointer"
           >
-            <Plus size={14} /> Add batch
+            <Plus size={14} className="text-primary" /> Add batch
           </button>
         </div>
 
         {/* Add Batch Inline Card */}
         {showAddBatch && (
-          <div className="rounded-xl border border-slate-700 bg-slate-900/90 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Register New Batch</h3>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h3 className="text-sm font-semibold text-foreground">Register New Batch</h3>
               <button
                 type="button"
                 onClick={() => setShowAddBatch(false)}
-                className="text-slate-400 hover:text-white p-1 rounded"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Batch No *</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">Batch No *</label>
                 <input
                   required
                   placeholder="e.g. B-2026"
                   value={newBatch.batch}
                   onChange={(e) => setNewBatch({ ...newBatch, batch: e.target.value })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white uppercase font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground uppercase font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Expiry</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">Expiry</label>
                 <input
                   type="date"
                   value={newBatch.expiry}
                   onChange={(e) => setNewBatch({ ...newBatch, expiry: e.target.value })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Stock Qty *</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">Stock Qty *</label>
                 <input
                   type="number"
                   min="0"
                   placeholder="0"
                   value={newBatch.stock || ''}
                   onChange={(e) => setNewBatch({ ...newBatch, stock: Number(e.target.value || 0) })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Purchase Rate (₹)</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">Purchase Rate (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -467,11 +467,11 @@ export default function ItemForm() {
                   value={newBatch.purchasePrice || ''}
                   placeholder="0.00"
                   onChange={(e) => setNewBatch({ ...newBatch, purchasePrice: Number(e.target.value || 0) })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">MRP (₹)</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">MRP (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -479,31 +479,31 @@ export default function ItemForm() {
                   value={newBatch.mrp || ''}
                   placeholder="0.00"
                   onChange={(e) => setNewBatch({ ...newBatch, mrp: Number(e.target.value || 0) })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Rack No</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">Rack No</label>
                 <input
                   placeholder="e.g. R-12"
                   value={newBatch.rackNumber}
                   onChange={(e) => setNewBatch({ ...newBatch, rackNumber: e.target.value })}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex justify-end gap-2 pt-1 border-t border-border">
               <button
                 type="button"
                 onClick={() => setShowAddBatch(false)}
-                className="rounded px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800"
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleAddBatch}
-                className="rounded bg-blue-600 hover:bg-blue-500 px-3 py-1 text-xs font-semibold text-white cursor-pointer"
+                className="rounded-lg bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs cursor-pointer transition"
               >
                 Confirm Add Batch
               </button>
@@ -512,84 +512,86 @@ export default function ItemForm() {
         )}
         
         {batches.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-400 space-y-2">
-            <p className="font-medium text-slate-300">No batches registered for this item yet.</p>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              You can edit the stock in the <strong className="text-white">Stock (Units)</strong> field above (a default batch will be automatically registered on save), or click <strong className="text-white">&quot;Add batch&quot;</strong> to enter a custom batch number and expiry.
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground space-y-2 bg-muted/20">
+            <p className="font-semibold text-foreground">No batches registered for this item yet.</p>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              You can edit the stock in the <strong className="text-foreground">Stock (Units)</strong> field above (a default batch will be automatically registered on save), or click <strong className="text-foreground">&quot;Add batch&quot;</strong> to enter a custom batch number and expiry.
             </p>
           </div>
         ) : (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto">
-            <table className="w-full text-xs min-w-[1400px]">
-              <thead>
-                <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-left">
-                  <th className="px-4 py-3 font-medium">Batch</th>
-                  <th className="px-4 py-3 font-medium">Expiry</th>
-                  <th className="px-4 py-3 font-medium text-right">Current Stock</th>
-                  <th className="px-4 py-3 font-medium text-right">Cost Price</th>
-                  <th className="px-4 py-3 font-medium text-right">Purchase Price</th>
-                  <th className="px-4 py-3 font-medium text-right">Sale Price</th>
-                  <th className="px-4 py-3 font-medium text-right">MRP</th>
-                  <th className="px-4 py-3 font-medium text-right">Value</th>
-                  <th className="px-4 py-3 font-medium text-center">Sales Scheme</th>
-                  <th className="px-4 py-3 font-medium text-center">Purchase Scheme</th>
-                  <th className="px-4 py-3 font-medium">Received Date</th>
-                  <th className="px-4 py-3 font-medium">Manufactured Date</th>
-                  <th className="px-4 py-3 font-medium">Supplier</th>
-                  <th className="px-4 py-3 font-medium">Invoice No / Date</th>
-                  <th className="px-4 py-3 font-medium">Rack No</th>
-                  <th className="px-3 py-3 font-medium text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 text-slate-300">
-                {batches.map((b, idx) => {
-                  const salesScheme = `${b.salesSchemeDeal ?? 0}+${b.salesSchemeFree ?? 0}`;
-                  const purchaseScheme = `${b.purchaseSchemeDeal ?? 0}+${b.purchaseSchemeFree ?? 0}`;
-                  const val = b.reportedValue ?? ((Number(b.stock) || 0) * (b.costPrice ?? 0));
-                  return (
-                    <tr key={b.id || idx} className="hover:bg-slate-900/30">
-                      <td className="px-4 py-2 font-mono font-medium text-amber-400">{b.batch || 'UNSPECIFIED'}</td>
-                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.expiry || '—'}</td>
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          value={b.stock ?? 0}
-                          onChange={(e) => handleBatchStockChange(idx, Number(e.target.value))}
-                          className="w-24 text-right rounded border border-slate-700 bg-slate-800/90 px-2 py-1 font-mono text-xs text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                          title="Edit stock for this batch"
-                        />
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.costPrice ?? 0)}</td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.purchasePrice ?? 0)}</td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.salePrice ?? 0)}</td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.mrp ?? 0)}</td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-400">{formatCurrency(val)}</td>
-                      <td className="px-4 py-2 text-center font-mono">{salesScheme}</td>
-                      <td className="px-4 py-2 text-center font-mono">{purchaseScheme}</td>
-                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.receivedOn || '—'}</td>
-                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.manufacturedOn || '—'}</td>
-                      <td className="px-4 py-2 truncate max-w-[200px]" title={b.supplier}>{b.supplier || '—'}</td>
-                      <td className="px-4 py-2 font-mono">
-                        <div>{b.invoiceNumber || '—'}</div>
-                        {b.invoiceDate && <div className="text-[10px] text-slate-400 mt-0.5">{b.invoiceDate}</div>}
-                      </td>
-                      <td className="px-4 py-2 font-mono">{b.rackNumber || '—'}</td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveBatch(idx)}
-                          title="Remove this batch"
-                          className="text-slate-500 hover:text-red-400 transition p-1 rounded hover:bg-slate-800"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[1400px]">
+                <thead>
+                  <tr className="bg-muted/60 border-b border-border text-muted-foreground uppercase tracking-wider text-left text-[11px] font-semibold">
+                    <th className="px-4 py-3">Batch</th>
+                    <th className="px-4 py-3">Expiry</th>
+                    <th className="px-4 py-3 text-right">Current Stock</th>
+                    <th className="px-4 py-3 text-right">Cost Price</th>
+                    <th className="px-4 py-3 text-right">Purchase Price</th>
+                    <th className="px-4 py-3 text-right">Sale Price</th>
+                    <th className="px-4 py-3 text-right">MRP</th>
+                    <th className="px-4 py-3 text-right">Value</th>
+                    <th className="px-4 py-3 text-center">Sales Scheme</th>
+                    <th className="px-4 py-3 text-center">Purchase Scheme</th>
+                    <th className="px-4 py-3">Received Date</th>
+                    <th className="px-4 py-3">Manufactured Date</th>
+                    <th className="px-4 py-3">Supplier</th>
+                    <th className="px-4 py-3">Invoice No / Date</th>
+                    <th className="px-4 py-3">Rack No</th>
+                    <th className="px-3 py-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border text-foreground">
+                  {batches.map((b, idx) => {
+                    const salesScheme = `${b.salesSchemeDeal ?? 0}+${b.salesSchemeFree ?? 0}`;
+                    const purchaseScheme = `${b.purchaseSchemeDeal ?? 0}+${b.purchaseSchemeFree ?? 0}`;
+                    const val = b.reportedValue ?? ((Number(b.stock) || 0) * (b.costPrice ?? 0));
+                    return (
+                      <tr key={b.id || idx} className="hover:bg-muted/40 transition-colors">
+                        <td className="px-4 py-2.5 font-mono font-bold text-amber-600 dark:text-amber-400">{b.batch || 'UNSPECIFIED'}</td>
+                        <td className="px-4 py-2.5 font-mono whitespace-nowrap text-muted-foreground font-medium">{b.expiry || '—'}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={b.stock ?? 0}
+                            onChange={(e) => handleBatchStockChange(idx, Number(e.target.value))}
+                            className="w-20 text-right rounded-md border border-input bg-background px-2 py-1 font-mono text-xs text-foreground font-bold focus:border-primary focus:ring-1 focus:ring-ring focus:outline-none"
+                            title="Edit stock for this batch"
+                          />
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono font-medium">{formatCurrency(b.costPrice ?? 0)}</td>
+                        <td className="px-4 py-2.5 text-right font-mono font-medium">{formatCurrency(b.purchasePrice ?? 0)}</td>
+                        <td className="px-4 py-2.5 text-right font-mono font-medium">{formatCurrency(b.salePrice ?? 0)}</td>
+                        <td className="px-4 py-2.5 text-right font-mono font-medium">{formatCurrency(b.mrp ?? 0)}</td>
+                        <td className="px-4 py-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</td>
+                        <td className="px-4 py-2.5 text-center font-mono text-muted-foreground">{salesScheme}</td>
+                        <td className="px-4 py-2.5 text-center font-mono text-muted-foreground">{purchaseScheme}</td>
+                        <td className="px-4 py-2.5 font-mono whitespace-nowrap text-muted-foreground">{b.receivedOn || '—'}</td>
+                        <td className="px-4 py-2.5 font-mono whitespace-nowrap text-muted-foreground">{b.manufacturedOn || '—'}</td>
+                        <td className="px-4 py-2.5 truncate max-w-[200px] font-medium" title={b.supplier}>{b.supplier || '—'}</td>
+                        <td className="px-4 py-2.5 font-mono">
+                          <div className="font-semibold text-foreground">{b.invoiceNumber || '—'}</div>
+                          {b.invoiceDate && <div className="text-[10px] text-muted-foreground mt-0.5">{b.invoiceDate}</div>}
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-muted-foreground">{b.rackNumber || '—'}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBatch(idx)}
+                            title="Remove this batch"
+                            className="text-muted-foreground hover:text-destructive transition p-1.5 rounded-md hover:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
