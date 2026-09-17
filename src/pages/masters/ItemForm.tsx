@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { formatCurrency } from '../../lib/utils'
 
-type FormState = { code: string; name: string; packing: string; unit: string; manufacturer: string; salt: string; hsn: string; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean; recalled:boolean }
-const EMPTY: FormState = { code: '', name: '', packing: '', unit: '', manufacturer: '', salt: '', hsn: '', mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false, recalled:false }
+type FormState = { code: string; name: string; packing: string; unit: string; manufacturer: string; salt: string; hsn: string; stock: number; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean; recalled:boolean }
+const EMPTY: FormState = { code: '', name: '', packing: '', unit: '', manufacturer: '', salt: '', hsn: '', stock: 0, mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false, recalled:false }
 
 export default function ItemForm() {
   const { id } = useParams()
@@ -17,6 +17,16 @@ export default function ItemForm() {
   const [hsnCodes, setHsnCodes] = useState<string[]>([])
   const [batches, setBatches] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+  const [showAddBatch, setShowAddBatch] = useState(false)
+  const [newBatch, setNewBatch] = useState({
+    batch: '',
+    expiry: '',
+    stock: 0,
+    purchasePrice: 0,
+    salePrice: 0,
+    mrp: 0,
+    rackNumber: ''
+  })
   const showToast = useUIStore((s) => s.showToast)
 
   useEffect(() => {
@@ -33,6 +43,11 @@ export default function ItemForm() {
       if (id) {
         const item = items.find((row) => String(row.id) === String(id) || String(row.code) === String(id))
         if (item) {
+          const batchList = Array.isArray(item.batches) ? item.batches : []
+          const initialStock = batchList.length > 0
+            ? batchList.reduce((acc: number, b: any) => acc + (Number(b.stock) || 0), 0)
+            : Number(item.stock || 0)
+
           setForm({
             code: item.code ?? '',
             name: item.name,
@@ -41,6 +56,7 @@ export default function ItemForm() {
             manufacturer: item.manufacturer ?? '',
             salt: item.salt ?? '',
             hsn: item.hsn ?? '',
+            stock: initialStock,
             mrp: Number(item.mrp || 0),
             saleRate: Number(item.saleRate || 0),
             purchaseRate: Number(item.purchaseRate || 0),
@@ -51,7 +67,7 @@ export default function ItemForm() {
             controlledSubstance: Boolean(item.controlledSubstance),
             recalled: Boolean(item.recalled)
           })
-          setBatches(item.batches ?? [])
+          setBatches(batchList)
         }
       } else {
         // Auto-generate item code for new items if blank
@@ -65,11 +81,85 @@ export default function ItemForm() {
 
   const change = (field: keyof FormState, value: string | number | boolean) => setForm((current) => ({ ...current, [field]: value }))
 
+  const handleMainStockChange = (val: number) => {
+    const qty = Math.max(0, val)
+    setForm((prev) => ({ ...prev, stock: qty }))
+    if (batches.length === 1) {
+      setBatches((prev) => [{ ...prev[0], stock: qty }])
+    }
+  }
+
+  const handleBatchStockChange = (idx: number, val: number) => {
+    const qty = Math.max(0, val)
+    const updated = [...batches]
+    updated[idx] = { ...updated[idx], stock: qty }
+    setBatches(updated)
+    const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+    setForm((prev) => ({ ...prev, stock: total }))
+  }
+
+  const handleRemoveBatch = (idx: number) => {
+    const updated = batches.filter((_, i) => i !== idx)
+    setBatches(updated)
+    const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+    setForm((prev) => ({ ...prev, stock: total }))
+  }
+
+  const handleAddBatch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newBatch.batch.trim()) {
+      showToast('Batch number is required.')
+      return
+    }
+    const createdBatch = {
+      id: `b-${Date.now()}`,
+      batch: newBatch.batch.trim().toUpperCase(),
+      expiry: newBatch.expiry || '',
+      stock: Number(newBatch.stock || 0),
+      costPrice: Number(newBatch.purchasePrice || form.purchaseRate || 0),
+      purchasePrice: Number(newBatch.purchasePrice || form.purchaseRate || 0),
+      salePrice: Number(newBatch.salePrice || form.saleRate || 0),
+      mrp: Number(newBatch.mrp || form.mrp || 0),
+      receivedOn: new Date().toISOString().slice(0, 10),
+      rackNumber: newBatch.rackNumber.trim(),
+      supplier: form.manufacturer || 'Direct Master Entry'
+    }
+    const updated = [...batches, createdBatch]
+    setBatches(updated)
+    const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+    setForm((prev) => ({ ...prev, stock: total }))
+    setNewBatch({ batch: '', expiry: '', stock: 0, purchasePrice: 0, salePrice: 0, mrp: 0, rackNumber: '' })
+    setShowAddBatch(false)
+    showToast(`Batch "${createdBatch.batch}" added with ${createdBatch.stock} units stock.`)
+  }
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.name.trim()) {
       showToast('Item name is required.')
       return
+    }
+
+    let finalBatches = [...batches]
+    const totalStock = Number(form.stock || 0)
+
+    if (finalBatches.length === 0 && totalStock > 0) {
+      finalBatches = [
+        {
+          id: `b-${(form.code || id || 'itm').trim()}-opening`,
+          batch: 'DEFAULT',
+          expiry: '2028-12-31',
+          stock: totalStock,
+          costPrice: Number(form.purchaseRate || 0),
+          purchasePrice: Number(form.purchaseRate || 0),
+          salePrice: Number(form.saleRate || 0),
+          mrp: Number(form.mrp || 0),
+          receivedOn: new Date().toISOString().slice(0, 10),
+          supplier: form.manufacturer || 'Direct Master Opening'
+        }
+      ]
+    } else if (finalBatches.length === 1 && (finalBatches[0].stock ?? 0) !== totalStock) {
+      finalBatches[0] = { ...finalBatches[0], stock: totalStock }
     }
 
     const payload = {
@@ -81,9 +171,12 @@ export default function ItemForm() {
       manufacturer: form.manufacturer.trim(),
       salt: form.salt.trim(),
       hsn: form.hsn.trim(),
+      stock: totalStock,
       mrp: Number(form.mrp || 0),
       saleRate: Number(form.saleRate || 0),
       purchaseRate: Number(form.purchaseRate || 0),
+      batches: finalBatches,
+      batchCount: finalBatches.length
     }
 
     setSaving(true)
@@ -225,6 +318,16 @@ export default function ItemForm() {
               onChange={(e) => change('mrp', e.target.value === '' ? 0 : Number(e.target.value))}
             />
           </Field>
+          <Field label="Stock (Units)">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={form.stock || ''}
+              placeholder="0"
+              onChange={(e) => handleMainStockChange(e.target.value === '' ? 0 : Number(e.target.value))}
+            />
+          </Field>
           <Field label="Status">
             <select value={form.status} onChange={(e) => change('status', e.target.value)}>
               <option value="active">Active</option>
@@ -281,16 +384,139 @@ export default function ItemForm() {
 
     {id && (
       <div className="space-y-3 pt-4 border-t border-slate-800">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Registered Batches &amp; Import History</h2>
-          <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
-            {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
-          </span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-semibold text-white">Registered Batches &amp; Import History</h2>
+            <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
+              {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
+            </span>
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+              Total Stock: {form.stock}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNewBatch({
+                batch: '',
+                expiry: '',
+                stock: 0,
+                purchasePrice: form.purchaseRate || 0,
+                salePrice: form.saleRate || 0,
+                mrp: form.mrp || 0,
+                rackNumber: ''
+              })
+              setShowAddBatch(true)
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:text-white transition cursor-pointer"
+          >
+            <Plus size={14} /> Add batch
+          </button>
         </div>
+
+        {/* Add Batch Inline Card */}
+        {showAddBatch && (
+          <div className="rounded-xl border border-slate-700 bg-slate-900/90 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Register New Batch</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddBatch(false)}
+                className="text-slate-400 hover:text-white p-1 rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Batch No *</label>
+                <input
+                  required
+                  placeholder="e.g. B-2026"
+                  value={newBatch.batch}
+                  onChange={(e) => setNewBatch({ ...newBatch, batch: e.target.value })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white uppercase font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Expiry</label>
+                <input
+                  type="date"
+                  value={newBatch.expiry}
+                  onChange={(e) => setNewBatch({ ...newBatch, expiry: e.target.value })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Stock Qty *</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={newBatch.stock || ''}
+                  onChange={(e) => setNewBatch({ ...newBatch, stock: Number(e.target.value || 0) })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Purchase Rate (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newBatch.purchasePrice || ''}
+                  placeholder="0.00"
+                  onChange={(e) => setNewBatch({ ...newBatch, purchasePrice: Number(e.target.value || 0) })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">MRP (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newBatch.mrp || ''}
+                  placeholder="0.00"
+                  onChange={(e) => setNewBatch({ ...newBatch, mrp: Number(e.target.value || 0) })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase mb-1">Rack No</label>
+                <input
+                  placeholder="e.g. R-12"
+                  value={newBatch.rackNumber}
+                  onChange={(e) => setNewBatch({ ...newBatch, rackNumber: e.target.value })}
+                  className="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowAddBatch(false)}
+                className="rounded px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddBatch}
+                className="rounded bg-blue-600 hover:bg-blue-500 px-3 py-1 text-xs font-semibold text-white cursor-pointer"
+              >
+                Confirm Add Batch
+              </button>
+            </div>
+          </div>
+        )}
         
         {batches.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-400">
-            No batches registered for this item yet.
+          <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-400 space-y-2">
+            <p className="font-medium text-slate-300">No batches registered for this item yet.</p>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              You can edit the stock in the <strong className="text-white">Stock (Units)</strong> field above (a default batch will be automatically registered on save), or click <strong className="text-white">&quot;Add batch&quot;</strong> to enter a custom batch number and expiry.
+            </p>
           </div>
         ) : (
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto">
@@ -312,33 +538,53 @@ export default function ItemForm() {
                   <th className="px-4 py-3 font-medium">Supplier</th>
                   <th className="px-4 py-3 font-medium">Invoice No / Date</th>
                   <th className="px-4 py-3 font-medium">Rack No</th>
+                  <th className="px-3 py-3 font-medium text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-slate-300">
                 {batches.map((b, idx) => {
                   const salesScheme = `${b.salesSchemeDeal ?? 0}+${b.salesSchemeFree ?? 0}`;
                   const purchaseScheme = `${b.purchaseSchemeDeal ?? 0}+${b.purchaseSchemeFree ?? 0}`;
-                  const val = b.reportedValue ?? ((b.stock ?? 0) * (b.costPrice ?? 0));
+                  const val = b.reportedValue ?? ((Number(b.stock) || 0) * (b.costPrice ?? 0));
                   return (
                     <tr key={b.id || idx} className="hover:bg-slate-900/30">
-                      <td className="px-4 py-3 font-mono font-medium text-amber-400">{b.batch || 'UNSPECIFIED'}</td>
-                      <td className="px-4 py-3 font-mono whitespace-nowrap">{b.expiry || '—'}</td>
-                      <td className="px-4 py-3 text-right font-mono">{b.stock ?? 0}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatCurrency(b.costPrice ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatCurrency(b.purchasePrice ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatCurrency(b.salePrice ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatCurrency(b.mrp ?? 0)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(val)}</td>
-                      <td className="px-4 py-3 text-center font-mono">{salesScheme}</td>
-                      <td className="px-4 py-3 text-center font-mono">{purchaseScheme}</td>
-                      <td className="px-4 py-3 font-mono whitespace-nowrap">{b.receivedOn || '—'}</td>
-                      <td className="px-4 py-3 font-mono whitespace-nowrap">{b.manufacturedOn || '—'}</td>
-                      <td className="px-4 py-3 truncate max-w-[200px]" title={b.supplier}>{b.supplier || '—'}</td>
-                      <td className="px-4 py-3 font-mono">
+                      <td className="px-4 py-2 font-mono font-medium text-amber-400">{b.batch || 'UNSPECIFIED'}</td>
+                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.expiry || '—'}</td>
+                      <td className="px-4 py-2 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          value={b.stock ?? 0}
+                          onChange={(e) => handleBatchStockChange(idx, Number(e.target.value))}
+                          className="w-24 text-right rounded border border-slate-700 bg-slate-800/90 px-2 py-1 font-mono text-xs text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          title="Edit stock for this batch"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.costPrice ?? 0)}</td>
+                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.purchasePrice ?? 0)}</td>
+                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.salePrice ?? 0)}</td>
+                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(b.mrp ?? 0)}</td>
+                      <td className="px-4 py-2 text-right font-mono text-emerald-400">{formatCurrency(val)}</td>
+                      <td className="px-4 py-2 text-center font-mono">{salesScheme}</td>
+                      <td className="px-4 py-2 text-center font-mono">{purchaseScheme}</td>
+                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.receivedOn || '—'}</td>
+                      <td className="px-4 py-2 font-mono whitespace-nowrap">{b.manufacturedOn || '—'}</td>
+                      <td className="px-4 py-2 truncate max-w-[200px]" title={b.supplier}>{b.supplier || '—'}</td>
+                      <td className="px-4 py-2 font-mono">
                         <div>{b.invoiceNumber || '—'}</div>
                         {b.invoiceDate && <div className="text-[10px] text-slate-400 mt-0.5">{b.invoiceDate}</div>}
                       </td>
-                      <td className="px-4 py-3 font-mono">{b.rackNumber || '—'}</td>
+                      <td className="px-4 py-2 font-mono">{b.rackNumber || '—'}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBatch(idx)}
+                          title="Remove this batch"
+                          className="text-slate-500 hover:text-red-400 transition p-1 rounded hover:bg-slate-800"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}

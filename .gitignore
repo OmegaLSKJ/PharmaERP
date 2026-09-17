@@ -29,4 +29,6 @@ public/textures/
 scratch/
 *mock-stock-delta.json
 *mock-transactions.json
+*custom-items.json
+*custom-parties.json
 

@@ -169,6 +169,34 @@ try {
   // Silent catch
 }
 
+// Load dynamically added/modified custom items from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-items.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-items.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const customMap = new Map(custom.map((c: any) => [String(c.id || c.code), c]))
+      mockStore.items = (mockStore.items || []).map((item: any) => {
+        const found = customMap.get(String(item.id)) || customMap.get(String(item.code))
+        if (found) {
+          customMap.delete(String(item.id))
+          customMap.delete(String(item.code))
+          return { ...item, ...found }
+        }
+        return item
+      })
+      if (customMap.size > 0) {
+        mockStore.items = [...customMap.values(), ...mockStore.items]
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
 // Load persisted transaction data (ledgers, vouchers, sales, purchases, challans)
 try {
   const rootTx = path.resolve(process.cwd(), 'apps/web/lib/mock-transactions.json')
@@ -245,6 +273,26 @@ function persistCustomParty(party: any) {
     }
   } catch (err) {
     console.warn('Failed to persist custom party to disk:', err)
+  }
+}
+
+function persistCustomItem(item: any) {
+  try {
+    const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-items.json')
+    const localCustom = path.resolve(process.cwd(), 'lib/custom-items.json')
+    const targets = [rootCustom, localCustom]
+    for (const target of targets) {
+      let list: any[] = []
+      if (fs.existsSync(/* turbopackIgnore: true */ target)) {
+        try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
+      }
+      list = [item, ...list.filter((i: any) => i.id !== item.id && (item.code ? i.code !== item.code : true))]
+      const dir = path.dirname(target)
+      if (!fs.existsSync(/* turbopackIgnore: true */ dir)) fs.mkdirSync(/* turbopackIgnore: true */ dir, { recursive: true })
+      fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(list, null, 2), 'utf8')
+    }
+  } catch (err) {
+    console.warn('Failed to persist custom item to disk:', err)
   }
 }
 
@@ -1237,13 +1285,14 @@ export async function create(resource: string, body: any, actor: MutationActor =
         coldChain: Boolean(body.coldChain),
         controlledSubstance: Boolean(body.controlledSubstance),
         recalled: Boolean(body.recalled),
-        stock: 0,
-        batches: [],
-        batchCount: 0,
+        stock: Number(body.stock ?? (Array.isArray(body.batches) ? body.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0) : 0)),
+        batches: Array.isArray(body.batches) ? body.batches : [],
+        batchCount: Array.isArray(body.batches) ? body.batches.length : 0,
         category: body.category || 'Medicine',
         status: body.status || 'active'
       }
       mockStore.items.unshift(item)
+      persistCustomItem(item)
       return item
     }
     if (resource === 'item-batches') {
@@ -2005,6 +2054,17 @@ export async function update(resource: string, id: string, body: any, actor: Mut
         list[idx] = { ...list[idx], ...body }
         if (resource === 'parties') {
           persistCustomParty(list[idx])
+        }
+        if (resource === 'items') {
+          if ('stock' in body) list[idx].stock = Number(body.stock)
+          if (Array.isArray(body.batches)) {
+            list[idx].batches = body.batches
+            list[idx].batchCount = body.batches.length
+            if (!('stock' in body)) {
+              list[idx].stock = body.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
+            }
+          }
+          persistCustomItem(list[idx])
         }
         return list[idx]
       }
