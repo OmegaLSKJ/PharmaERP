@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Save, Building2, Users, Calendar, Plus, Trash2, UserPlus, Landmark } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
+import { getErp, postErp } from '../../lib/erpApi'
 
 type ManagedUser = { id:string;email:string;name:string;role:'admin'|'manager'|'operator';status:'active'|'invited'|'disabled';createdAt:string;lastSignInAt:string|null }
 
@@ -10,6 +11,7 @@ export default function SettingsPage() {
   const setCompanyProfile = useUIStore((state) => state.setCompanyProfile)
   const [form, setForm] = useState(company)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const currentUser = useAuthStore((state) => state.user)
   const showToast = useUIStore((state) => state.showToast)
 
@@ -17,6 +19,19 @@ export default function SettingsPage() {
   useEffect(() => {
     setForm(company)
   }, [company])
+
+  useEffect(() => {
+    getErp<Record<string, string>>('organization-profile')
+      .then((profile) => {
+        if (!profile || Object.keys(profile).length === 0) return
+        const next = { ...company, ...profile }
+        setCompanyProfile(next)
+        setForm(next)
+      })
+      .catch((error) => showToast(error instanceof Error ? error.message : 'Unable to load saved company settings.'))
+  // This is an initial hydration; subsequent edits are saved explicitly.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleFieldChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -35,11 +50,20 @@ export default function SettingsPage() {
   const patchUser=async(id:string,body:object)=>{setUserBusy(id);try{const updated=await readResponse(await fetch('/api/admin/users',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,...body})}));setUsers((rows)=>rows.map((user)=>user.id===id?updated:user));showToast('User permissions updated.')}catch(error){showToast(error instanceof Error?error.message:'Unable to update user.')}finally{setUserBusy(null)}}
   const removeUser=async(user:ManagedUser)=>{if(!window.confirm(`Remove ${user.email} from the ERP? This cannot be undone.`))return;setUserBusy(user.id);try{await readResponse(await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`,{method:'DELETE',credentials:'include'}));setUsers((rows)=>rows.filter((row)=>row.id!==user.id));showToast(`${user.email} was removed.`)}catch(error){showToast(error instanceof Error?error.message:'Unable to remove user.')}finally{setUserBusy(null)}}
 
-  const handleSave = () => {
-    setCompanyProfile(form)
-    setSaved(true)
-    showToast('Company profile & preferences updated.')
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const savedProfile = await postErp<typeof form>('organization-profile', form)
+      setCompanyProfile(savedProfile)
+      setForm(savedProfile)
+      setSaved(true)
+      showToast('Company profile & preferences saved to the ERP database.')
+      setTimeout(() => setSaved(false), 2000)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to save company settings.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -49,8 +73,8 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
           <p className="text-sm text-slate-400 mt-1">Company profile, statutory licences, financial year, and users</p>
         </div>
-        <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition">
-          <Save size={16} /> {saved ? 'Saved!' : 'Save Changes'}
+        <button disabled={saving} onClick={() => void handleSave()} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition disabled:cursor-not-allowed disabled:opacity-60">
+          <Save size={16} /> {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
         </button>
       </div>
 

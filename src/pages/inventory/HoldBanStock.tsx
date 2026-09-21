@@ -17,7 +17,7 @@ import {
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
-import { getErp, patchErp } from '../../lib/erpApi'
+import { getErp, patchErp, postErp } from '../../lib/erpApi'
 
 export interface RestrictedItem {
   id: string
@@ -35,14 +35,13 @@ export interface RestrictedItem {
   dateAdded: string
 }
 
-const STORAGE_KEY = 'pharma_erp_hold_ban_stock'
-
 export default function HoldBanStock() {
   const [itemsList, setItemsList] = useState<any[]>([])
   const [restricted, setRestricted] = useState<RestrictedItem[]>([])
   const [tab, setTab] = useState<'all' | 'hold' | 'ban'>('all')
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [savingRestriction, setSavingRestriction] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
   // Modal form state
@@ -59,60 +58,18 @@ export default function HoldBanStock() {
 
   // Load items from ERP and stored restrictions
   useEffect(() => {
-    getErp<any[]>('items')
-      .then((data) => {
+    Promise.all([getErp<any[]>('items'), getErp<any[]>('inventory-restrictions')])
+      .then(([data, restrictionRows]) => {
         const prods = data || []
         setItemsList(prods)
-
-        // Load saved restrictions from localStorage
-        const saved = localStorage.getItem(STORAGE_KEY)
-        let localData: RestrictedItem[] = []
-        if (saved) {
-          try {
-            localData = JSON.parse(saved)
-          } catch {}
-        }
-
-        // Also check if any items in ERP have status === 'banned'
-        const fromDb: RestrictedItem[] = []
-        prods.forEach((p) => {
-          if (p.status === 'banned') {
-            fromDb.push({
-              id: `banned-${p.id}`,
-              itemId: p.id,
-              name: p.name,
-              packing: p.packing || '10T',
-              batch: p.batches?.[0]?.batch || 'ALL-BATCHES',
-              expiry: p.batches?.[0]?.expiry || '12/28',
-              qty: Number(p.stock || 50),
-              mrp: Number(p.mrp || 120),
-              purchaseRate: Number(p.purchaseRate || 90),
-              reason: 'Government / Regulatory Banned Formulation',
-              refNo: 'GAZETTE-NOTIFICATION',
-              type: 'ban',
-              dateAdded: new Date().toISOString().slice(0, 10)
-            })
-          }
-        })
-
-        // Combine unique
-        const combined = [...localData]
-        fromDb.forEach((dbItem) => {
-          if (!combined.some((c) => c.itemId === dbItem.itemId && c.type === 'ban')) {
-            combined.push(dbItem)
-          }
-        })
-
-        setRestricted(combined)
+        setRestricted((restrictionRows || []).filter((row: any) => row.status === 'active').map((row: any) => ({
+          id: row.id, itemId: row.item_id ?? undefined, name: row.item_name, packing: row.packing ?? '', batch: row.batch_number,
+          expiry: row.expiry_on ?? '', qty: Number(row.quantity), mrp: Number(row.mrp), purchaseRate: Number(row.purchase_rate),
+          reason: row.reason, refNo: row.reference_number ?? undefined, type: row.restriction_type, dateAdded: String(row.created_at).slice(0, 10),
+        })))
       })
       .catch((e) => addToast(e.message, 'error'))
   }, [addToast])
-
-  // Sync to localStorage
-  const saveRestricted = (updated: RestrictedItem[]) => {
-    setRestricted(updated)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-  }
 
   // Filter items
   const filtered = useMemo(() => {
@@ -146,59 +103,38 @@ export default function HoldBanStock() {
     const finalName = matched ? matched.name : customName.trim()
     const finalPacking = matched ? matched.packing : '10T'
 
-    const newItem: RestrictedItem = {
-      id: `res-${Date.now()}`,
-      itemId: selectedItemId || undefined,
-      name: finalName,
-      packing: finalPacking,
-      batch: batch || 'BATCH-01',
-      expiry: expiry || '12/28',
-      qty: Number(qty) || 1,
-      mrp: Number(mrp) || 100,
-      purchaseRate: Number(purchaseRate) || 80,
-      reason: reason.trim() || 'QC Hold',
-      refNo: refNo.trim() || undefined,
-      type,
-      dateAdded: new Date().toISOString().slice(0, 10)
+    setSavingRestriction(true)
+    try {
+      const saved = await postErp<any>('inventory-restrictions', {
+        item_id: selectedItemId || null, item_name: finalName, packing: finalPacking, batch_number: batch || 'BATCH-01', expiry_on: expiry || null,
+        quantity: Number(qty) || 1, mrp: Number(mrp) || 0, purchase_rate: Number(purchaseRate) || 0, reason: reason.trim() || 'QC Hold',
+        reference_number: refNo.trim() || null, restriction_type: type, status: 'active',
+      })
+      if (type === 'ban' && selectedItemId) await patchErp('items', selectedItemId, { status: 'banned' })
+      setRestricted((current) => [{ id: saved.id, itemId: saved.item_id ?? undefined, name: saved.item_name, packing: saved.packing ?? '', batch: saved.batch_number, expiry: saved.expiry_on ?? '', qty: Number(saved.quantity), mrp: Number(saved.mrp), purchaseRate: Number(saved.purchase_rate), reason: saved.reason, refNo: saved.reference_number ?? undefined, type: saved.restriction_type, dateAdded: String(saved.created_at).slice(0, 10) }, ...current])
+      addToast(`Stock for ${finalName} placed on ${type === 'hold' ? 'Hold' : 'Banned Status'} successfully`, 'success')
+      setShowModal(false)
+      setSelectedItemId(''); setCustomName(''); setBatch(''); setExpiry(''); setQty(10); setRefNo('')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to save inventory restriction.', 'error')
+    } finally {
+      setSavingRestriction(false)
     }
-
-    const updated = [newItem, ...restricted]
-    saveRestricted(updated)
-
-    // If banned, update item status in ERP
-    if (type === 'ban' && selectedItemId) {
-      try {
-        await patchErp('items', selectedItemId, { status: 'banned' })
-      } catch {}
-    }
-
-    addToast(
-      `Stock for ${finalName} placed on ${type === 'hold' ? 'Hold' : 'Banned Status'} successfully`,
-      'success'
-    )
-    setShowModal(false)
-
-    // Reset form
-    setSelectedItemId('')
-    setCustomName('')
-    setBatch('')
-    setExpiry('')
-    setQty(10)
-    setRefNo('')
   }
 
   // Handle release stock back to active inventory
   const handleReleaseStock = async (item: RestrictedItem) => {
-    const updated = restricted.filter((r) => r.id !== item.id)
-    saveRestricted(updated)
-
-    if (item.type === 'ban' && item.itemId) {
-      try {
-        await patchErp('items', item.itemId, { status: 'active' })
-      } catch {}
+    setSavingRestriction(true)
+    try {
+      if (item.type === 'ban' && item.itemId) await patchErp('items', item.itemId, { status: 'active' })
+      await patchErp('inventory-restrictions', item.id, { status: 'released', released_at: new Date().toISOString() })
+      setRestricted((current) => current.filter((r) => r.id !== item.id))
+      addToast(`Released ${item.name} (${item.batch}) back to active saleable inventory`, 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to release inventory restriction.', 'error')
+    } finally {
+      setSavingRestriction(false)
     }
-
-    addToast(`Released ${item.name} (${item.batch}) back to active saleable inventory`, 'success')
   }
 
   return (
@@ -423,8 +359,9 @@ export default function HoldBanStock() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => handleReleaseStock(r)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition cursor-pointer"
+                      disabled={savingRestriction}
+                      onClick={() => void handleReleaseStock(r)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                       title="Release this batch back to active billing inventory"
                     >
                       <CheckCircle size={13} /> Release
@@ -672,10 +609,11 @@ export default function HoldBanStock() {
               </button>
               <button
                 type="button"
-                onClick={handleSaveRestriction}
-                className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md transition cursor-pointer"
+                disabled={savingRestriction}
+                onClick={() => void handleSaveRestriction()}
+                className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-md transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Lock Stock from Billing
+                {savingRestriction ? 'Saving…' : 'Lock Stock from Billing'}
               </button>
             </div>
           </div>

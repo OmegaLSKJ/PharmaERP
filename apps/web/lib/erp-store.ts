@@ -15,6 +15,8 @@ const managedCrud: Record<string, CrudConfig> = {
   reservations: { table: 'stock_reservations', organizationScoped: true, fields: ['item_batch_id','warehouse_id','source_type','source_id','quantity','status','expires_at','released_at'] },
   'inventory-adjustment-records': { table: 'inventory_adjustments', organizationScoped: true, fields: ['adjustment_number','adjustment_date','reason','status','posted_at'] },
   'inventory-adjustment-lines': { table: 'inventory_adjustment_lines', fields: ['adjustment_id','item_batch_id','warehouse_id','quantity_delta','reason'] },
+  'inventory-restrictions': { table: 'inventory_restrictions', organizationScoped: true, fields: ['item_id','item_name','packing','batch_number','expiry_on','quantity','mrp','purchase_rate','reason','reference_number','restriction_type','status','released_at'] },
+  'inventory-reconciliation-marks': { table: 'inventory_reconciliation_marks', organizationScoped: true, fields: ['source_key','item_id','batch_number','adjustment_id','reconciled_at'] },
 }
 const mutableValues = (body: any, fields: string[]) => Object.fromEntries(fields.filter((field) => Object.prototype.hasOwnProperty.call(body, field)).map((field) => [field, body[field] === '' ? null : body[field]]))
 const date = () => new Date().toISOString().slice(0, 10)
@@ -504,6 +506,15 @@ function db() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
+function useMockStore(): boolean {
+  if (hasValidDb()) return false
+  // Never pretend a production write succeeded when its database is unavailable.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Supabase server credentials are not configured or invalid.')
+  }
+  return true
+}
+
 async function context() {
   const client = db()
   const { data: found, error } = await client.from('organizations').select('id').eq('name', organizationName).maybeSingle()
@@ -823,12 +834,20 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
 }
 
 export async function list(resource: string, partyName?: string, options?: { manufacturer?: string; manufacturerId?: string }) {
-  if (!hasValidDb()) {
+  if (useMockStore()) {
     return listMock(resource, partyName, options)
   }
 
   try {
     const { client, organizationId } = await context()
+  if (resource === 'organization-profile') {
+    const { data, error } = await client.from('organization_profiles').select('profile').eq('organization_id', organizationId).maybeSingle()
+    if (error) throw error
+    return data?.profile ?? {}
+  }
+  if (resource === 'pricing-schemes') {
+    return await fetchAll<any>((from, to) => client.from('item_pricing_schemes').select('*').eq('organization_id', organizationId).eq('is_active', true).order('updated_at', { ascending: false }).range(from, to))
+  }
   if (resource === 'dashboard') {
     const [{ data: sales, error: salesError }, { data: purchases, error: purchaseError }, { count: activeItemsCount, error: itemError }, { data: stock, error: stockError }] = await Promise.all([
       client.from('sales_invoices').select('id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name))').eq('organization_id', organizationId).neq('status', 'cancelled').order('invoice_date', { ascending: false }),
@@ -926,25 +945,12 @@ export async function list(resource: string, partyName?: string, options?: { man
       const mfgClean = options.manufacturer.trim().toLowerCase()
       dbItems = dbItems.filter((i: any) => (i.manufacturer && i.manufacturer.trim().toLowerCase() === mfgClean) || (i.company && i.company.trim().toLowerCase() === mfgClean))
     }
-    if (dbItems.length >= (mockStore.items?.length || 0) && (!options?.manufacturerId && !options?.manufacturer)) return dbItems
-    let itemsToReturn = mockStore.items && mockStore.items.length > 0 ? mockStore.items : dbItems
-    if (options?.manufacturerId || options?.manufacturer) {
-      const mfgId = options.manufacturerId
-      const mfgName = options.manufacturer?.trim().toLowerCase()
-      itemsToReturn = itemsToReturn.filter((i: any) =>
-        (mfgId && (i.manufacturer_id === mfgId || i.companyId === mfgId)) ||
-        (mfgName && (
-          (i.manufacturer && i.manufacturer.trim().toLowerCase() === mfgName) ||
-          (i.company && i.company.trim().toLowerCase() === mfgName)
-        ))
-      )
-    }
-    return itemsToReturn
+    return dbItems
   }
   if (resource === 'item-batches') {
     const data = await fetchAll<any>((from, to) => client.from('item_batches').select('id,item_id,batch_number,expiry_on,mrp,received_on,manufactured_on,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,items!inner(code,name,organization_id),parties(legal_name),stock_movements(quantity)').eq('items.organization_id', organizationId).order('expiry_on').range(from, to))
     const rows = (data ?? []).map((b: any) => ({ id:b.id,itemId:b.item_id,itemCode:b.items?.code ?? '',itemName:b.items?.name ?? '',batchNumber:b.batch_number,expiryOn:b.expiry_on ?? '',receivedOn:b.received_on ?? '',manufacturedOn:b.manufactured_on ?? '',mrp:Number(b.mrp ?? 0),costPrice:Number(b.cost_price ?? 0),purchasePrice:Number(b.purchase_price ?? 0),salePrice:Number(b.sale_price ?? 0),salesSchemeDeal:Number(b.sales_scheme_deal ?? 0),salesSchemeFree:Number(b.sales_scheme_free ?? 0),purchaseSchemeDeal:Number(b.purchase_scheme_deal ?? 0),purchaseSchemeFree:Number(b.purchase_scheme_free ?? 0),supplier:b.parties?.legal_name ?? '',supplierInvoiceNumber:b.supplier_invoice_number ?? '',supplierInvoiceDate:b.supplier_invoice_date ?? '',rackNumber:b.rack_number ?? '',sourceReportValue:Number(b.source_report_value ?? 0),stock:(b.stock_movements ?? []).reduce((n:number,m:any)=>n+Number(m.quantity),0) }))
-    return rows.length > 0 ? rows : (mockStore['item-batches'] ?? [])
+    return rows
   }
   if (resource === 'hsn') { return await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to)) }
   if (resource === 'manufacturers') {
@@ -957,8 +963,7 @@ export async function list(resource: string, partyName?: string, options?: { man
       itemcount: Number(m.items?.[0]?.count ?? 0),
       items: undefined
     }))
-    if (dbMfgs.length >= (mockStore.manufacturers?.length || 0)) return dbMfgs
-    return mockStore.manufacturers && mockStore.manufacturers.length > 0 ? mockStore.manufacturers : dbMfgs
+    return dbMfgs
   }
   if (resource === 'salts') { const data = await fetchAll<any>((from, to) => client.from('salts').select('id,code,name,composition,category,items(count)').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((s: any) => ({ ...s, itemcount: Number(s.items?.[0]?.count ?? 0), items: undefined })) }
   if (resource === 'warehouses') { const data = await fetchAll<any>((from, to) => client.from('warehouses').select('*').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((w: any) => ({ id: w.id, code: w.code, name: w.name, type: w.warehouse_type, address: w.address ?? '', capacity: Number(w.capacity), used: 0, status: w.is_active ? 'active' : 'inactive' })) }
@@ -1022,18 +1027,15 @@ export async function list(resource: string, partyName?: string, options?: { man
       status: row.status,
     }))
     const dbRows = [...importedRows, ...manualRows]
-    if (dbRows.length >= (mockStore['item-mappings']?.length || 0)) return dbRows
-    return mockStore['item-mappings'] && mockStore['item-mappings'].length > 0 ? mockStore['item-mappings'] : dbRows
+    return dbRows
   }
   if (resource === 'account-groups') {
     const data = await fetchAll<any>((from, to) => client.from('account_groups').select('*').eq('organization_id', organizationId).order('name').range(from, to))
-    if (data && data.length > 0) return data
-    return mockStore['account-groups'] || []
+    return data ?? []
   }
   if (resource === 'accounts') {
     const data = await fetchAll<any>((from, to) => client.from('chart_of_accounts').select('id,code,name,account_type,account_group,opening_balance,is_active,voucher_lines(debit,credit)').eq('organization_id', organizationId).order('name').range(from, to))
-    return (data && data.length > 0)
-      ? (data ?? []).map((a: any) => {
+    return (data ?? []).map((a: any) => {
           const opBal = Number(a.opening_balance || 0)
           const balance = opBal + (a.voucher_lines ?? []).reduce((sum: number, line: any) => sum + Number(line.debit) - Number(line.credit), 0)
           return {
@@ -1048,7 +1050,6 @@ export async function list(resource: string, partyName?: string, options?: { man
             active: a.is_active
           }
         })
-      : (mockStore.accounts || [])
   }
   if (resource === 'series') { const data = await fetchAll<any>((from, to) => client.from('document_series').select('*').eq('organization_id', organizationId).order('document_type').range(from, to)); return (data ?? []).map((s: any) => ({ id: s.id, doc: s.document_type, prefix: s.prefix, suffix: s.suffix, nextNo: Number(s.next_number), padding: s.padding, fyReset: s.financial_year_reset, active: s.is_active })) }
   if (resource === 'communication-blocks') { const data = await fetchAll<any>((from, to) => client.from('communication_blocks').select('*').eq('organization_id', organizationId).order('blocked_on', { ascending: false }).range(from, to)); return (data ?? []).map((b: any) => ({ id: b.id, type: b.channel, value: b.destination, reason: b.reason ?? '', blockedOn: b.blocked_on })) }
@@ -1205,6 +1206,7 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (managedCrud[resource]) { const config=managedCrud[resource]; let query=client.from(config.table).select('*'); if(config.organizationScoped) query=query.eq('organization_id',organizationId); return await fetchAll<any>((from,to)=>query.range(from,to)) }
   throw new Error('Unknown ERP resource.')
   } catch (error) {
+    if (process.env.NODE_ENV === 'production') throw error
     console.warn(`Database query for resource ${resource} failed, falling back to mock:`, error)
     return listMock(resource, partyName)
   }
@@ -1291,7 +1293,7 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
 
 export async function create(resource: string, body: any, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
-  if (!hasValidDb()) {
+  if (useMockStore()) {
     const id = `MOCK-${Date.now()}`
     const record = { ...body, id, code: body.code || `C-${Date.now()}`, status: 'active', balance: 0, created_at: date() }
 
@@ -1727,6 +1729,30 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
 
   const { client, organizationId, financialYearId } = await context()
+  if (resource === 'organization-profile') {
+    const { data, error } = await client.from('organization_profiles').upsert(
+      { organization_id: organizationId, profile: body, updated_at: new Date().toISOString() },
+      { onConflict: 'organization_id' }
+    ).select('profile').single()
+    if (error) throw error
+    return data.profile
+  }
+  if (resource === 'pricing-schemes') {
+    if (!body.item_id) throw new Error('A pricing scheme must be assigned to an item.')
+    const values = {
+      organization_id: organizationId,
+      item_id: body.item_id,
+      scheme_type: body.scheme_type ?? 'none',
+      deal_quantity: Number(body.deal_quantity ?? 0),
+      free_quantity: Number(body.free_quantity ?? 0),
+      discount_percent: Number(body.discount_percent ?? 0),
+      is_active: body.is_active !== false,
+      updated_at: new Date().toISOString(),
+    }
+    const { data, error } = await client.from('item_pricing_schemes').upsert(values, { onConflict: 'organization_id,item_id' }).select('*').single()
+    if (error) throw error
+    return data
+  }
   if (resource === 'purge-zero-transactions') {
     const { count, error } = await client
       .from('voucher_lines')
@@ -2334,7 +2360,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
 
 export async function update(resource: string, id: string, body: any, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
-  if (!hasValidDb()) {
+  if (useMockStore()) {
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',
@@ -2598,7 +2624,7 @@ export async function update(resource: string, id: string, body: any, actor: Mut
 
 export async function remove(resource: string, id: string, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
-  if (!hasValidDb()) {
+  if (useMockStore()) {
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',

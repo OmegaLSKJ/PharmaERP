@@ -19,7 +19,7 @@ import {
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
-import { getErp, patchErp } from '../../lib/erpApi'
+import { getErp, postErp } from '../../lib/erpApi'
 
 export interface PricingItem {
   id: string
@@ -41,8 +41,6 @@ export interface PricingItem {
   schemeType: 'free_goods' | 'discount' | 'none'
 }
 
-const STORAGE_SCHEMES_KEY = 'pharma_erp_custom_schemes'
-
 export default function PricingSchemes() {
   const [items, setItems] = useState<PricingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,6 +49,7 @@ export default function PricingSchemes() {
   const [marginFilter, setMarginFilter] = useState<'all' | 'high' | 'mid' | 'low'>('all')
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<PricingItem | null>(null)
+  const [savingScheme, setSavingScheme] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
   // Scheme modal state
@@ -63,14 +62,10 @@ export default function PricingSchemes() {
   // Load database items
   const loadData = () => {
     setLoading(true)
-    getErp<any[]>('items')
-      .then((rawItems) => {
+    Promise.all([getErp<any[]>('items'), getErp<any[]>('pricing-schemes')])
+      .then(([rawItems, schemeRows]) => {
         const prods = rawItems || []
-
-        // Load custom configured schemes from localStorage
-        const savedSchemes: Record<string, { scheme: string; dealQty?: number; freeQty?: number; disc?: number; schemeType: 'free_goods' | 'discount' | 'none' }> = JSON.parse(
-          localStorage.getItem(STORAGE_SCHEMES_KEY) || '{}'
-        )
+        const schemesByItem = new Map((schemeRows || []).map((row: any) => [row.item_id, row]))
 
         const formatted: PricingItem[] = prods.map((item: any) => {
           const mrp = Number(item.mrp || 100)
@@ -97,14 +92,13 @@ export default function PricingSchemes() {
             sType = 'free_goods'
           }
 
-          // Check if custom saved scheme exists for this item
-          if (savedSchemes[item.id]) {
-            const cs = savedSchemes[item.id]
-            schemeStr = cs.scheme
-            deal = cs.dealQty || deal
-            free = cs.freeQty || free
-            disc = cs.disc || 0
-            sType = cs.schemeType
+          const persistedScheme = schemesByItem.get(item.id)
+          if (persistedScheme) {
+            sType = persistedScheme.scheme_type
+            deal = Number(persistedScheme.deal_quantity || 0)
+            free = Number(persistedScheme.free_quantity || 0)
+            disc = Number(persistedScheme.discount_percent || 0)
+            schemeStr = sType === 'free_goods' ? `${deal} + ${free} FREE` : sType === 'discount' ? `${disc}% Trade Discount` : '-'
           }
 
           return {
@@ -189,7 +183,7 @@ export default function PricingSchemes() {
   }
 
   // Save scheme
-  const handleSaveScheme = () => {
+  const handleSaveScheme = async () => {
     const targetId = editingItem ? editingItem.id : selectedItemId
     const targetItem = items.find((i) => i.id === targetId)
     if (!targetItem) {
@@ -202,41 +196,23 @@ export default function PricingSchemes() {
         ? `${modalDealQty} + ${modalFreeQty} FREE`
         : `${modalDisc}% Trade Discount`
 
-    // Update in localStorage
-    const savedSchemes = JSON.parse(localStorage.getItem(STORAGE_SCHEMES_KEY) || '{}')
-    savedSchemes[targetId] = {
-      scheme: schemeStr,
-      dealQty: modalDealQty,
-      freeQty: modalFreeQty,
-      disc: modalDisc,
-      schemeType: modalSchemeType
+    setSavingScheme(true)
+    try {
+      await postErp('pricing-schemes', {
+        item_id: targetId,
+        scheme_type: modalSchemeType,
+        deal_quantity: modalSchemeType === 'free_goods' ? modalDealQty : 0,
+        free_quantity: modalSchemeType === 'free_goods' ? modalFreeQty : 0,
+        discount_percent: modalSchemeType === 'discount' ? modalDisc : 0,
+      })
+      setItems((prev) => prev.map((i) => i.id === targetId ? { ...i, scheme: schemeStr, dealQty: modalDealQty, freeQty: modalFreeQty, disc: modalDisc, schemeType: modalSchemeType } : i))
+      addToast(`Scheme deal applied to ${targetItem.name}: ${schemeStr}`, 'success')
+      setShowModal(false)
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to save pricing scheme.', 'error')
+    } finally {
+      setSavingScheme(false)
     }
-    localStorage.setItem(STORAGE_SCHEMES_KEY, JSON.stringify(savedSchemes))
-
-    // Persist to ERP backend database
-    patchErp('items', targetId, {
-      salesSchemeDeal: modalDealQty,
-      salesSchemeFree: modalFreeQty
-    }).catch(() => {})
-
-    // Update local state
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === targetId
-          ? {
-              ...i,
-              scheme: schemeStr,
-              dealQty: modalDealQty,
-              freeQty: modalFreeQty,
-              disc: modalDisc,
-              schemeType: modalSchemeType
-            }
-          : i
-      )
-    )
-
-    addToast(`Scheme deal applied to ${targetItem.name}: ${schemeStr}`, 'success')
-    setShowModal(false)
   }
 
   return (
@@ -686,10 +662,11 @@ export default function PricingSchemes() {
               </button>
               <button
                 type="button"
-                onClick={handleSaveScheme}
-                className="px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                disabled={savingScheme}
+                onClick={() => void handleSaveScheme()}
+                className="px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <CheckCircle size={14} /> Apply Scheme to Catalog
+                <CheckCircle size={14} /> {savingScheme ? 'Saving…' : 'Apply Scheme to Catalog'}
               </button>
             </div>
           </div>

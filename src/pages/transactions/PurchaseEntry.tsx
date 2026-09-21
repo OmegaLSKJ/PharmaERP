@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp, postErp } from '../../lib/erpApi'
+import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
@@ -424,7 +424,8 @@ export default function PurchaseEntry() {
         })),
       }
       if (isEditMode) {
-        await postErp('purchases', payload).catch(() => {})
+        if (!editPurchaseId) throw new Error('Purchase bill identifier is missing.')
+        await patchErp('purchases', editPurchaseId, payload)
         addToast(`Purchase bill ${invoiceNo} updated successfully`, 'success')
         loadSuppliersAndItems(true)  // refresh stock after edit
       } else {

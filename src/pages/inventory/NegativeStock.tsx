@@ -19,7 +19,7 @@ import {
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
-import { getErp, postErp, patchErp } from '../../lib/erpApi'
+import { getErp, postErp } from '../../lib/erpApi'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
 export interface NegativeStockRow {
@@ -35,8 +35,6 @@ export interface NegativeStockRow {
   cause?: string
   dateDetected: string
 }
-
-const STORAGE_KEY_RECONCILED = 'pharma_erp_negative_reconciled_ids'
 
 export default function NegativeStock() {
   const navigate = useNavigate()
@@ -60,15 +58,12 @@ export default function NegativeStock() {
     setLoading(true)
     Promise.all([
       getErp<any[]>('report-stock').catch(() => []),
-      getErp<any[]>('items').catch(() => [])
+      getErp<any[]>('items').catch(() => []),
+      getErp<any[]>('inventory-reconciliation-marks').catch(() => [])
     ])
-      .then(([stockRows, items]) => {
+      .then(([stockRows, items, reconciliationMarks]) => {
         setItemsList(items || [])
-
-        // Load IDs of already reconciled entries from localStorage
-        const reconciledIds: string[] = JSON.parse(
-          localStorage.getItem(STORAGE_KEY_RECONCILED) || '[]'
-        )
+        const reconciledIds = new Set((reconciliationMarks || []).map((mark: any) => mark.source_key))
 
         const negativeRows: NegativeStockRow[] = []
         const seenKeys = new Set<string>()
@@ -78,7 +73,7 @@ export default function NegativeStock() {
           const q = Number(row.qty || 0)
           if (q < 0) {
             const rowId = row.id || `rep-${row.name}-${row.batch || idx}`
-            if (!reconciledIds.includes(rowId)) {
+            if (!reconciledIds.has(rowId)) {
               seenKeys.add(`${row.name}-${row.batch}`)
               negativeRows.push({
                 id: rowId,
@@ -106,7 +101,7 @@ export default function NegativeStock() {
             const key = `${item.name}-${b.batch}`
             if (bQty < 0 && !seenKeys.has(key)) {
               const rowId = `item-batch-${item.id}-${b.batch || bIdx}`
-              if (!reconciledIds.includes(rowId)) {
+              if (!reconciledIds.has(rowId)) {
                 seenKeys.add(key)
                 negativeRows.push({
                   id: rowId,
@@ -129,7 +124,7 @@ export default function NegativeStock() {
           const overallStock = Number(item.stock || 0)
           if (overallStock < 0 && !seenKeys.has(`${item.name}-overall`)) {
             const rowId = `item-overall-${item.id}`
-            if (!reconciledIds.includes(rowId)) {
+            if (!reconciledIds.has(rowId)) {
               negativeRows.push({
                 id: rowId,
                 itemId: item.id,
@@ -197,7 +192,7 @@ export default function NegativeStock() {
 
     // Post to inventory adjustments
     try {
-      await postErp('inventory-adjustments', {
+      const adjustment = await postErp<{ id?: string }>('inventory-adjustments', {
         date: new Date().toISOString().slice(0, 10),
         reason: reconcileReason,
         lines: [
@@ -210,25 +205,15 @@ export default function NegativeStock() {
         ]
       })
 
-      // If tied to an existing row, mark as reconciled
+      // Store the reconciliation marker with the adjustment, not in this browser.
       if (row) {
-        const existingIds: string[] = JSON.parse(
-          localStorage.getItem(STORAGE_KEY_RECONCILED) || '[]'
-        )
-        existingIds.push(row.id)
-        localStorage.setItem(STORAGE_KEY_RECONCILED, JSON.stringify(existingIds))
-
-        // Update local state
+        await postErp('inventory-reconciliation-marks', {
+          source_key: row.id,
+          item_id: row.itemId ?? null,
+          batch_number: row.batch,
+          adjustment_id: adjustment.id ?? null,
+        })
         setData((prev) => prev.filter((d) => d.id !== row.id))
-
-        // Also update items stock in ERP if itemId is present
-        if (row.itemId) {
-          try {
-            await patchErp('items', row.itemId, {
-              stock: Math.max(0, row.qty + reconcileQty)
-            })
-          } catch {}
-        }
       }
 
       addToast(`Reconciled stock for ${targetName} (${targetBatchNo}) successfully!`, 'success')
