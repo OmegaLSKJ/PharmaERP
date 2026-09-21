@@ -1304,9 +1304,22 @@ export async function create(resource: string, body: any, actor: MutationActor =
       }
       if (mockStore.accounts) {
         const initAcc = mockStore.accounts.length
-        mockStore.accounts = mockStore.accounts.filter((a: any) => (Number(a.balance) || 0) > 0)
+        mockStore.accounts = mockStore.accounts.filter((a: any) => (Number(a.balance) || 0) !== 0)
         removedCount += initAcc - mockStore.accounts.length
       }
+      // Also purge ₹0.00 vouchers from the vouchers list
+      if (mockStore.vouchers) {
+        const initVch = mockStore.vouchers.length
+        mockStore.vouchers = mockStore.vouchers.filter((v: any) => {
+          const total = Number(v.total || v.amount || 0)
+          // Keep voucher if it has a non-zero total, OR if it has at least one non-zero line
+          if (total > 0) return true
+          const lines = v.lines || []
+          return lines.some((l: any) => (Number(l.debit) || 0) > 0 || (Number(l.credit) || 0) > 0)
+        })
+        removedCount += initVch - mockStore.vouchers.length
+      }
+      persistTransactions()
       return { success: true, removedCount }
     }
 

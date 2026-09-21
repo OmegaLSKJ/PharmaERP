@@ -116,6 +116,7 @@ export default function VoucherEntry() {
   const [loadingData, setLoadingData] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null)
+  const [purging, setPurging] = useState(false)
 
   // ── Print Modal State ─────────────────────────────────────────
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -513,6 +514,24 @@ export default function VoucherEntry() {
       incrementLedgerVersion()
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not delete voucher.')
+    }
+  }
+
+  const purgeZeroVouchers = async () => {
+    if (!window.confirm('This will permanently delete ALL ₹0.00 vouchers and zero-balance ledger entries. Continue?')) return
+    try {
+      setPurging(true)
+      const result = await postErp<{ removedCount?: number }>('purge-zero-transactions', {})
+      const n = result?.removedCount ?? 0
+      // Also remove from local state immediately
+      setRecentVouchers((rows) => rows.filter((v) => Number(v.total) > 0))
+      showToast(`✓ Cleared ${n} zero-value entr${n === 1 ? 'y' : 'ies'} from ledger.`)
+      incrementLedgerVersion()
+      await loadMasterData()
+    } catch (err: any) {
+      showToast(err.message || 'Could not purge zero vouchers.')
+    } finally {
+      setPurging(false)
     }
   }
 
@@ -1327,14 +1346,27 @@ export default function VoucherEntry() {
             <History size={16} className="text-indigo-400" />
             <h3 className="text-sm font-bold text-white tracking-tight">Recent Posted Vouchers</h3>
           </div>
-          <button
-            type="button"
-            onClick={loadMasterData}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition cursor-pointer"
-          >
-            <RefreshCw size={12} className={loadingData ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={purgeZeroVouchers}
+              disabled={purging}
+              title="Delete all ₹0.00 vouchers"
+              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+            >
+              <Trash2 size={12} className={purging ? 'animate-pulse' : ''} />
+              <span>{purging ? 'Clearing…' : 'Clear ₹0 Vouchers'}</span>
+            </button>
+            <span className="text-slate-700">|</span>
+            <button
+              type="button"
+              onClick={loadMasterData}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition cursor-pointer"
+            >
+              <RefreshCw size={12} className={loadingData ? 'animate-spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {recentVouchers.length > 0 ? (
@@ -1352,7 +1384,7 @@ export default function VoucherEntry() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {recentVouchers.map((v) => {
+                {recentVouchers.filter((v) => Number(v.total) > 0).map((v) => {
                   const vTypeStr = (v.type || v.voucher_type || 'Receipt').toUpperCase()
                   const isRcpt = vTypeStr.includes('RECEIPT')
                   const isPmt = vTypeStr.includes('PAYMENT')
