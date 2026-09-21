@@ -400,6 +400,7 @@ export default function SaleEntry() {
           ...partyPayload,
           date: existingInvoice?.date || new Date().toISOString().split('T')[0],
           lines,
+          total: totals.grandTotal,
           grandTotal: totals.grandTotal,
           patientName,
           prescriberName,
@@ -407,11 +408,13 @@ export default function SaleEntry() {
           reason: `Amended invoice ${invoiceIdentifier}`,
         })
         showToast(`Invoice ${invoiceIdentifier} was amended. The original was retained as cancelled for audit history.`)
+        loadCatalog(true)   // refresh stock after edit
         navigate('/transactions/sale')
       } else {
         const saved = await postErp<{ id: string }>('sales', {
           ...partyPayload,
           lines,
+          total: totals.grandTotal,
           grandTotal: totals.grandTotal,
           patientName,
           prescriberName,
@@ -422,7 +425,7 @@ export default function SaleEntry() {
         setPatientName('')
         setPrescriberName('')
         setPrescriptionReference('')
-        loadCatalog(true)
+        loadCatalog(true)  // refresh stock after save
       }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save invoice.')

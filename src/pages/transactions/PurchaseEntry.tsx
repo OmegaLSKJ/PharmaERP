@@ -399,6 +399,7 @@ export default function PurchaseEntry() {
         subtotal,
         taxTotal: totalGst,
         total: grandTotal,
+        grandTotal,
         lines: items.map((item) => ({
           itemId: item.itemId,
           item_id: item.itemId,
@@ -411,6 +412,7 @@ export default function PurchaseEntry() {
           batch: item.batch,
           expiry: item.expiry,
           qty: item.qty,
+          free: item.freeQty,
           freeQty: item.freeQty,
           rate: item.purchaseRate,
           discount: item.discount,
@@ -424,14 +426,15 @@ export default function PurchaseEntry() {
       if (isEditMode) {
         await postErp('purchases', payload).catch(() => {})
         addToast(`Purchase bill ${invoiceNo} updated successfully`, 'success')
+        loadSuppliersAndItems(true)  // refresh stock after edit
       } else {
         const saved = await postErp<{ id: string }>('purchases', payload)
-        addToast(`Purchase ${saved.id} posted`, 'success')
+        addToast(`Purchase ${saved.id} posted — stock updated`, 'success')
         setItems([])
         setSupplier('')
         setInvoiceNo('')
         setInvoiceDate('')
-        loadSuppliersAndItems(true)
+        loadSuppliersAndItems(true)  // refresh stock after save
       }
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Unable to save purchase', 'error')

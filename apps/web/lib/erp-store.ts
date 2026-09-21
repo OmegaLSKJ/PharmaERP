@@ -1597,23 +1597,54 @@ export async function create(resource: string, body: any, actor: MutationActor =
       const docItems = Number(body.items ?? body.lines?.length ?? 1)
       const docParty = body.party || body.customer || body.supplier || 'Cash Customer'
       const docNumber = body.number || body.invoiceNo || body.id || (resource === 'sales' ? number('SI') : resource === 'purchases' ? number('PB') : number('MOCK'))
+      const docDate = body.date || date()
+      const docTime = new Date().toTimeString().slice(0, 8) // "HH:MM:SS"
       const doc = {
         ...body,
         id,
         number: docNumber,
         party: docParty,
-        date: body.date || date(),
+        date: docDate,
+        time: docTime,
         status: (body.status || 'posted').toLowerCase(),
         items: docItems,
         total: docTotal
       }
       const existingIdx = mockStore[storeKey].findIndex((x: any) => (body.id && (x.id === body.id || x.number === body.id)) || (body.number && x.number === body.number))
       if (existingIdx !== -1) {
+        const oldDoc = mockStore[storeKey][existingIdx]
+        const oldTotal = Number(oldDoc.total || 0)
         mockStore[storeKey][existingIdx] = {
-          ...mockStore[storeKey][existingIdx],
+          ...oldDoc,
           ...doc,
-          id: mockStore[storeKey][existingIdx].id
+          id: oldDoc.id
         }
+        // Patch the existing ledger entry with the new total
+        const ledgerIdx = mockStore.ledgers?.findIndex((l: any) => l.vNo === (oldDoc.number || oldDoc.id) && l.party === docParty)
+        if (ledgerIdx !== undefined && ledgerIdx !== -1) {
+          if (storeKey === 'sales') {
+            mockStore.ledgers[ledgerIdx].debit = docTotal
+            mockStore.ledgers[ledgerIdx].date = docDate
+            mockStore.ledgers[ledgerIdx].time = docTime
+          } else if (storeKey === 'purchases') {
+            mockStore.ledgers[ledgerIdx].credit = docTotal
+            mockStore.ledgers[ledgerIdx].date = docDate
+            mockStore.ledgers[ledgerIdx].time = docTime
+          }
+          // Re-balance party with diff
+          const diff = docTotal - oldTotal
+          const pMatch = (mockStore.parties || []).find((p: any) => p.name.toLowerCase() === docParty.toLowerCase())
+          if (pMatch && diff !== 0) {
+            if (storeKey === 'sales') {
+              pMatch.balance = (pMatch.balance || 0) + diff
+              pMatch.totalDebit = (pMatch.totalDebit || 0) + diff
+            } else if (storeKey === 'purchases') {
+              pMatch.balance = (pMatch.balance || 0) - diff
+              pMatch.totalCredit = (pMatch.totalCredit || 0) + diff
+            }
+          }
+        }
+        persistTransactions()
         return mockStore[storeKey][existingIdx]
       }
       mockStore[storeKey].unshift(doc)
@@ -1624,6 +1655,58 @@ export async function create(resource: string, body: any, actor: MutationActor =
       if (storeKey === 'purchases') applyStockDelta(doc.lines || [], 'add')
       if (storeKey === 'credit-notes') applyStockDelta(doc.lines || [], 'add')    // sale return: stock comes back
       if (storeKey === 'debit-notes') applyStockDelta(doc.lines || [], 'deduct')  // purchase return: stock goes out
+
+      // AUTO-SYNC LEDGER: write a ledger entry so the transaction appears in Party360 / LedgerList / Chart of Accounts
+      if (!mockStore.ledgers) mockStore.ledgers = []
+      if ((storeKey === 'sales' || storeKey === 'purchases') && docTotal > 0 && docParty) {
+        const isSale = storeKey === 'sales'
+        mockStore.ledgers.unshift({
+          id: `${storeKey.slice(0, 3)}-led-${id}`,
+          party: docParty,
+          date: docDate,
+          time: docTime,
+          vType: isSale ? 'sale' : 'purchase',
+          vNo: docNumber,
+          debit: isSale ? docTotal : 0,
+          credit: isSale ? 0 : docTotal,
+          narration: isSale
+            ? `Sale Invoice ${docNumber} — ${docParty}`
+            : `Purchase Bill ${docNumber} — ${docParty}`
+        })
+        // Update party balance and metadata
+        const pMatch = (mockStore.parties || []).find((p: any) =>
+          p.name.toLowerCase() === docParty.toLowerCase()
+        )
+        if (pMatch) {
+          if (isSale) {
+            pMatch.balance = (pMatch.balance || 0) + docTotal
+            pMatch.totalDebit = (pMatch.totalDebit || 0) + docTotal
+          } else {
+            pMatch.balance = (pMatch.balance || 0) - docTotal
+            pMatch.totalCredit = (pMatch.totalCredit || 0) + docTotal
+          }
+          pMatch.lastSale = docDate
+        }
+        // Also push a corresponding item-level stock delta to ledgers for traceability
+        for (const line of (doc.lines || [])) {
+          const lineQty = Number(line.qty || line.quantity || 0) + Number(line.free || line.freeQty || 0)
+          if (lineQty <= 0) continue
+          const lineTotal = Number(line.amount || 0)
+          if (lineTotal <= 0) continue
+          mockStore.ledgers.unshift({
+            id: `${storeKey.slice(0, 3)}-item-led-${id}-${line.id || line.name}`,
+            party: docParty,
+            date: docDate,
+            time: docTime,
+            vType: isSale ? 'sale' : 'purchase',
+            vNo: docNumber,
+            debit: isSale ? lineTotal : 0,
+            credit: isSale ? 0 : lineTotal,
+            narration: `${line.name || 'Item'} | Batch: ${line.batch || '-'} | Qty: ${lineQty}`
+          })
+        }
+        persistTransactions()
+      }
       return doc
     }
 
