@@ -573,9 +573,10 @@ export default function VoucherEntry() {
   }, [vType, vNo, vDate, physicalVchNo, selectedCashBank, selectedParty, chequeRef, amount, lines, activeTab])
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
-      {/* ── Page Header ────────────────────────────────────────────── */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 shadow-sm">
+    <div className="w-full">
+      <div className="no-print p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+        {/* ── Page Header ────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 shadow-sm">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
@@ -1451,6 +1452,14 @@ export default function VoucherEntry() {
               <VoucherPrint data={printDataOverride} />
             </div>
           </div>
+        </div>
+      )}
+      </div>
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {printDataOverride && (
+        <div className="hidden print:block w-full bg-white text-black p-0 m-0">
+          <VoucherPrint data={printDataOverride} />
         </div>
       )}
     </div>

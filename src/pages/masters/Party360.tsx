@@ -28,6 +28,9 @@ import { cn, formatCurrency, formatDate } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import VoucherPrint, { VoucherPrintData, VoucherPrintLine } from '../../components/accounting/VoucherPrint'
+import PurchaseInvoicePrint, { InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
+import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 
 export default function Party360() {
   const nav = useNavigate()
@@ -80,6 +83,8 @@ export default function Party360() {
 
   // Modals
   const [selectedTxn, setSelectedTxn] = useState<any | null>(null)
+  const [modalViewTab, setModalViewTab] = useState<'voucher' | 'invoice' | 'summary'>('voucher')
+  const [printTargetFormat, setPrintTargetFormat] = useState<'voucher' | 'invoice'>('voucher')
   const [showEditModal, setShowEditModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -107,6 +112,221 @@ export default function Party360() {
     setCopiedField(field)
     setTimeout(() => setCopiedField(null), 1800)
     showToast(`Copied ${field} to clipboard`)
+  }
+
+  const handlePrintTransaction = (txn: any, format: 'voucher' | 'invoice' = 'voucher') => {
+    setSelectedTxn(txn)
+    setPrintTargetFormat(format)
+    setTimeout(() => {
+      window.print()
+    }, 100)
+  }
+
+  const getVoucherPrintData = (txn: any, party: any): VoucherPrintData => {
+    const rawType = (txn.type || txn.rawType || '').toLowerCase()
+    const isPur = rawType.includes('purchase') || txn.rawType === 'purchase'
+    const isSale = rawType.includes('sale') || txn.rawType === 'sale'
+    const isPay = rawType.includes('payment') || (Number(txn.debit || 0) > 0 && !isSale && !isPur)
+    const isRec = rawType.includes('receipt') || (Number(txn.credit || 0) > 0 && !isSale && !isPur)
+
+    let vType = 'Journal Voucher'
+    if (isPur) vType = 'Purchase Voucher'
+    else if (isSale) vType = 'Sales Voucher'
+    else if (isPay) vType = 'Payment Voucher'
+    else if (isRec) vType = 'Receipt Voucher'
+    else if (rawType.includes('contra')) vType = 'Contra Voucher'
+    else if (rawType.includes('debit')) vType = 'Debit Note'
+    else if (rawType.includes('credit')) vType = 'Credit Note'
+    else vType = txn.type?.endsWith('Voucher') ? txn.type : `${txn.type || 'General'} Voucher`
+
+    const totalAmount = Math.max(Number(txn.debit || 0), Number(txn.credit || 0), Number(txn.total || 0))
+
+    let lines: VoucherPrintLine[] = []
+
+    if (txn.lines && txn.lines.length > 0) {
+      if (isPur) {
+        // Line items debited as purchased medicines
+        lines = txn.lines.map((l: any, i: number) => {
+          const itemAmt = Number(l.amount || l.line_total || (Number(l.qty || l.quantity || 1) * Number(l.rate || 0)))
+          const batchStr = l.batch && l.batch !== '—' ? ` [Batch: ${l.batch}]` : ''
+          return {
+            sNo: i + 1,
+            ledger: `${l.name || l.itemName || 'Medicine Item'}${batchStr}`,
+            debit: itemAmt,
+            credit: 0,
+            narration: `Qty: ${l.qty || l.quantity || 1} @ ₹${l.rate || 0}${l.expiry && l.expiry !== '—' ? ` (Exp: ${l.expiry})` : ''}`,
+          }
+        })
+        // Credit to party supplier
+        lines.push({
+          sNo: lines.length + 1,
+          ledger: `To ${party.name || 'Supplier Account'}`,
+          debit: 0,
+          credit: totalAmount,
+          narration: `Bill Ref: #${txn.ref} (${txn.lines.length} items)`,
+        })
+      } else if (isSale) {
+        // Customer debited
+        lines.push({
+          sNo: 1,
+          ledger: party.name || 'Customer Ledger',
+          debit: totalAmount,
+          credit: 0,
+          narration: `Invoice #${txn.ref}`,
+        })
+        // Credit to sales line items
+        txn.lines.forEach((l: any, i: number) => {
+          const itemAmt = Number(l.amount || l.line_total || (Number(l.qty || l.quantity || 1) * Number(l.rate || 0)))
+          const batchStr = l.batch && l.batch !== '—' ? ` [Batch: ${l.batch}]` : ''
+          lines.push({
+            sNo: i + 2,
+            ledger: `To Sales: ${l.name || l.itemName || 'Medicine Item'}${batchStr}`,
+            debit: 0,
+            credit: itemAmt,
+            narration: `Qty: ${l.qty || l.quantity || 1} @ ₹${l.rate || 0}`,
+          })
+        })
+      } else {
+        lines = txn.lines.map((l: any, i: number) => ({
+          sNo: i + 1,
+          ledger: l.ledger || l.name || 'Ledger Account',
+          debit: Number(l.debit || 0),
+          credit: Number(l.credit || 0),
+          narration: l.narration || '',
+        }))
+      }
+    }
+
+    // Default balanced lines if empty
+    if (lines.length === 0) {
+      if (isPur) {
+        lines = [
+          { sNo: 1, ledger: 'Purchase Account', debit: totalAmount, credit: 0, narration: `Bill #${txn.ref}` },
+          { sNo: 2, ledger: `To ${party.name || 'Supplier Account'}`, debit: 0, credit: totalAmount, narration: txn.narration || '' },
+        ]
+      } else if (isSale) {
+        lines = [
+          { sNo: 1, ledger: party.name || 'Customer Account', debit: totalAmount, credit: 0, narration: `Invoice #${txn.ref}` },
+          { sNo: 2, ledger: 'To Sales Account', debit: 0, credit: totalAmount, narration: txn.narration || '' },
+        ]
+      } else if (isPay) {
+        lines = [
+          { sNo: 1, ledger: party.name || 'Party Account', debit: totalAmount, credit: 0, narration: txn.narration || '' },
+          { sNo: 2, ledger: 'To Cash / Bank Account', debit: 0, credit: totalAmount, narration: `Ref: ${txn.ref}` },
+        ]
+      } else {
+        lines = [
+          { sNo: 1, ledger: 'Cash / Bank Account', debit: totalAmount, credit: 0, narration: `Ref: ${txn.ref}` },
+          { sNo: 2, ledger: `To ${party.name || 'Party Account'}`, debit: 0, credit: totalAmount, narration: txn.narration || '' },
+        ]
+      }
+    }
+
+    return {
+      voucherType: vType,
+      voucherNo: txn.ref || 'VCH-001',
+      voucherDate: txn.date || new Date().toISOString().slice(0, 10),
+      partyAccount: party.name,
+      primaryAccount: isPur ? 'Purchase Account' : isSale ? 'Sales Account' : 'Cash / Bank Account',
+      lines,
+      totalAmount,
+      narration: txn.narration || `${vType} #${txn.ref} - ${party.name}`,
+    }
+  }
+
+  const getPurchaseInvoicePrintData = (txn: any, party: any): InvoicePrintData => {
+    const totalAmount = Math.max(Number(txn.credit || 0), Number(txn.debit || 0), Number(txn.total || 0))
+    const items = (txn.lines && txn.lines.length > 0)
+      ? txn.lines.map((l: any, i: number) => ({
+          id: String(i + 1),
+          itemName: l.name || l.itemName || 'Medicine Item',
+          packing: l.packing || '10x10',
+          mfr: l.company || l.mfr || 'PHARMA',
+          batch: l.batch || '—',
+          expiry: l.expiry || '—',
+          qty: Number(l.qty || l.quantity || 1),
+          purchaseRate: Number(l.rate || 0),
+          mrp: Number(l.mrp || l.rate || 0),
+          amount: Number(l.amount || l.line_total || (Number(l.qty || l.quantity || 1) * Number(l.rate || 0))),
+          gstRate: Number(l.gstRate || 12),
+        }))
+      : [{
+          id: '1',
+          itemName: txn.narration || 'Pharmaceutical Goods',
+          packing: '10x10',
+          mfr: 'PHARMA',
+          batch: 'LB-STOCK',
+          expiry: '12/28',
+          qty: 1,
+          purchaseRate: totalAmount,
+          mrp: totalAmount,
+          amount: totalAmount,
+          gstRate: 12,
+        }]
+
+    return {
+      receiptNo: txn.ref,
+      invoiceNo: txn.ref,
+      invoiceDate: txn.date || new Date().toISOString().slice(0, 10),
+      buyerName: party.name,
+      buyerAddress: party.address || party.city || 'BORGANG, BISWANATH, ASSAM',
+      buyerPhone: party.phone,
+      buyerGstin: party.gstin,
+      buyerDlNo: party.dlNo,
+      buyerPan: party.pan,
+      buyerBalance: party.outstanding,
+      items,
+    }
+  }
+
+  const getTaxInvoicePrintData = (txn: any, party: any): TaxInvoicePrintData => {
+    const totalAmount = Math.max(Number(txn.debit || 0), Number(txn.credit || 0), Number(txn.total || 0))
+    const items = (txn.lines && txn.lines.length > 0)
+      ? txn.lines.map((l: any, i: number) => ({
+          id: String(i + 1),
+          name: l.name || l.itemName || 'Medicine Item',
+          packing: l.packing || '10x10',
+          mfr: l.company || l.mfr || 'PHARMA',
+          batch: l.batch || '—',
+          expiry: l.expiry || '—',
+          qty: Number(l.qty || l.quantity || 1),
+          rate: Number(l.rate || 0),
+          mrp: Number(l.mrp || l.rate || 0),
+          amount: Number(l.amount || l.line_total || (Number(l.qty || l.quantity || 1) * Number(l.rate || 0))),
+          gstRate: Number(l.gstRate || 12),
+        }))
+      : [{
+          id: '1',
+          name: txn.narration || 'Pharmaceutical Supplies',
+          packing: '10x10',
+          mfr: 'PHARMA',
+          batch: 'SB-STOCK',
+          expiry: '12/28',
+          qty: 1,
+          rate: totalAmount,
+          mrp: totalAmount,
+          amount: totalAmount,
+          gstRate: 12,
+        }]
+
+    return {
+      title: 'TAX INVOICE',
+      invoiceNo: txn.ref,
+      invoiceDate: txn.date || new Date().toISOString().slice(0, 10),
+      grandTotal: totalAmount,
+      buyer: {
+        name: party.name,
+        address: party.address,
+        city: party.city,
+        state: party.state || 'Assam',
+        phone: party.phone,
+        gstin: party.gstin,
+        dlNo: party.dlNo,
+        pan: party.pan,
+        stateCode: '18',
+      },
+      items,
+    }
   }
 
   const handleSaveParty = async (e: React.FormEvent) => {
@@ -735,8 +955,9 @@ export default function Party360() {
   ]
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 max-w-7xl mx-auto">
-      {/* Header Bar */}
+    <div className="w-full">
+      <div className="no-print p-4 sm:p-6 space-y-5 max-w-7xl mx-auto">
+        {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-start sm:items-center gap-3">
           <button
@@ -1105,14 +1326,28 @@ export default function Party360() {
                         <span className="text-[10px] text-muted-foreground">{t.balType}</span>
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTxn(t)}
-                          className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
-                          title="View Bill Breakdown"
-                        >
-                          <Eye size={13} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedTxn(t)
+                              setModalViewTab('voucher')
+                              setPrintTargetFormat('voucher')
+                            }}
+                            className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                            title="View Voucher"
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePrintTransaction(t, 'voucher')}
+                            className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                            title="Print Original Voucher"
+                          >
+                            <Printer size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1223,13 +1458,27 @@ export default function Party360() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTxn(t)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border hover:bg-muted text-foreground transition text-xs font-medium cursor-pointer"
-                      >
-                        <Eye size={12} /> View
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedTxn(t)
+                            setModalViewTab('voucher')
+                            setPrintTargetFormat('voucher')
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border hover:bg-muted text-foreground transition text-xs font-medium cursor-pointer"
+                        >
+                          <Eye size={12} /> View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handlePrintTransaction(t, 'voucher')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border hover:bg-muted text-foreground transition text-xs font-medium cursor-pointer"
+                          title="Print Original Voucher"
+                        >
+                          <Printer size={12} /> Print
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1324,9 +1573,10 @@ export default function Party360() {
       {/* Transaction Details Modal */}
       {selectedTxn &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="bg-card border border-border text-foreground rounded-2xl w-full max-w-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-card border border-border text-foreground rounded-2xl w-full max-w-4xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
                     <FileText size={18} className="text-primary" />
@@ -1336,90 +1586,210 @@ export default function Party360() {
                     {selectedTxn.type} • Dated {selectedTxn.date ? formatDate(selectedTxn.date) : '—'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTxn(null)}
-                  className="p-1 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
+
+                {/* View Format Selector */}
+                <div className="flex items-center gap-1 bg-muted p-1 rounded-xl self-start sm:self-auto flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalViewTab('voucher')
+                      setPrintTargetFormat('voucher')
+                    }}
+                    className={cn(
+                      'px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer',
+                      modalViewTab === 'voucher'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Voucher Format
+                  </button>
+
+                  {(selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalViewTab('invoice')
+                        setPrintTargetFormat('invoice')
+                      }}
+                      className={cn(
+                        'px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer',
+                        modalViewTab === 'invoice'
+                          ? 'bg-background text-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      Bill / GRN Format
+                    </button>
+                  )}
+
+                  {(selectedTxn.type.toLowerCase().includes('sale') || selectedTxn.rawType === 'sale') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalViewTab('invoice')
+                        setPrintTargetFormat('invoice')
+                      }}
+                      className={cn(
+                        'px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer',
+                        modalViewTab === 'invoice'
+                          ? 'bg-background text-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      Tax Invoice Format
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setModalViewTab('summary')}
+                    className={cn(
+                      'px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer',
+                      modalViewTab === 'summary'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Summary
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTxn(null)}
+                    className="p-1 ml-1 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                    title="Close Dialog"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/50 p-3 rounded-xl text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Party Legal Name</span>
-                  <span className="font-semibold text-foreground truncate block">{partyData.name}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Transaction Type</span>
-                  <span className="font-semibold text-foreground">{selectedTxn.type}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Total Amount</span>
-                  <span className="font-bold text-base text-emerald-600 dark:text-emerald-400 font-mono">
-                    {formatCurrency(Math.max(selectedTxn.debit, selectedTxn.credit))}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Posting Status</span>
-                  <span className="font-semibold text-foreground uppercase">{selectedTxn.status || 'Posted'}</span>
-                </div>
-              </div>
-
-              {selectedTxn.narration && (
-                <div className="text-xs text-muted-foreground bg-background border border-border p-2.5 rounded-lg">
-                  <strong>Narration / Notes:</strong> {selectedTxn.narration}
+              {/* View Content: Voucher Preview */}
+              {modalViewTab === 'voucher' && (
+                <div className="bg-white text-black p-2 sm:p-4 rounded-xl border border-gray-300 shadow-inner overflow-x-auto max-h-[66vh]">
+                  <VoucherPrint data={getVoucherPrintData(selectedTxn, partyData)} />
                 </div>
               )}
 
-              {/* Line items if available */}
-              {selectedTxn.lines && selectedTxn.lines.length > 0 ? (
-                <div>
-                  <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Item Breakdown</h4>
-                  <div className="border border-border rounded-xl overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-muted/60 text-muted-foreground border-b border-border uppercase font-semibold text-[11px]">
-                          <th className="text-left px-3 py-2">Item</th>
-                          <th className="text-left px-3 py-2">Batch</th>
-                          <th className="text-right px-3 py-2">Qty</th>
-                          <th className="text-right px-3 py-2">Rate (₹)</th>
-                          <th className="text-right px-3 py-2">Amount (₹)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {selectedTxn.lines.map((l: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-muted/30">
-                            <td className="px-3 py-2 font-medium text-foreground">{l.name || l.itemName}</td>
-                            <td className="px-3 py-2 font-mono text-muted-foreground">{l.batch || '—'}</td>
-                            <td className="px-3 py-2 text-right font-mono">{l.qty || l.quantity}</td>
-                            <td className="px-3 py-2 text-right font-mono">{formatCurrency(l.rate || 0)}</td>
-                            <td className="px-3 py-2 text-right font-mono font-bold text-foreground">
-                              {formatCurrency(l.amount || l.line_total || ((l.qty || 1) * (l.rate || 0)))}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              {/* View Content: Invoice / GRN Preview */}
+              {modalViewTab === 'invoice' && (
+                <div className="bg-white text-black p-2 sm:p-4 rounded-xl border border-gray-300 shadow-inner overflow-x-auto max-h-[66vh]">
+                  {(selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') ? (
+                    <PurchaseInvoicePrint data={getPurchaseInvoicePrintData(selectedTxn, partyData)} />
+                  ) : (
+                    <TaxInvoicePrint data={getTaxInvoicePrintData(selectedTxn, partyData)} />
+                  )}
                 </div>
-              ) : null}
+              )}
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
-                >
-                  <Printer size={14} /> Print Voucher
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTxn(null)}
-                  className="inline-flex items-center h-9 px-4 bg-primary text-primary-foreground rounded-xl text-xs sm:text-sm font-medium hover:bg-primary/90 transition cursor-pointer"
-                >
-                  Close
-                </button>
+              {/* View Content: Summary Breakdown */}
+              {modalViewTab === 'summary' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/50 p-3 rounded-xl text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Party Legal Name</span>
+                      <span className="font-semibold text-foreground truncate block">{partyData.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Transaction Type</span>
+                      <span className="font-semibold text-foreground">{selectedTxn.type}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Total Amount</span>
+                      <span className="font-bold text-base text-emerald-600 dark:text-emerald-400 font-mono">
+                        {formatCurrency(Math.max(selectedTxn.debit, selectedTxn.credit, selectedTxn.total || 0))}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Posting Status</span>
+                      <span className="font-semibold text-foreground uppercase">{selectedTxn.status || 'Posted'}</span>
+                    </div>
+                  </div>
+
+                  {selectedTxn.narration && (
+                    <div className="text-xs text-muted-foreground bg-background border border-border p-2.5 rounded-lg">
+                      <strong>Narration / Notes:</strong> {selectedTxn.narration}
+                    </div>
+                  )}
+
+                  {/* Line items table */}
+                  {selectedTxn.lines && selectedTxn.lines.length > 0 ? (
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Item Breakdown</h4>
+                      <div className="border border-border rounded-xl overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/60 text-muted-foreground border-b border-border uppercase font-semibold text-[11px]">
+                              <th className="text-left px-3 py-2">Item</th>
+                              <th className="text-left px-3 py-2">Batch</th>
+                              <th className="text-right px-3 py-2">Qty</th>
+                              <th className="text-right px-3 py-2">Rate (₹)</th>
+                              <th className="text-right px-3 py-2">Amount (₹)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {selectedTxn.lines.map((l: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-muted/30">
+                                <td className="px-3 py-2 font-medium text-foreground">{l.name || l.itemName}</td>
+                                <td className="px-3 py-2 font-mono text-muted-foreground">{l.batch || '—'}</td>
+                                <td className="px-3 py-2 text-right font-mono">{l.qty || l.quantity}</td>
+                                <td className="px-3 py-2 text-right font-mono">{formatCurrency(l.rate || 0)}</td>
+                                <td className="px-3 py-2 text-right font-mono font-bold text-foreground">
+                                  {formatCurrency(l.amount || l.line_total || ((l.qty || 1) * (l.rate || 0)))}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Action Buttons in Modal Footer */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border">
+                <div className="text-xs text-muted-foreground">
+                  Original designed format will be sent to printer cleanly.
+                </div>
+                <div className="flex items-center gap-2">
+                  {(selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') && (
+                    <button
+                      type="button"
+                      onClick={() => handlePrintTransaction(selectedTxn, 'invoice')}
+                      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
+                    >
+                      <Printer size={14} /> Print Bill / GRN
+                    </button>
+                  )}
+
+                  {(selectedTxn.type.toLowerCase().includes('sale') || selectedTxn.rawType === 'sale') && (
+                    <button
+                      type="button"
+                      onClick={() => handlePrintTransaction(selectedTxn, 'invoice')}
+                      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
+                    >
+                      <Printer size={14} /> Print Tax Invoice
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handlePrintTransaction(selectedTxn, 'voucher')}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 bg-primary text-primary-foreground rounded-xl text-xs sm:text-sm font-medium hover:bg-primary/90 shadow-xs transition cursor-pointer"
+                  >
+                    <Printer size={14} /> Print Voucher
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTxn(null)}
+                    className="inline-flex items-center h-9 px-4 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>,
@@ -1584,6 +1954,20 @@ export default function Party360() {
           </div>,
           document.body
         )}
+      </div>
+
+      {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
+      {selectedTxn && (
+        <div className="hidden print:block w-full bg-white text-black p-0 m-0">
+          {printTargetFormat === 'invoice' && (selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') ? (
+            <PurchaseInvoicePrint data={getPurchaseInvoicePrintData(selectedTxn, partyData)} />
+          ) : printTargetFormat === 'invoice' && (selectedTxn.type.toLowerCase().includes('sale') || selectedTxn.rawType === 'sale') ? (
+            <TaxInvoicePrint data={getTaxInvoicePrintData(selectedTxn, partyData)} />
+          ) : (
+            <VoucherPrint data={getVoucherPrintData(selectedTxn, partyData)} />
+          )}
+        </div>
+      )}
     </div>
   )
 }
