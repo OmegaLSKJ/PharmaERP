@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Search, Download, BookOpen } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
@@ -93,7 +94,11 @@ export default function SelectedBook() {
   }, [showToast])
 
   const filtered = allEntries.filter((d) => {
-    if (selectedType !== 'All' && d.vType !== selectedType) return false
+    if (selectedType !== 'All') {
+      const normD = d.vType.replace(/[\s_-]/g, '').toLowerCase()
+      const normSel = selectedType.replace(/[\s_-]/g, '').toLowerCase()
+      if (normD !== normSel) return false
+    }
     if (dateFrom && d.date < dateFrom) return false
     if (dateTo && d.date > dateTo) return false
     const q = search.toLowerCase()
@@ -222,7 +227,20 @@ export default function SelectedBook() {
                 <tr key={d.id} className="hover:bg-slate-900/30">
                   <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
                   <td className="px-4 py-3"><span className={cn('rounded px-2 py-1 text-[10px] font-semibold', TYPE_BADGE[d.vType] || 'bg-slate-800 text-slate-300')}>{d.vType}</span></td>
-                  <td className="px-4 py-3 font-mono text-white">{d.vNo}</td>
+                  <td className="px-4 py-3 font-mono">
+                    <Link
+                      to={
+                        d.vType.toLowerCase().includes('sale')
+                          ? `/transactions/sale/edit/${encodeURIComponent(d.vNo)}`
+                          : d.vType.toLowerCase().includes('purchase')
+                          ? `/transactions/purchase/edit/${encodeURIComponent(d.vNo)}`
+                          : `/accounting/vouchers?vNo=${encodeURIComponent(d.vNo)}&type=${encodeURIComponent(d.vType)}&party=${encodeURIComponent(d.ledger)}`
+                      }
+                      className="text-indigo-400 hover:text-indigo-300 hover:underline"
+                    >
+                      {d.vNo}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-mono text-indigo-400 text-[11px]">{d.physicalVchNo || '—'}</td>
                   <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>
                   <td className="px-4 py-3 text-right font-mono text-emerald-400">

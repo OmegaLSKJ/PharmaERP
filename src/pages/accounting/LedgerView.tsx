@@ -232,7 +232,21 @@ export default function LedgerView() {
                   <tr key={e.id} className="hover:bg-secondary/40 transition-colors">
                     <td className="px-4 py-3 font-mono text-muted-foreground">{e.date}</td>
                     <td className="px-4 py-3 text-foreground">{e.vType}</td>
-                    <td className="px-4 py-3 font-mono text-foreground font-semibold">{e.vNo}</td>
+                    <td className="px-4 py-3 font-mono font-semibold">
+                      <Link
+                        to={
+                          e.vType.toLowerCase().includes('sale')
+                            ? `/transactions/sale/edit/${encodeURIComponent(e.vNo)}`
+                            : e.vType.toLowerCase().includes('purchase')
+                            ? `/transactions/purchase/edit/${encodeURIComponent(e.vNo)}`
+                            : `/accounting/vouchers?vNo=${encodeURIComponent(e.vNo)}&type=${encodeURIComponent(e.vType)}&party=${encodeURIComponent(e.party || selectedLedger)}`
+                        }
+                        className="text-indigo-400 hover:text-indigo-300 hover:underline"
+                        title="Click to view/edit voucher"
+                      >
+                        {e.vNo}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-right font-mono">{e.debit > 0 ? formatCurrency(e.debit) : '-'}</td>
                     <td className="px-4 py-3 text-right font-mono">{e.credit > 0 ? formatCurrency(e.credit) : '-'}</td>
                      <td className={cn('px-4 py-3 text-right font-mono font-medium', e.balType === 'Dr' ? 'text-foreground' : 'text-amber-600 dark:text-amber-400')}>

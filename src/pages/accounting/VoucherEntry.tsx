@@ -66,7 +66,9 @@ interface SavedVoucher {
   party?: string
   date?: string
   voucher_date?: string
+  amount?: number
   total?: number
+  status?: string
   narration?: string
   lines?: VoucherLine[]
 }
@@ -113,6 +115,10 @@ export default function VoucherEntry() {
   const [cashAccounts, setCashAccounts] = useState<string[]>(DEFAULT_CASH_ACCOUNTS)
   const [bankAccounts, setBankAccounts] = useState<string[]>(DEFAULT_BANK_ACCOUNTS)
   const [recentVouchers, setRecentVouchers] = useState<SavedVoucher[]>([])
+  const [allVouchers, setAllVouchers] = useState<SavedVoucher[]>([])
+  const [voucherSearch, setVoucherSearch] = useState('')
+  const [voucherTypeFilter, setVoucherTypeFilter] = useState('All')
+  const [showAllVouchers, setShowAllVouchers] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null)
@@ -168,7 +174,8 @@ export default function VoucherEntry() {
       }
 
       if (Array.isArray(fetchedVouchers)) {
-        setRecentVouchers(fetchedVouchers.slice(0, 8))
+        setAllVouchers(fetchedVouchers)
+        setRecentVouchers(fetchedVouchers)
       }
     } catch (err: any) {
       console.warn('Error loading master data:', err)
@@ -181,14 +188,64 @@ export default function VoucherEntry() {
     loadMasterData()
   }, [])
 
-  // ── URL Search Params Handling ────────────────────────────────
+  // ── URL Search Params Handling (Deep-Link to Voucher from Ledger) ───────────
   useEffect(() => {
     const qVNo = searchParams.get('vNo')
     const qType = searchParams.get('type')
     const qParty = searchParams.get('party')
     const qAmount = searchParams.get('amount')
 
-    if (qVNo) setVNo(qVNo)
+    if (qVNo) {
+      setVNo(qVNo)
+      // 1. Check in allVouchers if already loaded
+      if (allVouchers.length > 0) {
+        const found = allVouchers.find(
+          (v) => (v.number || v.voucher_number || v.id || '').toLowerCase() === qVNo.toLowerCase()
+        )
+        if (found) {
+          editVoucher(found)
+          return
+        }
+      }
+      // 2. Fallback: Lookup in ledgers to construct full voucher
+      getErp<any[]>('ledgers').then((ledgerRows) => {
+        const matching = (ledgerRows || []).filter(
+          (l) => (l.vNo || l.id || '').toLowerCase() === qVNo.toLowerCase()
+        )
+        if (matching.length > 0) {
+          const first = matching[0]
+          const rawType = (first.vType || 'journal').toLowerCase()
+          let normalizedType: typeof vType = 'Journal'
+          if (rawType.includes('receipt')) normalizedType = 'Receipt'
+          else if (rawType.includes('payment')) normalizedType = 'Payment'
+          else if (rawType.includes('contra')) normalizedType = 'Contra'
+          const partyLine = matching.find((l) => !cashAccounts.includes(l.party) && !bankAccounts.includes(l.party))
+          const synVoucher: SavedVoucher = {
+            id: first.id || qVNo,
+            number: qVNo,
+            voucher_number: qVNo,
+            party: partyLine?.party || first.party || qParty || 'General Voucher',
+            date: first.date || new Date().toISOString().slice(0, 10),
+            voucher_date: first.date || new Date().toISOString().slice(0, 10),
+            voucher_type: rawType,
+            type: normalizedType,
+            status: 'posted',
+            total: matching.reduce((s, l) => s + (Number(l.debit) || 0), 0) || Number(first.debit || first.credit || qAmount || 0),
+            narration: first.narration || '',
+            lines: matching.map((l, idx) => ({
+              id: l.id || `line-${idx}`,
+              ledger: l.party,
+              debit: Number(l.debit || 0),
+              credit: Number(l.credit || 0),
+              physicalVchNo: l.physicalVchNo || '',
+              narration: l.narration || ''
+            }))
+          }
+          editVoucher(synVoucher)
+        }
+      }).catch(() => {})
+    }
+
     if (qType) {
       const formatted = (qType.charAt(0).toUpperCase() + qType.slice(1).toLowerCase()) as any
       if (['Receipt', 'Payment', 'Contra', 'Journal'].includes(formatted)) {
@@ -197,7 +254,7 @@ export default function VoucherEntry() {
     }
     if (qParty) setSelectedParty(qParty)
     if (qAmount && !isNaN(Number(qAmount))) setAmount(Number(qAmount))
-  }, [searchParams])
+  }, [searchParams, allVouchers, cashAccounts, bankAccounts])
 
   // ── Categorized Party Lists ───────────────────────────────────
   const customerList = useMemo(
@@ -494,14 +551,53 @@ export default function VoucherEntry() {
   }
 
   const editVoucher = (voucher: SavedVoucher) => {
-    setEditingVoucherId(voucher.id)
+    setEditingVoucherId(voucher.id || voucher.number || voucher.voucher_number || '')
     setActiveTab('multiline')
-    setVNo(voucher.number || voucher.voucher_number || voucher.id)
+    const vNumber = voucher.number || voucher.voucher_number || voucher.id || ''
+    setVNo(vNumber)
     setVDate(voucher.date || voucher.voucher_date || new Date().toISOString().slice(0, 10))
-    setVType(((voucher.type || voucher.voucher_type || 'Journal').replace(/^./, (c) => c.toUpperCase())) as typeof vType)
+    const rawT = (voucher.type || voucher.voucher_type || 'Journal').toLowerCase().replace(/[\s_-]/g, '')
+    let normalizedType: typeof vType = 'Journal'
+    if (rawT.includes('receipt')) normalizedType = 'Receipt'
+    else if (rawT.includes('payment')) normalizedType = 'Payment'
+    else if (rawT.includes('contra')) normalizedType = 'Contra'
+    else normalizedType = 'Journal'
+    setVType(normalizedType)
     setMultiNarration(voucher.narration || '')
-    setLines((voucher.lines || []).map((line, index) => ({ ...line, id: line.id || `voucher-line-${index}` })))
+    const vLines = (voucher.lines || []).map((line, index) => ({ ...line, id: line.id || `voucher-line-${index}` }))
+    setLines(vLines)
+
+    // Also populate quick entry fields if applicable
+    if (vLines.length === 2) {
+      const partyLine = vLines.find((l) => !cashAccounts.includes(l.ledger) && !bankAccounts.includes(l.ledger))
+      const cashBankLine = vLines.find((l) => cashAccounts.includes(l.ledger) || bankAccounts.includes(l.ledger))
+      if (partyLine && cashBankLine) {
+        setSelectedParty(partyLine.ledger)
+        setSelectedCashBank(cashBankLine.ledger)
+        const amt = Number(partyLine.debit || partyLine.credit || cashBankLine.debit || cashBankLine.credit || voucher.total || 0)
+        if (amt > 0) setAmount(amt)
+        setUserNarration(voucher.narration || '')
+      }
+    } else if (voucher.party && voucher.party !== 'General Voucher') {
+      setSelectedParty(voucher.party)
+      if (Number(voucher.total) > 0) setAmount(Number(voucher.total))
+    }
+
+    showToast(`Loaded voucher ${vNumber} for editing.`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingVoucherId(null)
+    setVNo(generateVoucherNo())
+    setAmount('')
+    setSelectedParty('')
+    setUserNarration('')
+    setPhysicalVchNo('')
+    setChequeRef('')
+    setLines([])
+    setMultiNarration('')
+    showToast('Exited edit mode.')
   }
 
   const removeVoucher = async (voucher: SavedVoucher) => {
@@ -509,7 +605,8 @@ export default function VoucherEntry() {
     if (!window.confirm(`Delete voucher ${number}? This is only allowed for vouchers without protected downstream references.`)) return
     try {
       await deleteErp('vouchers', voucher.id)
-      setRecentVouchers((rows) => rows.filter((row) => row.id !== voucher.id))
+      setAllVouchers((rows) => rows.filter((row) => row.id !== voucher.id && row.number !== number))
+      setRecentVouchers((rows) => rows.filter((row) => row.id !== voucher.id && row.number !== number))
       showToast(`Voucher ${number} deleted.`)
       incrementLedgerVersion()
     } catch (error) {
@@ -523,8 +620,6 @@ export default function VoucherEntry() {
       setPurging(true)
       const result = await postErp<{ removedCount?: number }>('purge-zero-transactions', {})
       const n = result?.removedCount ?? 0
-      // Also remove from local state immediately
-      setRecentVouchers((rows) => rows.filter((v) => Number(v.total) > 0))
       showToast(`✓ Cleared ${n} zero-value entr${n === 1 ? 'y' : 'ies'} from ledger.`)
       incrementLedgerVersion()
       await loadMasterData()
@@ -642,6 +737,28 @@ export default function VoucherEntry() {
           </button>
         </div>
       </div>
+
+      {/* ── Active Edit Mode Banner ──────────────────────────────────── */}
+      {editingVoucherId && (
+        <div className="no-print flex items-center justify-between px-4 py-3 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-200 text-xs shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 font-bold tracking-wider text-[10px] uppercase border border-amber-500/40">
+              Editing Mode
+            </span>
+            <span>
+              Voucher <strong className="font-mono text-white text-sm">{vNo}</strong> &bull; {vType} &bull; Date: {vDate}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700 transition cursor-pointer"
+          >
+            <X size={13} />
+            <span>Cancel Edit (New Voucher)</span>
+          </button>
+        </div>
+      )}
 
       {/* ── Voucher Type Selector & Mode Tabs ───────────────────────── */}
       <div className="no-print bg-slate-900/70 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3">
@@ -1339,12 +1456,24 @@ export default function VoucherEntry() {
         </div>
       )}
 
-      {/* ── RECENT VOUCHERS QUICK LOG (Peace of Mind) ───────────────── */}
-      <div className="no-print bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <History size={16} className="text-indigo-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight">Recent Posted Vouchers</h3>
+      {/* ── RECENT VOUCHERS LOG (Full Sync with Ledger) ───────────────── */}
+      <div className="no-print bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <History size={16} />
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Posted Accounting Vouchers</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                  {allVouchers.length} Total
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Click any voucher number or row to view, edit, or adjust entries recorded in the ledger
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1352,16 +1481,15 @@ export default function VoucherEntry() {
               onClick={purgeZeroVouchers}
               disabled={purging}
               title="Delete all ₹0.00 vouchers"
-              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl transition cursor-pointer disabled:opacity-50"
             >
               <Trash2 size={12} className={purging ? 'animate-pulse' : ''} />
               <span>{purging ? 'Clearing…' : 'Clear ₹0 Vouchers'}</span>
             </button>
-            <span className="text-slate-700">|</span>
             <button
               type="button"
               onClick={loadMasterData}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition cursor-pointer"
+              className="text-xs text-slate-300 hover:text-white flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition cursor-pointer"
             >
               <RefreshCw size={12} className={loadingData ? 'animate-spin' : ''} />
               <span>Refresh</span>
@@ -1369,83 +1497,218 @@ export default function VoucherEntry() {
           </div>
         </div>
 
-        {recentVouchers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs min-w-[650px]">
-              <thead>
-                <tr className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-                  <th className="text-left px-3 py-2.5 font-semibold">Date</th>
-                  <th className="text-left px-3 py-2.5 font-semibold">Voucher No.</th>
-                  <th className="text-left px-3 py-2.5 font-semibold">Type</th>
-                  <th className="text-left px-3 py-2.5 font-semibold">Party / Account</th>
-                  <th className="text-right px-3 py-2.5 font-semibold">Amount (₹)</th>
-                  <th className="text-center px-3 py-2.5 font-semibold">Status</th>
-                  <th className="text-center px-3 py-2.5 font-semibold w-28">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {recentVouchers.filter((v) => Number(v.total) > 0).map((v) => {
-                  const vTypeStr = (v.type || v.voucher_type || 'Receipt').toUpperCase()
-                  const isRcpt = vTypeStr.includes('RECEIPT')
-                  const isPmt = vTypeStr.includes('PAYMENT')
-                  const isCntra = vTypeStr.includes('CONTRA')
-                  return (
-                    <tr key={v.id || v.number} className="hover:bg-slate-800/40 transition">
-                      <td className="px-3 py-2 text-slate-400 font-mono">
-                        {v.date || v.voucher_date || '-'}
-                      </td>
-                      <td className="px-3 py-2 font-mono font-medium text-indigo-300">
-                        {v.number || v.voucher_number || v.id}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
+        {/* Search & Type Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+          <div className="relative flex-1 max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search voucher no, party, narration, date…"
+              value={voucherSearch}
+              onChange={(e) => setVoucherSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950/70 text-white text-xs outline-none focus:border-indigo-500 transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {['All', 'Receipt', 'Payment', 'Contra', 'Journal'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setVoucherTypeFilter(tab)}
+                className={cn(
+                  'px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer',
+                  voucherTypeFilter === tab
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table */}
+        {(() => {
+          const getVchAmount = (v: SavedVoucher) => {
+            const t = Number(v.total || v.amount || 0)
+            if (t > 0) return t
+            const drSum = (v.lines || []).reduce((s, l) => s + (Number(l.debit) || 0), 0)
+            if (drSum > 0) return drSum
+            return (v.lines || []).reduce((s, l) => s + (Number(l.credit) || 0), 0)
+          }
+
+          const getVchParty = (v: SavedVoucher) => {
+            if (v.party && v.party !== 'General Voucher') return v.party
+            const pLine = (v.lines || []).find(
+              (l) => !['cash account', 'cash in hand', 'cash', 'bank'].some((x) => String(l.ledger || '').toLowerCase().includes(x))
+            )
+            return pLine ? pLine.ledger : (v.party || 'General Account')
+          }
+
+          const filtered = (allVouchers.length > 0 ? allVouchers : recentVouchers).filter((v) => {
+            const amt = getVchAmount(v)
+            if (amt <= 0) return false
+
+            if (voucherTypeFilter !== 'All') {
+              const vTypeRaw = (v.type || v.voucher_type || '').toLowerCase().replace(/[\s_-]/g, '')
+              const filterRaw = voucherTypeFilter.toLowerCase().replace(/[\s_-]/g, '')
+              if (vTypeRaw !== filterRaw) return false
+            }
+
+            if (voucherSearch.trim()) {
+              const q = voucherSearch.toLowerCase().trim()
+              const no = (v.number || v.voucher_number || v.id || '').toLowerCase()
+              const party = getVchParty(v).toLowerCase()
+              const narr = (v.narration || '').toLowerCase()
+              const d = (v.date || v.voucher_date || '').toLowerCase()
+              if (!no.includes(q) && !party.includes(q) && !narr.includes(q) && !d.includes(q)) return false
+            }
+            return true
+          })
+
+          const displayList = showAllVouchers ? filtered : filtered.slice(0, 12)
+
+          if (filtered.length === 0) {
+            return (
+              <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-slate-800/80 text-slate-500 text-xs">
+                {allVouchers.length === 0
+                  ? 'No vouchers found. Post a voucher above or transactions will automatically reflect from ledger.'
+                  : 'No vouchers match the selected filter or search term.'}
+              </div>
+            )
+          }
+
+          return (
+            <div className="space-y-3">
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full text-xs min-w-[700px]">
+                  <thead>
+                    <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                      <th className="text-left px-3 py-2.5 font-semibold">Date</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Voucher No.</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Type</th>
+                      <th className="text-left px-3 py-2.5 font-semibold">Party / Account</th>
+                      <th className="text-left px-3 py-2.5 font-semibold max-w-[220px]">Narration</th>
+                      <th className="text-right px-3 py-2.5 font-semibold">Amount (₹)</th>
+                      <th className="text-center px-3 py-2.5 font-semibold">Status</th>
+                      <th className="text-center px-3 py-2.5 font-semibold w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                    {displayList.map((v) => {
+                      const vNoStr = v.number || v.voucher_number || v.id
+                      const isCurrentlyEditing = editingVoucherId === v.id || editingVoucherId === vNoStr
+                      const vTypeStr = (v.type || v.voucher_type || 'Journal').toUpperCase()
+                      const isRcpt = vTypeStr.includes('RECEIPT')
+                      const isPmt = vTypeStr.includes('PAYMENT')
+                      const isCntra = vTypeStr.includes('CONTRA')
+                      const amountVal = getVchAmount(v)
+                      const partyName = getVchParty(v)
+
+                      return (
+                        <tr
+                          key={v.id || vNoStr}
+                          onClick={() => editVoucher(v)}
                           className={cn(
-                            'px-2 py-0.5 rounded text-[10px] font-semibold border',
-                            isRcpt && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                            isPmt && 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                            isCntra && 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                            !isRcpt && !isPmt && !isCntra && 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                            'transition cursor-pointer group',
+                            isCurrentlyEditing
+                              ? 'bg-amber-500/10 border-l-2 border-amber-400'
+                              : 'hover:bg-slate-800/40'
                           )}
                         >
-                          {v.type || v.voucher_type || 'VOUCHER'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 font-medium text-white max-w-[200px] truncate">
-                        {v.party || 'General Account'}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono font-bold text-slate-200">
-                        {formatCurrency(Number(v.total) || 0)}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          Posted
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPrint(v)}
-                          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-                          title="Print this voucher"
-                        >
-                          <Printer size={14} />
-                        </button>
-                        <button type="button" onClick={() => editVoucher(v)} className="p-1 rounded text-amber-400 hover:bg-slate-800 transition" title="Edit voucher"><Edit3 size={14}/></button>
-                        <button type="button" onClick={() => removeVoucher(v)} className="p-1 rounded text-rose-400 hover:bg-slate-800 transition" title="Delete voucher"><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-6 text-center text-slate-500 text-xs">
-            No recent vouchers posted yet. Complete an entry above to see it listed here immediately.
-          </div>
-        )}
+                          <td className="px-3 py-2.5 text-slate-400 font-mono whitespace-nowrap">
+                            {v.date || v.voucher_date || '-'}
+                          </td>
+                          <td className="px-3 py-2.5 font-mono font-medium">
+                            <span className="text-indigo-300 group-hover:text-indigo-200 group-hover:underline flex items-center gap-1.5">
+                              {vNoStr}
+                              {isCurrentlyEditing && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                  EDITING
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span
+                              className={cn(
+                                'px-2 py-0.5 rounded text-[10px] font-semibold border',
+                                isRcpt && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                                isPmt && 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                                isCntra && 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                                !isRcpt && !isPmt && !isCntra && 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                              )}
+                            >
+                              {v.type || v.voucher_type || 'JOURNAL'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 font-medium text-white max-w-[200px] truncate">
+                            {partyName}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-400 max-w-[220px] truncate">
+                            {v.narration || '—'}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-100 whitespace-nowrap">
+                            {formatCurrency(amountVal)}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              Posted
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPrint(v)}
+                                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                                title="Print this voucher"
+                              >
+                                <Printer size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => editVoucher(v)}
+                                className="p-1 rounded text-amber-400 hover:bg-slate-800 transition cursor-pointer"
+                                title="Edit voucher"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeVoucher(v)}
+                                className="p-1 rounded text-rose-400 hover:bg-slate-800 transition cursor-pointer"
+                                title="Delete voucher"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {filtered.length > 12 && (
+                <div className="flex justify-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllVouchers((prev) => !prev)}
+                    className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                  >
+                    {showAllVouchers
+                      ? 'Show Fewer Vouchers'
+                      : `Show All ${filtered.length} Vouchers`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── Voucher Print Preview Modal ─────────────────────────────── */}

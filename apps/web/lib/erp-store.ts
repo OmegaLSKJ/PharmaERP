@@ -816,6 +816,70 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     )
   }
 
+  if (resource === 'vouchers') {
+    if (!mockStore.vouchers) mockStore.vouchers = []
+
+    // 1. Ensure all vouchers in mockStore.vouchers have their total computed if zero/missing
+    for (const v of mockStore.vouchers) {
+      const lineSum = (v.lines || []).reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0)
+      if ((!v.total || Number(v.total) === 0) && lineSum > 0) {
+        v.total = lineSum
+      }
+      if ((!v.party || v.party === 'General Voucher') && Array.isArray(v.lines)) {
+        const pLine = v.lines.find((l: any) => !['cash account', 'cash in hand', 'cash', 'bank'].some((x) => String(l.ledger || '').toLowerCase().includes(x)))
+        if (pLine) v.party = pLine.ledger
+      }
+    }
+
+    // 2. Also check if there are voucher lines in mockStore.ledgers that don't have a voucher entry
+    const existingVNos = new Set(mockStore.vouchers.map((v: any) => (v.number || v.voucher_number || v.id || '').trim()))
+    const ledgerVouchersMap = new Map<string, any[]>()
+    for (const l of (mockStore.ledgers || [])) {
+      const vNo = (l.vNo || l.id || '').trim()
+      const vType = (l.vType || '').toLowerCase()
+      if (['journal', 'receipt', 'payment', 'contra', 'debit_note', 'credit_note'].includes(vType)) {
+        if (!existingVNos.has(vNo)) {
+          const arr = ledgerVouchersMap.get(vNo) || []
+          arr.push(l)
+          ledgerVouchersMap.set(vNo, arr)
+        }
+      }
+    }
+
+    for (const [vNo, lines] of ledgerVouchersMap.entries()) {
+      const first = lines[0]
+      const drSum = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0)
+      const crSum = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0)
+      const partyLine = lines.find((l) => !['cash account', 'cash in hand', 'cash', 'bank'].some((x) => String(l.party || '').toLowerCase().includes(x)))
+      const rawType = first.vType || 'journal'
+      const vTypeFormatted = rawType.charAt(0).toUpperCase() + rawType.slice(1).replace('_', ' ')
+      const synthesizedVoucher = {
+        id: first.id || vNo,
+        number: vNo,
+        voucher_number: vNo,
+        party: partyLine ? partyLine.party : first.party || 'General Voucher',
+        date: first.date,
+        voucher_date: first.date,
+        voucher_type: rawType,
+        type: vTypeFormatted,
+        status: 'posted',
+        total: drSum > 0 ? drSum : (crSum > 0 ? crSum : 0),
+        narration: first.narration || `${vTypeFormatted} voucher`,
+        lines: lines.map((l, i) => ({
+          id: l.id || `syn-line-${i}`,
+          ledger: l.party,
+          debit: Number(l.debit || 0),
+          credit: Number(l.credit || 0),
+          physicalVchNo: l.physicalVchNo || '',
+          narration: l.narration || ''
+        }))
+      }
+      mockStore.vouchers.push(synthesizedVoucher)
+    }
+
+    return mockStore.vouchers
+  }
+
   if (mockStore[resource]) {
     return mockStore[resource]
   }
@@ -1527,8 +1591,10 @@ export async function create(resource: string, body: any, actor: MutationActor =
         }
       }
 
-      const docTotal = Number(body.total ?? rawAmt ?? vLines.reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0) ?? 0)
-      const docParty = targetParty || body.party || 'General Voucher'
+      const lineSum = vLines.reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0)
+      const docTotal = Number((body.total && Number(body.total) > 0) ? body.total : (rawAmt > 0 ? rawAmt : (lineSum > 0 ? lineSum : 0)))
+      const nonCashParty = vLines.find((l: any) => !['cash account', 'cash in hand', 'cash', 'bank'].some((x) => String(l.ledger || '').toLowerCase().includes(x)))?.ledger
+      const docParty = targetParty || body.party || nonCashParty || 'General Voucher'
       const docNumber = body.number || body.id || number('VCH')
       const docDate = body.date || body.voucher_date || date()
       const doc = {
@@ -1544,7 +1610,15 @@ export async function create(resource: string, body: any, actor: MutationActor =
         total: docTotal,
         lines: vLines
       }
-      mockStore.vouchers.unshift(doc)
+      const existingVoucherIdx = (mockStore.vouchers || []).findIndex(
+        (x: any) => (body.id && (x.id === body.id || x.number === body.id)) || (body.number && (x.number === body.number || x.id === body.number))
+      )
+      if (existingVoucherIdx !== -1) {
+        mockStore.vouchers[existingVoucherIdx] = { ...mockStore.vouchers[existingVoucherIdx], ...doc }
+        mockStore.ledgers = (mockStore.ledgers || []).filter((l: any) => l.vNo !== docNumber && l.vNo !== doc.id)
+      } else {
+        mockStore.vouchers.unshift(doc)
+      }
       body.lines = vLines
 
       // Post each line to mockStore.ledgers so it appears in Ledger View, Master Ledger, DayBook, and Party 360
@@ -2386,6 +2460,30 @@ export async function update(resource: string, id: string, body: any, actor: Mut
           }
           persistCustomItem(list[idx])
         }
+        if (resource === 'vouchers') {
+          const vNo = list[idx].number || list[idx].voucher_number || list[idx].id || id
+          if (Array.isArray(body.lines)) {
+            mockStore.ledgers = (mockStore.ledgers || []).filter((l: any) => l.vNo !== vNo && l.vNo !== id)
+            body.lines.forEach((line: any, lIdx: number) => {
+              if (!line.ledger) return
+              const deb = Number(line.debit || 0)
+              const cred = Number(line.credit || 0)
+              if (deb <= 0 && cred <= 0) return
+              mockStore.ledgers.unshift({
+                id: `vch-line-${Date.now()}-${lIdx}`,
+                party: line.ledger,
+                date: list[idx].date || list[idx].voucher_date || date(),
+                vType: (list[idx].type || list[idx].voucher_type || 'journal').toLowerCase(),
+                vNo: vNo,
+                physicalVchNo: line.physicalVchNo || '',
+                debit: deb,
+                credit: cred,
+                narration: line.narration || list[idx].narration || `Voucher ${vNo}`
+              })
+            })
+          }
+          persistTransactions()
+        }
         return list[idx]
       }
     }
@@ -2646,8 +2744,16 @@ export async function remove(resource: string, id: string, actor: MutationActor 
         mockStore[storeKey] = Array.from(seen.values())
         return { id, removedCount: removed }
       } else {
-        const idx = list.findIndex((x: any) => x.id === id)
-        if (idx !== -1) list.splice(idx, 1)
+        const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.voucher_number === id)
+        if (idx !== -1) {
+          const item = list[idx]
+          list.splice(idx, 1)
+          if (resource === 'vouchers') {
+            const vNo = item.number || item.voucher_number || item.id || id
+            mockStore.ledgers = (mockStore.ledgers || []).filter((l: any) => l.vNo !== vNo && l.vNo !== id)
+            persistTransactions()
+          }
+        }
       }
     }
     return { id }

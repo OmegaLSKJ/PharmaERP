@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Search, Download, Filter, Eye } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { useEffect } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
@@ -13,13 +13,14 @@ const TYPE_STYLE: Record<string, string> = {
   Receipt: 'bg-emerald-500/10 text-emerald-400', Payment: 'bg-rose-500/10 text-rose-400',
   Sale: 'bg-blue-500/10 text-blue-400', Purchase: 'bg-purple-500/10 text-purple-400',
   Journal: 'bg-amber-500/10 text-amber-400', Contra: 'bg-cyan-500/10 text-cyan-400',
+  'Debit Note': 'bg-orange-500/10 text-orange-400', 'Credit Note': 'bg-pink-500/10 text-pink-400',
 }
 
 export default function DayBook() {
   const [entries, setEntries] = useState<DayBookEntry[]>([])
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra']
+  const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra', 'Debit Note', 'Credit Note']
   const showToast = useUIStore((s) => s.showToast)
 
   useEffect(() => {
@@ -111,7 +112,20 @@ export default function DayBook() {
                 <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', TYPE_STYLE[d.vType])}>{d.vType}</span></td>
                 <td className="px-4 py-3">
-                  <div className="font-mono text-white">{d.vNo}</div>
+                  <div>
+                    <Link
+                      to={
+                        d.vType.toLowerCase().includes('sale')
+                          ? `/transactions/sale/edit/${encodeURIComponent(d.vNo)}`
+                          : d.vType.toLowerCase().includes('purchase')
+                          ? `/transactions/purchase/edit/${encodeURIComponent(d.vNo)}`
+                          : `/accounting/vouchers?vNo=${encodeURIComponent(d.vNo)}&type=${encodeURIComponent(d.vType)}&party=${encodeURIComponent(d.ledger)}`
+                      }
+                      className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
+                    >
+                      {d.vNo}
+                    </Link>
+                  </div>
                   {d.physicalVchNo && <div className="text-[10px] text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
                 </td>
                 <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>

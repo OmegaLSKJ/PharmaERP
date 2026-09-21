@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Download, FileText, Plus, ChevronDown } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp } from '../../lib/erpApi'
+import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -82,45 +82,58 @@ export default function NoteBook({ type }: NoteBookProps) {
       .then((rows) => setParties((rows || []).map((r) => ({ id: r.id, name: r.name }))))
       .catch(() => {})
 
-    // Load note entries (mapped from vouchers with matching type)
-    getErp<any[]>('vouchers')
-      .then((rows) => {
-        const typeKey = isDebit ? 'debit_note' : 'credit_note'
-        const filtered = (rows || []).filter(
-          (r) => (r.voucher_type || r.type || '').toLowerCase().replace(' ', '_') === typeKey
-        )
-        setNotes(
-          filtered.map((r) => ({
-            id: r.id,
-            date: r.date || r.voucher_date || '',
-            vNo: r.number || r.voucher_number || '',
-            physicalVchNo: r.physicalVchNo || '',
-            party: r.party || '',
-            amount: Number(r.total || r.amount || 0),
-            reason: r.narration || '',
-            gst: Number(r.gst || 0),
-            netAmount: Number(r.net_amount || r.total || 0),
-            status: (r.status || 'pending') as NoteEntry['status'],
-          }))
-        )
+    // Load note entries (mapped from vouchers AND ledgers with matching type)
+    Promise.all([
+      getErp<any[]>('vouchers').catch(() => []),
+      getErp<any[]>('ledgers').catch(() => [])
+    ]).then(([voucherRows, ledgerRows]) => {
+      const typeKey = isDebit ? 'debit_note' : 'credit_note'
+      const vFiltered = (voucherRows || []).filter(
+        (r) => (r.voucher_type || r.type || '').toLowerCase().replace(/[\s-]/g, '_') === typeKey
+      )
+      const existingVNos = new Set(vFiltered.map((v) => (v.number || v.voucher_number || v.id || '').trim()))
+
+      const lFiltered = (ledgerRows || []).filter(
+        (r) => (r.vType || '').toLowerCase().replace(/[\s-]/g, '_') === typeKey && !existingVNos.has((r.vNo || r.id || '').trim())
+      )
+
+      const fromVouchers: NoteEntry[] = vFiltered.map((r) => {
+        const amt = Number(r.total || r.amount || 0) || (r.lines || []).reduce((s: number, l: any) => s + (Number(l.debit) || 0), 0)
+        return {
+          id: r.id,
+          date: r.date || r.voucher_date || '',
+          vNo: r.number || r.voucher_number || r.id || '',
+          physicalVchNo: r.physicalVchNo || '',
+          party: r.party || '',
+          amount: amt,
+          reason: r.narration || '',
+          gst: Number(r.gst || 0),
+          netAmount: Number(r.net_amount || amt),
+          status: (r.status || 'approved') as NoteEntry['status'],
+        }
       })
-      .catch(() => {
-        // Seed demo data if no vouchers
-        setNotes([
-          {
-            id: '1',
-            date: new Date().toISOString().slice(0, 10),
-            vNo: generateNoteNo(prefix),
-            physicalVchNo: '',
-            party: 'Demo Supplier Ltd.',
-            amount: 5000,
-            reason: 'Rate Difference',
-            gst: 250,
-            netAmount: 5250,
-            status: 'pending',
-          },
-        ])
+
+      const fromLedgers: NoteEntry[] = lFiltered.map((r) => {
+        const amt = Number(r.debit || r.credit || 0)
+        return {
+          id: r.id,
+          date: r.date || '',
+          vNo: r.vNo || r.id || '',
+          physicalVchNo: r.physicalVchNo || '',
+          party: r.party || '',
+          amount: amt,
+          reason: r.narration || '',
+          gst: 0,
+          netAmount: amt,
+          status: 'approved',
+        }
       })
+
+      const combined = [...fromVouchers, ...fromLedgers]
+      if (combined.length > 0) {
+        setNotes(combined)
+      }
+    }).catch(() => {})
   }, [isDebit, prefix])
 
   const filtered = notes.filter((n) => {
@@ -145,20 +158,42 @@ export default function NoteBook({ type }: NoteBookProps) {
     setSaving(true)
     try {
       const gstAmt = (Number(fAmount) * fGstRate) / 100
+      const partyName = parties.find((p) => p.id === fParty)?.name || fParty
+      const totalDocAmt = Number(fAmount) + gstAmt
       const newNote: NoteEntry = {
         id: Date.now().toString(),
         date: fDate,
         vNo: fVNo,
         physicalVchNo: fPhysNo,
-        party: parties.find((p) => p.id === fParty)?.name || fParty,
+        party: partyName,
         amount: Number(fAmount),
         reason: fReason,
         gst: gstAmt,
-        netAmount: Number(fAmount) + gstAmt,
-        status: 'pending',
+        netAmount: totalDocAmt,
+        status: 'approved',
       }
       setNotes((prev) => [newNote, ...prev])
-      showToast(`${prefix} ${fVNo} saved successfully`)
+
+      // Persist to ERP vouchers and ledgers
+      await postErp('vouchers', {
+        id: fVNo,
+        number: fVNo,
+        voucher_number: fVNo,
+        type: isDebit ? 'Debit Note' : 'Credit Note',
+        voucher_type: isDebit ? 'debit_note' : 'credit_note',
+        date: fDate,
+        party: partyName,
+        amount: totalDocAmt,
+        total: totalDocAmt,
+        physicalVoucherNo: fPhysNo,
+        narration: `${title} (${fReason}) - ${partyName}`,
+        lines: [
+          { ledger: partyName, debit: isDebit ? totalDocAmt : 0, credit: isDebit ? 0 : totalDocAmt, narration: fReason },
+          { ledger: isDebit ? 'Purchase Returns' : 'Sales Returns', debit: isDebit ? 0 : totalDocAmt, credit: isDebit ? totalDocAmt : 0, narration: fReason }
+        ]
+      }).catch(() => {})
+
+      showToast(`${prefix} ${fVNo} saved and posted to ledger!`)
       setShowForm(false)
     } catch (e: any) {
       showToast(e.message)
