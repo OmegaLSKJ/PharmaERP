@@ -106,8 +106,12 @@ export default function PurchaseEntry() {
   const addToast = useUIStore((s) => s.addToast)
 
   // Fetch initial suppliers, items, and HSN codes
-  useEffect(() => {
-    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<any[]>('hsn')])
+  const loadSuppliersAndItems = (force = false) => {
+    Promise.all([
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('hsn')
+    ])
       .then(([parties, products, hsnData]) => {
         const pMap: Record<string, any> = {}
         if (Array.isArray(parties)) {
@@ -155,6 +159,10 @@ export default function PurchaseEntry() {
         )
       })
       .catch((error) => addToast(error.message, 'error'))
+  }
+
+  useEffect(() => {
+    loadSuppliersAndItems(false)
   }, [addToast])
 
   // Load existing purchase bill if in edit mode
@@ -401,6 +409,7 @@ export default function PurchaseEntry() {
         setSupplier('')
         setInvoiceNo('')
         setInvoiceDate('')
+        loadSuppliersAndItems(true)
       }
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Unable to save purchase', 'error')

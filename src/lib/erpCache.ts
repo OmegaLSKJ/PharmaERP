@@ -238,12 +238,17 @@ const RELATED_RESOURCES: Record<string, string[]> = {
   'item-batches': ['items', 'dashboard', 'stock', 'report-stock'],
   items: ['item-batches', 'dashboard', 'stock', 'report-stock', 'report-sales'],
   parties: ['dashboard', 'ledgers', 'report-sales', 'report-purchases'],
-  sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book'],
-  purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'item-batches', 'items'],
-  'sale-returns': ['sales', 'stock', 'report-stock', 'dashboard', 'ledgers'],
-  'purchase-returns': ['purchases', 'stock', 'report-stock', 'dashboard', 'ledgers'],
+  sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'items', 'item-batches', 'parties'],
+  purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'item-batches', 'items', 'parties'],
+  'sale-returns': ['sales', 'stock', 'report-stock', 'dashboard', 'ledgers', 'items', 'item-batches'],
+  'purchase-returns': ['purchases', 'stock', 'report-stock', 'dashboard', 'ledgers', 'items', 'item-batches'],
   orders: ['dashboard'],
-  challans: ['dashboard', 'stock'],
+  challans: ['dashboard', 'stock', 'items', 'item-batches'],
+  cancellations: ['sales', 'purchases', 'challans', 'stock', 'report-stock', 'report-sales', 'report-purchases', 'dashboard', 'ledgers', 'day-book', 'items', 'item-batches'],
+  'stock-transfers': ['stock', 'report-stock', 'items', 'item-batches', 'dashboard'],
+  'inventory-adjustments': ['stock', 'report-stock', 'items', 'item-batches', 'dashboard'],
+  'credit-notes': ['sales', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'items', 'item-batches'],
+  'debit-notes': ['purchases', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'items', 'item-batches'],
   vouchers: ['ledgers', 'day-book', 'report-financial'],
   ledgers: ['day-book', 'report-financial', 'dashboard'],
   warehouses: ['stock', 'report-stock'],
@@ -268,6 +273,10 @@ export async function invalidateCache(resource: string): Promise<void> {
   for (const key of keysToDelete) {
     memoryCache.delete(key)
     await removeKeyFromIdb(key)
+  }
+
+  for (const res of resourcesToInvalidate) {
+    await removeKeyFromIdb(res)
   }
 }
 

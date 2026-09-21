@@ -21,6 +21,20 @@ const date = () => new Date().toISOString().slice(0, 10)
 const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 const organizationName = process.env.ERP_ORGANIZATION_NAME ?? 'Borgang Drug Distributors'
 
+function normalizeExpiryDate(dateStr?: string | null): string | null {
+  if (!dateStr) return null
+  const trimmed = dateStr.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return `${trimmed}-01`
+  const myMatch = trimmed.match(/^(\d{1,2})\/(\d{2,4})$/)
+  if (myMatch) {
+    const month = myMatch[1].padStart(2, '0')
+    const year = myMatch[2].length === 2 ? `20${myMatch[2]}` : myMatch[2]
+    return `${year}-${month}-01`
+  }
+  return null
+}
+
 // OPTION B: In-memory mock database state for local offline development
 const mockStore: Record<string, any[]> = {
   parties: [
@@ -364,18 +378,49 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
     const delta = direction === 'deduct' ? -qty : qty
     const lineName = (line.name || line.itemName || '').toLowerCase().trim()
     const lineBatch = (line.batch || line.batchNumber || '').trim()
-    const lineId = line.itemId || line.id || line.productId
-    const item = (mockStore.items || []).find((i: any) =>
+    const lineId = line.itemId || (line.id && !line.id.startsWith('line-') && !/^\d{13}$/.test(line.id) ? line.id : undefined)
+    let item = (mockStore.items || []).find((i: any) =>
       (lineId && (i.id === lineId || i.code === lineId)) ||
       (lineName && i.name && i.name.toLowerCase().trim() === lineName)
     )
+
+    // If an item is purchased for the first time, auto-create it in the catalog
+    if (!item && direction === 'add' && (lineName || lineId)) {
+      const newItemId = `i-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      item = {
+        id: newItemId,
+        code: (line as any).itemCode || (line as any).code || `ITM-${Date.now().toString().slice(-6)}`,
+        name: line.name || (line as any).itemName || 'New Item',
+        packing: (line as any).packing || '1x10',
+        manufacturer: (line as any).manufacturer || (line as any).mfr || (line as any).company || '',
+        salt: (line as any).salt || '',
+        hsn: (line as any).hsn || '3004',
+        gstRate: Number(line.gstRate || (line as any).gst || 12),
+        mrp: Number(line.mrp || 0),
+        saleRate: Number((line as any).saleRate || 0),
+        purchaseRate: Number(line.rate || (line as any).purchaseRate || 0),
+        scheduleClass: 'OTC',
+        prescriptionRequired: false,
+        coldChain: false,
+        controlledSubstance: false,
+        recalled: false,
+        stock: 0,
+        batches: [],
+        batchCount: 0,
+        category: 'Medicine',
+        status: 'active'
+      }
+      mockStore.items.unshift(item)
+      persistCustomItem(item)
+    }
+
     if (!item) continue
     // Update overall item stock
     item.stock = Math.max(0, (Number(item.stock) || 0) + delta)
     // Update batch-level stock and price attributes
-    let batch = (item.batches || []).find((b: any) =>
-      !lineBatch || (b.batch || b.batchNumber || '').trim().toLowerCase() === lineBatch.toLowerCase()
-    ) || (item.batches || [])[0]
+    let batch = lineBatch
+      ? (item.batches || []).find((b: any) => (b.batch || b.batchNumber || '').trim().toLowerCase() === lineBatch.toLowerCase())
+      : (direction === 'deduct' ? (item.batches || [])[0] : undefined)
 
     if (!batch && direction === 'add' && lineBatch) {
       batch = {
@@ -383,13 +428,17 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
         batch: lineBatch,
         expiry: line.expiry || '',
         mrp: Number(line.mrp || item.mrp || 0),
-        saleRate: Number(line.saleRate || item.saleRate || 0),
-        purchaseRate: Number(line.rate || line.purchaseRate || item.purchaseRate || 0),
+        saleRate: Number((line as any).saleRate || item.saleRate || 0),
+        purchaseRate: Number(line.rate || (line as any).purchaseRate || item.purchaseRate || 0),
+        supplier: (line as any).supplier || '',
+        supplierInvoiceNumber: (line as any).supplierInvoice || (line as any).supplierInvoiceNumber || '',
+        supplierInvoiceDate: (line as any).date || (line as any).supplierInvoiceDate || '',
         stock: delta,
         stockByLocation: { 'Main Warehouse': delta }
       }
       if (!item.batches) item.batches = []
       item.batches.push(batch)
+      item.batchCount = item.batches.length
     } else if (batch) {
       // Record base stock on first mutation so we can compute deltas
       if (typeof batch._baseMockStock !== 'number') {
@@ -402,16 +451,26 @@ function applyStockDelta(lines: any[], direction: 'deduct' | 'add') {
       batch.stockByLocation[loc] = Math.max(0, (Number(batch.stockByLocation[loc]) || 0) + delta)
 
       if (direction === 'add') {
+        if (line.expiry) batch.expiry = line.expiry
         if (line.mrp && Number(line.mrp) > 0) {
           batch.mrp = Number(line.mrp)
           item.mrp = Number(line.mrp)
         }
-        if (line.saleRate && Number(line.saleRate) > 0) {
-          batch.saleRate = Number(line.saleRate)
-          item.saleRate = Number(line.saleRate)
+        if ((line as any).saleRate && Number((line as any).saleRate) > 0) {
+          batch.saleRate = Number((line as any).saleRate)
+          item.saleRate = Number((line as any).saleRate)
         }
-        if (line.rate || line.purchaseRate) {
-          item.purchaseRate = Number(line.rate || line.purchaseRate)
+        if (line.rate || (line as any).purchaseRate) {
+          const pr = Number(line.rate || (line as any).purchaseRate)
+          batch.purchaseRate = pr
+          item.purchaseRate = pr
+        }
+        if ((line as any).supplier) batch.supplier = (line as any).supplier
+        if ((line as any).supplierInvoice || (line as any).supplierInvoiceNumber) {
+          batch.supplierInvoiceNumber = (line as any).supplierInvoice || (line as any).supplierInvoiceNumber
+        }
+        if ((line as any).date || (line as any).supplierInvoiceDate) {
+          batch.supplierInvoiceDate = (line as any).date || (line as any).supplierInvoiceDate
         }
       }
     }
@@ -481,7 +540,7 @@ async function stock(client: ReturnType<typeof db>, organizationId: string, line
   const itemId = i?.id ?? (await client.from('items').insert({ organization_id: organizationId, code: `ITM-${Date.now()}`, name: line.name, mrp: +line.rate, sale_rate: +line.rate }).select('id').single()).data?.id
   const batchNumber = line.batch || 'UNSPECIFIED'
   const { data: b } = await client.from('item_batches').select('id').eq('item_id', itemId!).eq('batch_number', batchNumber).maybeSingle()
-  const batchId = b?.id ?? (await client.from('item_batches').insert({ item_id: itemId!, batch_number: batchNumber, expiry_on: line.expiry || null, mrp: +(line.mrp ?? line.rate) }).select('id').single()).data?.id
+  const batchId = b?.id ?? (await client.from('item_batches').insert({ item_id: itemId!, batch_number: batchNumber, expiry_on: normalizeExpiryDate(line.expiry), mrp: +(line.mrp ?? line.rate) }).select('id').single()).data?.id
   const { data: w } = await client.from('warehouses').select('id').eq('organization_id', organizationId).eq('code', 'MAIN').maybeSingle()
   const warehouseId = w?.id ?? (await client.from('warehouses').insert({ organization_id: organizationId, code: 'MAIN', name: 'Main Warehouse' }).select('id').single()).data?.id
   if (!itemId || !batchId || !warehouseId) throw new Error('Unable to create inventory data.')
@@ -703,6 +762,36 @@ function listMock(resource: string, partyName?: string) {
 
   if (resource === 'selected-book') {
     return listMock('ledgers', partyName)
+  }
+
+  if (resource === 'item-batches') {
+    if (mockStore['item-batches'] && mockStore['item-batches'].length > 0) return mockStore['item-batches']
+    return (mockStore.items || []).flatMap((item: any) =>
+      (item.batches || []).map((b: any) => ({
+        id: b.id || `${item.id}-${b.batch}`,
+        itemId: item.id,
+        itemCode: item.code || '',
+        itemName: item.name,
+        batchNumber: b.batch || b.batchNumber || '',
+        expiryOn: b.expiry || b.expiryOn || '',
+        receivedOn: b.receivedOn || '',
+        manufacturedOn: b.manufacturedOn || '',
+        mrp: Number(b.mrp || item.mrp || 0),
+        costPrice: Number(b.costPrice || 0),
+        purchasePrice: Number(b.purchasePrice || item.purchaseRate || 0),
+        salePrice: Number(b.salePrice || item.saleRate || 0),
+        salesSchemeDeal: Number(b.salesSchemeDeal || 0),
+        salesSchemeFree: Number(b.salesSchemeFree || 0),
+        purchaseSchemeDeal: Number(b.purchaseSchemeDeal || 0),
+        purchaseSchemeFree: Number(b.purchaseSchemeFree || 0),
+        supplier: b.supplier || '',
+        supplierInvoiceNumber: b.supplierInvoiceNumber || '',
+        supplierInvoiceDate: b.supplierInvoiceDate || '',
+        rackNumber: b.rackNumber || '',
+        sourceReportValue: Number(b.sourceReportValue || 0),
+        stock: Number(b.stock || 0)
+      }))
+    )
   }
 
   if (mockStore[resource]) {
@@ -1759,8 +1848,12 @@ export async function create(resource: string, body: any, actor: MutationActor =
             await client.from('item_batches').insert({
               item_id: itemId,
               batch_number: batchNum,
-              expiry_on: line.expiry || null,
-              mrp: Number(line.mrp || itemMrp || 0)
+              expiry_on: normalizeExpiryDate(line.expiry),
+              mrp: Number(line.mrp || itemMrp || 0),
+              purchase_price: Number(line.purchaseRate || line.rate || 0),
+              sale_price: Number(line.saleRate || 0),
+              supplier_invoice_number: body.supplierInvoice || null,
+              supplier_invoice_date: normalizeExpiryDate(body.date) || null
             })
           }
         }
@@ -1810,6 +1903,44 @@ export async function create(resource: string, body: any, actor: MutationActor =
         grand_total: docTotal
       }).select('id,invoice_number').single()
       if (invError) throw new Error(rpcError?.message || invError.message || 'Could not save sales invoice.')
+
+      try {
+        const { data: wh } = await client.from('warehouses').select('id').eq('organization_id', organizationId).order('code').limit(1).maybeSingle()
+        const warehouseId = wh?.id
+        for (const line of (body.lines || [])) {
+          const { itemId, batchId } = await stock(client, organizationId, line)
+          const qty = Number(line.qty || line.quantity || 0)
+          const free = Number(line.free || line.freeQty || 0)
+          const rate = Number(line.rate || 0)
+          const lineTotal = Number(line.amount || (qty * rate))
+          await client.from('sales_invoice_lines').insert({
+            invoice_id: inv.id,
+            item_id: itemId,
+            item_batch_id: batchId,
+            quantity: Math.max(1, qty),
+            free_quantity: free,
+            rate,
+            discount_percent: Number(line.discount || line.disc || 0),
+            gst_rate: Number(line.gstRate || line.gst || 0),
+            line_total: lineTotal
+          })
+          if (warehouseId && (qty + free) > 0) {
+            await client.from('stock_movements').insert({
+              organization_id: organizationId,
+              item_batch_id: batchId,
+              warehouse_id: warehouseId,
+              movement_type: 'sale',
+              quantity: -(qty + free),
+              source_type: 'sales_invoice',
+              source_id: inv.id,
+              occurred_at: `${invoiceDoc.date}T12:00:00Z`
+            })
+          }
+        }
+      } catch (lineErr) {
+        console.warn('Fallback line insertion non-fatal warning:', lineErr)
+      }
+
       return { ...body, id: inv.invoice_number, dbId: inv.id }
     }
   }
@@ -1851,6 +1982,44 @@ export async function create(resource: string, body: any, actor: MutationActor =
         grand_total: docTotal
       }).select('id,invoice_number').single()
       if (invError) throw new Error(rpcError?.message || invError.message || 'Could not save purchase invoice.')
+
+      try {
+        const { data: wh } = await client.from('warehouses').select('id').eq('organization_id', organizationId).order('code').limit(1).maybeSingle()
+        const warehouseId = wh?.id
+        for (const line of (body.lines || [])) {
+          const { itemId, batchId } = await stock(client, organizationId, line)
+          const qty = Number(line.qty || line.quantity || 0)
+          const free = Number(line.free || line.freeQty || 0)
+          const rate = Number(line.rate || 0)
+          const lineTotal = Number(line.amount || (qty * rate))
+          await client.from('purchase_invoice_lines').insert({
+            invoice_id: inv.id,
+            item_id: itemId,
+            item_batch_id: batchId,
+            quantity: Math.max(1, qty),
+            free_quantity: free,
+            rate,
+            discount_percent: Number(line.discount || line.disc || 0),
+            gst_rate: Number(line.gstRate || line.gst || 0),
+            line_total: lineTotal
+          })
+          if (warehouseId && (qty + free) > 0) {
+            await client.from('stock_movements').insert({
+              organization_id: organizationId,
+              item_batch_id: batchId,
+              warehouse_id: warehouseId,
+              movement_type: 'purchase',
+              quantity: qty + free,
+              source_type: 'purchase_invoice',
+              source_id: inv.id,
+              occurred_at: `${invoiceDoc.date}T12:00:00Z`
+            })
+          }
+        }
+      } catch (lineErr) {
+        console.warn('Fallback line insertion non-fatal warning:', lineErr)
+      }
+
       return { ...body, id: inv.invoice_number, dbId: inv.id }
     }
   }

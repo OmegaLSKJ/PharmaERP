@@ -114,6 +114,9 @@ export async function postErp<T>(resource: string, body: unknown): Promise<T> {
     throw new Error(payload.error?.message || 'Request failed')
   }
   await invalidateCache(resource)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'create' } }))
+  }
   return payload.data as T
 }
 
@@ -128,6 +131,9 @@ export async function patchErp<T>(resource: string, id: string, body: unknown): 
     throw new Error(payload.error?.message || 'Request failed')
   }
   await invalidateCache(resource)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'update', id } }))
+  }
   return payload.data as T
 }
 
@@ -140,4 +146,7 @@ export async function deleteErp(resource: string, id: string): Promise<void> {
     throw new Error(payload.error?.message || 'Request failed')
   }
   await invalidateCache(resource)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'delete', id } }))
+  }
 }

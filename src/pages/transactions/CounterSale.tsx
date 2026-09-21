@@ -42,8 +42,8 @@ export default function CounterSale() {
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
 
-  useEffect(() => {
-    getErp<any[]>('items')
+  const loadItems = (force = false) => {
+    getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
       .then((items) => {
         const mapped = items.flatMap((item) =>
           (item.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
@@ -65,6 +65,10 @@ export default function CounterSale() {
         if (mapped.length > 0) setActiveItem(mapped[0])
       })
       .catch((e) => showToast(e.message))
+  }
+
+  useEffect(() => {
+    loadItems(false)
   }, [showToast])
 
   const add = (i: CounterItem) => {
@@ -100,6 +104,7 @@ export default function CounterSale() {
       showToast(`Counter invoice ${saleData.invoiceNo} posted.`)
       incrementLedgerVersion()
       setCart([])
+      loadItems(true)
       setTimeout(() => window.print(), 100)
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Unable to complete counter sale.')

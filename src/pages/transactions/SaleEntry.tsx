@@ -72,8 +72,11 @@ export default function SaleEntry() {
     ? calculateInvoice(items.map((item) => ({ qty: Math.max(0, item.qty), rate: Math.max(0, item.rate), discount: item.disc, gstRate: item.gst })))
     : calculateInvoice([])
 
-  useEffect(() => {
-    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items')])
+  const loadCatalog = (force = false) => {
+    Promise.all([
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
+    ])
       .then(([parties, products]) => {
         let localSaved: any[] = []
         try {
@@ -112,6 +115,8 @@ export default function SaleEntry() {
         setItemOptions(
           products.flatMap((p) =>
             (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
+              id: p.id,
+              itemId: p.id,
               label: p.name,
               batch: b.batch,
               stock: b.stock,
@@ -129,6 +134,10 @@ export default function SaleEntry() {
         )
       })
       .catch((error) => showToast(error.message))
+  }
+
+  useEffect(() => {
+    loadCatalog(false)
   }, [showToast])
 
   const getPrintData = (): TaxInvoicePrintData => {
@@ -292,6 +301,7 @@ export default function SaleEntry() {
           ...prev,
           {
             id: Date.now().toString(),
+            itemId: (item as any).itemId || (item as any).id || undefined,
             name: item.label,
             batch: item.batch,
             stock: item.stock,
@@ -397,6 +407,7 @@ export default function SaleEntry() {
         setPatientName('')
         setPrescriberName('')
         setPrescriptionReference('')
+        loadCatalog(true)
       }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save invoice.')
