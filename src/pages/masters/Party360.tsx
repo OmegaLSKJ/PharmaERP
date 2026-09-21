@@ -23,6 +23,9 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
@@ -76,9 +79,11 @@ export default function Party360() {
     topItems: [] as any[],
   })
 
-  // Filters
+  // Filters & Sorting
   const [txnSearch, setTxnSearch] = useState('')
   const [txnTypeFilter, setTxnTypeFilter] = useState<'all' | 'bills' | 'payments'>('all')
+  const [txnSortKey, setTxnSortKey] = useState<'date' | 'amount' | 'debit' | 'credit'>('date')
+  const [txnSortDir, setTxnSortDir] = useState<'asc' | 'desc'>('asc')
   const [itemSearch, setItemSearch] = useState('')
 
   // Modals
@@ -861,10 +866,10 @@ export default function Party360() {
       .finally(() => setLoading(false))
   }, [id, showToast])
 
-  // Filtered transactions for Transactions Tab
+  // Filtered & sorted transactions for Transactions Tab (Ledger)
   const filteredTxns = useMemo(() => {
     const q = txnSearch.toLowerCase().trim()
-    return (partyData.recentTxns || []).filter((t: any) => {
+    const filtered = (partyData.recentTxns || []).filter((t: any) => {
       const matchSearch =
         !q ||
         (t.ref && t.ref.toLowerCase().includes(q)) ||
@@ -888,7 +893,31 @@ export default function Party360() {
 
       return matchSearch && matchType
     })
-  }, [partyData.recentTxns, txnSearch, txnTypeFilter])
+
+    return [...filtered].sort((a: any, b: any) => {
+      if (txnSortKey === 'date') {
+        const timeA = new Date(a.date || '1970-01-01').getTime()
+        const timeB = new Date(b.date || '1970-01-01').getTime()
+        return txnSortDir === 'asc' ? timeA - timeB : timeB - timeA
+      }
+      if (txnSortKey === 'amount') {
+        const amtA = Math.max(Number(a.debit || 0), Number(a.credit || 0))
+        const amtB = Math.max(Number(b.debit || 0), Number(b.credit || 0))
+        return txnSortDir === 'asc' ? amtA - amtB : amtB - amtA
+      }
+      if (txnSortKey === 'debit') {
+        const debA = Number(a.debit || 0)
+        const debB = Number(b.debit || 0)
+        return txnSortDir === 'asc' ? debA - debB : debB - debA
+      }
+      if (txnSortKey === 'credit') {
+        const credA = Number(a.credit || 0)
+        const credB = Number(b.credit || 0)
+        return txnSortDir === 'asc' ? credA - credB : credB - credA
+      }
+      return 0
+    })
+  }, [partyData.recentTxns, txnSearch, txnTypeFilter, txnSortKey, txnSortDir])
 
   // Filtered items for Items Tab
   const filteredItems = useMemo(() => {
@@ -1288,7 +1317,10 @@ export default function Party360() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(partyData.recentTxns || []).slice(0, 5).map((t: any, i: number) => (
+                  {[...(partyData.recentTxns || [])]
+                    .sort((a, b) => new Date(b.date || '1970-01-01').getTime() - new Date(a.date || '1970-01-01').getTime())
+                    .slice(0, 5)
+                    .map((t: any, i: number) => (
                     <tr key={t.id || i} className="hover:bg-muted/40 transition">
                       <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
                         {t.date ? formatDate(t.date) : '—'}
@@ -1369,8 +1401,8 @@ export default function Party360() {
       {tab === 'transactions' && (
         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs space-y-3 p-4">
           {/* Controls Ribbon */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[240px] max-w-sm">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
@@ -1381,35 +1413,202 @@ export default function Party360() {
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {(['all', 'bills', 'payments'] as const).map((filter) => (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Type Filter Buttons */}
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border">
+                {(['all', 'bills', 'payments'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setTxnTypeFilter(filter)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition cursor-pointer',
+                      txnTypeFilter === filter
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {filter === 'all' ? 'All' : filter === 'bills' ? 'Bills & Invoices' : 'Vouchers & Payments'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort & Order Controls */}
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border">
+                <span className="text-[11px] font-semibold text-muted-foreground pl-1.5 pr-1 flex items-center gap-1">
+                  <ArrowUpDown size={12} className="text-primary" /> Sort:
+                </span>
+
                 <button
-                  key={filter}
-                  onClick={() => setTxnTypeFilter(filter)}
+                  type="button"
+                  onClick={() => {
+                    if (txnSortKey === 'date') {
+                      setTxnSortDir(txnSortDir === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setTxnSortKey('date')
+                      setTxnSortDir('asc')
+                    }
+                  }}
                   className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition cursor-pointer',
-                    txnTypeFilter === filter
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+                    'px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer',
+                    txnSortKey === 'date'
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
+                  title="Sort by Date (Click to toggle Oldest/Newest)"
                 >
-                  {filter === 'all' ? 'All Transactions' : filter === 'bills' ? 'Invoices & Bills' : 'Payments & Receipts'}
+                  <Calendar size={12} />
+                  Date {txnSortKey === 'date' ? (txnSortDir === 'asc' ? '↑ (Oldest)' : '↓ (Newest)') : ''}
                 </button>
-              ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (txnSortKey === 'amount') {
+                      setTxnSortDir(txnSortDir === 'desc' ? 'asc' : 'desc')
+                    } else {
+                      setTxnSortKey('amount')
+                      setTxnSortDir('desc')
+                    }
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer',
+                    txnSortKey === 'amount'
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title="Sort by Transaction Amount (Click to toggle High/Low)"
+                >
+                  <TrendingUp size={12} />
+                  Amount {txnSortKey === 'amount' ? (txnSortDir === 'desc' ? '↓ (High)' : '↑ (Low)') : ''}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTxnSortDir(txnSortDir === 'asc' ? 'desc' : 'asc')}
+                  className="px-2 py-1 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 border-l border-border pl-1.5 transition cursor-pointer"
+                  title="Toggle Ascending / Descending"
+                >
+                  {txnSortDir === 'asc' ? (
+                    <span className="flex items-center gap-0.5 text-foreground font-semibold">
+                      <ArrowUp size={12} className="text-primary" /> Asc
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-0.5 text-foreground font-semibold">
+                      <ArrowDown size={12} className="text-primary" /> Desc
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-muted/60 text-muted-foreground border-b border-border uppercase tracking-wider font-semibold">
-                  <th className="text-left px-4 py-3">Date</th>
+                <tr className="bg-muted/60 text-muted-foreground border-b border-border uppercase tracking-wider font-semibold text-[11px]">
+                  <th
+                    className="text-left px-4 py-3 cursor-pointer select-none hover:text-foreground transition"
+                    onClick={() => {
+                      if (txnSortKey === 'date') {
+                        setTxnSortDir(txnSortDir === 'asc' ? 'desc' : 'asc')
+                      } else {
+                        setTxnSortKey('date')
+                        setTxnSortDir('asc')
+                      }
+                    }}
+                    title="Click to sort by Date (Ascending / Descending)"
+                  >
+                    <div className="inline-flex items-center gap-1">
+                      <span>Date</span>
+                      {txnSortKey === 'date' ? (
+                        txnSortDir === 'asc' ? (
+                          <ArrowUp size={12} className="text-primary" />
+                        ) : (
+                          <ArrowDown size={12} className="text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-40" />
+                      )}
+                    </div>
+                  </th>
                   <th className="text-left px-4 py-3">Type</th>
                   <th className="text-left px-4 py-3">Bill / Ref #</th>
                   <th className="text-left px-4 py-3">Description</th>
-                  <th className="text-right px-4 py-3">Debit (₹)</th>
-                  <th className="text-right px-4 py-3">Credit (₹)</th>
-                  <th className="text-right px-4 py-3">Running Balance (₹)</th>
+                  <th
+                    className="text-right px-4 py-3 cursor-pointer select-none hover:text-foreground transition"
+                    onClick={() => {
+                      if (txnSortKey === 'debit') {
+                        setTxnSortDir(txnSortDir === 'desc' ? 'asc' : 'desc')
+                      } else {
+                        setTxnSortKey('debit')
+                        setTxnSortDir('desc')
+                      }
+                    }}
+                    title="Click to sort by Debit amount"
+                  >
+                    <div className="inline-flex items-center justify-end gap-1 w-full">
+                      <span>Debit (₹)</span>
+                      {txnSortKey === 'debit' ? (
+                        txnSortDir === 'asc' ? (
+                          <ArrowUp size={12} className="text-primary" />
+                        ) : (
+                          <ArrowDown size={12} className="text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-40" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="text-right px-4 py-3 cursor-pointer select-none hover:text-foreground transition"
+                    onClick={() => {
+                      if (txnSortKey === 'credit') {
+                        setTxnSortDir(txnSortDir === 'desc' ? 'asc' : 'desc')
+                      } else {
+                        setTxnSortKey('credit')
+                        setTxnSortDir('desc')
+                      }
+                    }}
+                    title="Click to sort by Credit amount"
+                  >
+                    <div className="inline-flex items-center justify-end gap-1 w-full">
+                      <span>Credit (₹)</span>
+                      {txnSortKey === 'credit' ? (
+                        txnSortDir === 'asc' ? (
+                          <ArrowUp size={12} className="text-primary" />
+                        ) : (
+                          <ArrowDown size={12} className="text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-40" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="text-right px-4 py-3 cursor-pointer select-none hover:text-foreground transition"
+                    onClick={() => {
+                      if (txnSortKey === 'amount') {
+                        setTxnSortDir(txnSortDir === 'desc' ? 'asc' : 'desc')
+                      } else {
+                        setTxnSortKey('amount')
+                        setTxnSortDir('desc')
+                      }
+                    }}
+                    title="Click to sort by Transaction Amount"
+                  >
+                    <div className="inline-flex items-center justify-end gap-1 w-full">
+                      <span>Running Balance (₹)</span>
+                      {txnSortKey === 'amount' ? (
+                        txnSortDir === 'asc' ? (
+                          <ArrowUp size={12} className="text-primary" />
+                        ) : (
+                          <ArrowDown size={12} className="text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={11} className="opacity-40" />
+                      )}
+                    </div>
+                  </th>
                   <th className="text-center px-4 py-3">Status</th>
                   <th className="text-center px-4 py-3">Action</th>
                 </tr>
