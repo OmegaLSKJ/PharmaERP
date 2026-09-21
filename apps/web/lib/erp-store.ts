@@ -226,6 +226,150 @@ try {
   // Silent catch
 }
 
+// Canonical Catalog HSN index for fast resolution across all 11,060+ items
+const catalogHsnByCode = new Map<string, { hsn: string; gstRate: number }>()
+const catalogHsnByName = new Map<string, { hsn: string; gstRate: number }>()
+
+function refreshCatalogHsnIndex() {
+  if (Array.isArray(mockStore.items)) {
+    for (const item of mockStore.items) {
+      const hsn = String(item.hsn || '').trim()
+      if (!hsn) continue
+      const gstRate = Number(item.gstRate ?? (hsn.startsWith('3004') ? 5 : 12))
+      if (item.code) {
+        catalogHsnByCode.set(String(item.code).trim().toUpperCase(), { hsn, gstRate })
+      }
+      if (item.name) {
+        catalogHsnByName.set(String(item.name).trim().toLowerCase(), { hsn, gstRate })
+      }
+    }
+  }
+}
+refreshCatalogHsnIndex()
+
+export function resolveItemHsn(code?: string | null, name?: string | null): { hsn: string; gstRate: number } {
+  if (code) {
+    const found = catalogHsnByCode.get(String(code).trim().toUpperCase())
+    if (found) return found
+  }
+  if (name) {
+    const found = catalogHsnByName.get(String(name).trim().toLowerCase())
+    if (found) return found
+  }
+  const cleanName = String(name || '').toLowerCase()
+  if (cleanName.includes('soap') || cleanName.includes('wash') || cleanName.includes('cleans') || cleanName.includes('bath bar')) {
+    return { hsn: '3401', gstRate: 18 }
+  }
+  if (
+    cleanName.includes('protein') ||
+    cleanName.includes('whey') ||
+    cleanName.includes('powder') ||
+    cleanName.includes('supplement') ||
+    cleanName.includes('energy') ||
+    cleanName.includes('glucose') ||
+    cleanName.includes('nutra') ||
+    cleanName.includes('malt')
+  ) {
+    return { hsn: '2106', gstRate: 18 }
+  }
+  if (
+    cleanName.includes('vaccine') ||
+    cleanName.includes('serum') ||
+    cleanName.includes('toxoid') ||
+    cleanName.includes('tetanus') ||
+    cleanName.includes('rabies') ||
+    cleanName.includes('anti-venom')
+  ) {
+    return { hsn: '3002', gstRate: 5 }
+  }
+  if (
+    cleanName.includes('syringe') ||
+    cleanName.includes('needle') ||
+    cleanName.includes('cannula') ||
+    cleanName.includes('scalpel') ||
+    cleanName.includes('surgical') ||
+    cleanName.includes('infusion') ||
+    cleanName.includes('catheter')
+  ) {
+    return { hsn: '9018', gstRate: 12 }
+  }
+  if (
+    cleanName.includes('bandage') ||
+    cleanName.includes('gauze') ||
+    cleanName.includes('cotton') ||
+    cleanName.includes('dressing') ||
+    cleanName.includes('plaster') ||
+    cleanName.includes('crepe')
+  ) {
+    return { hsn: '3005', gstRate: 5 }
+  }
+  if (cleanName.includes('glove') || cleanName.includes('condom') || cleanName.includes('rubber')) {
+    return { hsn: '4014', gstRate: 12 }
+  }
+  if (
+    cleanName.includes('cream') ||
+    cleanName.includes('lotion') ||
+    cleanName.includes('sunscreen') ||
+    cleanName.includes('gel') ||
+    cleanName.includes('moisturiz')
+  ) {
+    return { hsn: '3304', gstRate: 18 }
+  }
+  if (
+    cleanName.includes('vet') ||
+    cleanName.includes('bolus') ||
+    cleanName.includes('cattle') ||
+    cleanName.includes('poultry') ||
+    cleanName.includes('feed')
+  ) {
+    return { hsn: '2309', gstRate: 12 }
+  }
+  return { hsn: '3004', gstRate: 5 }
+}
+
+async function backfillMissingDbItemHsn(
+  client: any,
+  organizationId: string,
+  unmappedItems: Array<{ id: string; code?: string; name: string }>
+) {
+  if (!unmappedItems || unmappedItems.length === 0) return
+  try {
+    const { data: hsnRows } = await client.from('hsn_codes').select('id,code').eq('organization_id', organizationId)
+    const hsnIdMap = new Map<string, string>((hsnRows || []).map((h: any) => [String(h.code).trim().toUpperCase(), h.id]))
+
+    for (const item of unmappedItems) {
+      const resolved = resolveItemHsn(item.code, item.name)
+      let targetHsnId = hsnIdMap.get(resolved.hsn)
+      if (!targetHsnId) {
+        const { data: created } = await client
+          .from('hsn_codes')
+          .insert({
+            organization_id: organizationId,
+            code: resolved.hsn,
+            description: `Pharmaceutical HSN ${resolved.hsn}`,
+            gst_rate: resolved.gstRate
+          })
+          .select('id')
+          .maybeSingle()
+        if (created?.id) {
+          targetHsnId = created.id
+          hsnIdMap.set(resolved.hsn, created.id)
+        }
+      }
+      if (targetHsnId) {
+        await client
+          .from('items')
+          .update({ hsn_id: targetHsnId })
+          .eq('id', item.id)
+          .eq('organization_id', organizationId)
+      }
+    }
+  } catch {
+    // Non-blocking background backfill catch
+  }
+}
+
+
 // Load persisted transaction data (ledgers, vouchers, sales, purchases, challans)
 try {
   const rootTx = path.resolve(process.cwd(), 'apps/web/lib/mock-transactions.json')
@@ -1008,7 +1152,73 @@ export async function list(resource: string, partyName?: string, options?: { man
       query = query.eq('manufacturer_id', options.manufacturerId.trim())
     }
     const data = await fetchAll<any>((from, to) => query.order('name').range(from, to))
-    let dbItems = (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', unit: i.unit ?? '', manufacturer: i.manufacturers?.name ?? '', manufacturer_id: i.manufacturers?.id ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
+    const unmappedToBackfill: Array<{ id: string; code?: string; name: string }> = []
+    let dbItems = (data ?? []).map((i: any) => {
+      let hsn = i.hsn_codes?.code ?? ''
+      let gstRate = Number(i.hsn_codes?.gst_rate ?? 0)
+      if (!hsn) {
+        const resolved = resolveItemHsn(i.code, i.name)
+        hsn = resolved.hsn
+        gstRate = resolved.gstRate
+        unmappedToBackfill.push({ id: i.id, code: i.code, name: i.name })
+      }
+      return {
+        id: i.id,
+        code: i.code,
+        name: i.name,
+        packing: i.packing ?? '',
+        unit: i.unit ?? '',
+        manufacturer: i.manufacturers?.name ?? '',
+        manufacturer_id: i.manufacturers?.id ?? '',
+        salt: i.salts?.name ?? '',
+        hsn,
+        gstRate,
+        mrp: Number(i.mrp),
+        saleRate: Number(i.sale_rate),
+        purchaseRate: Number(i.purchase_rate),
+        scheduleClass: i.schedule_class,
+        prescriptionRequired: i.prescription_required,
+        coldChain: i.cold_chain,
+        controlledSubstance: i.controlled_substance,
+        recalled: i.is_recalled,
+        stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0),
+        batches: (i.item_batches ?? []).map((b: any) => ({
+          id: b.id,
+          batch: b.batch_number,
+          expiry: b.expiry_on,
+          mrp: Number(b.mrp),
+          costPrice: Number(b.cost_price ?? 0),
+          purchasePrice: Number(b.purchase_price ?? 0),
+          salePrice: Number(b.sale_price ?? 0),
+          salesSchemeDeal: Number(b.sales_scheme_deal ?? 0),
+          salesSchemeFree: Number(b.sales_scheme_free ?? 0),
+          purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0),
+          purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0),
+          receivedOn: b.received_on ?? '',
+          manufacturedOn: b.manufactured_on ?? '',
+          supplier: b.parties?.legal_name ?? '',
+          invoiceNumber: b.supplier_invoice_number ?? '',
+          invoiceDate: b.supplier_invoice_date ?? '',
+          rackNumber: b.rack_number ?? '',
+          reportedValue: Number(b.source_report_value ?? 0),
+          stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0),
+          stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => {
+            const location = m.warehouses?.name ?? 'Main Warehouse'
+            byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity)
+            return byLocation
+          }, {})
+        })),
+        batchCount: i.item_batches?.length ?? 0,
+        category: 'Medicine',
+        status: i.is_active ? 'active' : 'banned'
+      }
+    })
+
+    if (unmappedToBackfill.length > 0) {
+      // Trigger non-blocking asynchronous backfill to Supabase
+      backfillMissingDbItemHsn(client, organizationId, unmappedToBackfill).catch(() => {})
+    }
+
     if (options?.manufacturer) {
       const mfgClean = options.manufacturer.trim().toLowerCase()
       dbItems = dbItems.filter((i: any) => {
@@ -1177,7 +1387,7 @@ export async function list(resource: string, partyName?: string, options?: { man
         code: l.items?.code ?? '',
         manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
         packing: l.items?.packing ?? '',
-        hsn: l.items?.hsn_codes?.code ?? '',
+        hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
         batch: l.item_batches?.batch_number ?? 'DEFAULT',
         expiry: l.item_batches?.expiry_on ?? '',
         qty: Number(l.quantity || 0),
@@ -1216,7 +1426,7 @@ export async function list(resource: string, partyName?: string, options?: { man
         code: l.items?.code ?? '',
         manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
         packing: l.items?.packing ?? '',
-        hsn: l.items?.hsn_codes?.code ?? '',
+        hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
         mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
         batch: l.item_batches?.batch_number ?? 'DEFAULT',
         expiry: l.item_batches?.expiry_on ?? '',
@@ -1496,6 +1706,9 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
     if (resource === 'items') {
       const code = body.code || `ITM-${Date.now().toString().slice(-6)}`
+      const resolvedHsn = resolveItemHsn(code, body.name)
+      const hsn = body.hsn || resolvedHsn.hsn
+      const gstRate = Number(body.gstRate !== undefined && body.gstRate !== null && body.gstRate !== '' ? body.gstRate : resolvedHsn.gstRate)
       const item = {
         id,
         code,
@@ -1504,8 +1717,8 @@ export async function create(resource: string, body: any, actor: MutationActor =
         unit: body.unit || '',
         manufacturer: body.manufacturer || '',
         salt: body.salt || '',
-        hsn: body.hsn || '',
-        gstRate: Number(body.gstRate || 0),
+        hsn,
+        gstRate,
         mrp: Number(body.mrp || 0),
         saleRate: Number(body.saleRate || 0),
         purchaseRate: Number(body.purchaseRate || 0),
@@ -1988,8 +2201,8 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const saltId = body.salt ? (await client.from('salts').select('id').eq('organization_id', organizationId).eq('name', body.salt).maybeSingle()).data?.id : null
     const rawHsn = body.hsn || body.hsn_code || body.hsnCode
     let hsnId: string | null = null
-    if (rawHsn) {
-      const cleanHsn = String(rawHsn).trim()
+    const cleanHsn = rawHsn ? String(rawHsn).trim() : resolveItemHsn(body.code, body.name).hsn
+    if (cleanHsn) {
       const found = (await client.from('hsn_codes').select('id').eq('organization_id', organizationId).ilike('code', cleanHsn).maybeSingle()).data?.id
       if (found) {
         hsnId = found

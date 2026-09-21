@@ -19,12 +19,15 @@ import { cn, formatCurrency } from '../../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import TopTableScroller from '../../../components/common/TopTableScroller'
+import { inferHsnForItem } from '../../../lib/hsnUtils'
 
 interface Map {
   id: string
   product: string
   code: string
   company: string
+  hsn?: string
+  gstRate?: number
   batch: string
   unit: string
   stock: number
@@ -45,7 +48,7 @@ interface Map {
   status?: string
 }
 type MappingForm = Omit<Map, 'id' | 'status'>
-const emptyMapping = (): MappingForm => ({ product: '', code: '', company: '', batch: '', unit: '', stock: 0, cost: 0, purchase: 0, sale: 0, mrp: 0, value: 0, sales_scheme: '0+0', purchase_scheme: '0+0', received: '', mfg: '', exp: '', supplier: '', invoice_no: '', invoice_date: '', rack: '' })
+const emptyMapping = (): MappingForm => ({ product: '', code: '', company: '', hsn: '3004', gstRate: 5, batch: '', unit: '', stock: 0, cost: 0, purchase: 0, sale: 0, mrp: 0, value: 0, sales_scheme: '0+0', purchase_scheme: '0+0', received: '', mfg: '', exp: '', supplier: '', invoice_no: '', invoice_date: '', rack: '' })
 
 export default function ItemMapping() {
   const [mappings, setMappings] = useState<Map[]>([])
@@ -124,12 +127,17 @@ export default function ItemMapping() {
             const invoice_date =
               row.invoiceDate ?? row.invoice_date ?? getVal('invoice_date', ['Inv.Date', 'Invoice Date', 'invoiceDate']) ?? ''
             const rack = row.rackNumber ?? row.rack ?? getVal('rack', ['Rack', 'Rack - Name']) ?? ''
+            const inferred = inferHsnForItem(String(product))
+            const hsn = row.hsn ?? getVal('hsn', ['HSN', 'hsn_code', 'hsnCode']) ?? inferred.code
+            const gstRate = Number(row.gstRate ?? row.gst_rate ?? getVal('gstRate', ['GST%', 'GST Rate']) ?? inferred.gstRate)
 
             return {
               id: row.id,
               product: String(product),
               code: String(code),
               company: String(company),
+              hsn: String(hsn),
+              gstRate,
               batch: String(batch),
               unit: String(unit),
               stock,
@@ -163,6 +171,7 @@ export default function ItemMapping() {
       (m) =>
         m.product.toLowerCase().includes(q) ||
         m.code.toLowerCase().includes(q) ||
+        (m.hsn && m.hsn.toLowerCase().includes(q)) ||
         m.supplier.toLowerCase().includes(q) ||
         m.company.toLowerCase().includes(q) ||
         m.batch.toLowerCase().includes(q) ||
@@ -417,6 +426,7 @@ export default function ItemMapping() {
             <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
               <th className="text-left px-4 py-3 font-semibold">Product / Code</th>
               <th className="text-left px-4 py-3 font-semibold">Company</th>
+              <th className="text-left px-4 py-3 font-semibold">HSN / GST</th>
               <th className="text-left px-4 py-3 font-semibold">Batch / Unit</th>
               <th className="text-right px-4 py-3 font-semibold">Stock</th>
               <th className="text-right px-4 py-3 font-semibold">Cost</th>
@@ -436,7 +446,7 @@ export default function ItemMapping() {
           <tbody className="divide-y divide-border text-foreground">
             {loading && (
               <tr>
-                <td colSpan={16} className="p-8 text-center text-muted-foreground text-sm animate-pulse">
+                <td colSpan={17} className="p-8 text-center text-muted-foreground text-sm animate-pulse">
                   Loading mappings…
                 </td>
               </tr>
@@ -449,6 +459,12 @@ export default function ItemMapping() {
                     <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{m.code}</div>
                   </td>
                   <td className="px-4 py-2.5 text-foreground font-medium">{m.company}</td>
+                  <td className="px-4 py-2.5 font-mono text-primary whitespace-nowrap">
+                    <span>{m.hsn || '3004'}</span>
+                    <span className="ml-1 text-[10px] text-muted-foreground font-sans">
+                      ({m.gstRate ?? 5}%)
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5 font-mono text-amber-700 dark:text-amber-300">
                     <div className="font-semibold">{m.batch}</div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{m.unit}</div>

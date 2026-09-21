@@ -46,5 +46,55 @@ describe('HSN Master Data - 3004 Codes', () => {
     expect(details).toBeDefined()
     expect(details?.gstRate).toBe(5)
   })
+
+  it('infers statutory HSN codes and GST rates based on pharma classifications', async () => {
+    const { inferHsnForItem } = await import('../src/lib/hsnUtils')
+
+    // Medicated soap -> 3401, 18%
+    expect(inferHsnForItem('KETOCONAZOLE SOAP 75GM')).toEqual({ code: '3401', gstRate: 18 })
+    expect(inferHsnForItem('CETAPHIL GENTLE SKIN CLEANSER')).toEqual({ code: '3401', gstRate: 18 })
+
+    // Food preparations & nutraceuticals -> 2106, 18%
+    expect(inferHsnForItem('PROTINEX CHOCOLATE POWDER 250GM')).toEqual({ code: '2106', gstRate: 18 })
+    expect(inferHsnForItem('GLUCON-D INSTANT ENERGY 500GM')).toEqual({ code: '2106', gstRate: 18 })
+
+    // Vaccines & biologicals -> 3002, 5%
+    expect(inferHsnForItem('TETANUS TOXOID VACCINE 0.5ML')).toEqual({ code: '3002', gstRate: 5 })
+    expect(inferHsnForItem('RABIES VACCINE IP 2.5IU')).toEqual({ code: '3002', gstRate: 5 })
+
+    // Medical devices / Syringes -> 9018, 12%
+    expect(inferHsnForItem('DISPO VAN SYRINGE 2ML WITH NEEDLE')).toEqual({ code: '9018', gstRate: 12 })
+    expect(inferHsnForItem('IV CANNULA 20G')).toEqual({ code: '9018', gstRate: 12 })
+
+    // Bandages & dressings -> 3005, 5%
+    expect(inferHsnForItem('COTTON ROLL ABSORBENT 100GM')).toEqual({ code: '3005', gstRate: 5 })
+    expect(inferHsnForItem('CREPE BANDAGE 15CM')).toEqual({ code: '3005', gstRate: 5 })
+
+    // Standard medicaments formulation fallback -> 3004, 5%
+    expect(inferHsnForItem('PARACETAMOL 650MG TABLET')).toEqual({ code: '3004', gstRate: 5 })
+    expect(inferHsnForItem('AZITHROMYCIN 500MG')).toEqual({ code: '3004', gstRate: 5 })
+  })
+
+  it('verifies 100% of all items in catalog have valid HSN and GST rate mapped', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const raw = fs.readFileSync(path.resolve('apps/web/lib/mock-stock-data.json'), 'utf8')
+    const parsed = JSON.parse(raw)
+    const items = parsed.items || []
+
+    expect(items.length).toBeGreaterThan(11000)
+
+    let missingCount = 0
+    for (const item of items) {
+      if (!item.hsn || String(item.hsn).trim() === '') {
+        missingCount++
+      }
+      expect(item.gstRate).toBeDefined()
+      expect(typeof item.gstRate).toBe('number')
+    }
+
+    expect(missingCount).toBe(0)
+  })
 })
+
 

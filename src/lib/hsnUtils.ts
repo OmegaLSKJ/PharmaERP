@@ -155,3 +155,81 @@ export function getHsnDetails(hsn?: string | number | null): HsnMasterEntry | un
 
   return undefined
 }
+
+/**
+ * Automatically infers an HSN code and statutory GST rate for any medicine/item
+ * based on Indian pharmaceutical classification rules.
+ */
+export function inferHsnForItem(itemName?: string, category?: string): { code: string; gstRate: number } {
+  const name = String(itemName || '').toLowerCase()
+  if (name.includes('soap') || name.includes('wash') || name.includes('cleans') || name.includes('bath bar')) {
+    return { code: '3401', gstRate: 18 }
+  }
+  if (
+    name.includes('protein') ||
+    name.includes('whey') ||
+    name.includes('powder') ||
+    name.includes('supplement') ||
+    name.includes('energy') ||
+    name.includes('glucose') ||
+    name.includes('nutra') ||
+    name.includes('malt')
+  ) {
+    return { code: '2106', gstRate: 18 }
+  }
+  if (
+    name.includes('vaccine') ||
+    name.includes('serum') ||
+    name.includes('toxoid') ||
+    name.includes('tetanus') ||
+    name.includes('rabies') ||
+    name.includes('anti-venom')
+  ) {
+    return { code: '3002', gstRate: 5 }
+  }
+  if (
+    name.includes('syringe') ||
+    name.includes('needle') ||
+    name.includes('cannula') ||
+    name.includes('scalpel') ||
+    name.includes('surgical') ||
+    name.includes('infusion') ||
+    name.includes('catheter')
+  ) {
+    return { code: '9018', gstRate: 12 }
+  }
+  if (
+    name.includes('bandage') ||
+    name.includes('gauze') ||
+    name.includes('cotton') ||
+    name.includes('dressing') ||
+    name.includes('plaster') ||
+    name.includes('crepe')
+  ) {
+    return { code: '3005', gstRate: 5 }
+  }
+  if (name.includes('glove') || name.includes('condom') || name.includes('rubber')) {
+    return { code: '4014', gstRate: 12 }
+  }
+  if (
+    name.includes('cream') ||
+    name.includes('lotion') ||
+    name.includes('sunscreen') ||
+    name.includes('gel') ||
+    name.includes('moisturiz')
+  ) {
+    return { code: '3304', gstRate: 18 }
+  }
+  if (
+    name.includes('vet') ||
+    name.includes('bolus') ||
+    name.includes('cattle') ||
+    name.includes('poultry') ||
+    name.includes('feed')
+  ) {
+    return { code: '2309', gstRate: 12 }
+  }
+  // Default medicaments formulation
+  return { code: '3004', gstRate: 5 }
+}
+
