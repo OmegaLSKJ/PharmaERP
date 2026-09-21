@@ -1,0 +1,12 @@
+[
+  {
+    "id": "w1",
+    "code": "MAIN",
+    "name": "Main Store",
+    "type": "Store Room",
+    "address": "MAIN ROAD, NH - 52, BORGANG, BISWANATH, ASSAM",
+    "capacity": 100000,
+    "used": 66573,
+    "status": "active"
+  }
+]

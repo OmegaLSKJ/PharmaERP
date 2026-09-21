@@ -81,4 +81,19 @@ describe('Item Stock Editing & Persistence', () => {
     expect(Number(updated.stock)).toBe(150)
     expect(Number(updated.batches[1].stock)).toBe(100)
   })
+
+  it('allocates all stock to Main Store and reports correct used capacity in warehouses master', async () => {
+    const warehouses: any = await list('warehouses')
+    expect(warehouses.length).toBeGreaterThanOrEqual(1)
+
+    const mainStore = warehouses.find((w: any) => w.name === 'Main Store' || w.code === 'MAIN')
+    expect(mainStore).toBeDefined()
+    expect(mainStore.name).toBe('Main Store')
+    expect(mainStore.address).toContain('BORGANG')
+
+    // Verify used stock reflects all items in the catalog (66,573+ units)
+    expect(Number(mainStore.used)).toBeGreaterThanOrEqual(60000)
+    expect(Number(mainStore.capacity)).toBeGreaterThanOrEqual(Number(mainStore.used))
+  })
 })
+

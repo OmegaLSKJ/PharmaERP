@@ -51,8 +51,8 @@ export default function LocationMaster() {
     setSelectedLoc(null)
     setName('')
     setType('Store Room')
-    setAddress('')
-    setCapacity(1000)
+    setAddress('MAIN ROAD, NH - 52, BORGANG, BISWANATH, ASSAM')
+    setCapacity(100000)
     setModalMode('add')
   }
 
@@ -60,8 +60,8 @@ export default function LocationMaster() {
     setSelectedLoc(l)
     setName(l.name)
     setType(l.type || 'Store Room')
-    setAddress(l.address || '')
-    setCapacity(l.capacity || 0)
+    setAddress(l.address || 'MAIN ROAD, NH - 52, BORGANG, BISWANATH, ASSAM')
+    setCapacity(l.capacity && l.capacity > 1 ? l.capacity : Math.max(100000, l.used || 0))
     setModalMode('edit')
   }
 
@@ -116,8 +116,9 @@ export default function LocationMaster() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {filtered.map((l) => {
-          const cap = l.capacity || 1
-          const pct = Math.min(100, Math.round(((l.used || 0) / cap) * 100))
+          const cap = l.capacity && l.capacity > 1 ? l.capacity : Math.max(100000, l.used || 0)
+          const used = l.used || 0
+          const pct = Math.min(100, Math.round((used / cap) * 100))
           return (
             <div key={l.id} className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
