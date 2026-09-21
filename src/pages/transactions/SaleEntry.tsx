@@ -749,10 +749,10 @@ export default function SaleEntry() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-800">
-              <table className="w-full text-xs text-slate-300">
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+              <table className="w-full text-xs text-slate-700 dark:text-slate-300">
                 <thead>
-                  <tr className="bg-slate-950 border-b border-slate-800 uppercase text-slate-400">
+                  <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 uppercase text-slate-500 dark:text-slate-400">
                     <th className="p-3 text-left">Item</th>
                     <th className="p-3 text-left">Batch</th>
                     <th className="p-3 text-right">Stock</th>
@@ -764,7 +764,7 @@ export default function SaleEntry() {
                     <th className="p-3 text-center w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                   {items.map((item, i) => {
                     const isActive = i === activeIndex
                     return (
@@ -774,15 +774,15 @@ export default function SaleEntry() {
                         className={cn(
                           'transition cursor-pointer',
                           isActive
-                            ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500'
-                            : 'hover:bg-slate-800/30'
+                            ? 'bg-indigo-50 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-400/60 dark:ring-indigo-500/40 border-l-4 border-l-indigo-500'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
                         )}
                       >
-                        <td className="p-3 font-medium text-white">
+                        <td className="p-3 font-medium text-foreground dark:text-white">
                           {item.name}
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {item.manufacturer && (
-                              <span className="text-[10px] font-medium text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-1.5 py-0.2 rounded">
+                              <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-800/60 px-1.5 py-0.5 rounded">
                                 {item.manufacturer}
                               </span>
                             )}
@@ -791,8 +791,8 @@ export default function SaleEntry() {
                             )}
                           </div>
                         </td>
-                        <td className="p-3 font-mono text-amber-400">{item.batch}</td>
-                        <td className="p-3 text-right font-mono text-slate-400">{item.stock}</td>
+                        <td className="p-3 font-mono text-amber-600 dark:text-amber-400 font-semibold">{item.batch}</td>
+                        <td className="p-3 text-right font-mono text-slate-500 dark:text-slate-400">{item.stock}</td>
                         <td className="p-2 text-right">
                           <input
                             id={`row-${i}-qty`}
@@ -806,7 +806,7 @@ export default function SaleEntry() {
                               setActiveIndex(i)
                             }}
                             placeholder="0"
-                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                             onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
                           />
                         </td>
@@ -822,7 +822,7 @@ export default function SaleEntry() {
                               setActiveIndex(i)
                             }}
                             placeholder="0"
-                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                             onKeyDown={(e) => handleKeyDown(e, i, 'free')}
                           />
                         </td>
@@ -836,7 +836,7 @@ export default function SaleEntry() {
                             onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
                             onFocus={() => setActiveIndex(i)}
                             placeholder="0.00"
-                            className="w-24 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            className="w-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                             onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
                           />
                         </td>
@@ -850,11 +850,11 @@ export default function SaleEntry() {
                             onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
                             onFocus={() => setActiveIndex(i)}
                             placeholder="0"
-                            className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
+                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                             onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
                           />
                         </td>
-                        <td className="p-3 text-right font-mono font-semibold text-emerald-400">{formatCurrency(item.amount)}</td>
+                        <td className="p-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400">{formatCurrency(item.amount)}</td>
                         <td className="p-3 text-center">
                           <button
                             type="button"
