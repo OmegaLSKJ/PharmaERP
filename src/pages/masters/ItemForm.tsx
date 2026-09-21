@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { formatCurrency } from '../../lib/utils'
-import { getGstRateForHsn, getAllHsnCodes, HsnMasterEntry } from '../../lib/hsnUtils'
+import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb, HsnMasterEntry } from '../../lib/hsnUtils'
 
 type FormState = { code: string; name: string; packing: string; unit: string; manufacturer: string; salt: string; hsn: string; gstRate: number; stock: number; mrp: number; saleRate: number; purchaseRate: number; status: 'active' | 'banned'; scheduleClass:'OTC'|'H'|'H1'|'X'|'NDPS'; prescriptionRequired:boolean; coldChain:boolean; controlledSubstance:boolean; recalled:boolean }
 const EMPTY: FormState = { code: '', name: '', packing: '', unit: '', manufacturer: '', salt: '', hsn: '', gstRate: 5, stock: 0, mrp: 0, saleRate: 0, purchaseRate: 0, status: 'active', scheduleClass:'OTC', prescriptionRequired:false, coldChain:false, controlledSubstance:false, recalled:false }
@@ -40,21 +40,10 @@ export default function ItemForm() {
       setManufacturers(m.map((row) => row.name))
       setSalts(s.map((row) => row.name))
 
-      const mergedHsnMap = new Map<string, HsnMasterEntry>()
-      getAllHsnCodes().forEach((entry) => mergedHsnMap.set(entry.code, entry))
-      if (Array.isArray(h)) {
-        h.forEach((row: any) => {
-          const code = String(row.code || '').trim()
-          if (code) {
-            mergedHsnMap.set(code, {
-              code,
-              description: row.description || '',
-              gstRate: Number(row.gstRate ?? row.gst_rate ?? getGstRateForHsn(code))
-            })
-          }
-        })
+      if (Array.isArray(h) && h.length > 0) {
+        registerHsnCodesFromDb(h)
       }
-      setHsnOptions(Array.from(mergedHsnMap.values()))
+      setHsnOptions(getAllHsnCodes())
 
       if (id) {
         const item = items.find((row) => String(row.id) === String(id) || String(row.code) === String(id))
@@ -104,10 +93,11 @@ export default function ItemForm() {
   const change = (field: keyof FormState, value: string | number | boolean) => setForm((current) => ({ ...current, [field]: value }))
 
   const handleHsnChange = (codeVal: string) => {
-    const mappedGst = getGstRateForHsn(codeVal)
+    const cleanCode = codeVal.trim().toUpperCase()
+    const mappedGst = getGstRateForHsn(cleanCode)
     setForm((prev) => ({
       ...prev,
-      hsn: codeVal,
+      hsn: cleanCode,
       gstRate: mappedGst
     }))
   }

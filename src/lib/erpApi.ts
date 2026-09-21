@@ -7,6 +7,7 @@ import {
   initCache,
   isStale,
 } from './erpCache'
+import { registerHsnCodesFromDb } from './hsnUtils'
 
 export { initCache }
 
@@ -77,6 +78,9 @@ export async function getErp<T>(
     try {
       const data = await fetchFromNetwork<T>(resource, query)
       await setCached(cacheKey, data)
+      if (resource === 'hsn' && Array.isArray(data)) {
+        registerHsnCodesFromDb(data)
+      }
       return data
     } finally {
       inFlightRequests.delete(cacheKey)
@@ -93,6 +97,9 @@ function backgroundRevalidate(resource: string, query: Record<string, string> | 
     try {
       const data = await fetchFromNetwork(resource, query)
       await setCached(cacheKey, data)
+      if (resource === 'hsn' && Array.isArray(data)) {
+        registerHsnCodesFromDb(data)
+      }
     } catch (err) {
       // Silently ignore background revalidation errors so user experience is not disrupted
       console.warn(`[erpCache] Background revalidation failed for ${cacheKey}:`, err)
@@ -114,6 +121,9 @@ export async function postErp<T>(resource: string, body: unknown): Promise<T> {
     throw new Error(payload.error?.message || 'Request failed')
   }
   await invalidateCache(resource)
+  if (resource === 'hsn' && payload.data && typeof payload.data === 'object') {
+    registerHsnCodesFromDb([payload.data])
+  }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'create' } }))
   }
@@ -131,6 +141,9 @@ export async function patchErp<T>(resource: string, id: string, body: unknown): 
     throw new Error(payload.error?.message || 'Request failed')
   }
   await invalidateCache(resource)
+  if (resource === 'hsn' && payload.data && typeof payload.data === 'object') {
+    registerHsnCodesFromDb([payload.data])
+  }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'update', id } }))
   }

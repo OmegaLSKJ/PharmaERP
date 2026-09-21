@@ -1,6 +1,7 @@
 import defaultHsnMaster from '../data/hsnMasterData.json'
 
 export interface HsnMasterEntry {
+  id?: string
   code: string
   description: string
   gstRate: number
@@ -23,6 +24,47 @@ const hsnMap = new Map<string, HsnMasterEntry>()
     type: entry.type || (code.startsWith('99') ? 'Services' : 'Goods')
   })
 })
+
+/**
+ * Dynamically register or update HSN/SAC codes from database or live API.
+ * Ensures any code added/modified in Supabase is immediately mapped and available globally.
+ */
+export function registerHsnCodesFromDb(
+  rows: Array<Partial<HsnMasterEntry> & { code?: string | number | null; gst_rate?: number; gstRate?: number }>
+): void {
+  if (!Array.isArray(rows)) return
+  for (const row of rows) {
+    if (!row || !row.code) continue
+    const cleanCode = String(row.code).trim().toUpperCase()
+    if (!cleanCode) continue
+    const rate = Number(row.gstRate ?? row.gst_rate ?? (cleanCode.startsWith('3004') ? 5 : 12))
+    const existing = hsnMap.get(cleanCode)
+    hsnMap.set(cleanCode, {
+      id: row.id || existing?.id,
+      code: cleanCode,
+      description: row.description || existing?.description || `HSN/SAC ${cleanCode}`,
+      gstRate: rate,
+      gst_rate: rate,
+      type: row.type || existing?.type || (cleanCode.startsWith('99') ? 'Services' : 'Goods')
+    })
+  }
+}
+
+/**
+ * Asynchronously initialize/warm the HSN cache directly from Supabase / ERP API.
+ */
+export async function initHsnFromDb(): Promise<HsnMasterEntry[]> {
+  try {
+    const { getErp } = await import('./erpApi')
+    const rows = await getErp<any[]>('hsn')
+    if (Array.isArray(rows) && rows.length > 0) {
+      registerHsnCodesFromDb(rows)
+    }
+  } catch (err) {
+    // Non-blocking fallback to bundled canonical Marg HSN master data
+  }
+  return getAllHsnCodes()
+}
 
 /**
  * Returns all authoritative HSN master entries.

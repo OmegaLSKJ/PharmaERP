@@ -20,6 +20,7 @@ import { deleteErp, getErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface Item {
   id: string
@@ -329,7 +330,18 @@ export default function ItemList() {
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.packing || '—'}</td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs font-medium">{item.manufacturer || '—'}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-primary">{item.hsn || '—'}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-primary">
+                    {item.hsn ? (
+                      <span title={`${item.hsn} (${item.gstRate || getGstRateForHsn(item.hsn)}% GST)`}>
+                        {item.hsn}
+                        <span className="ml-1 text-[10px] text-muted-foreground font-sans">
+                          ({item.gstRate !== undefined && item.gstRate !== null && Number(item.gstRate) > 0 ? item.gstRate : getGstRateForHsn(item.hsn)}%)
+                        </span>
+                      </span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-right font-medium">{formatCurrency(item.mrp)}</td>
                   <td className="px-4 py-2.5 text-right text-muted-foreground">{formatCurrency(item.saleRate)}</td>
                   <td className="px-4 py-2.5 text-right">

@@ -133,7 +133,7 @@ export default function SaleEntry() {
               batch: b.batch,
               stock: b.stock,
               rate: p.saleRate,
-              gst: p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
+              gst: p.gstRate !== undefined && p.gstRate !== null && Number(p.gstRate) > 0 ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
               mrp: b.mrp || p.mrp || 0,
               purchaseRate: b.purchaseRate || p.purchaseRate || 0,
               packing: p.packing || '',
@@ -655,11 +655,16 @@ export default function SaleEntry() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-sm font-semibold text-white">{item.name}</div>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
                             Batch: {item.batch}
                           </span>
                           <span className="text-[11px] text-slate-500">Stock: {item.stock}</span>
+                          {item.hsn && (
+                            <span className="text-[10px] font-mono font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">
+                              HSN: {item.hsn} ({item.gst}% GST)
+                            </span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -783,7 +788,7 @@ export default function SaleEntry() {
                       >
                         <td className="p-3 font-medium text-foreground dark:text-white">
                           {item.name}
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {item.manufacturer && (
                               <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-800/60 px-1.5 py-0.5 rounded">
                                 {item.manufacturer}
@@ -791,6 +796,11 @@ export default function SaleEntry() {
                             )}
                             {item.packing && (
                               <span className="text-[11px] text-slate-400 font-normal">{item.packing}</span>
+                            )}
+                            {item.hsn && (
+                              <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
+                                HSN: {item.hsn} ({item.gst}% GST)
+                              </span>
                             )}
                           </div>
                         </td>

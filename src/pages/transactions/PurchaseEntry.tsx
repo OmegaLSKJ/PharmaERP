@@ -7,7 +7,7 @@ import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
-import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 
 interface LineItem {
   id: string
@@ -82,7 +82,13 @@ export default function PurchaseEntry() {
   const isEditMode = Boolean(editPurchaseId)
 
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
-  const [hsnList, setHsnList] = useState<HsnOption[]>([])
+  const [hsnList, setHsnList] = useState<HsnOption[]>(() =>
+    getAllHsnCodes().map((h) => ({
+      code: h.code,
+      description: h.description,
+      gstRate: h.gstRate,
+    }))
+  )
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
   const [supplier, setSupplier] = useState('')
@@ -129,10 +135,13 @@ export default function PurchaseEntry() {
         )
 
         const rawHsn = Array.isArray(hsnData) ? hsnData : []
-        const parsedHsn: HsnOption[] = rawHsn.map((h) => ({
-          code: String(h.code || '').trim(),
-          description: h.description ?? '',
-          gstRate: Number(h.gst_rate ?? h.gstRate ?? 0),
+        if (rawHsn.length > 0) {
+          registerHsnCodesFromDb(rawHsn)
+        }
+        const parsedHsn: HsnOption[] = getAllHsnCodes().map((h) => ({
+          code: h.code,
+          description: h.description,
+          gstRate: h.gstRate,
         }))
         setHsnList(parsedHsn)
 
@@ -318,12 +327,10 @@ export default function PurchaseEntry() {
 
         // If HSN is changed, auto-update the GST rate based on authoritative HSN mapping
         if (field === 'hsn') {
-          const matchedHsn = hsnList.find((h) => h.code === String(value).trim())
-          if (matchedHsn) {
-            updated.gstRate = matchedHsn.gstRate
-          } else {
-            updated.gstRate = getGstRateForHsn(String(value))
-          }
+          const cleanCode = String(value).trim().toUpperCase()
+          const matchedHsn = hsnList.find((h) => h.code.toUpperCase() === cleanCode)
+          const resolvedRate = matchedHsn ? matchedHsn.gstRate : getGstRateForHsn(cleanCode)
+          updated.gstRate = resolvedRate
         }
 
         const rate = Number(updated.purchaseRate) || 0
@@ -557,8 +564,12 @@ export default function PurchaseEntry() {
         {/* Datalist for HSN suggestions */}
         <datalist id="hsn-list">
           {hsnList.map((h) => (
-            <option key={h.code} value={h.code}>
-              {h.description ? `${h.description} (${h.gstRate}%)` : `${h.gstRate}% GST`}
+            <option
+              key={h.code}
+              value={h.code}
+              label={`${h.code} (${h.gstRate}% GST) - ${h.description}`}
+            >
+              {`${h.code} (${h.gstRate}% GST) - ${h.description}`}
             </option>
           ))}
         </datalist>

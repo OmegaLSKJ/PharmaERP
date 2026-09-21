@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 import { getErp } from '../../lib/erpApi'
+import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface Row {
   desc: string
@@ -45,7 +46,7 @@ export default function GstrSummary() {
         if (Array.isArray(s.lines) && s.lines.length > 0) {
           s.lines.forEach((l: any) => {
             const lineAmt = Number(l.amount || (Number(l.qty || 0) * Number(l.rate || 0)))
-            const gstRate = Number(l.gst || l.gstRate || 12)
+            const gstRate = Number(l.gst ?? l.gstRate ?? (l.hsn ? getGstRateForHsn(l.hsn) : 12))
             taxable += lineAmt
             const tax = (lineAmt * gstRate) / 100
             cgst += tax / 2

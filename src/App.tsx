@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { initHsnFromDb } from './lib/hsnUtils'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/auth/LoginPage'
 import Dashboard from './pages/dashboard/Dashboard'
@@ -80,6 +81,9 @@ const inventoryCrud = {
 
 export default function App() {
   useEffect(() => {
+    // Warm authoritative HSN/SAC master cache from Supabase on application startup
+    initHsnFromDb().catch(() => {})
+
     const handleDateClick = (e: MouseEvent) => {
       const el = e.target as HTMLElement
       if (el && el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'date') {

@@ -5,7 +5,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
-import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { getGstRateForHsn, getAllHsnCodes } from '../../lib/hsnUtils'
 
 interface PurchaseInv {
   id: string
@@ -566,6 +566,16 @@ export default function PurchaseRegister() {
                   <PlusCircle size={13} /> Add Line Item
                 </button>
               </div>
+
+              {/* HSN Datalist */}
+              <datalist id="register-hsn-list">
+                {getAllHsnCodes().map((h) => (
+                  <option key={h.code} value={h.code} label={`${h.code} (${h.gstRate}% GST) - ${h.description}`}>
+                    {`${h.code} (${h.gstRate}% GST) - ${h.description}`}
+                  </option>
+                ))}
+              </datalist>
+
               <div className="border border-border rounded-xl overflow-x-auto bg-card shadow-xs">
                 <table className="w-full text-xs min-w-[980px]">
                   <thead>
@@ -594,6 +604,22 @@ export default function PurchaseRegister() {
                             onChange={(e) => updateLine(idx, 'name', e.target.value)}
                             className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
+                          <div className="flex items-center gap-2 mt-1">
+                            <input
+                              type="text"
+                              list="register-hsn-list"
+                              placeholder="HSN code"
+                              value={line.hsn || ''}
+                              onChange={(e) => updateLine(idx, 'hsn', e.target.value)}
+                              className="w-24 px-1.5 py-0.5 text-[10px] font-mono bg-muted/60 border border-input rounded text-foreground outline-none focus:border-primary"
+                              title="HSN Code (auto-calculates GST%)"
+                            />
+                            {line.hsn && (
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                {getGstRateForHsn(line.hsn)}% GST
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 py-2">
                           <input

@@ -159,7 +159,20 @@ try {
     if (parsed.manufacturers) mockStore.manufacturers = parsed.manufacturers
     if (parsed.warehouses) mockStore.warehouses = parsed.warehouses
     if (parsed.item_mappings) mockStore['item-mappings'] = parsed.item_mappings
-    if (parsed.hsn) mockStore.hsn = parsed.hsn
+    if (parsed.hsn && Array.isArray(parsed.hsn)) {
+      mockStore.hsn = parsed.hsn.map((h: any) => {
+        const code = String(h.code).trim().toUpperCase()
+        const rate = Number(h.gst_rate ?? h.gstRate ?? (code.startsWith('3004') ? 5 : 12))
+        return {
+          id: h.id || `hsn-${code}`,
+          code,
+          description: h.description || `HSN ${code}`,
+          gst_rate: rate,
+          gstRate: rate,
+          type: h.type || (code.startsWith('99') ? 'Services' : 'Goods')
+        }
+      })
+    }
     if (parsed.account_groups) mockStore['account-groups'] = parsed.account_groups
     if (parsed.accounts) mockStore.accounts = parsed.accounts
     if (parsed.parties) mockStore.parties = parsed.parties
@@ -1010,7 +1023,33 @@ export async function list(resource: string, partyName?: string, options?: { man
     const rows = (data ?? []).map((b: any) => ({ id:b.id,itemId:b.item_id,itemCode:b.items?.code ?? '',itemName:b.items?.name ?? '',batchNumber:b.batch_number,expiryOn:b.expiry_on ?? '',receivedOn:b.received_on ?? '',manufacturedOn:b.manufactured_on ?? '',mrp:Number(b.mrp ?? 0),costPrice:Number(b.cost_price ?? 0),purchasePrice:Number(b.purchase_price ?? 0),salePrice:Number(b.sale_price ?? 0),salesSchemeDeal:Number(b.sales_scheme_deal ?? 0),salesSchemeFree:Number(b.sales_scheme_free ?? 0),purchaseSchemeDeal:Number(b.purchase_scheme_deal ?? 0),purchaseSchemeFree:Number(b.purchase_scheme_free ?? 0),supplier:b.parties?.legal_name ?? '',supplierInvoiceNumber:b.supplier_invoice_number ?? '',supplierInvoiceDate:b.supplier_invoice_date ?? '',rackNumber:b.rack_number ?? '',sourceReportValue:Number(b.source_report_value ?? 0),stock:(b.stock_movements ?? []).reduce((n:number,m:any)=>n+Number(m.quantity),0) }))
     return rows
   }
-  if (resource === 'hsn') { return await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to)) }
+  if (resource === 'hsn') {
+    let data = await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to))
+    if ((!data || data.length === 0) && Array.isArray(mockStore.hsn) && mockStore.hsn.length > 0) {
+      try {
+        const defaultEntries = mockStore.hsn.map((h: any) => ({
+          organization_id: organizationId,
+          code: String(h.code).trim().toUpperCase(),
+          description: h.description || '',
+          gst_rate: Number(h.gst_rate ?? h.gstRate ?? 12)
+        }))
+        await client.from('hsn_codes').upsert(defaultEntries, { onConflict: 'organization_id,code', ignoreDuplicates: true })
+        data = await fetchAll<any>((from, to) => client.from('hsn_codes').select('*').eq('organization_id', organizationId).order('code').range(from, to))
+      } catch {}
+    }
+    return (data ?? []).map((h: any) => {
+      const code = String(h.code || '').trim()
+      const rate = Number(h.gst_rate ?? h.gstRate ?? (code.startsWith('3004') ? 5 : 12))
+      return {
+        id: h.id,
+        code,
+        description: h.description || '',
+        gst_rate: rate,
+        gstRate: rate,
+        type: h.type || (code.startsWith('99') ? 'Services' : 'Goods')
+      }
+    })
+  }
   if (resource === 'manufacturers') {
     const data = await fetchAll<any>((from, to) =>
       client.from('manufacturers').select('id,name,code,is_active,items(count)').eq('organization_id', organizationId).order('name').range(from, to)
@@ -1947,7 +1986,24 @@ export async function create(resource: string, body: any, actor: MutationActor =
     if (!body.name) throw new Error('Item name is required.')
     const manufacturerId = body.manufacturer ? (await client.from('manufacturers').select('id').eq('organization_id', organizationId).eq('name', body.manufacturer).maybeSingle()).data?.id : null
     const saltId = body.salt ? (await client.from('salts').select('id').eq('organization_id', organizationId).eq('name', body.salt).maybeSingle()).data?.id : null
-    const hsnId = body.hsn ? (await client.from('hsn_codes').select('id').eq('organization_id', organizationId).eq('code', body.hsn).maybeSingle()).data?.id : null
+    const rawHsn = body.hsn || body.hsn_code || body.hsnCode
+    let hsnId: string | null = null
+    if (rawHsn) {
+      const cleanHsn = String(rawHsn).trim()
+      const found = (await client.from('hsn_codes').select('id').eq('organization_id', organizationId).ilike('code', cleanHsn).maybeSingle()).data?.id
+      if (found) {
+        hsnId = found
+      } else {
+        const rate = Number(body.gstRate ?? body.gst_rate ?? (cleanHsn.startsWith('3004') ? 5 : 12))
+        const { data: createdHsn } = await client.from('hsn_codes').insert({
+          organization_id: organizationId,
+          code: cleanHsn,
+          description: body.hsnDescription || `HSN ${cleanHsn}`,
+          gst_rate: rate
+        }).select('id').maybeSingle()
+        hsnId = createdHsn?.id ?? null
+      }
+    }
     const { data, error } = await client.from('items').insert({ organization_id: organizationId, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || null, unit: body.unit || null, manufacturer_id: manufacturerId ?? null, salt_id: saltId ?? null, hsn_id: hsnId ?? null, mrp: Number(body.mrp || 0), sale_rate: Number(body.saleRate || 0), purchase_rate: Number(body.purchaseRate || 0), is_active: body.status !== 'banned', schedule_class:body.scheduleClass || 'OTC', prescription_required:Boolean(body.prescriptionRequired), cold_chain:Boolean(body.coldChain), controlled_substance:Boolean(body.controlledSubstance), is_recalled:Boolean(body.recalled) }).select('id,code').single()
     if (error) throw error
     return { ...body, id: data.id, code: data.code, stock: 0, batchCount: 0, status: body.status ?? 'active' }
@@ -2602,12 +2658,28 @@ export async function update(resource: string, id: string, body: any, actor: Mut
         if (s) values.salt_id = s.id
       } catch {}
     }
-    if ('hsn' in body && !body.hsn) values.hsn_id = null
-    if (body.hsn) {
-      try {
-        const { data: h } = await client.from('hsn_codes').select('id').eq('organization_id', organizationId).eq('code', body.hsn).maybeSingle()
-        if (h) values.hsn_id = h.id
-      } catch {}
+    const rawHsn = 'hsn' in body ? body.hsn : ('hsn_code' in body ? body.hsn_code : ('hsnCode' in body ? body.hsnCode : undefined))
+    if (rawHsn !== undefined) {
+      if (!rawHsn) {
+        values.hsn_id = null
+      } else {
+        const cleanHsn = String(rawHsn).trim()
+        try {
+          const { data: h } = await client.from('hsn_codes').select('id').eq('organization_id', organizationId).ilike('code', cleanHsn).maybeSingle()
+          if (h) {
+            values.hsn_id = h.id
+          } else {
+            const rate = Number(body.gstRate ?? body.gst_rate ?? (cleanHsn.startsWith('3004') ? 5 : 12))
+            const { data: createdHsn } = await client.from('hsn_codes').insert({
+              organization_id: organizationId,
+              code: cleanHsn,
+              description: body.hsnDescription || `HSN ${cleanHsn}`,
+              gst_rate: rate
+            }).select('id').maybeSingle()
+            if (createdHsn) values.hsn_id = createdHsn.id
+          }
+        } catch {}
+      }
     }
     const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
