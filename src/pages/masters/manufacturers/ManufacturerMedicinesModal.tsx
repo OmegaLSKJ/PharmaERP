@@ -107,11 +107,18 @@ export default function ManufacturerMedicinesModal({
     setLoading(true)
     setError(null)
     try {
-      // Query database for products connected to this manufacturer
-      const allItems = await getErp<MedicineItem[]>('items', {
-        manufacturerId: manufacturer.id,
+      const isUuidStr = (val?: string) =>
+        Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim()))
+
+      const queryParams: Record<string, string> = {
         manufacturer: manufacturer.name
-      }, { forceRefresh: true })
+      }
+      if (isUuidStr(manufacturer.id)) {
+        queryParams.manufacturerId = manufacturer.id
+      }
+
+      // Query database for products connected to this manufacturer
+      const allItems = await getErp<MedicineItem[]>('items', queryParams, { forceRefresh: true })
 
       const mfgId = String(manufacturer.id || '').trim().toLowerCase()
       const mfgName = String(manufacturer.name || '').trim().toLowerCase()
