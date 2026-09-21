@@ -5,9 +5,9 @@ vi.mock('server-only', () => ({}))
 import { update, list, create } from '../apps/web/lib/erp-store'
 
 describe('Item Stock Editing & Persistence', () => {
-  it('allows user to edit the stock of an item with 0 batches (e.g. 11384)', async () => {
+  it('allows user to edit the stock of an item with 0 batches', async () => {
     const items: any = await list('items')
-    const targetItem = items.find((i: any) => i.code === '11384' || i.id === 'i-1')
+    const targetItem = items.find((i: any) => i.code === 'AE972' || (!i.batches || i.batches.length === 0))
     expect(targetItem).toBeDefined()
 
     const newStock = 75
