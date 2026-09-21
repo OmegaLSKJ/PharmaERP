@@ -209,8 +209,8 @@ export default function ManufacturerMedicinesModal({
         <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <Database size={11} className="animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                <Database size={11} className="animate-pulse text-emerald-600 dark:text-emerald-400" />
                 Live Database Connected
               </span>
               <span className="font-mono text-xs text-muted-foreground uppercase font-semibold">
@@ -218,10 +218,10 @@ export default function ManufacturerMedicinesModal({
               </span>
               <span
                 className={cn(
-                  'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                  'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
                   manufacturer.status === 'Active'
-                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-rose-500/20 text-rose-700 dark:text-rose-400'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                 )}
               >
                 {manufacturer.status}
@@ -522,10 +522,10 @@ export default function ManufacturerMedicinesModal({
                         <td className="px-3 py-3 font-mono">
                           <span
                             className={cn(
-                              'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold',
+                              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold font-mono',
                               (med.stock ?? 0) > 0
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                                : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                             )}
                           >
                             {(med.stock ?? 0) > 0 ? `${med.stock} Units` : 'Out of Stock'}
@@ -533,7 +533,7 @@ export default function ManufacturerMedicinesModal({
                         </td>
 
                         {/* Purchase Rate */}
-                        <td className="px-3 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <td className="px-3 py-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
                           {typeof med.purchaseRate === 'number' ? `₹${med.purchaseRate.toFixed(2)}` : '—'}
                         </td>
 
@@ -543,14 +543,14 @@ export default function ManufacturerMedicinesModal({
                         </td>
 
                         {/* Sale Rate */}
-                        <td className="px-3 py-3 text-right font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+                        <td className="px-3 py-3 text-right font-mono text-indigo-700 dark:text-indigo-400 font-semibold">
                           {typeof med.saleRate === 'number' ? `₹${med.saleRate.toFixed(2)}` : '—'}
                         </td>
 
                         {/* Margin */}
                         <td className="px-3 py-3 text-center font-mono">
                           {marginPct !== null ? (
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] border border-emerald-500/20">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800/60">
                               {marginPct}%
                             </span>
                           ) : (

@@ -270,22 +270,24 @@ export default function ManufacturerList() {
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Manufacturer Master</h1>
-            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Manufacturer Master</h1>
+            <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {manufacturers.length.toLocaleString()} Manufacturers Total
             </span>
-            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {totalCatalogProducts.toLocaleString()} Associated Products
             </span>
-            <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <span className="bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {allSuppliers.length} Connected Suppliers
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Manage pharmaceutical brands, companies and supplier party connections</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Manage pharmaceutical brands, companies and supplier party connections
+          </p>
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition"
+          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-primary text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm hover:opacity-90 transition"
         >
           <Plus size={16} />
           Add Manufacturer
@@ -293,26 +295,26 @@ export default function ManufacturerList() {
       </div>
 
       {/* Toolbar & Chunk Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border p-2.5 rounded-xl shadow-xs">
         <div className="flex items-center gap-2 flex-1 max-w-md">
-          <Search className="text-slate-400 shrink-0" size={16} />
+          <Search className="text-muted-foreground shrink-0" size={16} />
           <input
             type="text"
             placeholder="Search by brand name or code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-none outline-none text-white text-sm w-full placeholder:text-slate-500"
+            className="bg-transparent border-none outline-none text-foreground text-sm w-full placeholder:text-muted-foreground"
           />
         </div>
 
         <div className="flex items-center flex-wrap gap-2 justify-end">
           {/* Supplier Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-md px-2.5 py-1 text-xs text-slate-300">
-            <Truck size={13} className="text-indigo-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2.5 py-1 text-xs text-foreground">
+            <Truck size={13} className="text-primary shrink-0" />
             <select
               value={supplierFilter}
               onChange={(e) => setSupplierFilter(e.target.value)}
-              className="bg-transparent text-slate-200 text-xs outline-none max-w-[180px] sm:max-w-[220px] truncate cursor-pointer"
+              className="bg-transparent text-foreground text-xs outline-none max-w-[180px] sm:max-w-[220px] truncate cursor-pointer"
               title="Filter by connected supplier or party"
             >
               <option value="ALL">All Suppliers ({allSuppliers.length})</option>
@@ -325,14 +327,14 @@ export default function ManufacturerList() {
           </div>
 
           {/* Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-md border border-slate-800 text-xs">
+          <div className="flex items-center bg-muted/60 p-0.5 rounded-md border border-border text-xs">
             <button
               onClick={() => setChunkMode('paginated')}
               className={cn(
                 'px-2.5 py-1 rounded font-medium transition',
                 chunkMode === 'paginated'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-card text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               Pages
@@ -342,8 +344,8 @@ export default function ManufacturerList() {
               className={cn(
                 'px-2.5 py-1 rounded font-medium transition flex items-center gap-1',
                 chunkMode === 'continuous'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-card text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Layers size={12} /> Continuous
@@ -351,12 +353,12 @@ export default function ManufacturerList() {
           </div>
 
           {/* Chunk Selector */}
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <span>Chunk:</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+              className="bg-background border border-border text-foreground rounded px-2 py-1 text-xs outline-none"
             >
               <option value={25}>25 / page</option>
               <option value={50}>50 / page</option>
@@ -369,11 +371,11 @@ export default function ManufacturerList() {
       </div>
 
       {/* Chunk Info Strip */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <div>
-          Showing <span className="font-semibold text-slate-200">{startIdx}</span> to{' '}
-          <span className="font-semibold text-slate-200">{endIdx}</span> of{' '}
-          <span className="font-semibold text-slate-200">{totalItems.toLocaleString()}</span> brands
+          Showing <span className="font-semibold text-foreground">{startIdx}</span> to{' '}
+          <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
+          <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> brands
         </div>
 
         {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
@@ -381,7 +383,7 @@ export default function ManufacturerList() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(1)}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
               title="First Page"
             >
               <ChevronsLeft size={14} />
@@ -389,18 +391,18 @@ export default function ManufacturerList() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
               title="Previous Page"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-1.5 sm:px-2 font-mono text-slate-200 whitespace-nowrap shrink-0">
+            <span className="px-1.5 sm:px-2 font-mono text-foreground whitespace-nowrap shrink-0">
               {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
               title="Next Page"
             >
               <ChevronRight size={14} />
@@ -408,7 +410,7 @@ export default function ManufacturerList() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(totalPages)}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground"
               title="Last Page"
             >
               <ChevronsRight size={14} />
@@ -418,10 +420,10 @@ export default function ManufacturerList() {
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
         <table className="min-w-[750px] w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
+            <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
               <th className="px-4 py-3 font-semibold">Code</th>
               <th className="px-4 py-3 font-semibold">Manufacturer Name</th>
               <th className="px-4 py-3 font-semibold">Connected Suppliers / Parties</th>
@@ -430,17 +432,17 @@ export default function ManufacturerList() {
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {loading && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500 animate-pulse">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground animate-pulse">
                   Loading manufacturers…
                 </td>
               </tr>
             )}
             {!loading && totalItems === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   No manufacturers found matching your search.
                 </td>
               </tr>
@@ -450,14 +452,14 @@ export default function ManufacturerList() {
                 <tr
                   key={m.id}
                   onClick={() => setViewingMedicinesMfg(m)}
-                  className="hover:bg-slate-800/60 transition-colors group cursor-pointer"
+                  className="hover:bg-muted/40 transition-colors group cursor-pointer"
                   title={`Click to view medicines from ${m.name}`}
                 >
-                  <td className="px-4 py-3 font-mono font-medium text-indigo-400 group-hover:text-indigo-300">
+                  <td className="px-4 py-3 font-mono font-medium text-primary">
                     {m.code || '—'}
                   </td>
-                  <td className="px-4 py-3 font-medium text-white flex items-center gap-2 group-hover:text-indigo-300 transition-colors">
-                    <Building2 size={14} className="text-slate-500 group-hover:text-indigo-400 transition-colors shrink-0" />
+                  <td className="px-4 py-3 font-medium text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                    <Building2 size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     <span className="font-semibold">{m.name}</span>
                   </td>
                   <td className="px-4 py-3">
@@ -465,16 +467,16 @@ export default function ManufacturerList() {
                       {(m.connectedSuppliers && m.connectedSuppliers.length > 0 ? m.connectedSuppliers : [m.name]).slice(0, 2).map((sup) => (
                         <span
                           key={sup}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800/90 text-slate-300 border border-slate-700/80 text-[10px] font-medium truncate max-w-[135px]"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary text-secondary-foreground border border-border text-[10px] font-medium truncate max-w-[135px]"
                           title={sup}
                         >
-                          <Truck size={10} className="text-indigo-400 shrink-0" />
+                          <Truck size={10} className="text-primary shrink-0" />
                           <span className="truncate">{sup}</span>
                         </span>
                       ))}
                       {(m.connectedSuppliers || []).length > 2 && (
                         <span
-                          className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-semibold"
+                          className="px-1.5 py-0.5 rounded bg-secondary border border-border text-foreground text-[10px] font-semibold"
                           title={(m.connectedSuppliers || []).join(', ')}
                         >
                           +{(m.connectedSuppliers || []).length - 2} more
@@ -483,7 +485,7 @@ export default function ManufacturerList() {
                     </div>
                   </td>
                   <td className="px-4 py-3 font-mono">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px] font-semibold group-hover:bg-indigo-500/20 group-hover:border-indigo-500/40 transition">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-[11px] font-semibold group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40 transition">
                       <Package size={11} />
                       {m.productCount} medicines
                     </span>
@@ -493,8 +495,8 @@ export default function ManufacturerList() {
                       className={cn(
                         'px-2 py-0.5 rounded text-[10px] font-semibold uppercase',
                         m.status === 'Active'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60'
                       )}
                     >
                       {m.status}
@@ -509,7 +511,7 @@ export default function ManufacturerList() {
                           e.stopPropagation()
                           setViewingMedicinesMfg(m)
                         }}
-                        className="p-1.5 hover:text-indigo-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-primary text-muted-foreground hover:bg-muted rounded transition"
                         title="View Related Medicines & Details"
                       >
                         <Eye size={14} />
@@ -521,7 +523,7 @@ export default function ManufacturerList() {
                           e.stopPropagation()
                           openEditModal(m)
                         }}
-                        className="p-1.5 hover:text-amber-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-amber-600 dark:hover:text-amber-400 text-muted-foreground hover:bg-muted rounded transition"
                         title="Edit Manufacturer"
                       >
                         <Edit2 size={14} />
@@ -533,7 +535,7 @@ export default function ManufacturerList() {
                           e.stopPropagation()
                           setDeletingMfg(m)
                         }}
-                        className="p-1.5 hover:text-rose-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-rose-600 dark:hover:text-rose-400 text-muted-foreground hover:bg-muted rounded transition"
                         title="Delete Manufacturer"
                       >
                         <Trash2 size={14} />
@@ -547,10 +549,10 @@ export default function ManufacturerList() {
 
         {/* Load more button for continuous scrolling */}
         {chunkMode === 'continuous' && continuousCount < totalItems && (
-          <div className="p-4 flex justify-center border-t border-slate-800 bg-slate-900/30">
+          <div className="p-4 flex justify-center border-t border-border bg-muted/20">
             <button
               onClick={handleLoadMore}
-              className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition"
+              className="flex items-center gap-1.5 px-4 py-2 bg-card hover:bg-muted text-foreground text-xs font-semibold rounded-lg border border-border shadow-xs transition"
             >
               Load More Brands ({Math.min(pageSize || 50, totalItems - continuousCount)} more)
             </button>
@@ -566,17 +568,17 @@ export default function ManufacturerList() {
             onClick={() => setModalMode(null)}
           >
             <div
-              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4 text-white"
+              className="bg-card text-card-foreground border border-border rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-lg font-bold text-white">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h3 className="text-lg font-bold text-foreground">
                   {modalMode === 'add' ? 'Add New Manufacturer' : 'Edit Manufacturer'}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setModalMode(null)}
-                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition"
                 >
                   <X size={18} />
                 </button>
@@ -584,8 +586,8 @@ export default function ManufacturerList() {
 
               <form onSubmit={handleSave} className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
-                    Company Name <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">
+                    Company Name <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -593,12 +595,12 @@ export default function ManufacturerList() {
                     placeholder="e.g. Cipla Ltd"
                     value={formName}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                    className="w-full bg-background border border-input rounded-lg p-2.5 text-foreground text-sm outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">
                     Company Code
                   </label>
                   <input
@@ -606,12 +608,12 @@ export default function ManufacturerList() {
                     placeholder="e.g. CIPLA"
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm font-mono outline-none focus:border-indigo-500 placeholder:text-slate-500 uppercase"
+                    className="w-full bg-background border border-input rounded-lg p-2.5 text-foreground text-sm font-mono outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Status</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Status</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -619,8 +621,8 @@ export default function ManufacturerList() {
                       className={cn(
                         'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
                         formStatus === 'Active'
-                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 font-bold'
+                          : 'bg-background border-border text-muted-foreground hover:text-foreground'
                       )}
                     >
                       {formStatus === 'Active' && <Check size={13} />} Active
@@ -631,8 +633,8 @@ export default function ManufacturerList() {
                       className={cn(
                         'py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition',
                         formStatus === 'Blocked'
-                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 font-bold'
+                          : 'bg-background border-border text-muted-foreground hover:text-foreground'
                       )}
                     >
                       {formStatus === 'Blocked' && <Check size={13} />} Blocked
@@ -640,19 +642,19 @@ export default function ManufacturerList() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-3 border-t border-border">
                   <button
                     type="button"
                     onClick={() => setModalMode(null)}
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                    className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                    className="px-4 py-2 text-xs bg-primary text-primary-foreground font-semibold rounded-lg shadow-sm hover:opacity-90 transition disabled:opacity-50"
                   >
                     {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Manufacturer' : 'Update Manufacturer'}
                   </button>
@@ -671,29 +673,29 @@ export default function ManufacturerList() {
             onClick={() => setDeletingMfg(null)}
           >
             <div
-              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-white"
+              className="bg-card text-card-foreground border border-border rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 text-rose-400">
+              <div className="flex items-center gap-3 text-rose-500">
                 <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
                   <AlertTriangle size={22} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Delete Manufacturer</h3>
-                  <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                  <h3 className="text-base font-bold text-foreground">Delete Manufacturer</h3>
+                  <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300">
-                Are you sure you want to delete <span className="font-semibold text-white">"{deletingMfg.name}"</span>?
+              <p className="text-xs text-foreground">
+                Are you sure you want to delete <strong className="font-semibold text-foreground">"{deletingMfg.name}"</strong>?
               </p>
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setDeletingMfg(null)}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
                 >
                   Cancel
                 </button>
