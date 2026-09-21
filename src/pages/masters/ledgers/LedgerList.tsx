@@ -246,17 +246,23 @@ export default function LedgerList() {
         setStatementEntries(validRows)
 
         // Compute balances and totals directly connected to all real transactions for each ledger
-        const ledgerTxnTotals: Record<string, { dr: number; cr: number; net: number; count: number }> = {}
+        const ledgerTxnTotals: Record<string, { dr: number; cr: number; net: number; count: number; lastDate: string; lastTime: string }> = {}
         validRows.forEach((row) => {
           const partyKey = (row.party || '').trim().toLowerCase()
           if (!partyKey) return
-          if (!ledgerTxnTotals[partyKey]) ledgerTxnTotals[partyKey] = { dr: 0, cr: 0, net: 0, count: 0 }
+          if (!ledgerTxnTotals[partyKey]) ledgerTxnTotals[partyKey] = { dr: 0, cr: 0, net: 0, count: 0, lastDate: '', lastTime: '' }
           const drVal = Number(row.debit) || 0
           const crVal = Number(row.credit) || 0
           ledgerTxnTotals[partyKey].dr += drVal
           ledgerTxnTotals[partyKey].cr += crVal
           ledgerTxnTotals[partyKey].net += drVal - crVal
           ledgerTxnTotals[partyKey].count += 1
+          // Track the most recent date for last activity
+          const rowDate = (row.date || '').slice(0, 10)
+          if (!ledgerTxnTotals[partyKey].lastDate || rowDate > ledgerTxnTotals[partyKey].lastDate) {
+            ledgerTxnTotals[partyKey].lastDate = rowDate
+            ledgerTxnTotals[partyKey].lastTime = (row as any).time || ''
+          }
         })
 
         const updatedCombined = combined.map((ledger) => {
@@ -275,6 +281,8 @@ export default function LedgerList() {
               txnCount: txnData.count,
               totalDr: txnData.dr,
               totalCr: txnData.cr,
+              lastActivityDate: txnData.lastDate,
+              lastActivityTime: txnData.lastTime,
             }
           }
           return {
@@ -282,6 +290,8 @@ export default function LedgerList() {
             txnCount: 0,
             totalDr: 0,
             totalCr: 0,
+            lastActivityDate: '',
+            lastActivityTime: '',
           }
         })
 
@@ -415,11 +425,20 @@ export default function LedgerList() {
   const [hideZeroBalances, setHideZeroBalances] = useState(false)
 
   const filteredLedgers = useMemo(() => {
-    return ledgers.filter((l) => {
+    const filtered = ledgers.filter((l) => {
       const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || l.group.toLowerCase().includes(search.toLowerCase())
       const matchGroup = groupFilter === 'ALL' || l.group.toLowerCase() === groupFilter.toLowerCase()
       const matchBalance = !hideZeroBalances || (Number(l.balance) || 0) > 0
       return matchSearch && matchGroup && matchBalance
+    })
+    // Sort by lastActivityDate descending (newer first); fallback to balance desc
+    return [...filtered].sort((a, b) => {
+      const dA = a.lastActivityDate || ''
+      const dB = b.lastActivityDate || ''
+      if (dA && dB) return dB.localeCompare(dA)
+      if (dA) return -1
+      if (dB) return 1
+      return (b.balance || 0) - (a.balance || 0)
     })
   }, [ledgers, search, groupFilter, hideZeroBalances])
 
@@ -668,7 +687,7 @@ export default function LedgerList() {
             </div>
           </div>
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-            <table className="min-w-[850px] w-full text-left border-collapse text-xs">
+            <table className="min-w-[1050px] w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   <th className="p-3.5">Ledger Name</th>
@@ -678,18 +697,27 @@ export default function LedgerList() {
                   <th className="p-3.5 text-right">Total Credit</th>
                   <th className="p-3.5 text-right">Current Balance</th>
                   <th className="p-3.5 text-center">Type</th>
+                  <th className="p-3.5">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={11} className="text-indigo-400" />
+                      Last Activity
+                      <span className="text-[9px] text-slate-500 font-normal">(Newer→Older)</span>
+                    </div>
+                  </th>
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-sm">
                 {filteredLedgers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-xs text-slate-500">
+                    <td colSpan={9} className="p-8 text-center text-xs text-slate-500">
                       No ledgers found.
                     </td>
                   </tr>
                 ) : (
-                  filteredLedgers.map((l) => (
+                  filteredLedgers.map((l) => {
+                    const dt = getTxnDateTime(l.lastActivityDate, l.lastActivityTime, l.id)
+                    return (
                     <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300 transition group">
                       <td className="p-3.5 font-medium text-white">
                         <button
@@ -727,12 +755,26 @@ export default function LedgerList() {
                           {l.type}
                         </span>
                       </td>
+                      <td className="p-3.5">
+                        {l.lastActivityDate ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
+                              <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
+                              <Clock size={9} className="shrink-0" />{dt.time}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 text-[10px]">No activity</span>
+                        )}
+                      </td>
                       <td className="p-3.5 text-right">
                         <div className="flex justify-end items-center gap-2">
                           <button
                             onClick={() => openPartyStatement(l.name)}
                             className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition"
-                            title="View Statement & Transactions"
+                            title="View Statement &amp; Transactions"
                           >
                             <FileText size={12} /> Statement
                           </button>
@@ -741,7 +783,7 @@ export default function LedgerList() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  )})
                 )}
               </tbody>
             </table>
