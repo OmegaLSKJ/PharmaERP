@@ -272,6 +272,120 @@ try {
   // Silent catch
 }
 
+// Load dynamically added/modified custom manufacturers from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-manufacturers.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-manufacturers.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const customMap = new Map(custom.map((c: any) => [String(c.id || c.code || c.name), c]))
+      mockStore.manufacturers = (mockStore.manufacturers || []).map((m: any) => {
+        const found = customMap.get(String(m.id)) || customMap.get(String(m.code)) || customMap.get(String(m.name))
+        if (found) {
+          customMap.delete(String(m.id))
+          customMap.delete(String(m.code))
+          customMap.delete(String(m.name))
+          return { ...m, ...found }
+        }
+        return m
+      })
+      if (customMap.size > 0) {
+        mockStore.manufacturers = [...customMap.values(), ...mockStore.manufacturers]
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
+// Load dynamically added/modified custom salts from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-salts.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-salts.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const customMap = new Map(custom.map((c: any) => [String(c.id || c.code || c.name), c]))
+      mockStore.salts = (mockStore.salts || []).map((s: any) => {
+        const found = customMap.get(String(s.id)) || customMap.get(String(s.code)) || customMap.get(String(s.name))
+        if (found) {
+          customMap.delete(String(s.id))
+          customMap.delete(String(s.code))
+          customMap.delete(String(s.name))
+          return { ...s, ...found }
+        }
+        return s
+      })
+      if (customMap.size > 0) {
+        mockStore.salts = [...customMap.values(), ...mockStore.salts]
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
+// Load dynamically added/modified custom accounts from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-accounts.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-accounts.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const customMap = new Map(custom.map((c: any) => [String(c.id || c.code || c.name), c]))
+      mockStore.accounts = (mockStore.accounts || []).map((a: any) => {
+        const found = customMap.get(String(a.id)) || customMap.get(String(a.code)) || customMap.get(String(a.name))
+        if (found) {
+          customMap.delete(String(a.id))
+          customMap.delete(String(a.code))
+          customMap.delete(String(a.name))
+          return { ...a, ...found }
+        }
+        return a
+      })
+      if (customMap.size > 0) {
+        mockStore.accounts = [...customMap.values(), ...mockStore.accounts]
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
+// Load dynamically added/modified custom HSN codes from persistent JSON backup if it exists
+try {
+  const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-hsn.json')
+  const localCustom = path.resolve(process.cwd(), 'lib/custom-hsn.json')
+  const customPath = fs.existsSync(rootCustom) ? rootCustom : fs.existsSync(localCustom) ? localCustom : null
+  if (customPath) {
+    const raw = fs.readFileSync(customPath, 'utf8')
+    const custom = JSON.parse(raw)
+    if (Array.isArray(custom) && custom.length > 0) {
+      const customMap = new Map(custom.map((c: any) => [String(c.code || c.id).toUpperCase(), c]))
+      mockStore.hsn = (mockStore.hsn || []).map((h: any) => {
+        const found = customMap.get(String(h.code || h.id).toUpperCase())
+        if (found) {
+          customMap.delete(String(h.code || h.id).toUpperCase())
+          return { ...h, ...found }
+        }
+        return h
+      })
+      if (customMap.size > 0) {
+        mockStore.hsn = [...customMap.values(), ...mockStore.hsn]
+      }
+    }
+  }
+} catch (e) {
+  // Silent catch
+}
+
 // Canonical Catalog HSN index for fast resolution across all 11,060+ items
 const catalogHsnByCode = new Map<string, { hsn: string; gstRate: number }>()
 const catalogHsnByName = new Map<string, { hsn: string; gstRate: number }>()
@@ -475,64 +589,130 @@ try {
   // Silent catch — delta file may not exist yet
 }
 
-function persistCustomParty(party: any) {
+function removeFromDiskFile(filename: string, predicate: (item: any) => boolean) {
   try {
-    const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-parties.json')
-    const localCustom = path.resolve(process.cwd(), 'lib/custom-parties.json')
-    const targets = [rootCustom, localCustom]
-    for (const target of targets) {
+    const rootCustom = path.resolve(process.cwd(), `apps/web/lib/${filename}`)
+    const localCustom = path.resolve(process.cwd(), `lib/${filename}`)
+    for (const target of [rootCustom, localCustom]) {
+      if (fs.existsSync(/* turbopackIgnore: true */ target)) {
+        let list: any[] = []
+        try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
+        const filtered = list.filter(predicate)
+        if (filtered.length !== list.length) {
+          fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(filtered, null, 2), 'utf8')
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to remove item from ${filename}:`, err)
+  }
+}
+
+function persistToDiskFile(filename: string, item: any, keyFn: (existing: any, current: any) => boolean) {
+  try {
+    const rootCustom = path.resolve(process.cwd(), `apps/web/lib/${filename}`)
+    const localCustom = path.resolve(process.cwd(), `lib/${filename}`)
+    for (const target of [rootCustom, localCustom]) {
       let list: any[] = []
       if (fs.existsSync(/* turbopackIgnore: true */ target)) {
         try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
       }
-      list = [party, ...list.filter((p: any) => p.id !== party.id && p.name.toLowerCase() !== party.name.toLowerCase())]
+      list = [item, ...list.filter((existing: any) => !keyFn(existing, item))]
       const dir = path.dirname(target)
       if (!fs.existsSync(/* turbopackIgnore: true */ dir)) fs.mkdirSync(/* turbopackIgnore: true */ dir, { recursive: true })
       fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(list, null, 2), 'utf8')
     }
   } catch (err) {
-    console.warn('Failed to persist custom party to disk:', err)
+    console.warn(`Failed to persist to ${filename}:`, err)
   }
+}
+
+function persistCustomParty(party: any) {
+  persistToDiskFile('custom-parties.json', party, (e, c) => e.id === c.id || (c.name && e.name?.toLowerCase() === c.name.toLowerCase()))
+}
+
+function removeCustomParty(id?: string, name?: string, code?: string) {
+  removeFromDiskFile('custom-parties.json', (p: any) => {
+    if (id && p.id === id) return false
+    if (code && p.code && p.code.toLowerCase() === code.toLowerCase()) return false
+    if (name && p.name && p.name.toLowerCase() === name.toLowerCase()) return false
+    return true
+  })
 }
 
 function persistCustomItem(item: any) {
-  try {
-    const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-items.json')
-    const localCustom = path.resolve(process.cwd(), 'lib/custom-items.json')
-    const targets = [rootCustom, localCustom]
-    for (const target of targets) {
-      let list: any[] = []
-      if (fs.existsSync(/* turbopackIgnore: true */ target)) {
-        try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
-      }
-      list = [item, ...list.filter((i: any) => i.id !== item.id && (item.code ? i.code !== item.code : true))]
-      const dir = path.dirname(target)
-      if (!fs.existsSync(/* turbopackIgnore: true */ dir)) fs.mkdirSync(/* turbopackIgnore: true */ dir, { recursive: true })
-      fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(list, null, 2), 'utf8')
-    }
-  } catch (err) {
-    console.warn('Failed to persist custom item to disk:', err)
-  }
+  persistToDiskFile('custom-items.json', item, (e, c) => e.id === c.id || (c.code && e.code === c.code))
+}
+
+function removeCustomItem(id?: string, code?: string) {
+  removeFromDiskFile('custom-items.json', (i: any) => {
+    if (id && i.id === id) return false
+    if (code && i.code && i.code === code) return false
+    return true
+  })
 }
 
 function persistCustomWarehouse(warehouse: any) {
-  try {
-    const rootCustom = path.resolve(process.cwd(), 'apps/web/lib/custom-warehouses.json')
-    const localCustom = path.resolve(process.cwd(), 'lib/custom-warehouses.json')
-    const targets = [rootCustom, localCustom]
-    for (const target of targets) {
-      let list: any[] = []
-      if (fs.existsSync(/* turbopackIgnore: true */ target)) {
-        try { list = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ target, 'utf8')) } catch {}
-      }
-      list = [warehouse, ...list.filter((w: any) => w.id !== warehouse.id && (warehouse.code ? w.code !== warehouse.code : true))]
-      const dir = path.dirname(target)
-      if (!fs.existsSync(/* turbopackIgnore: true */ dir)) fs.mkdirSync(/* turbopackIgnore: true */ dir, { recursive: true })
-      fs.writeFileSync(/* turbopackIgnore: true */ target, JSON.stringify(list, null, 2), 'utf8')
-    }
-  } catch (err) {
-    console.warn('Failed to persist custom warehouse to disk:', err)
-  }
+  persistToDiskFile('custom-warehouses.json', warehouse, (e, c) => e.id === c.id || (c.code && e.code === c.code))
+}
+
+function removeCustomWarehouse(id?: string, code?: string) {
+  removeFromDiskFile('custom-warehouses.json', (w: any) => {
+    if (id && w.id === id) return false
+    if (code && w.code && w.code === code) return false
+    return true
+  })
+}
+
+function persistCustomManufacturer(mfr: any) {
+  persistToDiskFile('custom-manufacturers.json', mfr, (e, c) => e.id === c.id || (c.code && e.code === c.code) || (c.name && e.name?.toLowerCase() === c.name.toLowerCase()))
+}
+
+function removeCustomManufacturer(id?: string, code?: string, name?: string) {
+  removeFromDiskFile('custom-manufacturers.json', (m: any) => {
+    if (id && m.id === id) return false
+    if (code && m.code && m.code.toLowerCase() === code.toLowerCase()) return false
+    if (name && m.name && m.name.toLowerCase() === name.toLowerCase()) return false
+    return true
+  })
+}
+
+function persistCustomSalt(salt: any) {
+  persistToDiskFile('custom-salts.json', salt, (e, c) => e.id === c.id || (c.code && e.code === c.code) || (c.name && e.name?.toLowerCase() === c.name.toLowerCase()))
+}
+
+function removeCustomSalt(id?: string, code?: string, name?: string) {
+  removeFromDiskFile('custom-salts.json', (s: any) => {
+    if (id && s.id === id) return false
+    if (code && s.code && s.code.toLowerCase() === code.toLowerCase()) return false
+    if (name && s.name && s.name.toLowerCase() === name.toLowerCase()) return false
+    return true
+  })
+}
+
+function persistCustomAccount(account: any) {
+  persistToDiskFile('custom-accounts.json', account, (e, c) => e.id === c.id || (c.code && e.code === c.code) || (c.name && e.name?.toLowerCase() === c.name.toLowerCase()))
+}
+
+function removeCustomAccount(id?: string, name?: string, code?: string) {
+  removeFromDiskFile('custom-accounts.json', (a: any) => {
+    if (id && a.id === id) return false
+    if (code && a.code && a.code.toLowerCase() === code.toLowerCase()) return false
+    if (name && a.name && a.name.toLowerCase() === name.toLowerCase()) return false
+    return true
+  })
+}
+
+function persistCustomHsn(hsn: any) {
+  persistToDiskFile('custom-hsn.json', hsn, (e, c) => e.id === c.id || (c.code && String(e.code).toUpperCase() === String(c.code).toUpperCase()))
+}
+
+function removeCustomHsn(id?: string, code?: string) {
+  removeFromDiskFile('custom-hsn.json', (h: any) => {
+    if (id && h.id === id) return false
+    if (code && String(h.code).toUpperCase() === String(code).toUpperCase()) return false
+    return true
+  })
 }
 
 /**
@@ -1146,6 +1326,35 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
         status: w.status || 'active'
       }
     })
+  }
+
+  if (resource === 'item-batches') {
+    return (mockStore.items || []).flatMap((item: any) =>
+      (item.batches || []).map((b: any) => ({
+        id: b.id || `b-${item.id}-${b.batch || b.batchNumber || 'def'}`,
+        itemId: item.id,
+        itemCode: item.code || '',
+        itemName: item.name || '',
+        batchNumber: b.batch || b.batchNumber || 'DEFAULT',
+        expiryOn: b.expiry || b.expiryOn || '',
+        receivedOn: b.receivedOn || '',
+        manufacturedOn: b.manufacturedOn || '',
+        mrp: Number(b.mrp || item.mrp || 0),
+        costPrice: Number(b.costPrice || item.purchaseRate || 0),
+        purchasePrice: Number(b.purchasePrice || b.rate || item.purchaseRate || 0),
+        salePrice: Number(b.salePrice || item.saleRate || 0),
+        salesSchemeDeal: Number(b.salesSchemeDeal || 0),
+        salesSchemeFree: Number(b.salesSchemeFree || 0),
+        purchaseSchemeDeal: Number(b.purchaseSchemeDeal || 0),
+        purchaseSchemeFree: Number(b.purchaseSchemeFree || 0),
+        supplier: b.supplier || item.manufacturer || '',
+        supplierInvoiceNumber: b.supplierInvoiceNumber || '',
+        supplierInvoiceDate: b.supplierInvoiceDate || '',
+        rackNumber: b.rackNumber || '',
+        sourceReportValue: Number(b.sourceReportValue || 0),
+        stock: Number(b.stock || 0)
+      }))
+    )
   }
 
   if (mockStore[resource]) {
@@ -1886,27 +2095,57 @@ export async function create(resource: string, body: any, actor: MutationActor =
       return item
     }
     if (resource === 'item-batches') {
-      const item = mockStore.items.find((row: any) => row.id === body.itemId)
+      const item = (mockStore.items || []).find((row: any) => row.id === body.itemId || row.code === body.itemId)
       if (!item) throw new Error('The selected item is unavailable.')
-      const batch = { id, ...body, itemCode: item.code, itemName: item.name, stock: 0 }
+      const batchNum = (body.batchNumber || body.batch || 'DEFAULT').trim()
+      const newBatch = {
+        id,
+        batch: batchNum,
+        batchNumber: batchNum,
+        expiry: body.expiryOn || body.expiry || '',
+        expiryOn: body.expiryOn || body.expiry || '',
+        receivedOn: body.receivedOn || '',
+        manufacturedOn: body.manufacturedOn || '',
+        mrp: Number(body.mrp || item.mrp || 0),
+        costPrice: Number(body.costPrice || item.purchaseRate || 0),
+        purchasePrice: Number(body.purchasePrice || item.purchaseRate || 0),
+        salePrice: Number(body.salePrice || item.saleRate || 0),
+        salesSchemeDeal: Number(body.salesSchemeDeal || 0),
+        salesSchemeFree: Number(body.salesSchemeFree || 0),
+        purchaseSchemeDeal: Number(body.purchaseSchemeDeal || 0),
+        purchaseSchemeFree: Number(body.purchaseSchemeFree || 0),
+        supplier: body.supplier || item.manufacturer || '',
+        supplierInvoiceNumber: body.supplierInvoiceNumber || '',
+        supplierInvoiceDate: body.supplierInvoiceDate || '',
+        rackNumber: body.rackNumber || '',
+        sourceReportValue: Number(body.sourceReportValue || 0),
+        stock: Number(body.stock || 0),
+        stockByLocation: { 'Main Store': Number(body.stock || 0), 'Main Warehouse': Number(body.stock || 0) }
+      }
       item.batches = item.batches || []
-      item.batches.unshift({ id, batch: body.batchNumber, expiry: body.expiryOn || '', mrp: Number(body.mrp || 0), stock: 0, stockByLocation: {} })
+      item.batches.unshift(newBatch)
       item.batchCount = item.batches.length
-      return batch
+      item.stock = item.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
+      persistCustomItem(item)
+      return { ...newBatch, itemId: item.id, itemCode: item.code, itemName: item.name }
     }
     if (resource === 'hsn') {
-      const hsn = { id, code: body.code, description: body.description || '', gst_rate: Number(body.gstRate || 0) }
+      const r = Number(body.gstRate ?? body.gst_rate ?? 0)
+      const hsn = { id, code: body.code, description: body.description || '', gst_rate: r, gstRate: r }
       mockStore.hsn.push(hsn)
+      persistCustomHsn(hsn)
       return hsn
     }
     if (resource === 'manufacturers') {
       const mfr = { id, name: body.name, code: body.code || '', is_active: body.status !== 'inactive' }
       mockStore.manufacturers.push(mfr)
+      persistCustomManufacturer(mfr)
       return mfr
     }
     if (resource === 'salts') {
       const salt = { id, code: body.code || `SALT-${Date.now()}`, name: body.name, composition: body.composition || '', category: body.category || '', itemcount: 0 }
       mockStore.salts.push(salt)
+      persistCustomSalt(salt)
       return salt
     }
     if (resource === 'warehouses') {
@@ -1927,6 +2166,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
     if (resource === 'accounts') {
       const acc = { id, code: body.code || `ACC-${Date.now()}`, name: body.name, group: body.group || 'General', balance: Number(body.openingBalance || 0), type: 'Dr', active: true }
       mockStore.accounts.push(acc)
+      persistCustomAccount(acc)
       return acc
     }
     if (resource === 'series') {
@@ -2855,6 +3095,40 @@ export async function create(resource: string, body: any, actor: MutationActor =
 export async function update(resource: string, id: string, body: any, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
   if (useMockStore()) {
+    if (resource === 'item-batches') {
+      for (const item of (mockStore.items || [])) {
+        const bIdx = (item.batches || []).findIndex((b: any) => b.id === id || b.batch === id || b.batchNumber === id)
+        if (bIdx !== -1) {
+          const existing = item.batches[bIdx]
+          item.batches[bIdx] = {
+            ...existing,
+            ...body,
+            batch: body.batchNumber || body.batch || existing.batch,
+            batchNumber: body.batchNumber || body.batch || existing.batchNumber,
+            expiry: body.expiryOn || body.expiry || existing.expiry,
+            expiryOn: body.expiryOn || body.expiry || existing.expiryOn,
+            mrp: Number(body.mrp ?? existing.mrp),
+            costPrice: Number(body.costPrice ?? existing.costPrice),
+            purchasePrice: Number(body.purchasePrice ?? existing.purchasePrice),
+            salePrice: Number(body.salePrice ?? existing.salePrice),
+            salesSchemeDeal: Number(body.salesSchemeDeal ?? existing.salesSchemeDeal),
+            salesSchemeFree: Number(body.salesSchemeFree ?? existing.salesSchemeFree),
+            purchaseSchemeDeal: Number(body.purchaseSchemeDeal ?? existing.purchaseSchemeDeal),
+            purchaseSchemeFree: Number(body.purchaseSchemeFree ?? existing.purchaseSchemeFree),
+            supplier: body.supplier || existing.supplier,
+            supplierInvoiceNumber: body.supplierInvoiceNumber || existing.supplierInvoiceNumber,
+            supplierInvoiceDate: body.supplierInvoiceDate || existing.supplierInvoiceDate,
+            rackNumber: body.rackNumber || existing.rackNumber,
+            stock: Number(body.stock ?? existing.stock)
+          }
+          item.stock = item.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
+          persistCustomItem(item)
+          return { ...item.batches[bIdx], itemId: item.id, itemCode: item.code, itemName: item.name }
+        }
+      }
+      return { id, ...body }
+    }
+
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',
@@ -2871,6 +3145,23 @@ export async function update(resource: string, id: string, body: any, actor: Mut
         }
         if (resource === 'warehouses') {
           persistCustomWarehouse(list[idx])
+        }
+        if (resource === 'manufacturers') {
+          persistCustomManufacturer(list[idx])
+        }
+        if (resource === 'salts') {
+          persistCustomSalt(list[idx])
+        }
+        if (resource === 'accounts') {
+          persistCustomAccount(list[idx])
+        }
+        if (resource === 'hsn') {
+          if ('gstRate' in body || 'gst_rate' in body) {
+            const r = Number(body.gstRate ?? body.gst_rate)
+            list[idx].gst_rate = r
+            list[idx].gstRate = r
+          }
+          persistCustomHsn(list[idx])
         }
         if (resource === 'items') {
           if ('stock' in body) list[idx].stock = Number(body.stock)
@@ -2905,6 +3196,9 @@ export async function update(resource: string, id: string, body: any, actor: Mut
               })
             })
           }
+          persistTransactions()
+        }
+        if (resource === 'sales' || resource === 'purchases' || resource === 'challans') {
           persistTransactions()
         }
         return list[idx]
@@ -3162,6 +3456,20 @@ export async function update(resource: string, id: string, body: any, actor: Mut
 export async function remove(resource: string, id: string, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
   if (useMockStore()) {
+    if (resource === 'item-batches') {
+      for (const item of (mockStore.items || [])) {
+        const bIdx = (item.batches || []).findIndex((b: any) => b.id === id || b.batch === id || b.batchNumber === id)
+        if (bIdx !== -1) {
+          item.batches.splice(bIdx, 1)
+          item.batchCount = item.batches.length
+          item.stock = item.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
+          persistCustomItem(item)
+          return { id }
+        }
+      }
+      return { id }
+    }
+
     const specialKeys: Record<string, string> = {
       'sale-returns': 'sales',
       'purchase-returns': 'purchases',
@@ -3172,6 +3480,7 @@ export async function remove(resource: string, id: string, actor: MutationActor 
     if (list) {
       if (id === 'zero-value' || id === 'all-zero') {
         mockStore[storeKey] = list.filter((x: any) => (Number(x.debit) || 0) > 0 || (Number(x.credit) || 0) > 0)
+        persistTransactions()
       } else if (id === 'purge-duplicates' || id === 'duplicates') {
         const seen = new Map<string, any>()
         let removed = 0
@@ -3181,9 +3490,20 @@ export async function remove(resource: string, id: string, actor: MutationActor 
           else removed++
         }
         mockStore[storeKey] = Array.from(seen.values())
+        if (resource === 'parties') {
+          for (const item of mockStore.parties) {
+            persistCustomParty(item)
+          }
+        }
         return { id, removedCount: removed }
+      } else if (id === 'all' || id === 'purge-all') {
+        mockStore[storeKey] = []
+        if (resource === 'parties') {
+          removeFromDiskFile('custom-parties.json', () => false)
+        }
+        return { id, removedAll: true }
       } else {
-        const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.voucher_number === id)
+        const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.voucher_number === id || x.code === id || (x.name && x.name.toLowerCase() === id.toLowerCase()))
         if (idx !== -1) {
           const item = list[idx]
           list.splice(idx, 1)
@@ -3191,6 +3511,31 @@ export async function remove(resource: string, id: string, actor: MutationActor 
             const vNo = item.number || item.voucher_number || item.id || id
             mockStore.ledgers = (mockStore.ledgers || []).filter((l: any) => l.vNo !== vNo && l.vNo !== id)
             persistTransactions()
+          }
+          if (resource === 'sales' || resource === 'purchases' || resource === 'challans') {
+            persistTransactions()
+          }
+          if (resource === 'parties') {
+            removeCustomParty(item.id, item.name, item.code)
+          }
+          if (resource === 'items') {
+            removeCustomItem(item.id, item.code)
+            refreshCatalogHsnIndex()
+          }
+          if (resource === 'warehouses') {
+            removeCustomWarehouse(item.id, item.code)
+          }
+          if (resource === 'manufacturers') {
+            removeCustomManufacturer(item.id, item.code, item.name)
+          }
+          if (resource === 'salts') {
+            removeCustomSalt(item.id, item.code, item.name)
+          }
+          if (resource === 'accounts') {
+            removeCustomAccount(item.id, item.name, item.code)
+          }
+          if (resource === 'hsn') {
+            removeCustomHsn(item.id, item.code)
           }
         }
       }
@@ -3239,6 +3584,48 @@ export async function remove(resource: string, id: string, actor: MutationActor 
       await client.from('chart_of_accounts').delete().eq('party_id', id).eq('organization_id', organizationId)
     } catch {}
     const { error } = await client.from('parties').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  if (resource === 'items') {
+    const [{ count: salesCount }, { count: purchaseCount }] = await Promise.all([
+      client.from('sales_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_id', id),
+      client.from('purchase_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_id', id)
+    ])
+    if ((salesCount ?? 0) + (purchaseCount ?? 0) > 0) {
+      const { error } = await client.from('items').update({ is_active: false }).eq('id', id).eq('organization_id', organizationId)
+      if (error) throw error
+      return { id, softDeleted: true }
+    }
+    try {
+      await client.from('item_batches').delete().eq('item_id', id)
+    } catch {}
+    const { error } = await client.from('items').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  if (resource === 'warehouses') {
+    const { count: stockCount } = await client.from('stock_movements').select('*', { count: 'exact', head: true }).eq('warehouse_id', id)
+    if ((stockCount ?? 0) > 0) {
+      const { error } = await client.from('warehouses').update({ is_active: false }).eq('id', id).eq('organization_id', organizationId)
+      if (error) throw error
+      return { id, softDeleted: true }
+    }
+    const { error } = await client.from('warehouses').delete().eq('id', id).eq('organization_id', organizationId)
+    if (error) throw error
+    return { id }
+  }
+  if (resource === 'accounts') {
+    try {
+      await client.from('voucher_lines').delete().eq('account_id', id).or('and(debit.eq.0,credit.eq.0),and(debit.is.null,credit.is.null)')
+    } catch {}
+    const { count: lineCount } = await client.from('voucher_lines').select('*', { count: 'exact', head: true }).eq('account_id', id)
+    if ((lineCount ?? 0) > 0) {
+      const { error } = await client.from('chart_of_accounts').update({ is_active: false }).eq('id', id).eq('organization_id', organizationId)
+      if (error) throw error
+      return { id, softDeleted: true }
+    }
+    const { error } = await client.from('chart_of_accounts').delete().eq('id', id).eq('organization_id', organizationId)
     if (error) throw error
     return { id }
   }
@@ -3306,7 +3693,7 @@ export async function remove(resource: string, id: string, actor: MutationActor 
   if(resource==='challans'){const{error:lineError}=await client.from('delivery_challan_lines').delete().eq('challan_id',id);if(lineError)throw lineError;const{error}=await client.from('delivery_challans').delete().eq('id',id).eq('organization_id',organizationId);if(error)throw error;return{id}}
   if(resource==='vouchers'){const{error:lineError}=await client.from('voucher_lines').delete().eq('voucher_id',id);if(lineError)throw lineError;const{error}=await client.from('vouchers').delete().eq('id',id).eq('organization_id',organizationId);if(error)throw error;return{id}}
   if(managedCrud[resource]){const config=managedCrud[resource];let query=client.from(config.table).delete().eq('id',id);if(config.organizationScoped)query=query.eq('organization_id',organizationId);const{error}=await query;if(error)throw error;return{id}}
-  const masterTables: Record<string, string> = { parties: 'parties', warehouses: 'warehouses', accounts: 'chart_of_accounts', items: 'items', series: 'document_series', 'communication-blocks': 'communication_blocks' }
+  const masterTables: Record<string, string> = { series: 'document_series', 'communication-blocks': 'communication_blocks' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { error } = await client.from(masterTables[resource]).delete().eq('id', id).eq('organization_id', organizationId); if (error) throw error
   return { id }
