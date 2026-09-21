@@ -14,12 +14,15 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Layers,
-  Truck
+  Truck,
+  Eye,
+  Package
 } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
 import defaultManufacturerMaster from '../../../data/manufacturerMasterData.json'
+import ManufacturerMedicinesModal from './ManufacturerMedicinesModal'
 
 interface Manufacturer {
   id: string
@@ -66,6 +69,9 @@ export default function ManufacturerList() {
   // Delete confirmation modal state
   const [deletingMfg, setDeletingMfg] = useState<Manufacturer | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Medicines viewer modal state
+  const [viewingMedicinesMfg, setViewingMedicinesMfg] = useState<Manufacturer | null>(null)
 
   const showToast = useUIStore((state) => state.showToast)
 
@@ -441,13 +447,18 @@ export default function ManufacturerList() {
             )}
             {!loading &&
               displayedItems.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-800/40 transition-colors group">
+                <tr
+                  key={m.id}
+                  onClick={() => setViewingMedicinesMfg(m)}
+                  className="hover:bg-slate-800/60 transition-colors group cursor-pointer"
+                  title={`Click to view medicines from ${m.name}`}
+                >
                   <td className="px-4 py-3 font-mono font-medium text-indigo-400 group-hover:text-indigo-300">
                     {m.code || '—'}
                   </td>
-                  <td className="px-4 py-3 font-medium text-white flex items-center gap-2">
-                    <Building2 size={14} className="text-slate-500" />
-                    {m.name}
+                  <td className="px-4 py-3 font-medium text-white flex items-center gap-2 group-hover:text-indigo-300 transition-colors">
+                    <Building2 size={14} className="text-slate-500 group-hover:text-indigo-400 transition-colors shrink-0" />
+                    <span className="font-semibold">{m.name}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1 max-w-xs">
@@ -471,7 +482,12 @@ export default function ManufacturerList() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{m.productCount} items</td>
+                  <td className="px-4 py-3 font-mono">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px] font-semibold group-hover:bg-indigo-500/20 group-hover:border-indigo-500/40 transition">
+                      <Package size={11} />
+                      {m.productCount} medicines
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
@@ -488,8 +504,23 @@ export default function ManufacturerList() {
                     <div className="flex justify-end items-center gap-1">
                       <button
                         type="button"
+                        aria-label={`View medicines for ${m.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setViewingMedicinesMfg(m)
+                        }}
+                        className="p-1.5 hover:text-indigo-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        title="View Related Medicines & Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Edit ${m.name}`}
-                        onClick={() => openEditModal(m)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditModal(m)
+                        }}
                         className="p-1.5 hover:text-amber-400 text-slate-400 hover:bg-slate-800 rounded transition"
                         title="Edit Manufacturer"
                       >
@@ -498,7 +529,10 @@ export default function ManufacturerList() {
                       <button
                         type="button"
                         aria-label={`Delete ${m.name}`}
-                        onClick={() => setDeletingMfg(m)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeletingMfg(m)
+                        }}
                         className="p-1.5 hover:text-rose-400 text-slate-400 hover:bg-slate-800 rounded transition"
                         title="Delete Manufacturer"
                       >
@@ -676,6 +710,14 @@ export default function ManufacturerList() {
           </div>,
           document.body
         )}
+
+      {/* Related Medicines Database Viewer Modal */}
+      {viewingMedicinesMfg && (
+        <ManufacturerMedicinesModal
+          manufacturer={viewingMedicinesMfg}
+          onClose={() => setViewingMedicinesMfg(null)}
+        />
+      )}
     </div>
   )
 }

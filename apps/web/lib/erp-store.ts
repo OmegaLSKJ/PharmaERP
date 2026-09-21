@@ -561,7 +561,18 @@ async function fetchAll<T = any>(fn: (from: number, to: number) => PromiseLike<{
   return all
 }
 
-function listMock(resource: string, partyName?: string) {
+function listMock(resource: string, partyName?: string, options?: { manufacturer?: string; manufacturerId?: string }) {
+  if (resource === 'items' && (options?.manufacturerId || options?.manufacturer)) {
+    const mfgId = options.manufacturerId
+    const mfgName = options.manufacturer?.trim().toLowerCase()
+    return (mockStore.items || []).filter((item: any) =>
+      (mfgId && (item.manufacturer_id === mfgId || item.companyId === mfgId)) ||
+      (mfgName && (
+        (item.manufacturer && item.manufacturer.trim().toLowerCase() === mfgName) ||
+        (item.company && item.company.trim().toLowerCase() === mfgName)
+      ))
+    )
+  }
   if (resource === 'dashboard') {
     const activeItems = mockStore.items.filter((x: any) => x.status === 'active').length
     const salesVal = mockStore.sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0) + 482000
@@ -811,9 +822,9 @@ function listMock(resource: string, partyName?: string) {
   return []
 }
 
-export async function list(resource: string, partyName?: string) {
+export async function list(resource: string, partyName?: string, options?: { manufacturer?: string; manufacturerId?: string }) {
   if (!hasValidDb()) {
-    return listMock(resource, partyName)
+    return listMock(resource, partyName, options)
   }
 
   try {
@@ -905,12 +916,30 @@ export async function list(resource: string, partyName?: string) {
     return Array.from(combinedMap.values())
   }
   if (resource === 'items') {
-    const data = await fetchAll<any>((from, to) =>
-      client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId).order('name').range(from, to)
-    )
-    const dbItems = (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', unit: i.unit ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
-    if (dbItems.length >= (mockStore.items?.length || 0)) return dbItems
-    return mockStore.items && mockStore.items.length > 0 ? mockStore.items : dbItems
+    let query = client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
+    if (options?.manufacturerId) {
+      query = query.eq('manufacturer_id', options.manufacturerId)
+    }
+    const data = await fetchAll<any>((from, to) => query.order('name').range(from, to))
+    let dbItems = (data ?? []).map((i: any) => ({ id: i.id, code: i.code, name: i.name, packing: i.packing ?? '', unit: i.unit ?? '', manufacturer: i.manufacturers?.name ?? '', salt: i.salts?.name ?? '', hsn: i.hsn_codes?.code ?? '', gstRate: Number(i.hsn_codes?.gst_rate ?? 0), mrp: Number(i.mrp), saleRate: Number(i.sale_rate), purchaseRate: Number(i.purchase_rate), scheduleClass:i.schedule_class, prescriptionRequired:i.prescription_required, coldChain:i.cold_chain, controlledSubstance:i.controlled_substance, recalled:i.is_recalled, stock: (i.item_batches ?? []).flatMap((b: any) => b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), batches: (i.item_batches ?? []).map((b: any) => ({ id: b.id, batch: b.batch_number, expiry: b.expiry_on, mrp: Number(b.mrp), costPrice: Number(b.cost_price ?? 0), purchasePrice: Number(b.purchase_price ?? 0), salePrice: Number(b.sale_price ?? 0), salesSchemeDeal: Number(b.sales_scheme_deal ?? 0), salesSchemeFree: Number(b.sales_scheme_free ?? 0), purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0), purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0), receivedOn: b.received_on ?? '', manufacturedOn: b.manufactured_on ?? '', supplier: b.parties?.legal_name ?? '', invoiceNumber: b.supplier_invoice_number ?? '', invoiceDate: b.supplier_invoice_date ?? '', rackNumber: b.rack_number ?? '', reportedValue: Number(b.source_report_value ?? 0), stock: (b.stock_movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity), 0), stockByLocation: (b.stock_movements ?? []).reduce((byLocation: Record<string, number>, m: any) => { const location = m.warehouses?.name ?? 'Main Warehouse'; byLocation[location] = (byLocation[location] ?? 0) + Number(m.quantity); return byLocation }, {}) })), batchCount: i.item_batches?.length ?? 0, category: 'Medicine', status: i.is_active ? 'active' : 'banned' }))
+    if (options?.manufacturer) {
+      const mfgClean = options.manufacturer.trim().toLowerCase()
+      dbItems = dbItems.filter((i: any) => (i.manufacturer && i.manufacturer.trim().toLowerCase() === mfgClean) || (i.company && i.company.trim().toLowerCase() === mfgClean))
+    }
+    if (dbItems.length >= (mockStore.items?.length || 0) && (!options?.manufacturerId && !options?.manufacturer)) return dbItems
+    let itemsToReturn = mockStore.items && mockStore.items.length > 0 ? mockStore.items : dbItems
+    if (options?.manufacturerId || options?.manufacturer) {
+      const mfgId = options.manufacturerId
+      const mfgName = options.manufacturer?.trim().toLowerCase()
+      itemsToReturn = itemsToReturn.filter((i: any) =>
+        (mfgId && (i.manufacturer_id === mfgId || i.companyId === mfgId)) ||
+        (mfgName && (
+          (i.manufacturer && i.manufacturer.trim().toLowerCase() === mfgName) ||
+          (i.company && i.company.trim().toLowerCase() === mfgName)
+        ))
+      )
+    }
+    return itemsToReturn
   }
   if (resource === 'item-batches') {
     const data = await fetchAll<any>((from, to) => client.from('item_batches').select('id,item_id,batch_number,expiry_on,mrp,received_on,manufactured_on,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,items!inner(code,name,organization_id),parties(legal_name),stock_movements(quantity)').eq('items.organization_id', organizationId).order('expiry_on').range(from, to))
