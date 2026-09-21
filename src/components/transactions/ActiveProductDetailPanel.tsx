@@ -385,25 +385,25 @@ export default function ActiveProductDetailPanel({
       </div>
       {detailOpen && displayedProduct && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm" role="presentation" onMouseDown={() => setDetailOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-300 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="flex items-start justify-between gap-4 border-b border-slate-300 bg-slate-100 px-5 py-3 text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+          <section role="dialog" aria-modal="true" aria-label={`${displayedProduct.name} batch details`} className="w-full max-w-4xl overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="flex items-start justify-between gap-4 border-b border-border bg-muted/40 px-5 py-3 text-foreground">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   Live batch inventory
                 </p>
                 <div className="mt-1 flex items-baseline flex-wrap gap-2">
-                  <h2 className="font-mono text-base font-semibold">{displayedProduct.name}</h2>
+                  <h2 className="font-mono text-base font-semibold text-foreground">{displayedProduct.name}</h2>
                   {displayedProduct.packing && (
-                    <span className="rounded bg-slate-200 dark:bg-slate-800 px-2 py-0.5 font-mono text-xs text-slate-700 dark:text-slate-300">
+                    <span className="rounded bg-secondary px-2 py-0.5 font-mono text-xs text-foreground">
                       {displayedProduct.packing}
                     </span>
                   )}
                   {displayedProduct.manufacturer && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">({displayedProduct.manufacturer})</span>
+                    <span className="text-xs text-muted-foreground font-medium">({displayedProduct.manufacturer})</span>
                   )}
                 </div>
                 {displayedProduct.salt && (
-                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-mono">
+                  <p className="mt-1 text-xs text-muted-foreground font-mono">
                     Composition: {displayedProduct.salt}
                   </p>
                 )}
@@ -411,13 +411,13 @@ export default function ActiveProductDetailPanel({
               <button
                 type="button"
                 onClick={() => setDetailOpen(false)}
-                className="rounded border border-slate-300 px-3 py-1 font-mono text-xs hover:bg-slate-200 dark:border-slate-700 dark:hover:bg-slate-800 transition-colors"
+                className="rounded border border-border px-3 py-1 font-mono text-xs hover:bg-secondary text-foreground transition-colors"
               >
                 Close
               </button>
             </header>
 
-            <div className="grid gap-px bg-slate-200 text-xs dark:bg-slate-800 md:grid-cols-2">
+            <div className="grid gap-px bg-border/50 text-xs md:grid-cols-2">
               <Detail label="Item Code / ID" value={displayedProduct.code || displayedProduct.id} />
               <Detail label="Category" value={displayedProduct.category} />
               <Detail label="HSN / SAC" value={displayedProduct.hsn} />
@@ -459,8 +459,8 @@ export default function ActiveProductDetailPanel({
               </p>
             )}
 
-            <section className="border-t border-slate-200 p-4 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-              <h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-slate-500 dark:text-slate-400">
+            <section className="border-t border-border p-4 bg-muted/20">
+              <h3 className="font-mono text-[10px] font-bold uppercase tracking-[.15em] text-muted-foreground">
                 Rate and margin comparison
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -479,16 +479,16 @@ export default function ActiveProductDetailPanel({
 function Detail({ label, value }: { label: string; value?: string }) {
   const hasValue = Boolean(value && value !== '—' && value.trim() !== '')
   return (
-    <div className="bg-white px-5 py-3 dark:bg-slate-900">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+    <div className="bg-card px-5 py-3">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <strong
         className={cn(
           'mt-1 block font-mono text-sm tracking-tight',
           hasValue
-            ? 'text-slate-900 dark:text-slate-100 font-bold'
-            : 'text-slate-400 dark:text-slate-600 font-normal'
+            ? 'text-foreground font-bold'
+            : 'text-muted-foreground/60 font-normal'
         )}
       >
         {hasValue ? value : '—'}
@@ -499,13 +499,13 @@ function Detail({ label, value }: { label: string; value?: string }) {
 
 function Margin({ label, value }: { label: string; value: number | null }) {
   return (
-    <div className="rounded border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
-      <span className="font-mono text-[10px] uppercase font-medium text-slate-500 dark:text-slate-400">{label}</span>
+    <div className="rounded border border-border bg-card p-3 shadow-2xs">
+      <span className="font-mono text-[10px] uppercase font-medium text-muted-foreground">{label}</span>
       <strong
         className={cn(
           'mt-1 block font-mono text-base font-bold',
           value === null
-            ? 'text-slate-400 dark:text-slate-600 font-normal'
+            ? 'text-muted-foreground/60 font-normal'
             : value < 0
             ? 'text-rose-600 dark:text-rose-400'
             : 'text-emerald-600 dark:text-emerald-400'

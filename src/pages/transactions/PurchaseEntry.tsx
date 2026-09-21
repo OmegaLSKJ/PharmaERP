@@ -31,6 +31,8 @@ interface LineItem {
   stock?: number
   manufacturer?: string
   salt?: string
+  category?: string
+  costPrice?: number
 }
 
 type SupplierOption = { name: string; gstin: string; outstanding: number }
@@ -48,6 +50,8 @@ type ItemOption = {
   stock: number
   manufacturer: string
   salt: string
+  category?: string
+  costPrice?: number
 }
 
 function formatDisplayExpiry(dateStr?: string): string {
@@ -160,6 +164,8 @@ export default function PurchaseEntry() {
               stock: Number(p.stock ?? p.quantity ?? 0),
               manufacturer: String(p.manufacturer ?? p.mfr ?? p.company ?? '').trim(),
               salt: String(p.salt ?? p.composition ?? '').trim(),
+              category: p.category ?? 'General',
+              costPrice: Number(p.costPrice ?? p.cost_price ?? p.purchaseRate ?? 0),
             }
           })
         )
@@ -290,6 +296,8 @@ export default function PurchaseEntry() {
           stock: item.stock,
           manufacturer: item.manufacturer,
           salt: item.salt,
+          category: item.category,
+          costPrice: item.costPrice,
         },
       ]
       setActiveIndex(next.length - 1)
@@ -1167,10 +1175,13 @@ export default function PurchaseEntry() {
           activeProduct={
             activeItem
               ? {
+                  id: activeItem.itemId || activeItem.id,
+                  code: activeItem.code,
                   name: activeItem.itemName,
                   packing: activeItem.packing,
                   manufacturer: activeItem.manufacturer,
                   salt: activeItem.salt,
+                  category: activeItem.category,
                   hsn: activeItem.hsn,
                   gstRate: activeItem.gstRate,
                   batch: activeItem.batch,
@@ -1179,6 +1190,8 @@ export default function PurchaseEntry() {
                   saleRate: activeItem.saleRate,
                   mrp: activeItem.mrp,
                   purchaseRate: activeItem.purchaseRate,
+                  costPrice: activeItem.costPrice || activeItem.purchaseRate,
+                  supplier: supplier,
                   refNo: invoiceNo,
                   date: invoiceDate || entryDate,
                 }

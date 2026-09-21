@@ -29,9 +29,18 @@ interface LineItem {
   salt?: string
   hsn?: string
   expiry?: string
+  itemId?: string
+  code?: string
+  category?: string
+  costPrice?: number
 }
 type CustomerOption = { label: string; value: string }
 type ItemOption = {
+  id?: string
+  itemId?: string
+  code?: string
+  category?: string
+  costPrice?: number
   label: string
   batch: string
   stock: number
@@ -117,6 +126,9 @@ export default function SaleEntry() {
             (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
               id: p.id,
               itemId: p.id,
+              code: p.code,
+              category: p.category,
+              costPrice: Number(b.costPrice ?? b.cost_price ?? p.costPrice ?? p.purchaseRate ?? 0),
               label: p.name,
               batch: b.batch,
               stock: b.stock,
@@ -301,7 +313,10 @@ export default function SaleEntry() {
           ...prev,
           {
             id: Date.now().toString(),
-            itemId: (item as any).itemId || (item as any).id || undefined,
+            itemId: item.itemId || item.id || undefined,
+            code: item.code,
+            category: item.category,
+            costPrice: item.costPrice,
             name: item.label,
             batch: item.batch,
             stock: item.stock,
@@ -865,10 +880,13 @@ export default function SaleEntry() {
               activeProduct={
                 activeItem
                   ? {
+                      id: activeItem.itemId || activeItem.id,
+                      code: activeItem.code,
                       name: activeItem.name,
                       packing: activeItem.packing,
                       manufacturer: activeItem.manufacturer,
                       salt: activeItem.salt,
+                      category: activeItem.category,
                       hsn: activeItem.hsn,
                       gstRate: activeItem.gst,
                       batch: activeItem.batch,
@@ -877,6 +895,7 @@ export default function SaleEntry() {
                       saleRate: activeItem.rate,
                       mrp: activeItem.mrp,
                       purchaseRate: activeItem.purchaseRate,
+                      costPrice: activeItem.costPrice || activeItem.purchaseRate,
                       refNo: existingInvoice?.invoiceNo || existingInvoice?.number,
                       date: existingInvoice?.date || new Date().toISOString().split('T')[0],
                     }
