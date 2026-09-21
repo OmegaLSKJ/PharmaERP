@@ -21,7 +21,6 @@ import {
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
-import defaultManufacturerMaster from '../../../data/manufacturerMasterData.json'
 import ManufacturerMedicinesModal from './ManufacturerMedicinesModal'
 
 interface Manufacturer {
@@ -36,19 +35,8 @@ interface Manufacturer {
 }
 
 export default function ManufacturerList() {
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>(() =>
-    (defaultManufacturerMaster as any[]).map((row) => ({
-      id: String(row?.id || ''),
-      name: String(row?.name || ''),
-      code: String(row?.code || 'MFG'),
-      productCount: Number(row?.productCount || row?.itemcount || 0),
-      connectedSuppliers: Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0 ? row.connectedSuppliers : [row?.name || 'Self'],
-      supplierCount: Number(row?.supplierCount || 1),
-      primarySupplier: String(row?.primarySupplier || row?.name || ''),
-      status: row?.is_active === false || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-    }))
-  )
-  const [loading, setLoading] = useState(false)
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('ALL')
 
@@ -76,36 +64,31 @@ export default function ManufacturerList() {
   const showToast = useUIStore((state) => state.showToast)
 
   const loadData = () => {
-    const defaultMfgMap = new Map<string, any>(
-      (defaultManufacturerMaster as any[]).map((m) => [m.name.toUpperCase().trim(), m])
-    )
+    setLoading(true)
     getErp<any[]>('manufacturers')
       .then((rows) => {
-        if (Array.isArray(rows) && rows.length >= defaultManufacturerMaster.length) {
+        if (Array.isArray(rows)) {
           setManufacturers(
-            rows.map((row) => {
-              const nameKey = String(row?.name || '').toUpperCase().trim()
-              const defaultEntry = defaultMfgMap.get(nameKey)
-              const count = Number(row?.productCount ?? row?.itemcount ?? defaultEntry?.productCount ?? 0) || (defaultEntry?.productCount ?? 0)
-              const sups = (Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0)
+            rows.map((row) => ({
+              id: String(row?.id || ''),
+              name: String(row?.name || ''),
+              code: String(row?.code || 'MFG'),
+              productCount: Number(row?.productCount ?? row?.itemcount ?? 0),
+              connectedSuppliers: Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0
                 ? row.connectedSuppliers
-                : (defaultEntry?.connectedSuppliers || [row?.name || 'Self'])
-              return {
-                id: String(row?.id || defaultEntry?.id || ''),
-                name: String(row?.name || defaultEntry?.name || ''),
-                code: String(row?.code || defaultEntry?.code || 'MFG'),
-                productCount: count,
-                connectedSuppliers: sups,
-                supplierCount: Number(row?.supplierCount || defaultEntry?.supplierCount || sups.length),
-                primarySupplier: String(row?.primarySupplier || defaultEntry?.primarySupplier || sups[0] || row?.name || ''),
-                status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-              }
-            })
+                : [row?.primarySupplier || row?.name || 'Self'],
+              supplierCount: Number(row?.supplierCount || 1),
+              primarySupplier: String(row?.primarySupplier || row?.name || ''),
+              status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
+            }))
           )
         }
       })
-      .catch(() => {
-        // Keeps the default deduplicated manufacturers safely loaded
+      .catch((err) => {
+        showToast(err?.message || 'Failed to load manufacturers.')
+      })
+      .finally(() => {
+        setLoading(false)
       })
   }
 

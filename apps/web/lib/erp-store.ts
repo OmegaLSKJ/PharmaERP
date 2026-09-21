@@ -983,7 +983,8 @@ export async function list(resource: string, partyName?: string, options?: { man
       } catch {}
     }
 
-    return Array.from(uniqueDbMap.values())
+    const cleanDbParties = Array.from(uniqueDbMap.values())
+    return cleanDbParties
   }
   if (resource === 'items') {
     let query = client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
@@ -1263,9 +1264,8 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (managedCrud[resource]) { const config=managedCrud[resource]; let query=client.from(config.table).select('*'); if(config.organizationScoped) query=query.eq('organization_id',organizationId); return await fetchAll<any>((from,to)=>query.range(from,to)) }
   throw new Error('Unknown ERP resource.')
   } catch (error) {
-    if (process.env.NODE_ENV === 'production') throw error
-    console.warn(`Database query for resource ${resource} failed, falling back to mock:`, error)
-    return listMock(resource, partyName)
+    console.error(`Database query for resource ${resource} failed:`, error)
+    throw error
   }
 }
 
