@@ -237,27 +237,35 @@ export default function ItemMapping() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Item Mapping</h1>
-            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Item Mapping</h1>
+            <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {totalItems.toLocaleString()} Mappings
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-2">
-            <Link2 size={14} className="text-indigo-400" />
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+            <Link2 size={14} className="text-primary" />
             Imported stock mapping with fixed top scroller and continuous chunking
           </p>
         </div>
         <button
           onClick={addMapping}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition"
         >
           <Plus size={16} /> New Mapping
         </button>
       </div>
 
       {editor && (
-        <form onSubmit={saveMapping} className="grid grid-cols-1 gap-3 rounded-xl border border-indigo-500/30 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center justify-between md:col-span-2 lg:col-span-4"><div><h2 className="font-semibold text-white">{editingId ? 'Edit mapping' : 'New mapping'}</h2><p className="text-xs text-slate-400">All mapping fields are editable. Stock movements remain in the inventory ledger.</p></div><button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded p-1 text-slate-400 hover:text-white"><X size={18} /></button></div>
+        <form onSubmit={saveMapping} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-2 lg:grid-cols-4 shadow-sm text-card-foreground">
+          <div className="flex items-center justify-between md:col-span-2 lg:col-span-4">
+            <div>
+              <h2 className="font-semibold text-foreground">{editingId ? 'Edit mapping' : 'New mapping'}</h2>
+              <p className="text-xs text-muted-foreground">All mapping fields are editable. Stock movements remain in the inventory ledger.</p>
+            </div>
+            <button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition">
+              <X size={18} />
+            </button>
+          </div>
           <MappingField label="Product *"><input required value={editor.product} onChange={(e) => setEditor({ ...editor, product: e.target.value })} /></MappingField>
           <MappingField label="Item code"><input value={editor.code} onChange={(e) => setEditor({ ...editor, code: e.target.value })} /></MappingField>
           <MappingField label="Company / manufacturer"><input value={editor.company} onChange={(e) => setEditor({ ...editor, company: e.target.value })} /></MappingField>
@@ -278,33 +286,36 @@ export default function ItemMapping() {
           <MappingField label="Invoice number"><input value={editor.invoice_no} onChange={(e) => setEditor({ ...editor, invoice_no: e.target.value })} /></MappingField>
           <MappingField label="Invoice date"><input type="date" value={editor.invoice_date} onChange={(e) => setEditor({ ...editor, invoice_date: e.target.value })} /></MappingField>
           <MappingField label="Rack number"><input value={editor.rack || ''} onChange={(e) => setEditor({ ...editor, rack: e.target.value })} /></MappingField>
-          <div className="flex justify-end gap-2 md:col-span-2 lg:col-span-4"><button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200">Cancel</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Save size={15} /> {saving ? 'Saving…' : 'Save mapping'}</button></div>
+          <div className="flex justify-end gap-2 md:col-span-2 lg:col-span-4">
+            <button type="button" onClick={() => { setEditor(null); setEditingId(null) }} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition">Cancel</button>
+            <button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition disabled:opacity-50 shadow-xs"><Save size={15} /> {saving ? 'Saving…' : 'Save mapping'}</button>
+          </div>
         </form>
       )}
 
       {/* Toolbar & Chunk Controls */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl shadow-xs">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-card border border-border p-2.5 rounded-xl shadow-xs">
         <div className="relative flex-1 max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search product, supplier, batch, invoice or rack..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-input bg-background text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground transition"
           />
         </div>
 
         <div className="flex items-center flex-wrap gap-2 justify-end">
           {/* Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-md border border-slate-800 text-xs">
+          <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border text-xs">
             <button
               onClick={() => setChunkMode('paginated')}
               className={cn(
-                'px-2.5 py-1 rounded font-medium transition',
+                'px-2.5 py-1 rounded font-medium transition cursor-pointer',
                 chunkMode === 'paginated'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-primary text-primary-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               Pages
@@ -312,10 +323,10 @@ export default function ItemMapping() {
             <button
               onClick={() => setChunkMode('continuous')}
               className={cn(
-                'px-2.5 py-1 rounded font-medium transition flex items-center gap-1',
+                'px-2.5 py-1 rounded font-medium transition flex items-center gap-1 cursor-pointer',
                 chunkMode === 'continuous'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-primary text-primary-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Layers size={12} /> Continuous
@@ -323,12 +334,12 @@ export default function ItemMapping() {
           </div>
 
           {/* Chunk Size */}
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <span>Chunk:</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+              className="bg-background border border-input text-foreground rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
             >
               <option value={25}>25 / page</option>
               <option value={50}>50 / page</option>
@@ -342,11 +353,11 @@ export default function ItemMapping() {
       </div>
 
       {/* Chunk Info Strip */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <div>
-          Showing <span className="font-semibold text-slate-200">{startIdx}</span> to{' '}
-          <span className="font-semibold text-slate-200">{endIdx}</span> of{' '}
-          <span className="font-semibold text-slate-200">{totalItems.toLocaleString()}</span> entries
+          Showing <span className="font-semibold text-foreground">{startIdx}</span> to{' '}
+          <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
+          <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> entries
         </div>
 
         {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
@@ -354,7 +365,7 @@ export default function ItemMapping() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(1)}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground shadow-2xs cursor-pointer"
               title="First Page"
             >
               <ChevronsLeft size={14} />
@@ -362,18 +373,18 @@ export default function ItemMapping() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground shadow-2xs cursor-pointer"
               title="Previous Page"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-1.5 sm:px-2 font-mono text-slate-200 whitespace-nowrap shrink-0">
+            <span className="px-1.5 sm:px-2 font-mono text-foreground font-semibold whitespace-nowrap shrink-0">
               {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground shadow-2xs cursor-pointer"
               title="Next Page"
             >
               <ChevronRight size={14} />
@@ -381,7 +392,7 @@ export default function ItemMapping() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(totalPages)}
-              className="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300"
+              className="p-1 rounded bg-card border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground shadow-2xs cursor-pointer"
               title="Last Page"
             >
               <ChevronsRight size={14} />
@@ -403,7 +414,7 @@ export default function ItemMapping() {
       >
         <table className="w-full text-xs min-w-[2000px]">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
+            <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
               <th className="text-left px-4 py-3 font-semibold">Product / Code</th>
               <th className="text-left px-4 py-3 font-semibold">Company</th>
               <th className="text-left px-4 py-3 font-semibold">Batch / Unit</th>
@@ -422,56 +433,56 @@ export default function ItemMapping() {
               <th className="w-10 px-4 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {loading && (
               <tr>
-                <td colSpan={16} className="p-8 text-center text-slate-500 text-sm animate-pulse">
+                <td colSpan={16} className="p-8 text-center text-muted-foreground text-sm animate-pulse">
                   Loading mappings…
                 </td>
               </tr>
             )}
             {!loading &&
               displayedItems.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-900/40 transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-white">
+                <tr key={m.id} className="hover:bg-muted/40 transition-colors">
+                  <td className="px-4 py-2.5 font-medium text-foreground">
                     <div>{m.product}</div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">{m.code}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{m.code}</div>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-300 font-medium">{m.company}</td>
-                  <td className="px-4 py-2.5 font-mono text-amber-400">
+                  <td className="px-4 py-2.5 text-foreground font-medium">{m.company}</td>
+                  <td className="px-4 py-2.5 font-mono text-amber-700 dark:text-amber-300">
                     <div className="font-semibold">{m.batch}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{m.unit}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{m.unit}</div>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-200">{m.stock}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">{formatCurrency(m.cost)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">{formatCurrency(m.purchase)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">{formatCurrency(m.sale)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300 font-medium">{formatCurrency(m.mrp)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-200 font-bold">{formatCurrency(m.value)}</td>
-                  <td className="px-4 py-2.5 text-center text-slate-300 font-mono">{m.sales_scheme}</td>
-                  <td className="px-4 py-2.5 text-center text-slate-300 font-mono">{m.purchase_scheme}</td>
-                  <td className="px-4 py-2.5 text-slate-300 font-mono whitespace-nowrap">{m.received}</td>
-                  <td className="px-4 py-2.5 font-mono text-slate-300 whitespace-nowrap">
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-foreground">{m.stock}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{formatCurrency(m.cost)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{formatCurrency(m.purchase)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-foreground font-medium">{formatCurrency(m.sale)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-foreground font-medium">{formatCurrency(m.mrp)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-foreground font-bold">{formatCurrency(m.value)}</td>
+                  <td className="px-4 py-2.5 text-center text-foreground font-mono">{m.sales_scheme}</td>
+                  <td className="px-4 py-2.5 text-center text-foreground font-mono">{m.purchase_scheme}</td>
+                  <td className="px-4 py-2.5 text-foreground font-mono whitespace-nowrap">{m.received}</td>
+                  <td className="px-4 py-2.5 font-mono text-foreground whitespace-nowrap">
                     <div>{m.mfg}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{m.exp}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{m.exp}</div>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-300">{m.supplier}</td>
-                  <td className="px-4 py-2.5 font-mono text-slate-300">
+                  <td className="px-4 py-2.5 text-foreground">{m.supplier}</td>
+                  <td className="px-4 py-2.5 font-mono text-foreground">
                     <div>{m.invoice_no || '—'}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{m.invoice_date || '—'}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{m.invoice_date || '—'}</div>
                   </td>
                   <td className="px-4 py-2.5">
                     <button
                       aria-label={`Edit ${m.product}`}
                       onClick={() => editMapping(m)}
-                      className="mr-1 p-1 hover:text-indigo-300 text-slate-400 transition"
+                      className="mr-1 p-1 hover:text-foreground text-muted-foreground hover:bg-muted rounded transition cursor-pointer"
                     >
                       <Edit2 size={13} />
                     </button>
                     <button
                       aria-label={`Delete ${m.product}`}
                       onClick={() => removeMapping(m.id)}
-                      className="p-1 hover:text-rose-400 text-slate-400 transition"
+                      className="p-1 hover:text-rose-600 dark:hover:text-rose-400 text-muted-foreground hover:bg-muted rounded transition cursor-pointer"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -480,7 +491,7 @@ export default function ItemMapping() {
               ))}
             {!loading && displayedItems.length === 0 && (
               <tr>
-                <td colSpan={16} className="p-8 text-center text-slate-500 text-sm">
+                <td colSpan={16} className="p-8 text-center text-muted-foreground text-sm">
                   No mappings match your search criteria.
                 </td>
               </tr>
@@ -491,15 +502,15 @@ export default function ItemMapping() {
 
       {/* Continuous Stream "Load Next Chunk" Button */}
       {chunkMode === 'continuous' && continuousCount < totalItems && (
-        <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-          <div className="text-xs text-slate-400">
-            Loaded <span className="font-semibold text-slate-200">{endIdx}</span> of{' '}
-            <span className="font-semibold text-slate-200">{totalItems.toLocaleString()}</span> mappings (
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="text-xs text-muted-foreground">
+            Loaded <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
+            <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> mappings (
             {Math.round((endIdx / totalItems) * 100)}%)
           </div>
           <button
             onClick={handleLoadMore}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
           >
             <ArrowDownCircle size={15} /> Load Next {Math.min(pageSize || 50, totalItems - endIdx)} Mappings
           </button>
@@ -507,47 +518,47 @@ export default function ItemMapping() {
       )}
 
       {chunkMode === 'continuous' && continuousCount >= totalItems && totalItems > 0 && (
-        <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center gap-2 text-xs text-emerald-400 font-medium shadow-xs">
+        <div className="p-3 bg-card border border-border rounded-xl flex items-center justify-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-medium shadow-xs">
           <CheckCircle2 size={14} /> All {totalItems.toLocaleString()} mappings loaded
         </div>
       )}
 
       {/* Bottom Pagination Footer */}
       {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
-        <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 shadow-xs">
+        <div className="p-3 bg-card border border-border rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground shadow-xs">
           <div>
-            Showing page <span className="font-medium text-slate-200">{currentPage}</span> of{' '}
-            <span className="font-medium text-slate-200">{totalPages}</span> ({pageSize} per chunk)
+            Showing page <span className="font-medium text-foreground">{currentPage}</span> of{' '}
+            <span className="font-medium text-foreground">{totalPages}</span> ({pageSize} per chunk)
           </div>
           <div className="flex items-center gap-1">
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(1)}
-              className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300 flex items-center gap-1"
+              className="px-2.5 py-1 rounded bg-background border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               <ChevronsLeft size={13} /> First
             </button>
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300 flex items-center gap-1"
+              className="px-2.5 py-1 rounded bg-background border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               <ChevronLeft size={13} /> Prev
             </button>
-            <span className="px-3 py-1 font-mono font-semibold text-slate-200">
+            <span className="px-3 py-1 font-mono font-semibold text-foreground">
               {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300 flex items-center gap-1"
+              className="px-2.5 py-1 rounded bg-background border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               Next <ChevronRight size={13} />
             </button>
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(totalPages)}
-              className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none text-slate-300 flex items-center gap-1"
+              className="px-2.5 py-1 rounded bg-background border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none text-foreground flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               Last <ChevronsRight size={13} />
             </button>
@@ -559,7 +570,14 @@ export default function ItemMapping() {
 }
 
 function MappingField({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}<div className="[&>input]:w-full [&>input]:rounded-md [&>input]:border [&>input]:border-slate-700 [&>input]:bg-slate-950 [&>input]:px-2.5 [&>input]:py-2 [&>input]:text-sm [&>input]:normal-case [&>input]:text-white">{children}</div></label>
+  return (
+    <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      {label}
+      <div className="[&>input]:w-full [&>input]:rounded-lg [&>input]:border [&>input]:border-input [&>input]:bg-background [&>input]:px-2.5 [&>input]:py-2 [&>input]:text-sm [&>input]:normal-case [&>input]:text-foreground [&>input]:outline-none [&>input]:focus:ring-1 [&>input]:focus:ring-primary [&>input]:focus:border-primary transition">
+        {children}
+      </div>
+    </label>
+  )
 }
 
 function MappingNumber({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {

@@ -39,9 +39,10 @@ interface EditableLine {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  received: 'bg-emerald-500/10 text-emerald-400',
-  pending: 'bg-amber-500/10 text-amber-400',
-  partial: 'bg-blue-500/10 text-blue-400',
+  received: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
+  pending: 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-semibold shadow-2xs',
+  partial: 'bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-semibold shadow-2xs',
+  cancelled: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs',
 }
 
 export default function PurchaseRegister() {
@@ -360,32 +361,32 @@ export default function PurchaseRegister() {
       <div className="no-print space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Purchase Register</h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Register</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               {filtered.length} challans | Total: {formatCurrency(totalVal)}
             </p>
           </div>
           <Link
             to="/transactions/purchase/new"
-            className="inline-flex h-9 items-center justify-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all duration-150"
+            className="inline-flex h-9 items-center justify-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
           >
             <Plus size={15} /> New Purchase
           </Link>
         </div>
         <div className="relative w-full sm:max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by challan or supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
           />
         </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+        <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
           <table className="min-w-[700px] w-full text-xs">
             <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
                 <th className="text-left px-4 py-3 font-medium">Challan No</th>
                 <th className="text-left px-4 py-3 font-medium">Supplier Invoice</th>
                 <th className="text-left px-4 py-3 font-medium">Date</th>
@@ -396,27 +397,27 @@ export default function PurchaseRegister() {
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
+            <tbody className="divide-y divide-border text-foreground">
               {filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-900/30">
+                <tr key={s.id} className="hover:bg-muted/40 transition-colors">
                   <td className="px-4 py-3 font-mono">
                     <button
                       onClick={() => openEditModal(s)}
-                      className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline text-left cursor-pointer"
+                      className="text-indigo-700 dark:text-indigo-400 hover:underline font-semibold text-left cursor-pointer"
                       title="Click to modify challan"
                     >
                       {s.challanNo}
                     </button>
                   </td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{s.invoiceNo}</td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
-                  <td className="px-4 py-3 font-medium text-white">{s.supplier}</td>
-                  <td className="px-4 py-3 text-right">{s.items}</td>
-                  <td className="px-4 py-3 text-right font-medium text-emerald-400">{formatCurrency(s.total)}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{s.invoiceNo}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{s.date}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{s.supplier}</td>
+                  <td className="px-4 py-3 text-right font-mono text-muted-foreground">{s.items}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(s.total)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
-                        'px-2 py-0.5 rounded text-[10px] font-semibold capitalize',
+                        'px-2.5 py-0.5 rounded-full text-[10px] font-semibold capitalize',
                         STATUS_STYLE[s.status] || STATUS_STYLE.received
                       )}
                     >
@@ -428,7 +429,7 @@ export default function PurchaseRegister() {
                       <button
                         aria-label={`Modify ${s.challanNo}`}
                         onClick={() => openEditModal(s)}
-                        className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded transition cursor-pointer"
+                        className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-muted rounded transition cursor-pointer"
                         title="Modify Challan"
                       >
                         <Edit3 size={15} />
@@ -436,7 +437,7 @@ export default function PurchaseRegister() {
                       <button
                         aria-label={`View ${s.challanNo}`}
                         onClick={() => setSelected(s)}
-                        className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                        className="p-1.5 hover:text-foreground text-muted-foreground hover:bg-muted rounded transition cursor-pointer"
                         title="View Goods Receipt Note"
                       >
                         <Eye size={15} />
@@ -444,7 +445,7 @@ export default function PurchaseRegister() {
                       <button
                         aria-label={`Print ${s.challanNo}`}
                         onClick={() => handlePrint(s)}
-                        className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                        className="p-1.5 hover:text-foreground text-muted-foreground hover:bg-muted rounded transition cursor-pointer"
                         title="Print Goods Receipt Note"
                       >
                         <Printer size={15} />
@@ -453,7 +454,7 @@ export default function PurchaseRegister() {
                         aria-label={`Cancel ${s.challanNo}`}
                         onClick={() => cancelPurchase(s)}
                         disabled={s.status === 'cancelled'}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1.5 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Cancel and reverse purchase"
                       >
                         <Trash2 size={15} />
@@ -470,38 +471,38 @@ export default function PurchaseRegister() {
       {/* In-Place Challan Modifier Modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs"
           onClick={() => setEditing(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-5xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-5xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-card-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg">
+                  <span className="p-1.5 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 rounded-lg">
                     <Edit3 size={18} />
                   </span>
-                  <h2 className="text-base sm:text-lg font-bold text-white">Modify Purchase Challan</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">Modify Purchase Challan</h2>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Challan No: <span className="text-white font-mono font-bold">{editing.challanNo}</span> | ID: {editing.id}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Challan No: <span className="text-foreground font-mono font-bold">{editing.challanNo}</span> | ID: {editing.id}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => navigate(`/transactions/purchase/edit/${encodeURIComponent(editing.challanNo)}`)}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 bg-muted hover:bg-muted/80 border border-border rounded-lg transition"
                   title="Open full-page purchase entry editor"
                 >
                   <ExternalLink size={13} /> Full Screen
                 </button>
                 <button
                   onClick={() => setEditing(null)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition"
                 >
                   <X size={16} />
                 </button>
@@ -509,40 +510,40 @@ export default function PurchaseRegister() {
             </div>
 
             {/* Top metadata fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-muted/40 p-3.5 rounded-xl border border-border text-xs">
               <div className="space-y-1">
-                <label className="text-slate-400 font-semibold uppercase text-[10px]">Supplier Name</label>
+                <label className="text-muted-foreground font-semibold uppercase text-[10px]">Supplier Name</label>
                 <input
                   type="text"
                   value={editing.supplier}
                   onChange={(e) => setEditing({ ...editing, supplier: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 text-white font-medium focus:border-indigo-500 outline-none"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-slate-400 font-semibold uppercase text-[10px]">Supplier Invoice No</label>
+                <label className="text-muted-foreground font-semibold uppercase text-[10px]">Supplier Invoice No</label>
                 <input
                   type="text"
                   value={editing.invoiceNo}
                   onChange={(e) => setEditing({ ...editing, invoiceNo: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 text-white font-mono focus:border-indigo-500 outline-none"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-slate-400 font-semibold uppercase text-[10px]">Invoice / Challan Date</label>
+                <label className="text-muted-foreground font-semibold uppercase text-[10px]">Invoice / Challan Date</label>
                 <input
                   type="date"
                   value={editing.date}
                   onChange={(e) => setEditing({ ...editing, date: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-slate-400 font-semibold uppercase text-[10px]">Challan Status</label>
+                <label className="text-muted-foreground font-semibold uppercase text-[10px]">Challan Status</label>
                 <select
                   value={editing.status}
                   onChange={(e) => setEditing({ ...editing, status: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none capitalize"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none capitalize"
                 >
                   <option value="received">Received</option>
                   <option value="pending">Pending</option>
@@ -554,21 +555,21 @@ export default function PurchaseRegister() {
             {/* Line Items Table */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                   Challan Goods ({editLines.length} items)
                 </h3>
                 <button
                   type="button"
                   onClick={addLine}
-                  className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition"
+                  className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition font-medium shadow-2xs"
                 >
                   <PlusCircle size={13} /> Add Line Item
                 </button>
               </div>
-              <div className="border border-slate-700/80 rounded-xl overflow-x-auto bg-slate-950/60 shadow-xs">
+              <div className="border border-border rounded-xl overflow-x-auto bg-card shadow-xs">
                 <table className="w-full text-xs min-w-[980px]">
                   <thead>
-                    <tr className="bg-slate-900 border-b border-slate-800 text-slate-300 uppercase text-[10px] font-semibold">
+                    <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-mono font-semibold">
                       <th className="text-left px-3.5 py-2.5 w-52 min-w-[180px]">Item Description</th>
                       <th className="text-left px-2 py-2.5 w-24 min-w-[90px]">Batch</th>
                       <th className="text-left px-2 py-2.5 w-20 min-w-[80px]">Expiry</th>
@@ -583,15 +584,15 @@ export default function PurchaseRegister() {
                       <th className="w-10 px-2 py-2.5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-border">
                     {editLines.map((line, idx) => (
-                      <tr key={line.id} className="hover:bg-slate-900/50">
+                      <tr key={line.id} className="hover:bg-muted/40 transition-colors">
                         <td className="px-2.5 py-2">
                           <input
                             type="text"
                             value={line.name}
                             onChange={(e) => updateLine(idx, 'name', e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2">
@@ -599,7 +600,7 @@ export default function PurchaseRegister() {
                             type="text"
                             value={line.batch}
                             onChange={(e) => updateLine(idx, 'batch', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 uppercase shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary uppercase shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2">
@@ -608,7 +609,7 @@ export default function PurchaseRegister() {
                             value={line.expiry}
                             onChange={(e) => updateLine(idx, 'expiry', e.target.value)}
                             placeholder="MM/YY"
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2 text-right">
@@ -616,7 +617,7 @@ export default function PurchaseRegister() {
                             type="number"
                             value={line.qty}
                             onChange={(e) => updateLine(idx, 'qty', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2 text-right">
@@ -624,7 +625,7 @@ export default function PurchaseRegister() {
                             type="number"
                             value={line.freeQty}
                             onChange={(e) => updateLine(idx, 'freeQty', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-muted-foreground text-right font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2 text-right">
@@ -633,7 +634,7 @@ export default function PurchaseRegister() {
                             step="0.01"
                             value={line.rate}
                             onChange={(e) => updateLine(idx, 'rate', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         {/* Sale Price */}
@@ -644,7 +645,7 @@ export default function PurchaseRegister() {
                             value={line.saleRate || ''}
                             onChange={(e) => updateLine(idx, 'saleRate', e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-indigo-400/60 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-indigo-400/60 rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                             title="Sale Price (₹)"
                           />
                         </td>
@@ -656,7 +657,7 @@ export default function PurchaseRegister() {
                             value={line.mrp || ''}
                             onChange={(e) => updateLine(idx, 'mrp', e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-right font-mono font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                             title="MRP (₹)"
                           />
                         </td>
@@ -666,14 +667,14 @@ export default function PurchaseRegister() {
                             step="0.1"
                             value={line.discount}
                             onChange={(e) => updateLine(idx, 'discount', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-muted-foreground text-right font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <select
                             value={line.gstRate}
                             onChange={(e) => updateLine(idx, 'gstRate', Number(e.target.value))}
-                            className="w-full px-1.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 text-right font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                            className="w-full px-1.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs"
                           >
                             <option value={0}>0%</option>
                             <option value={5}>5%</option>
@@ -682,14 +683,14 @@ export default function PurchaseRegister() {
                             <option value={28}>28%</option>
                           </select>
                         </td>
-                        <td className="px-3.5 py-2 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                        <td className="px-3.5 py-2 text-right font-mono font-bold text-foreground">
                           {formatCurrency(line.amount)}
                         </td>
                         <td className="px-2 py-2 text-center">
                           <button
                             type="button"
                             onClick={() => removeLine(idx)}
-                            className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
+                            className="p-1 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-muted rounded transition"
                             title="Remove Line"
                           >
                             <Trash2 size={14} />
@@ -703,17 +704,17 @@ export default function PurchaseRegister() {
             </div>
 
             {/* Bottom calculation summary & actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-slate-800">
-              <div className="flex items-center gap-6 text-xs text-slate-400">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-border">
+              <div className="flex items-center gap-6 text-xs text-muted-foreground">
                 <div>
-                  Subtotal: <span className="font-mono text-white font-semibold">{formatCurrency(editSubtotal)}</span>
+                  Subtotal: <span className="font-mono text-foreground font-semibold">{formatCurrency(editSubtotal)}</span>
                 </div>
                 <div>
-                  Tax (GST): <span className="font-mono text-white font-semibold">{formatCurrency(editTaxTotal)}</span>
+                  Tax (GST): <span className="font-mono text-foreground font-semibold">{formatCurrency(editTaxTotal)}</span>
                 </div>
                 <div>
                   Grand Total:{' '}
-                  <span className="font-mono text-emerald-400 font-bold text-sm">
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold text-sm">
                     {formatCurrency(editGrandTotal)}
                   </span>
                 </div>
@@ -722,7 +723,7 @@ export default function PurchaseRegister() {
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition"
+                  className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-semibold transition border border-border"
                 >
                   Cancel
                 </button>
@@ -730,7 +731,7 @@ export default function PurchaseRegister() {
                   type="button"
                   onClick={handleSaveChallan}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-md transition disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
                 >
                   <Save size={14} />
                   {isSaving ? 'Saving Changes...' : 'Save & Update Challan'}
@@ -744,26 +745,26 @@ export default function PurchaseRegister() {
       {/* Invoice Detail / Print Preview Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs"
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-card-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
-                <h2 className="text-sm sm:text-base font-bold text-white truncate">Goods Receipt Note / Purchase Invoice</h2>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-                  <span>Challan: <span className="text-white font-mono">{selected.challanNo}</span></span>
-                  <span className="hidden sm:inline text-slate-600">•</span>
-                  <span>Date: <span className="text-white font-mono">{selected.date}</span></span>
+                <h2 className="text-sm sm:text-base font-bold text-foreground truncate">Goods Receipt Note / Purchase Invoice</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
+                  <span>Challan: <span className="text-foreground font-mono">{selected.challanNo}</span></span>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <span>Date: <span className="text-foreground font-mono">{selected.date}</span></span>
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   onClick={() => setSelected(null)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-muted transition"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -777,7 +778,7 @@ export default function PurchaseRegister() {
                     setSelected(null)
                     openEditModal(toEdit)
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 active:scale-[0.98] transition cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60 active:scale-[0.98] transition cursor-pointer shadow-2xs"
                   title="Modify this challan"
                 >
                   <Edit3 size={14} />
@@ -786,17 +787,17 @@ export default function PurchaseRegister() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="group inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="group inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <Printer size={14} />
                   <span>Print Invoice</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-primary-foreground/80 bg-black/20 dark:bg-white/20 rounded border border-primary-foreground/20">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   onClick={() => setSelected(null)}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -805,7 +806,7 @@ export default function PurchaseRegister() {
             </div>
 
             {/* Document Preview Frame */}
-            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto text-slate-900">
               <PurchaseInvoicePrint data={getPrintData(selected)} />
             </div>
           </div>

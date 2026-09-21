@@ -66,13 +66,13 @@ interface SaleInv {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  paid: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-  posted: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-  pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  overdue: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-  partial: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-  draft: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  cancelled: 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+  paid: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
+  posted: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
+  pending: 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-semibold shadow-2xs',
+  overdue: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs',
+  partial: 'bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-semibold shadow-2xs',
+  draft: 'bg-muted text-muted-foreground border border-border font-semibold shadow-2xs',
+  cancelled: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs'
 }
 
 export default function SaleRegister() {
@@ -254,19 +254,19 @@ export default function SaleRegister() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Sale Register</h1>
-            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Sale Register</h1>
+            <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {filtered.length} Invoices
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Tap on any invoice to view details or click edit &bull; Total Value:{' '}
-            <span className="text-emerald-400 font-semibold">{formatCurrency(totalVal)}</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatCurrency(totalVal)}</span>
           </p>
         </div>
         <Link
           to="/transactions/sale/new"
-          className="inline-flex h-9 items-center justify-center text-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all duration-150"
+          className="inline-flex h-9 items-center justify-center text-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
         >
           <Plus size={15} className="shrink-0" />
           <span className="leading-none text-center">New Sale</span>
@@ -276,27 +276,27 @@ export default function SaleRegister() {
       {/* Filters Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by invoice number or customer name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
           />
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex rounded-lg border border-slate-800 overflow-x-auto text-xs bg-slate-900 p-0.5 max-w-full">
+        <div className="flex rounded-lg border border-border overflow-x-auto text-xs bg-muted/50 p-0.5 max-w-full">
           {['all', 'paid', 'posted', 'pending', 'overdue', 'partial', 'draft'].map((t) => (
             <button
               key={t}
               onClick={() => setStatusFilter(t)}
               className={cn(
-                'px-3 py-1 font-medium capitalize transition rounded-md whitespace-nowrap shrink-0',
+                'px-3 py-1 font-medium capitalize transition rounded-md whitespace-nowrap shrink-0 cursor-pointer',
                 statusFilter === t
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-card text-foreground font-semibold shadow-xs border border-border/50'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {t}
@@ -306,10 +306,10 @@ export default function SaleRegister() {
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
         <table className="min-w-[700px] w-full text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
+            <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
               <th className="text-left px-4 py-3 font-semibold">Invoice No</th>
               <th className="text-left px-4 py-3 font-semibold">Date</th>
               <th className="text-left px-4 py-3 font-semibold">Customer</th>
@@ -319,10 +319,10 @@ export default function SaleRegister() {
               <th className="text-right px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {loading && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-500 animate-pulse">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground animate-pulse">
                   Loading sale register…
                 </td>
               </tr>
@@ -332,21 +332,21 @@ export default function SaleRegister() {
                 <tr
                   key={s.invoiceNo}
                   onClick={() => openInvoice(s)}
-                  className="hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                  className="hover:bg-muted/40 cursor-pointer transition-colors group"
                   title="Click to view & edit invoice"
                 >
-                  <td className="px-4 py-3 font-mono font-semibold text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1.5">
-                    <FileText size={13} className="text-slate-500 group-hover:text-indigo-400" />
+                  <td className="px-4 py-3 font-mono font-semibold text-indigo-700 dark:text-indigo-400 group-hover:underline flex items-center gap-1.5">
+                    <FileText size={13} className="text-muted-foreground group-hover:text-primary" />
                     {s.invoiceNo}
                   </td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
-                  <td className="px-4 py-3 font-medium text-white group-hover:underline">{s.customer}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-300">{s.items}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{s.date}</td>
+                  <td className="px-4 py-3 font-medium text-foreground group-hover:underline">{s.customer}</td>
+                  <td className="px-4 py-3 text-right font-mono text-muted-foreground">{s.items}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(s.total)}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[s.status] || STATUS_STYLE.posted)}>
+                    <span className={cn('px-2.5 py-0.5 rounded-full text-[10px] font-semibold capitalize', STATUS_STYLE[s.status] || STATUS_STYLE.posted)}>
                       {s.status}
                     </span>
                   </td>
@@ -359,7 +359,7 @@ export default function SaleRegister() {
                           openInvoice(s)
                         }}
                         title="View Invoice Details"
-                        className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-foreground text-muted-foreground hover:bg-muted rounded transition"
                       >
                         <Eye size={14} />
                       </button>
@@ -367,7 +367,7 @@ export default function SaleRegister() {
                         aria-label={`Edit ${s.invoiceNo}`}
                         onClick={(e) => editInvoice(s.invoiceNo, e)}
                         title="Edit Invoice"
-                        className="p-1.5 hover:text-amber-400 text-slate-400 hover:bg-slate-800 rounded transition flex items-center gap-1"
+                        className="p-1.5 hover:text-amber-600 dark:hover:text-amber-400 text-muted-foreground hover:bg-muted rounded transition flex items-center gap-1"
                       >
                         <Edit2 size={14} />
                       </button>
@@ -379,7 +379,7 @@ export default function SaleRegister() {
                           setTimeout(() => window.print(), 100)
                         }}
                         title="Print Invoice"
-                        className="p-1.5 hover:text-white text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-foreground text-muted-foreground hover:bg-muted rounded transition"
                       >
                         <Printer size={14} />
                       </button>
@@ -388,7 +388,7 @@ export default function SaleRegister() {
                         onClick={(e) => cancelInvoice(s, e)}
                         disabled={s.status === 'cancelled'}
                         title="Cancel and reverse invoice"
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1.5 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-muted rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -398,7 +398,7 @@ export default function SaleRegister() {
               ))}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-500">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
                   No sales invoices found matching your criteria.
                 </td>
               </tr>
@@ -410,34 +410,34 @@ export default function SaleRegister() {
       {/* Rich Invoice View & Edit Modal */}
       {selected && (
         <div
-          className="no-print fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-xs"
+          className="no-print fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-xs"
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-card-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print border-b border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print border-b border-border pb-3">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-xl font-bold text-white font-mono">{selected.invoiceNo}</h2>
+                  <h2 className="text-base sm:text-xl font-bold text-foreground font-mono">{selected.invoiceNo}</h2>
                   <span
                     className={cn(
-                      'px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold capitalize',
+                      'px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold capitalize',
                       STATUS_STYLE[selected.status] || STATUS_STYLE.posted
                     )}
                   >
                     {selected.status}
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                   Tax invoice bill preview &bull; Ready for A4 print or export to PDF
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   onClick={() => setSelected(null)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-muted transition"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -447,17 +447,17 @@ export default function SaleRegister() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <Printer size={14} />
                   <span>Print Bill</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-primary-foreground/80 bg-black/20 dark:bg-white/20 rounded border border-primary-foreground/20">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   onClick={() => setSelected(null)}
-                  className="hidden sm:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
                   aria-label="Close dialog"
                 >
                   <X size={18} />
@@ -466,16 +466,16 @@ export default function SaleRegister() {
             </div>
 
             {/* Document Preview Frame */}
-            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto text-slate-900">
               <TaxInvoicePrint data={getPrintDataForSelected(selected)} />
             </div>
 
             {/* Modal Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-slate-800 no-print">
+            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-border no-print">
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               >
                 Close
               </button>
@@ -483,7 +483,7 @@ export default function SaleRegister() {
               <button
                 type="button"
                 onClick={() => editInvoice(selected.invoiceNo)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-md transition"
+                className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-xs transition"
               >
                 <Edit2 size={14} /> Edit Invoice <ArrowRight size={14} />
               </button>
@@ -491,7 +491,7 @@ export default function SaleRegister() {
                 type="button"
                 onClick={() => cancelInvoice(selected)}
                 disabled={selected.status === 'cancelled'}
-                className="flex items-center gap-1.5 px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-xs transition"
               >
                 <Trash2 size={14} /> Cancel Invoice
               </button>

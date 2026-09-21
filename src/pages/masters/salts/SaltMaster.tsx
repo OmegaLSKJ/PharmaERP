@@ -15,12 +15,12 @@ interface Salt {
 }
 
 const CAT_COLORS: Record<string, string> = {
-  Antibiotic: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-  Analgesic: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-  Antiallergic: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-  Antidiabetic: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  Gastrointestinal: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
-  Respiratory: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
+  Antibiotic: 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-semibold shadow-2xs',
+  Analgesic: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
+  Antiallergic: 'bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 font-semibold shadow-2xs',
+  Antidiabetic: 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-semibold shadow-2xs',
+  Gastrointestinal: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs',
+  Respiratory: 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60 font-semibold shadow-2xs',
 }
 
 export default function SaltMaster() {
@@ -140,16 +140,16 @@ export default function SaltMaster() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Salt / Composition Master</h1>
-            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-mono font-medium">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Salt / Composition Master</h1>
+            <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {filtered.length} Generic Salts
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">Generic drug lookup, therapeutic categories and molecule definitions</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Generic drug lookup, therapeutic categories and molecule definitions</p>
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-lg text-sm font-semibold shadow-xs transition"
         >
           <Plus size={16} />
           Add Salt
@@ -158,21 +158,21 @@ export default function SaltMaster() {
 
       {/* Search Toolbar */}
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           placeholder="Search by salt, composition, category..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+          className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
         <table className="min-w-[650px] w-full text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
+            <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[11px] font-mono">
               <th className="text-left px-4 py-3 font-semibold">Code / ID</th>
               <th className="text-left px-4 py-3 font-semibold">Salt Name</th>
               <th className="text-left px-4 py-3 font-semibold">Composition</th>
@@ -181,50 +181,50 @@ export default function SaltMaster() {
               <th className="text-right px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {loading && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500 animate-pulse">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground animate-pulse">
                   Loading salts…
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   No salts found matching your search criteria.
                 </td>
               </tr>
             )}
             {!loading &&
               filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-800/40 transition-colors group">
-                  <td className="px-4 py-3 font-mono text-slate-400 group-hover:text-indigo-300">
+                <tr key={s.id} className="hover:bg-muted/40 transition-colors group">
+                  <td className="px-4 py-3 font-mono text-muted-foreground group-hover:text-foreground">
                     {s.code || s.id?.slice(0, 8) || '—'}
                   </td>
-                  <td className="px-4 py-3 font-medium text-white flex items-center gap-2">
-                    <FlaskConical size={14} className="text-slate-500" />
+                  <td className="px-4 py-3 font-medium text-foreground flex items-center gap-2">
+                    <FlaskConical size={14} className="text-muted-foreground" />
                     {s.name}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{s.composition || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{s.composition || '—'}</td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
-                        'px-2 py-0.5 rounded text-[10px] font-semibold',
-                        CAT_COLORS[s.category] || 'bg-slate-800 text-slate-300 border border-slate-700'
+                        'px-2.5 py-0.5 rounded-full text-[11px] font-semibold',
+                        CAT_COLORS[s.category] || 'bg-muted text-foreground border border-border'
                       )}
                     >
                       {s.category || 'General'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-400">{s.itemcount ?? 0}</td>
+                  <td className="px-4 py-3 text-right font-mono text-muted-foreground">{s.itemcount ?? 0}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button
                         type="button"
                         aria-label={`Edit ${s.name}`}
                         onClick={() => openEditModal(s)}
-                        className="p-1.5 hover:text-amber-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-amber-600 dark:hover:text-amber-400 text-muted-foreground hover:bg-muted rounded transition"
                         title="Edit Salt"
                       >
                         <Edit2 size={14} />
@@ -233,7 +233,7 @@ export default function SaltMaster() {
                         type="button"
                         aria-label={`Delete ${s.name}`}
                         onClick={() => setDeletingSalt(s)}
-                        className="p-1.5 hover:text-rose-400 text-slate-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 hover:text-rose-600 dark:hover:text-rose-400 text-muted-foreground hover:bg-muted rounded transition"
                         title="Delete Salt"
                       >
                         <Trash2 size={14} />
@@ -250,21 +250,21 @@ export default function SaltMaster() {
       {modalMode &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999]"
             onClick={() => setModalMode(null)}
           >
             <div
-              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4 text-white"
+              className="bg-card border border-border rounded-xl w-full max-w-md p-6 relative shadow-2xl space-y-4 text-card-foreground"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-lg font-bold text-white">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h3 className="text-lg font-bold text-foreground">
                   {modalMode === 'add' ? 'Add Salt / Composition' : 'Edit Salt / Composition'}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setModalMode(null)}
-                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition"
                 >
                   <X size={18} />
                 </button>
@@ -272,8 +272,8 @@ export default function SaltMaster() {
 
               <form onSubmit={saveSalt} className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">
-                    Salt Name <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">
+                    Salt Name <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -281,27 +281,27 @@ export default function SaltMaster() {
                     placeholder="e.g. Paracetamol"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                    className="w-full bg-background border border-input rounded-lg p-2.5 text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Composition</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Composition</label>
                   <input
                     type="text"
                     placeholder="e.g. N-(4-hydroxyphenyl)acetamide"
                     value={comp}
                     onChange={(e) => setComp(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                    className="w-full bg-background border border-input rounded-lg p-2.5 text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Category</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Category</label>
                   <select
                     value={cat}
                     onChange={(e) => setCat(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                    className="w-full bg-background border border-input rounded-lg p-2.5 text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   >
                     {Object.keys(CAT_COLORS).map((c) => (
                       <option key={c} value={c}>
@@ -312,19 +312,19 @@ export default function SaltMaster() {
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-3 border-t border-border">
                   <button
                     type="button"
                     onClick={() => setModalMode(null)}
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                    className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                    className="px-4 py-2 text-xs bg-primary hover:opacity-90 text-primary-foreground font-semibold rounded-lg shadow-xs transition disabled:opacity-50"
                   >
                     {isSubmitting ? 'Saving…' : modalMode === 'add' ? 'Save Salt' : 'Update Salt'}
                   </button>
@@ -339,33 +339,33 @@ export default function SaltMaster() {
       {deletingSalt &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999]"
             onClick={() => setDeletingSalt(null)}
           >
             <div
-              className="bg-slate-900 border border-slate-700/80 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-white"
+              className="bg-card border border-border rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-card-foreground"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 text-rose-400">
-                <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+              <div className="flex items-center gap-3 text-rose-500">
+                <div className="p-2.5 bg-rose-50 dark:bg-rose-950/50 rounded-full border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400">
                   <AlertTriangle size={22} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Delete Salt</h3>
-                  <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                  <h3 className="text-base font-bold text-foreground">Delete Salt</h3>
+                  <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300">
-                Are you sure you want to delete <span className="font-semibold text-white">"{deletingSalt.name}"</span>?
+              <p className="text-xs text-muted-foreground">
+                Are you sure you want to delete <span className="font-semibold text-foreground">"{deletingSalt.name}"</span>?
               </p>
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setDeletingSalt(null)}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
                 >
                   Cancel
                 </button>
@@ -373,7 +373,7 @@ export default function SaltMaster() {
                   type="button"
                   onClick={confirmDelete}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-50"
+                  className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg shadow-xs transition disabled:opacity-50"
                 >
                   {isDeleting ? 'Deleting…' : 'Yes, Delete'}
                 </button>
