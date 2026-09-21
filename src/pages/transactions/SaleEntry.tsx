@@ -765,9 +765,16 @@ export default function SaleEntry() {
                       >
                         <td className="p-3 font-medium text-white">
                           {item.name}
-                          {item.packing && (
-                            <span className="block text-[11px] text-slate-500 font-normal">{item.packing}</span>
-                          )}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {item.manufacturer && (
+                              <span className="text-[10px] font-medium text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-1.5 py-0.2 rounded">
+                                {item.manufacturer}
+                              </span>
+                            )}
+                            {item.packing && (
+                              <span className="text-[11px] text-slate-400 font-normal">{item.packing}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3 font-mono text-amber-400">{item.batch}</td>
                         <td className="p-3 text-right font-mono text-slate-400">{item.stock}</td>
@@ -954,7 +961,14 @@ export default function SaleEntry() {
                   >
                     <div>
                       <div className="text-sm font-semibold text-white group-hover:text-indigo-300 transition">{item.label}</div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-400">
+                        {item.manufacturer && (
+                          <span className="text-[11px] font-medium text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-1.5 py-0.5 rounded">
+                            {item.manufacturer}
+                          </span>
+                        )}
+                        {item.packing && <span>{item.packing}</span>}
+                        {item.salt && <span className="italic text-slate-500">{item.salt}</span>}
                         <span className="font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
                           Batch: {item.batch}
                         </span>

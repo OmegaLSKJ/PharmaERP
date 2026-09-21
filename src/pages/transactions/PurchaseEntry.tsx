@@ -12,6 +12,8 @@ import { getGstRateForHsn } from '../../lib/hsnUtils'
 
 interface LineItem {
   id: string
+  itemId?: string
+  code?: string
   itemName: string
   packing: string
   hsn: string
@@ -34,6 +36,8 @@ interface LineItem {
 type SupplierOption = { name: string; gstin: string; outstanding: number }
 type HsnOption = { code: string; description: string; gstRate: number }
 type ItemOption = {
+  id?: string
+  code?: string
   name: string
   packing: string
   hsn: string
@@ -144,16 +148,18 @@ export default function PurchaseEntry() {
               : (p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(hsnCode))
 
             return {
+              id: p.id,
+              code: p.code,
               name: p.name,
               packing: p.packing ?? '',
               hsn: hsnCode,
-              mrp: Number(p.mrp),
-              purchaseRate: Number(p.purchaseRate),
-              saleRate: Number(p.saleRate),
+              mrp: Number(p.mrp || 0),
+              purchaseRate: Number(p.purchaseRate || 0),
+              saleRate: Number(p.saleRate || 0),
               gstRate: resolvedGstRate,
               stock: Number(p.stock ?? p.quantity ?? 0),
-              manufacturer: String(p.manufacturer ?? p.mfr ?? ''),
-              salt: String(p.salt ?? ''),
+              manufacturer: String(p.manufacturer ?? p.mfr ?? p.company ?? '').trim(),
+              salt: String(p.salt ?? p.composition ?? '').trim(),
             }
           })
         )
@@ -265,6 +271,8 @@ export default function PurchaseEntry() {
         ...prev,
         {
           id: newId,
+          itemId: item.id,
+          code: item.code,
           itemName: item.name,
           packing: item.packing,
           hsn: item.hsn || '',
@@ -384,7 +392,13 @@ export default function PurchaseEntry() {
         taxTotal: totalGst,
         total: grandTotal,
         lines: items.map((item) => ({
+          itemId: item.itemId,
+          item_id: item.itemId,
+          code: item.code,
           name: item.itemName,
+          manufacturer: item.manufacturer,
+          salt: item.salt,
+          packing: item.packing,
           hsn: item.hsn,
           batch: item.batch,
           expiry: item.expiry,
@@ -521,7 +535,7 @@ export default function PurchaseEntry() {
 
   const quickTypeaheadOptions: TOption[] = itemOptions.map((item) => ({
     label: item.name,
-    sub: `${item.hsn ? 'HSN: ' + item.hsn + ' | ' : ''}GST: ${item.gstRate}% | MRP: ₹${item.mrp}`,
+    sub: `${item.manufacturer ? '[' + item.manufacturer + '] ' : ''}${item.packing ? item.packing + ' • ' : ''}${item.hsn ? 'HSN: ' + item.hsn + ' • ' : ''}GST: ${item.gstRate}% | MRP: ₹${item.mrp}`,
     right: formatCurrency(item.purchaseRate),
   }))
 
@@ -971,9 +985,16 @@ export default function PurchaseEntry() {
                         <td className="p-3 text-center text-muted-foreground font-mono font-medium">{idx + 1}</td>
                         <td className="p-3 font-semibold text-foreground">
                           {item.itemName}
-                          {item.packing && (
-                            <span className="block text-[11px] text-muted-foreground font-normal">{item.packing}</span>
-                          )}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {item.manufacturer && (
+                              <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.2 rounded">
+                                {item.manufacturer}
+                              </span>
+                            )}
+                            {item.packing && (
+                              <span className="text-[11px] text-muted-foreground font-normal">{item.packing}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2">
                           <input
@@ -1228,8 +1249,18 @@ export default function PurchaseEntry() {
                 >
                   <div>
                     <div className="font-semibold text-sm text-foreground group-hover:text-primary transition">{item.name}</div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      {item.manufacturer && (
+                        <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded">
+                          {item.manufacturer}
+                        </span>
+                      )}
                       <span>{item.packing || 'Standard'}</span>
+                      {item.salt && (
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                          {item.salt}
+                        </span>
+                      )}
                       {item.hsn && (
                         <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-foreground">
                           HSN: {item.hsn}

@@ -21,7 +21,7 @@ export function normalizePurchaseSources(source: SourceData, organization: strin
   const byName = new Map<string, SourceRow[]>()
   for (const item of items.values()) { const key = text(item.name).toLowerCase().trim(); byName.set(key, [...(byName.get(key) || []), item]) }
   const party = (id: unknown, fallback?: unknown) => ({ supplierId: text(id), supplier: text(parties.get(text(id))?.legal_name) || text(fallback) || 'Unassigned' })
-  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated bill values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || 'Unallocated', batch: text(batch?.batch_number) })
+  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated bill values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company) || 'Unallocated', batch: text(batch?.batch_number) })
   const resolve = (line: SourceRow) => {
     let item = items.get(text(line.item_id || line.itemId))
     if (!item) { const matches = byName.get(text(line.name || line.itemName).toLowerCase().trim()) || []; if (matches.length === 1) item = matches[0] }

@@ -28,7 +28,7 @@ export function normalizeSources(source: SourceData, organization: string, loade
     for (const value of [batch?.cost_price, batch?.purchase_price, item?.purchase_rate]) if (n(value) > 0) return n(value)
     return null
   }
-  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated invoice values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || 'Unallocated', batch: text(batch?.batch_number) })
+  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated invoice values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company) || 'Unallocated', batch: text(batch?.batch_number) })
   const partyInfo = (id: unknown, fallback?: unknown) => ({ partyId: text(id), party: text(parties.get(text(id))?.legal_name) || text(fallback) || 'Unassigned' })
   const resolveLine = (line: SourceRow) => {
     let item = items.get(text(line.item_id || line.itemId)) || itemByCode.get(text(line.itemCode))

@@ -127,12 +127,12 @@ export default function CounterSale() {
           <Typeahead
             options={available.map(i => ({
               label: i.name,
-              sub: `Batch: ${i.batch} | Stock: ${i.stock}`,
+              sub: `${i.manufacturer ? '[' + i.manufacturer + '] ' : ''}${i.packing ? i.packing + ' • ' : ''}Batch: ${i.batch} | Stock: ${i.stock}`,
               right: formatCurrency(i.rate)
             }))}
             value=""
             onSelect={(opt) => {
-              const selectedItem = available.find(i => i.name === opt.label && `Batch: ${i.batch} | Stock: ${i.stock}` === opt.sub)
+              const selectedItem = available.find(i => i.name === opt.label && `${i.manufacturer ? '[' + i.manufacturer + '] ' : ''}${i.packing ? i.packing + ' • ' : ''}Batch: ${i.batch} | Stock: ${i.stock}` === opt.sub)
               if (selectedItem) add(selectedItem)
             }}
             placeholder="Search medicine name to add..."
