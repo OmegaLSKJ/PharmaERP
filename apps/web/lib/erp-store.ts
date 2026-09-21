@@ -983,20 +983,7 @@ export async function list(resource: string, partyName?: string, options?: { man
       } catch {}
     }
 
-    const cleanDbParties = Array.from(uniqueDbMap.values())
-    const combinedMap = new Map<string, any>()
-    for (const p of cleanDbParties) {
-      combinedMap.set((p.name || '').trim().toLowerCase(), p)
-    }
-    for (const p of (mockStore.parties || [])) {
-      const key = (p.name || '').trim().toLowerCase()
-      if (!key) continue
-      if (!combinedMap.has(key)) {
-        combinedMap.set(key, p)
-      }
-    }
-
-    return Array.from(combinedMap.values())
+    return Array.from(uniqueDbMap.values())
   }
   if (resource === 'items') {
     let query = client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)

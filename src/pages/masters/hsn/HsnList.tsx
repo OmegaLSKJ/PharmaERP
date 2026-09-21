@@ -18,7 +18,6 @@ import {
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import { cn } from '../../../lib/utils'
-import defaultHsnMaster from '../../../data/hsnMasterData.json'
 
 interface HsnItem {
   id: string
@@ -29,30 +28,7 @@ interface HsnItem {
 }
 
 export default function HsnList() {
-  const [items, setItems] = useState<HsnItem[]>(() => {
-    let localSaved: any[] = []
-    try {
-      const raw = localStorage.getItem('pharma_erp_custom_hsn')
-      if (raw) localSaved = JSON.parse(raw)
-    } catch {}
-    if (Array.isArray(localSaved) && localSaved.length > 0) {
-      return localSaved.map((row) => ({
-        id: row.id || `hsn-${row.code}`,
-        code: String(row.code),
-        description: row.description ?? '',
-        gstRate: String(row.code).startsWith('3004') ? 5 : Number(row.gst_rate ?? row.gstRate ?? 12),
-        type: row.code?.startsWith('99') ? 'Services' : 'Goods'
-      }))
-    }
-
-    return (defaultHsnMaster as any[]).map((row) => ({
-      id: row.id || `hsn-${row.code}`,
-      code: String(row.code),
-      description: row.description ?? '',
-      gstRate: String(row.code).startsWith('3004') ? 5 : Number(row.gst_rate ?? row.gstRate ?? 12),
-      type: row.code?.startsWith('99') ? 'Services' : 'Goods'
-    }))
-  })
+  const [items, setItems] = useState<HsnItem[]>([])
 
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -79,70 +55,40 @@ export default function HsnList() {
   const [continuousCount, setContinuousCount] = useState<number>(50)
   const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
 
-  useEffect(() => {
-    getErp<any[]>('hsn')
-      .then((rows) => {
-        if (Array.isArray(rows) && rows.length > 0) {
-          setItems((prev) => {
-            // Keep any locally created or edited items
-            const localSaved = new Map<string, HsnItem>()
-            prev.forEach((p) => localSaved.set(p.code, p))
-
-            const merged = rows.map((row) => {
-              const codeStr = String(row.code)
-              const existing = localSaved.get(codeStr)
-              return {
-                id: row.id || existing?.id || `hsn-${codeStr}`,
-                code: codeStr,
-                description: row.description ?? existing?.description ?? '',
-                gstRate: codeStr.startsWith('3004') ? 5 : Number(row.gst_rate ?? row.gstRate ?? existing?.gstRate ?? 12),
-                type: (codeStr.startsWith('99') ? 'Services' : 'Goods') as 'Goods' | 'Services'
-              }
-            })
-
-            // Add any custom items that were not in API response
-            const apiCodes = new Set(rows.map((r) => String(r.code)))
-            for (const [c, p] of localSaved) {
-              if (!apiCodes.has(c)) merged.push(p)
-            }
-
-            try {
-              localStorage.setItem('pharma_erp_custom_hsn', JSON.stringify(merged))
-            } catch {}
-
-            return merged
-          })
-        }
-      })
-      .catch(() => {
-        // Keeps the default/local HSN master records safely loaded
-      })
-  }, [])
-
-  const persistItems = (newItems: HsnItem[]) => {
-    setItems(newItems)
-    try {
-      localStorage.setItem('pharma_erp_custom_hsn', JSON.stringify(newItems))
-    } catch {}
+  const toHsnItem = (row: any): HsnItem => {
+    const codeValue = String(row.code)
+    return {
+      id: row.id,
+      code: codeValue,
+      description: row.description ?? '',
+      gstRate: Number(row.gst_rate ?? row.gstRate ?? 0),
+      type: codeValue.startsWith('99') ? 'Services' : 'Goods'
+    }
   }
+
+  const loadItems = async () => {
+    try {
+      const rows = await getErp<any[]>('hsn')
+      setItems(Array.isArray(rows) ? rows.map(toHsnItem) : [])
+    } catch (error) {
+      setItems([])
+      showToast(error instanceof Error ? error.message : 'Could not load HSN / SAC codes from Supabase.')
+    }
+  }
+
+  useEffect(() => {
+    void loadItems()
+  }, [])
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !code) return
     const cleanCode = code.trim()
     const finalGst = cleanCode.startsWith('3004') ? 5 : gst
-    const newItem: HsnItem = {
-      id: `hsn-${cleanCode}`,
-      code: cleanCode,
-      description: name.trim(),
-      gstRate: finalGst,
-      type
-    }
-
     try {
-      postErp<any>('hsn', { code: cleanCode, description: name.trim(), gst_rate: finalGst }).catch(() => {})
-      const updated = [newItem, ...items.filter((i) => i.code !== cleanCode)]
-      persistItems(updated)
+      const created = await postErp<any>('hsn', { code: cleanCode, description: name.trim(), gst_rate: finalGst })
+      const newItem = toHsnItem(created)
+      setItems((current) => [newItem, ...current.filter((item) => item.id !== newItem.id && item.code !== newItem.code)])
       setName('')
       setCode('')
       setGst(5)
@@ -173,14 +119,14 @@ export default function HsnList() {
     }
 
     try {
-      patchErp('hsn', editingItem.id, {
+      const saved = await patchErp<any>('hsn', editingItem.id, {
         code: updated.code,
         description: updated.description,
         gst_rate: updated.gstRate
-      }).catch(() => {})
+      })
 
-      const newItems = items.map((i) => (i.id === editingItem.id ? updated : i))
-      persistItems(newItems)
+      const persisted = toHsnItem(saved)
+      setItems((current) => current.map((item) => (item.id === editingItem.id ? persisted : item)))
       setEditingItem(null)
       showToast(`HSN / SAC ${updated.code} updated to ${updated.gstRate}% GST.`)
     } catch (error) {
@@ -196,9 +142,8 @@ export default function HsnList() {
     if (!deletingItem) return
     const target = deletingItem
     try {
-      deleteErp('hsn', target.id).catch(() => {})
-      const updated = items.filter((i) => i.id !== target.id && i.code !== target.code)
-      persistItems(updated)
+      await deleteErp('hsn', target.id)
+      setItems((current) => current.filter((item) => item.id !== target.id))
       setDeletingItem(null)
       showToast(`HSN / SAC ${target.code} deleted.`)
     } catch (error) {
@@ -207,12 +152,16 @@ export default function HsnList() {
   }
 
   // Bulk set all 3004 codes to 5% GST
-  const handleBulkSet3004 = () => {
-    const updated = items.map((i) =>
-      String(i.code).startsWith('3004') ? { ...i, gstRate: 5 } : i
-    )
-    persistItems(updated)
-    showToast('All codes starting with 3004 set to 5% GST.')
+  const handleBulkSet3004 = async () => {
+    const matchingItems = items.filter((item) => item.code.startsWith('3004') && item.gstRate !== 5)
+    try {
+      await Promise.all(matchingItems.map((item) => patchErp('hsn', item.id, { gst_rate: 5 })))
+      setItems((current) => current.map((item) => item.code.startsWith('3004') ? { ...item, gstRate: 5 } : item))
+      showToast('All codes starting with 3004 were saved with 5% GST.')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save all 3004 GST rates.')
+      await loadItems()
+    }
   }
 
   const filtered = useMemo(() => {

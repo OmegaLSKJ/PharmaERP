@@ -196,51 +196,18 @@ export default function PartyList() {
   })
 
   useEffect(() => {
-    let localSaved: Party[] = []
-    try {
-      const raw = localStorage.getItem('pharma_erp_custom_parties')
-      if (raw) localSaved = JSON.parse(raw)
-    } catch {}
-
     getErp<Party[]>('parties')
       .then((serverParties) => {
         const partyMap = new Map<string, Party>()
-        // Server parties take precedence for canonical ID, but localSaved fields enrich missing metadata
-        const combined = [...(serverParties || []), ...(localSaved || [])]
-
-        for (const p of combined) {
+        for (const p of serverParties || []) {
           const key = (p.name || '').trim().toLowerCase()
           if (!key) continue
-          if (!partyMap.has(key)) {
-            partyMap.set(key, { ...p })
-          } else {
-            const existing = partyMap.get(key)!
-            if ((!existing.phone || existing.phone === '-') && p.phone && p.phone !== '-') existing.phone = p.phone
-            if ((!existing.city || existing.city === '-') && p.city && p.city !== '-') existing.city = p.city
-            if ((!existing.station || existing.station === '-') && p.station && p.station !== '-') existing.station = p.station
-            if (!existing.gstin && p.gstin) existing.gstin = p.gstin
-            if (!existing.dlNo && (p.dlNo || p.dlNumber)) existing.dlNo = p.dlNo || p.dlNumber
-            if (p.type === 'both') existing.type = 'both'
-          }
+          if (!partyMap.has(key)) partyMap.set(key, p)
         }
-
-        const uniqueParties = Array.from(partyMap.values())
-        setParties(uniqueParties)
-
-        // Save clean deduplicated list back to local storage
-        try {
-          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(uniqueParties))
-        } catch {}
+        setParties(Array.from(partyMap.values()))
       })
       .catch((error) => {
-        if (localSaved.length > 0) {
-          const partyMap = new Map<string, Party>()
-          for (const p of localSaved) {
-            const key = (p.name || '').trim().toLowerCase()
-            if (key && !partyMap.has(key)) partyMap.set(key, p)
-          }
-          setParties(Array.from(partyMap.values()))
-        }
+        setParties([])
         showToast(error instanceof Error ? error.message : 'Could not load parties.')
       })
       .finally(() => setLoading(false))
@@ -267,13 +234,10 @@ export default function PartyList() {
         }
       }
 
-      try {
-        await deleteErp('parties', 'purge-duplicates')
-      } catch {}
+      await deleteErp('parties', 'purge-duplicates')
 
       const cleanList = Array.from(partyMap.values())
       setParties(cleanList)
-      localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(cleanList))
       showToast(count > 0 ? `Deleted ${count} duplicate parties. 1 canonical copy kept.` : 'No duplicate parties found. All records are unique.')
     } catch (err: any) {
       showToast(err?.message || 'Failed to purge duplicate parties.')
@@ -283,16 +247,9 @@ export default function PartyList() {
   const handleDeleteSingle = async (party: Party) => {
     try {
       setIsDeleting(true)
-      try {
-        await deleteErp('parties', party.id)
-      } catch (err) {
-        console.warn('Backend party delete:', err)
-      }
+      await deleteErp('parties', party.id)
       const updated = parties.filter((p) => p.id !== party.id)
       setParties(updated)
-      try {
-        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updated))
-      } catch {}
       setSelectedIds((prev) => {
         const next = new Set(prev)
         next.delete(party.id)
@@ -310,15 +267,8 @@ export default function PartyList() {
   const handleDeleteAll = async () => {
     try {
       setIsDeleting(true)
-      try {
-        await deleteErp('parties', 'purge-all')
-      } catch (err) {
-        console.warn('Backend purge-all error:', err)
-      }
+      await deleteErp('parties', 'purge-all')
       setParties([])
-      try {
-        localStorage.removeItem('pharma_erp_custom_parties')
-      } catch {}
       setSelectedIds(new Set())
       showToast('All party ledgers deleted successfully.')
       setShowDeleteAllConfirm(false)
@@ -334,16 +284,9 @@ export default function PartyList() {
     try {
       setIsDeleting(true)
       const idsToDelete = Array.from(selectedIds)
-      for (const id of idsToDelete) {
-        try {
-          await deleteErp('parties', id)
-        } catch {}
-      }
+      await Promise.all(idsToDelete.map((id) => deleteErp('parties', id)))
       const updated = parties.filter((p) => !selectedIds.has(p.id))
       setParties(updated)
-      try {
-        localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updated))
-      } catch {}
       showToast(`${idsToDelete.length} party ledgers deleted successfully.`)
       setSelectedIds(new Set())
       setShowDeleteSelectedConfirm(false)
@@ -669,21 +612,6 @@ export default function PartyList() {
           ...(updated || {})
         }
 
-        // Update localStorage custom parties
-        try {
-          const raw = localStorage.getItem('pharma_erp_custom_parties')
-          const currentLocal = raw ? JSON.parse(raw) : []
-          const updatedLocal = currentLocal.map((p: any) =>
-            (p.id === editingPartyId || (p.name && p.name.toLowerCase() === mergedParty.name.toLowerCase())) ? mergedParty : p
-          )
-          if (!updatedLocal.some((p: any) => p.id === editingPartyId)) {
-            updatedLocal.unshift(mergedParty)
-          }
-          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
-        } catch (err) {
-          console.warn('Could not update custom party in localStorage:', err)
-        }
-
         setParties((current) => current.map((p) => (p.id === editingPartyId ? mergedParty : p)))
         setShowCreate(false)
         resetForm()
@@ -691,15 +619,6 @@ export default function PartyList() {
       } else {
         // CREATE NEW PARTY
         const created = await postErp<Party>('parties', payload)
-        // Save locally to localStorage so it permanently persists across browser refresh
-        try {
-          const raw = localStorage.getItem('pharma_erp_custom_parties')
-          const currentLocal = raw ? JSON.parse(raw) : []
-          const updatedLocal = [created, ...currentLocal.filter((p: any) => p.id !== created.id && p.name.toLowerCase() !== created.name.toLowerCase())]
-          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedLocal))
-        } catch (err) {
-          console.warn('Could not save custom party to localStorage:', err)
-        }
         setParties((current) => [created, ...current.filter((p) => p.id !== created.id)])
         setShowCreate(false)
         resetForm()

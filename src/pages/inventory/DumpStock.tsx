@@ -38,8 +38,6 @@ export interface DumpItem {
   status: 'pending' | 'written_off' | 'returned'
 }
 
-const STORAGE_KEY = 'pharma_erp_dump_stock_manual'
-
 export default function DumpStock() {
   const navigate = useNavigate()
   const [itemsList, setItemsList] = useState<any[]>([])
@@ -176,24 +174,15 @@ export default function DumpStock() {
             qty: Number(brk.qty || 1),
             mrp: Number(brk.mrp || 100),
             rate: Number(brk.rate || 75),
-            category: 'breakage',
+            category: brk.entryType === 'expiry' ? 'expired' : 'breakage',
             reason: brk.reason || 'Transit breakage / packaging leakage',
             dateAdded: brk.date || new Date().toISOString().slice(0, 10),
             status: 'written_off'
           })
         })
 
-        // 3. Add manual user-flagged items from localStorage
-        const savedManual = localStorage.getItem(STORAGE_KEY)
-        let manualList: DumpItem[] = []
-        if (savedManual) {
-          try {
-            manualList = JSON.parse(savedManual)
-          } catch {}
-        }
-
         const combinedMap = new Map<string, DumpItem>()
-        ;[...autoDetected, ...manualList].forEach((item) => {
+        autoDetected.forEach((item) => {
           combinedMap.set(item.id, item)
         })
 
@@ -209,13 +198,6 @@ export default function DumpStock() {
   useEffect(() => {
     loadData()
   }, [])
-
-  // Save manual items to localStorage
-  const syncManual = (updated: DumpItem[]) => {
-    setDumpItems(updated)
-    const manualOnly = updated.filter((i) => i.id.startsWith('manual-'))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(manualOnly))
-  }
 
   // Filter items
   const filtered = useMemo(() => {
@@ -266,10 +248,6 @@ export default function DumpStock() {
       status: 'pending'
     }
 
-    const updated = [newItem, ...dumpItems]
-    syncManual(updated)
-
-    // Also persist to backend breakages endpoint if applicable
     try {
       await postErp('breakages', {
         name: finalName,
@@ -279,9 +257,14 @@ export default function DumpStock() {
         rate: newItem.rate,
         mrp: newItem.mrp,
         reason: newItem.reason,
-        date: newItem.dateAdded
+        date: newItem.dateAdded,
+        entryType: category === 'expired' ? 'expiry' : 'breakage'
       })
-    } catch {}
+      await loadData()
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not save the dump entry to Supabase.', 'error')
+      return
+    }
 
     addToast(`Marked ${finalName} (${newItem.batch}) as Dump / Dead Stock`, 'success')
     setShowModal(false)
@@ -296,11 +279,7 @@ export default function DumpStock() {
 
   // Handle write-off
   const handleWriteOff = (item: DumpItem) => {
-    const updated = dumpItems.map((d) =>
-      d.id === item.id ? { ...d, status: 'written_off' as const } : d
-    )
-    syncManual(updated)
-    addToast(`Stock for ${item.name} written off from books`, 'success')
+    addToast(`The ${item.name} stock adjustment is already posted in Supabase. Use a purchase return or reversal document for any correction.`, 'info')
   }
 
   return (

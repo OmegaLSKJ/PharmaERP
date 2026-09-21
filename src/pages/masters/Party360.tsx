@@ -349,21 +349,6 @@ export default function Party360() {
       await patchErp('parties', partyData.id, payload)
       setPartyData((prev: any) => ({ ...prev, ...payload }))
 
-      // Update localStorage custom parties
-      try {
-        const raw = localStorage.getItem('pharma_erp_custom_parties')
-        if (raw) {
-          const custom = JSON.parse(raw)
-          const updatedCustom = custom.map((p: any) =>
-            p.id === partyData.id ||
-            (p.name && p.name.toLowerCase() === (partyData.name || '').toLowerCase())
-              ? { ...p, ...payload }
-              : p
-          )
-          localStorage.setItem('pharma_erp_custom_parties', JSON.stringify(updatedCustom))
-        }
-      } catch {}
-
       showToast('Party details updated successfully!')
       setShowEditModal(false)
     } catch (err: any) {
@@ -377,22 +362,6 @@ export default function Party360() {
     if (!id) return
     setLoading(true)
 
-    // Load local custom parties and transactions
-    let localParties: any[] = []
-    let localPurchases: any[] = []
-    let localSales: any[] = []
-    let localVouchers: any[] = []
-    try {
-      const rp = localStorage.getItem('pharma_erp_custom_parties')
-      if (rp) localParties = JSON.parse(rp)
-      const rpu = localStorage.getItem('pharma_erp_custom_purchases')
-      if (rpu) localPurchases = JSON.parse(rpu)
-      const rs = localStorage.getItem('pharma_erp_custom_sales')
-      if (rs) localSales = JSON.parse(rs)
-      const rv = localStorage.getItem('pharma_erp_custom_vouchers')
-      if (rv) localVouchers = JSON.parse(rv)
-    } catch {}
-
     Promise.all([
       getErp<any[]>('parties').catch(() => []),
       getErp<any[]>('purchases').catch(() => []),
@@ -403,7 +372,7 @@ export default function Party360() {
       getErp<any[]>('items').catch(() => []),
     ])
       .then(([allParties, allPurchases, allSales, allLedgers, allVouchers, allMappings, allItems]) => {
-        const combinedParties = [...(allParties || []), ...localParties]
+        const combinedParties = allParties || []
         const decodedId = decodeURIComponent(id || '').trim().toLowerCase()
         const norm = (str?: string) => (str || '').replace(/\s+/g, ' ').trim().toLowerCase()
 
@@ -480,7 +449,7 @@ export default function Party360() {
         const enrichedCreditLimit = Number(found.creditLimit || (partyNameNorm.includes('aditya') ? 500000 : 50000))
 
         // 2. Aggregate Transactions from Purchases
-        const rawPurchases = [...(allPurchases || []), ...localPurchases]
+        const rawPurchases = allPurchases || []
         const matchedPurchases = rawPurchases.filter(
           (p: any) => isMatch(p.party) || isMatch(p.supplier)
         )
@@ -524,13 +493,13 @@ export default function Party360() {
         }
 
         // 4. Aggregate Transactions from Sales
-        const rawSales = [...(allSales || []), ...localSales]
+        const rawSales = allSales || []
         const matchedSales = rawSales.filter(
           (s: any) => isMatch(s.party) || isMatch(s.customer) || isMatch(s.party_name)
         )
 
         // 5. Aggregate Transactions from Vouchers
-        const rawVouchers = [...(allVouchers || []), ...localVouchers]
+        const rawVouchers = allVouchers || []
         const matchedVouchers: any[] = []
         for (const v of rawVouchers) {
           const vPartyMatch = isMatch(v.party)
