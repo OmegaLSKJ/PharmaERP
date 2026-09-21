@@ -16,6 +16,7 @@ import {
   Eye,
   Package,
   Calendar,
+  Clock,
   TrendingUp,
   Receipt,
   ExternalLink,
@@ -27,7 +28,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react'
-import { cn, formatCurrency, formatDate } from '../../lib/utils'
+import { cn, formatCurrency, formatDate, getTxnDateTime } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -83,7 +84,7 @@ export default function Party360() {
   const [txnSearch, setTxnSearch] = useState('')
   const [txnTypeFilter, setTxnTypeFilter] = useState<'all' | 'bills' | 'payments'>('all')
   const [txnSortKey, setTxnSortKey] = useState<'date' | 'amount' | 'debit' | 'credit'>('date')
-  const [txnSortDir, setTxnSortDir] = useState<'asc' | 'desc'>('asc')
+  const [txnSortDir, setTxnSortDir] = useState<'asc' | 'desc'>('desc')
   const [itemSearch, setItemSearch] = useState('')
 
   // Modals
@@ -1306,7 +1307,7 @@ export default function Party360() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/60 text-muted-foreground border-b border-border uppercase tracking-wider font-semibold">
-                    <th className="text-left px-4 py-3">Date</th>
+                    <th className="text-left px-4 py-3">Date &amp; Time</th>
                     <th className="text-left px-4 py-3">Type</th>
                     <th className="text-left px-4 py-3">Ref / Invoice #</th>
                     <th className="text-left px-4 py-3">Details</th>
@@ -1320,10 +1321,19 @@ export default function Party360() {
                   {[...(partyData.recentTxns || [])]
                     .sort((a, b) => new Date(b.date || '1970-01-01').getTime() - new Date(a.date || '1970-01-01').getTime())
                     .slice(0, 5)
-                    .map((t: any, i: number) => (
+                    .map((t: any, i: number) => {
+                    const dt = getTxnDateTime(t.date, t.time, t.id || t.ref)
+                    return (
                     <tr key={t.id || i} className="hover:bg-muted/40 transition">
-                      <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
-                        {t.date ? formatDate(t.date) : '—'}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                            <Calendar size={10} className="text-primary shrink-0" />{dt.date}
+                          </span>
+                          <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                            <Clock size={9} className="shrink-0" />{dt.time}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
@@ -1382,7 +1392,7 @@ export default function Party360() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                   {(!partyData.recentTxns || partyData.recentTxns.length === 0) && (
                     <tr>
                       <td colSpan={8} className="text-center py-8 text-muted-foreground">
@@ -1519,7 +1529,7 @@ export default function Party360() {
                     title="Click to sort by Date (Ascending / Descending)"
                   >
                     <div className="inline-flex items-center gap-1">
-                      <span>Date</span>
+                      <span>Date &amp; Time</span>
                       {txnSortKey === 'date' ? (
                         txnSortDir === 'asc' ? (
                           <ArrowUp size={12} className="text-primary" />
@@ -1614,10 +1624,19 @@ export default function Party360() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredTxns.map((t: any, i: number) => (
+                {filteredTxns.map((t: any, i: number) => {
+                  const dt = getTxnDateTime(t.date, t.time, t.id || t.ref)
+                  return (
                   <tr key={t.id || i} className="hover:bg-muted/40 transition">
-                    <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
-                      {t.date ? formatDate(t.date) : '—'}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                          <Calendar size={10} className="text-primary shrink-0" />{dt.date}
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                          <Clock size={9} className="shrink-0" />{dt.time}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
@@ -1680,7 +1699,7 @@ export default function Party360() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
                 {filteredTxns.length === 0 && (
                   <tr>
                     <td colSpan={9} className="text-center py-12 text-muted-foreground">
@@ -1782,7 +1801,7 @@ export default function Party360() {
                     Transaction Detail: {selectedTxn.ref}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {selectedTxn.type} • Dated {selectedTxn.date ? formatDate(selectedTxn.date) : '—'}
+                    {selectedTxn.type} • {getTxnDateTime(selectedTxn.date, selectedTxn.time, selectedTxn.id || selectedTxn.ref).full}
                   </p>
                 </div>
 

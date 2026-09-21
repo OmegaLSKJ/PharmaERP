@@ -26,12 +26,17 @@ import {
   TrendingDown,
   CreditCard,
   Scale,
-  ExternalLink
+  ExternalLink,
+  Calendar,
+  Clock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
-import { cn, formatCurrency } from '../../../lib/utils'
+import { cn, formatCurrency, formatDate, getTxnDateTime } from '../../../lib/utils'
 import { exportVisibleTables } from '../../../lib/download'
 import PrintHeader from '../../../components/layout/PrintHeader'
 import accountGroupMaster from '../../../data/accountGroupMasterData.json'
@@ -47,12 +52,16 @@ interface Ledger {
   txnCount?: number
   totalDr?: number
   totalCr?: number
+  lastActivityDate?: string
+  lastActivityTime?: string
 }
 
 interface StatementEntry {
   id: string
   party: string
   date: string
+  time?: string
+  timestamp?: string
   vType: string
   vNo: string
   physicalVchNo?: string
@@ -126,6 +135,9 @@ export default function LedgerList() {
     return d.toISOString().slice(0, 10)
   })
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [ledgerSort, setLedgerSort] = useState<'newer' | 'name' | 'balance'>('newer')
+  const [statementSortKey, setStatementSortKey] = useState<'date' | 'amount' | 'debit' | 'credit'>('date')
+  const [statementSortDir, setStatementSortDir] = useState<'asc' | 'desc'>('desc')
 
   const [showModal, setShowModal] = useState(false)
   const [editModalLedger, setEditModalLedger] = useState<Ledger | null>(null)
@@ -441,7 +453,7 @@ export default function LedgerList() {
   }, [statementEntries, selectedLedger, selectedLedgerObj])
 
   const filteredStatementTxns = useMemo(() => {
-    return partyTransactions.filter((txn) => {
+    const filtered = partyTransactions.filter((txn) => {
       const matchSearch =
         txn.vNo.toLowerCase().includes(statementSearch.toLowerCase()) ||
         txn.narration.toLowerCase().includes(statementSearch.toLowerCase()) ||
@@ -450,25 +462,46 @@ export default function LedgerList() {
       const matchDate = (!fromDate || txn.date >= fromDate) && (!toDate || txn.date <= toDate)
       return matchSearch && matchType && matchDate
     })
-  }, [partyTransactions, statementSearch, typeFilter, fromDate, toDate])
+    return [...filtered].sort((a, b) => {
+      if (statementSortKey === 'date') {
+        const tA = new Date(a.date || '1970-01-01').getTime()
+        const tB = new Date(b.date || '1970-01-01').getTime()
+        return statementSortDir === 'asc' ? tA - tB : tB - tA
+      }
+      if (statementSortKey === 'amount') {
+        const amtA = Math.max(a.debit, a.credit)
+        const amtB = Math.max(b.debit, b.credit)
+        return statementSortDir === 'asc' ? amtA - amtB : amtB - amtA
+      }
+      if (statementSortKey === 'debit') {
+        return statementSortDir === 'asc' ? a.debit - b.debit : b.debit - a.debit
+      }
+      if (statementSortKey === 'credit') {
+        return statementSortDir === 'asc' ? a.credit - b.credit : b.credit - a.credit
+      }
+      return 0
+    })
+  }, [partyTransactions, statementSearch, typeFilter, fromDate, toDate, statementSortKey, statementSortDir])
 
   const totalStatementDr = filteredStatementTxns.reduce((s, t) => s + t.debit, 0)
   const totalStatementCr = filteredStatementTxns.reduce((s, t) => s + t.credit, 0)
   const netStatementChange = totalStatementDr - totalStatementCr
+  // IMPORTANT: Closing balance must always come from the CHRONOLOGICAL end (partyTransactions asc)
+  // not the display-sorted array, to keep running balance correct.
   const closingBalance =
-    filteredStatementTxns.length > 0
-      ? filteredStatementTxns[filteredStatementTxns.length - 1].runningBalance
+    partyTransactions.length > 0
+      ? partyTransactions[partyTransactions.length - 1].runningBalance
       : selectedLedgerObj?.balance || 0
   const closingBalType =
-    filteredStatementTxns.length > 0
-      ? filteredStatementTxns[filteredStatementTxns.length - 1].balanceType
+    partyTransactions.length > 0
+      ? partyTransactions[partyTransactions.length - 1].balanceType
       : selectedLedgerObj?.type || 'Dr'
 
   const TransactionTable = ({ txns }: { txns: any[] }) => (
     <table className="w-full text-xs text-left min-w-[700px]">
       <thead>
         <tr className="bg-slate-950/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider">
-          <th className="px-4 py-3 font-medium w-24">Date</th>
+          <th className="px-4 py-3 font-medium w-36">Date &amp; Time</th>
           <th className="px-4 py-3 font-medium w-28">Type</th>
           <th className="px-4 py-3 font-medium w-36">Voucher No</th>
           <th className="px-4 py-3 font-medium">Narration</th>
@@ -482,14 +515,25 @@ export default function LedgerList() {
         {txns.length === 0 && (
           <tr><td colSpan={8} className="p-6 text-center text-slate-500 italic">No records found.</td></tr>
         )}
-        {txns.map((t, i) => (
+        {txns.map((t, i) => {
+          const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
+          return (
           <tr
             key={t.id || i}
             onClick={() => handleNavigateToTransaction(t)}
             className="hover:bg-indigo-500/10 cursor-pointer transition group"
             title={`Click to open and modify ${t.vType?.toUpperCase()} ${t.vNo}`}
           >
-            <td className="px-4 py-2.5 font-mono text-slate-400 text-[11px] group-hover:text-slate-300">{t.date}</td>
+            <td className="px-4 py-2.5 group-hover:text-slate-300">
+              <div className="flex flex-col gap-0.5">
+                <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
+                  <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                </span>
+                <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
+                  <Clock size={9} className="text-slate-500 shrink-0" />{dt.time}
+                </span>
+              </div>
+            </td>
             <td className="px-4 py-2.5">
               <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[t.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>
                 {t.vType}
@@ -522,7 +566,7 @@ export default function LedgerList() {
               </button>
             </td>
           </tr>
-        ))}
+        )})}
       </tbody>
     </table>
   )
@@ -769,6 +813,52 @@ export default function LedgerList() {
             </div>
           </div>
 
+          {/* Sort Controls Bar */}
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl no-print">
+            <span className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+              <ArrowUpDown size={11} /> Sort:
+            </span>
+            {([
+              { key: 'date', label: 'Date', asc: '↑ Older First', desc: '↓ Newer First' },
+              { key: 'amount', label: 'Amount', asc: '↑ Low→High', desc: '↓ High→Low' },
+              { key: 'debit', label: 'Debit', asc: '↑ Low→High', desc: '↓ High→Low' },
+              { key: 'credit', label: 'Credit', asc: '↑ Low→High', desc: '↓ High→Low' },
+            ] as const).map(({ key, label, asc, desc }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (statementSortKey === key) {
+                    setStatementSortDir(statementSortDir === 'asc' ? 'desc' : 'asc')
+                  } else {
+                    setStatementSortKey(key)
+                    setStatementSortDir(key === 'date' ? 'desc' : 'desc')
+                  }
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold border transition',
+                  statementSortKey === key
+                    ? 'bg-indigo-600 text-white border-indigo-500'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                )}
+              >
+                {label}
+                {statementSortKey === key ? (
+                  statementSortDir === 'desc' ? (
+                    <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUp size={10} />
+                  )
+                ) : (
+                  <ArrowUpDown size={10} className="opacity-40" />
+                )}
+                {statementSortKey === key && (
+                  <span className="text-[9px] opacity-80">{statementSortDir === 'desc' ? desc : asc}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
@@ -919,7 +1009,7 @@ export default function LedgerList() {
               <table className="w-full text-xs min-w-[750px]">
                 <thead>
                   <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-medium w-28">Date</th>
+                    <th className="text-left px-4 py-3 font-medium w-36">Date &amp; Time</th>
                     <th className="text-left px-4 py-3 font-medium w-28">Voucher Type</th>
                     <th className="text-left px-4 py-3 font-medium w-36">Voucher / Ref No</th>
                     <th className="text-left px-4 py-3 font-medium">Particulars / Narration</th>
@@ -930,14 +1020,25 @@ export default function LedgerList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 text-slate-300">
-                  {filteredStatementTxns.map((txn, idx) => (
+                  {filteredStatementTxns.map((txn, idx) => {
+                    const dt = getTxnDateTime(txn.date, txn.time, txn.id || txn.vNo)
+                    return (
                     <tr
                       key={txn.id || idx}
                       onClick={() => handleNavigateToTransaction(txn)}
                       className="hover:bg-indigo-500/10 cursor-pointer transition group"
                       title={`Click to open and modify ${txn.vType?.toUpperCase()} ${txn.vNo}`}
                     >
-                      <td className="px-4 py-3 font-mono text-slate-400 group-hover:text-slate-300">{txn.date}</td>
+                      <td className="px-4 py-3 group-hover:text-slate-300">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
+                            <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                          </span>
+                          <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
+                            <Clock size={9} className="text-slate-500 shrink-0" />{dt.time}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>{txn.vType}</span>
                       </td>
@@ -966,7 +1067,7 @@ export default function LedgerList() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                   {filteredStatementTxns.length === 0 && (
                     <tr><td colSpan={8} className="p-10 text-center text-slate-500">No transactions found for {selectedLedger} in the selected period.</td></tr>
                   )}
