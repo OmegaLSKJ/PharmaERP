@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -142,7 +142,7 @@ export default function SaleEntry() {
         lines: [],
       }
 
-  const loadCatalog = (force = false) => {
+  const loadCatalog = useCallback((force = false) => {
     Promise.all([
       getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined),
       getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
@@ -251,11 +251,41 @@ export default function SaleEntry() {
         )
       })
       .catch((error) => showToast(error.message))
-  }
+  }, [showToast])
 
   useEffect(() => {
     loadCatalog(false)
-  }, [showToast])
+  }, [loadCatalog])
+
+  // Immediately receive item changes from this or another ERP window. The
+  // interval also catches changes made directly in Supabase.
+  useEffect(() => {
+    const refreshCatalog = (event?: Event) => {
+      const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
+      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches') {
+        loadCatalog(true)
+      }
+    }
+    const refreshOnFocus = () => loadCatalog(true)
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshOnFocus()
+    }
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('erp-resource-mutations') : null
+
+    window.addEventListener('erp-resource-mutated', refreshCatalog)
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    if (channel) channel.onmessage = refreshCatalog
+    const intervalId = window.setInterval(() => loadCatalog(true), 15000)
+
+    return () => {
+      window.removeEventListener('erp-resource-mutated', refreshCatalog)
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      window.clearInterval(intervalId)
+      channel?.close()
+    }
+  }, [loadCatalog])
 
   const getPrintData = (): TaxInvoicePrintData => {
     const custClean = (customer || '').trim().toLowerCase()
