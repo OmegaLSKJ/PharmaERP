@@ -785,22 +785,27 @@ export default function SaleEntry() {
                     key={item.id}
                     onClick={() => setActiveIndex(idx)}
                     className={cn(
-                      'bg-slate-950 border rounded-xl p-3.5 space-y-3 cursor-pointer transition',
+                      'bg-card border rounded-xl p-3.5 space-y-3 cursor-pointer transition',
                       isActive
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50'
-                        : 'border-slate-800 hover:border-slate-700'
+                        : 'border-border hover:border-border/80'
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-sm font-semibold text-white">{item.name}</div>
+                        <div className="text-sm font-semibold text-foreground">{item.name}</div>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                          {item.manufacturer && (
+                            <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
+                              {item.manufacturer}
+                            </span>
+                          )}
+                          <span className="text-[11px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
                             Batch: {item.batch}
                           </span>
-                          <span className="text-[11px] text-slate-500">Stock: {item.stock}</span>
+                          <span className="text-[11px] text-muted-foreground">Stock: {item.stock}</span>
                           {item.hsn && (
-                            <span className="text-[10px] font-mono font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
                               HSN: {item.hsn} ({item.gst}% GST)
                             </span>
                           )}
@@ -929,7 +934,7 @@ export default function SaleEntry() {
                           {item.name}
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {item.manufacturer && (
-                              <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-800/60 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
                                 {item.manufacturer}
                               </span>
                             )}
@@ -1094,78 +1099,84 @@ export default function SaleEntry() {
 
       {/* Search & Add Item Modal */}
       {showItemSearch && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-800 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setShowItemSearch(false)}
+        >
+          <div
+            className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border bg-secondary/20 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Pill size={18} className="text-indigo-400" />
-                <h3 className="text-base font-semibold text-white">Select Item / Medicine</h3>
+                <Pill size={18} className="text-primary" />
+                <h3 className="text-base font-semibold text-foreground">Select Item / Medicine</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowItemSearch(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 hover:bg-slate-700 transition"
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary hover:bg-secondary/80 transition cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="p-3 border-b border-slate-800 bg-slate-950/60">
+            <div className="p-3 border-b border-border bg-muted/40">
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={itemSearchQuery}
                   onChange={(e) => setItemSearchQuery(e.target.value)}
                   placeholder="Type to filter medicines or batch..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                  className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition"
                 />
               </div>
             </div>
 
-            <div className="p-2 overflow-y-auto flex-1 divide-y divide-slate-800/50">
+            <div className="p-2 overflow-y-auto flex-1 divide-y divide-border/40">
               {filteredItems.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">No available items found matching "{itemSearchQuery}"</div>
+                <div className="p-8 text-center text-muted-foreground text-sm">No available items found matching "{itemSearchQuery}"</div>
               ) : (
                 filteredItems.map((item) => (
                   <button
                     key={`${item.label}-${item.batch}`}
                     type="button"
                     onClick={() => addRow(item)}
-                    className="w-full p-3 text-left rounded-xl hover:bg-slate-800/70 transition flex items-center justify-between group"
+                    className="w-full p-3 text-left rounded-xl hover:bg-secondary/70 transition flex items-center justify-between group cursor-pointer"
                   >
                     <div>
-                      <div className="text-sm font-semibold text-white group-hover:text-indigo-300 transition">{item.label}</div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-400">
+                      <div className="text-sm font-semibold text-foreground group-hover:text-primary transition">{item.label}</div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
                         {item.manufacturer && (
-                          <span className="text-[11px] font-medium text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
                             {item.manufacturer}
                           </span>
                         )}
                         {item.packing && <span>{item.packing}</span>}
-                        {item.salt && <span className="italic text-slate-500">{item.salt}</span>}
-                        <span className="font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        {item.salt && <span className="italic text-muted-foreground">{item.salt}</span>}
+                        <span className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">
                           Batch: {item.batch}
                         </span>
                         <span>Stock: {item.stock}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono font-semibold text-emerald-400 text-sm">{formatCurrency(item.rate)}</div>
-                      <span className="text-[10px] text-slate-500 uppercase">GST: {item.gst}%</span>
+                      <div className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(item.rate)}</div>
+                      <span className="text-[10px] text-muted-foreground uppercase">GST: {item.gst}%</span>
                     </div>
                   </button>
                 ))
               )}
             </div>
 
-            <div className="p-3 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 flex justify-between items-center">
+            <div className="p-3 bg-secondary/30 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
               <span>{filteredItems.length} items available</span>
               <button
                 type="button"
                 onClick={() => setShowItemSearch(false)}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-medium"
+                className="px-3 py-1 bg-secondary hover:bg-secondary/80 rounded-lg text-foreground font-medium cursor-pointer"
               >
                 Close
               </button>
