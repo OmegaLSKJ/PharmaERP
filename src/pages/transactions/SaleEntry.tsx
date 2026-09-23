@@ -172,13 +172,25 @@ export default function SaleEntry() {
               String(b.batch).trim().toLowerCase() === String(cur.batch || '').trim().toLowerCase()
             )
             if (!matched && !matchedBatch) return cur
+            const batchMrp = Number(matchedBatch?.mrp || matched?.mrp || cur.mrp || 0)
+            const batchSaleRate = Number(matchedBatch?.salePrice ?? matchedBatch?.saleRate ?? matchedBatch?.rate ?? matched?.saleRate ?? 0)
+            const resolvedRate = cur.rate > 0 ? cur.rate : (batchSaleRate > 0 ? batchSaleRate : batchMrp)
+            const q = Number(cur.qty || 0)
+            const d = Number(cur.disc || 0)
+            const g = cur.gst !== undefined && cur.gst !== null ? Number(cur.gst) : getGstRateForHsn(matched?.hsn || cur.hsn)
+            const resolvedAmount = resolvedRate > 0 && q > 0
+              ? (calculateInvoice([{ qty: q, rate: resolvedRate, discount: d, gstRate: g }]).lines[0]?.total ?? (q * resolvedRate))
+              : cur.amount
+
             return {
               ...cur,
               itemId: cur.itemId || matched?.id,
               batchId: cur.batchId || matchedBatch?.id,
               stock: typeof matchedBatch?.stock === 'number' ? matchedBatch.stock : (typeof matched?.stock === 'number' ? matched.stock : cur.stock),
-              mrp: cur.mrp || matchedBatch?.mrp || matched?.mrp || 0,
-              purchaseRate: cur.purchaseRate || matchedBatch?.purchasePrice || matched?.purchaseRate || 0,
+              rate: resolvedRate,
+              amount: resolvedAmount,
+              mrp: batchMrp,
+              purchaseRate: cur.purchaseRate || matchedBatch?.purchasePrice || matchedBatch?.purchaseRate || matched?.purchaseRate || 0,
               costPrice: cur.costPrice || matchedBatch?.costPrice || matched?.costPrice || cur.purchaseRate,
               salt: cur.salt || matched?.salt || matched?.composition || '',
               packing: cur.packing || matched?.packing || '',
@@ -210,25 +222,31 @@ export default function SaleEntry() {
         )
         setItemOptions(
           products.flatMap((p) =>
-            (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
-              id: p.id,
-              itemId: p.id,
-              code: p.code,
-              category: p.category,
-              costPrice: Number(b.costPrice ?? b.cost_price ?? p.costPrice ?? p.purchaseRate ?? 0),
-              label: p.name,
-              batch: b.batch,
-              stock: b.stock,
-              rate: p.saleRate,
-              gst: p.gstRate !== undefined && p.gstRate !== null && Number(p.gstRate) > 0 ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
-              mrp: b.mrp || p.mrp || 0,
-              purchaseRate: b.purchaseRate || p.purchaseRate || 0,
-              packing: p.packing || '',
-              manufacturer: p.manufacturer || p.company || '',
-              salt: p.salt || p.composition || '',
-              hsn: p.hsn || '',
-              expiry: b.expiry || '',
-            }))
+            (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => {
+              const batchMrp = Number(b.mrp || p.mrp || 0)
+              const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? p.saleRate ?? 0)
+              const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+
+              return {
+                id: p.id,
+                itemId: p.id,
+                code: p.code,
+                category: p.category,
+                costPrice: Number(b.costPrice ?? b.cost_price ?? p.costPrice ?? p.purchaseRate ?? 0),
+                label: p.name,
+                batch: b.batch,
+                stock: b.stock,
+                rate: autoRate,
+                gst: p.gstRate !== undefined && p.gstRate !== null && Number(p.gstRate) > 0 ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
+                mrp: batchMrp,
+                purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? p.purchaseRate ?? 0),
+                packing: p.packing || '',
+                manufacturer: p.manufacturer || p.company || '',
+                salt: p.salt || p.composition || '',
+                hsn: p.hsn || '',
+                expiry: b.expiry || '',
+              }
+            })
           )
         )
       })
@@ -334,10 +352,8 @@ export default function SaleEntry() {
           if (found.lines && found.lines.length > 0) {
             const mappedLines = found.lines.map((l: any, idx: number) => {
               const q = Number(l.qty ?? l.quantity ?? 0)
-              const r = Number(l.rate || 0)
               const d = Number(l.disc || l.discount || l.discount_percent || 0)
               const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
-              const amt = calculateInvoice([{ qty: q, rate: r, discount: d, gstRate: g }]).lines[0]?.total ?? (q * r)
 
               const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
               const matchedProd = productsList.find((p: any) =>
@@ -351,8 +367,12 @@ export default function SaleEntry() {
                 ? matchedBatch.stock
                 : (typeof l.stock === 'number' ? l.stock : (typeof matchedProd?.stock === 'number' ? matchedProd.stock : 0))
               const liveMrp = Number(l.mrp || matchedBatch?.mrp || matchedProd?.mrp || 0)
-              const livePurchaseRate = Number(l.purchaseRate || matchedBatch?.purchasePrice || matchedProd?.purchaseRate || 0)
+              const liveSaleRate = Number(l.saleRate || matchedBatch?.salePrice || matchedBatch?.saleRate || matchedBatch?.rate || matchedProd?.saleRate || 0)
+              const livePurchaseRate = Number(l.purchaseRate || matchedBatch?.purchasePrice || matchedBatch?.purchaseRate || matchedProd?.purchaseRate || 0)
               const liveCostPrice = Number(l.costPrice || matchedBatch?.costPrice || matchedProd?.costPrice || livePurchaseRate)
+              const rawRate = Number(l.rate || 0)
+              const r = rawRate > 0 ? rawRate : (liveSaleRate > 0 ? liveSaleRate : liveMrp)
+              const amt = calculateInvoice([{ qty: q, rate: r, discount: d, gstRate: g }]).lines[0]?.total ?? (q * r)
 
               return {
                 id: String(l.id || `line-${Date.now()}-${idx}`),
@@ -401,6 +421,17 @@ export default function SaleEntry() {
       updateLine(items[existingIndex].id, 'qty', items[existingIndex].qty + 1)
       setActiveIndex(existingIndex)
     } else {
+      const autoRate = Number(item.rate > 0 ? item.rate : (item.mrp || 0))
+      const autoQty = 1
+      const autoDisc = 0
+      const autoGst = item.gst
+      let autoAmount = autoRate
+      try {
+        autoAmount = calculateInvoice([{ qty: autoQty, rate: autoRate, discount: autoDisc, gstRate: autoGst }]).lines[0]?.total ?? autoRate
+      } catch {
+        autoAmount = autoRate
+      }
+
       setItems((prev) => {
         const next = [
           ...prev,
@@ -413,14 +444,14 @@ export default function SaleEntry() {
             name: item.label,
             batch: item.batch,
             stock: item.stock,
-            qty: 1,
+            qty: autoQty,
             free: 0,
-            rate: item.rate,
-            disc: 0,
-            gst: item.gst,
-            amount: item.rate,
-            mrp: item.mrp,
-            purchaseRate: item.purchaseRate,
+            rate: autoRate,
+            disc: autoDisc,
+            gst: autoGst,
+            amount: autoAmount,
+            mrp: item.mrp || autoRate || 0,
+            purchaseRate: item.purchaseRate || 0,
             packing: item.packing,
             manufacturer: item.manufacturer,
             salt: item.salt,
@@ -532,7 +563,11 @@ export default function SaleEntry() {
       rows.map((row) => {
         if (row.id !== id) return row
         const val = isNaN(value) ? 0 : value
-        const next = { ...row, [field]: val }
+        let next = { ...row, [field]: val }
+        // If rate is 0 or unassigned and MRP is given, auto take MRP as rate
+        if (field !== 'rate' && (Number(next.rate) || 0) <= 0 && (Number(next.mrp) || 0) > 0) {
+          next.rate = Number(next.mrp)
+        }
         try {
           next.amount = calculateInvoice([
             {

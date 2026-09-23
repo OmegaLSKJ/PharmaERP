@@ -64,6 +64,7 @@ export interface ActiveProductDetailPanelProps {
   open?: boolean
   onClose?: () => void
   autoOpenOnChange?: boolean
+  onDetailLoaded?: (detail: ActiveProductDetail) => void
 }
 
 export function formatDisplayExpiry(val?: string): string {
@@ -107,6 +108,7 @@ export default function ActiveProductDetailPanel({
   open,
   onClose,
   autoOpenOnChange = false,
+  onDetailLoaded,
 }: ActiveProductDetailPanelProps) {
   const hasBillSummary = Boolean(billSummary)
   const [internalDetailOpen, setInternalDetailOpen] = useState(false)
@@ -160,7 +162,11 @@ export default function ActiveProductDetailPanel({
           ...(activeProduct.batchId ? { batchId: activeProduct.batchId } : {}),
           ...(activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
         }, { forceRefresh: true })
-        if (current) { setLiveDetail(detail); setLiveError('') }
+        if (current) {
+          setLiveDetail(detail)
+          setLiveError('')
+          onDetailLoaded?.(detail)
+        }
       } catch {
         if (current) {
           setLiveError('')
