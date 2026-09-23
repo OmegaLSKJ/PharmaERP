@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
+import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -281,22 +281,8 @@ export default function SaleEntry() {
             })
             setItems(mappedLines)
           } else {
-            // Fallback for any legacy invoices with no explicit lines: provide itemized breakdown
-            const itemCount = Number(found.items || 1)
-            const fallbackRate = Math.round((Number(found.total || 1000) / itemCount) * 100) / 100
-            const syntheticLines: LineItem[] = Array.from({ length: itemCount }).map((_, i) => ({
-              id: `synth-${Date.now()}-${i}`,
-              name: i === 0 ? 'A TO Z SYP 200ML' : 'A TO Z DROP 30ML',
-              batch: `2566089${i}`,
-              stock: 50,
-              qty: 1,
-              free: 0,
-              rate: fallbackRate,
-              disc: 0,
-              gst: 12,
-              amount: fallbackRate * 1.12,
-            }))
-            setItems(syntheticLines)
+            // Invoice has no explicit line items recorded in the database
+            setItems([])
           }
         }
       })
@@ -643,8 +629,16 @@ export default function SaleEntry() {
               <Pill size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-300">No items added to invoice yet</p>
-              <p className="text-xs text-slate-500 mt-1">Select from the Quick Add bar above or tap the button below</p>
+              <p className="text-sm font-medium text-slate-300">
+                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0)
+                  ? 'This posted invoice has no item lines recorded in the database'
+                  : 'No items added to invoice yet'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && Number(existingInvoice.total || existingInvoice.grandTotal || existingInvoice.grand_total || 0) > 0
+                  ? `Recorded invoice total is ${formatCurrency(Number(existingInvoice.total || existingInvoice.grandTotal || existingInvoice.grand_total || 0))}. Search and select medicine items below to record lines.`
+                  : 'Select from the Quick Add bar above or tap the button below'}
+              </p>
             </div>
             <button
               type="button"
