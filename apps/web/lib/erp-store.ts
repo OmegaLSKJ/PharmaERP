@@ -1742,6 +1742,7 @@ export async function list(resource: string, partyName?: string, options?: { man
 
     const dbParties = (data ?? []).map((p: any) => {
       const pIdKey = String(p.id || '').trim().toLowerCase()
+      const pNameKey = String(p.legal_name || '').trim().toLowerCase()
       const pCodeKey = String(p.code || '').trim().toLowerCase()
       const pNormName = normKey(p.legal_name)
       const pNormCode = normKey(p.code)
@@ -1816,6 +1817,7 @@ export async function list(resource: string, partyName?: string, options?: { man
         foodLicenceNo: food?.license_number ?? '',
         foodLicenceExp: food?.expires_on ? String(food.expires_on).slice(0, 10) : '',
         gstHeading: detail?.gst_heading ?? '',
+        gstin: cleanGstin,
         gstinDate: detail?.gst_registration_date ?? '',
         pan: detail?.pan ?? derivedPan,
         ledgerCategory: detail?.ledger_category ?? '',
