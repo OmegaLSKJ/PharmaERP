@@ -2217,6 +2217,49 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
   return { ...data, importedRows: rows.length }
 }
 
+/**
+ * Resolve a manufacturer selected or typed in the Item form.  A manufacturer
+ * name is business master data, so an item must always retain the relationship
+ * rather than saving the name without a manufacturer_id.
+ */
+async function resolveManufacturer(client: any, organizationId: string, value: unknown) {
+  const name = String(value ?? '').trim()
+  if (!name) return null
+
+  const { data: existing, error: lookupError } = await client
+    .from('manufacturers')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .ilike('name', name)
+    .maybeSingle()
+  if (lookupError) throw lookupError
+  if (existing) return existing.id as string
+
+  const code = name.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12) || 'MFR'
+  const { data: created, error: createError } = await client
+    .from('manufacturers')
+    .insert({ organization_id: organizationId, name, code, is_active: true })
+    .select('id')
+    .single()
+
+  if (!createError && created) return created.id as string
+
+  // A concurrent item save may have created the same master. Re-read it so
+  // the item can continue instead of making the operator re-enter its details.
+  if (createError?.code === '23505') {
+    const { data: concurrent, error: concurrentError } = await client
+      .from('manufacturers')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .ilike('name', name)
+      .maybeSingle()
+    if (concurrentError) throw concurrentError
+    if (concurrent) return concurrent.id as string
+  }
+
+  throw createError || new Error('Unable to create the manufacturer master.')
+}
+
 export async function create(resource: string, body: any, actor: MutationActor = {}) {
   // Option B: Fallback when Supabase credentials are not configured or invalid
   if (useMockStore()) {
@@ -2872,7 +2915,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
   if (resource === 'items') {
     if (!body.name) throw new Error('Item name is required.')
-    const manufacturerId = body.manufacturer ? (await client.from('manufacturers').select('id').eq('organization_id', organizationId).eq('name', body.manufacturer).maybeSingle()).data?.id : null
+    const manufacturerId = await resolveManufacturer(client, organizationId, body.manufacturer)
     const saltId = body.salt ? (await client.from('salts').select('id').eq('organization_id', organizationId).eq('name', body.salt).maybeSingle()).data?.id : null
     const rawHsn = body.hsn || body.hsn_code || body.hsnCode
     let hsnId: string | null = null
@@ -3595,13 +3638,7 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if ('recalled' in body) values.is_recalled = Boolean(body.recalled)
     if ('salesSchemeDeal' in body) values.sales_scheme_deal = Number(body.salesSchemeDeal)
     if ('salesSchemeFree' in body) values.sales_scheme_free = Number(body.salesSchemeFree)
-    if ('manufacturer' in body && !body.manufacturer) values.manufacturer_id = null
-    if (body.manufacturer) {
-      try {
-        const { data: m } = await client.from('manufacturers').select('id').eq('organization_id', organizationId).ilike('name', body.manufacturer).maybeSingle()
-        if (m) values.manufacturer_id = m.id
-      } catch {}
-    }
+    if ('manufacturer' in body) values.manufacturer_id = await resolveManufacturer(client, organizationId, body.manufacturer)
     if ('salt' in body && !body.salt) values.salt_id = null
     if (body.salt) {
       try {

@@ -274,10 +274,13 @@ export default function ItemForm() {
           <Field label="Manufacturer">
             <input
               list="item-manufacturers"
-              placeholder="e.g. Cipla Ltd / Sun Pharma"
+              placeholder="Select or type a new manufacturer"
               value={form.manufacturer}
               onChange={(e) => change('manufacturer', e.target.value)}
             />
+            <p className="text-[11px] normal-case font-normal leading-4 text-muted-foreground">
+              A new name is added to Manufacturer Master automatically when you save this item.
+            </p>
             <datalist id="item-manufacturers">
               {manufacturers.map((v) => (
                 <option key={v} value={v} />
