@@ -264,7 +264,7 @@ export default function CounterSale() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-black dark:text-white">
                   Counter Sale (POS)
                 </h1>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/80">
@@ -335,7 +335,7 @@ export default function CounterSale() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search medicine name, composition, batch, or company... (F2)"
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-black dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                   />
                   {searchQuery && (
                     <button
@@ -442,7 +442,7 @@ export default function CounterSale() {
                         {/* Top: Item Title & Badges */}
                         <div className="space-y-1.5">
                           <div className="flex items-start justify-between gap-1.5">
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            <h3 className="text-sm font-bold text-black dark:text-white line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {item.name}
                             </h3>
                             {inCartItem && (
@@ -453,23 +453,25 @@ export default function CounterSale() {
                           </div>
 
                           {/* Packing & Manufacturer / Composition */}
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
                             {item.packing && (
-                              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
                                 {item.packing}
                               </span>
                             )}
                             {item.packing && (item.manufacturer || item.salt) && <span>•</span>}
-                            <span className="truncate">{item.manufacturer || item.salt || 'General'}</span>
+                            <span className="truncate font-medium text-zinc-700 dark:text-zinc-300">
+                              {item.manufacturer || item.salt || 'General'}
+                            </span>
                           </div>
 
                           {/* Batch & Expiry Badges */}
                           <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-                            <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                               B: {item.batch}
                             </span>
                             {item.expiry && (
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                                 Exp: {item.expiry}
                               </span>
                             )}
@@ -555,7 +557,7 @@ export default function CounterSale() {
                     <ShoppingCart size={18} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">Current Order</h2>
+                    <h2 className="text-sm font-bold text-black dark:text-white">Current Order</h2>
                     <span className="text-[11px] text-slate-500">
                       {cartItemCount} items ({cart.length} distinct)
                     </span>
@@ -582,7 +584,7 @@ export default function CounterSale() {
                       <ShoppingCart size={22} />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-slate-700 dark:text-slate-300">Your Cart is Empty</div>
+                      <div className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Your Cart is Empty</div>
                       <div className="text-xs text-slate-400 mt-0.5 max-w-[200px]">
                         Scan medicine or click items from the left to start billing.
                       </div>
@@ -607,7 +609,7 @@ export default function CounterSale() {
                         {/* Title & Line Delete */}
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                            <div className="text-sm font-bold text-black dark:text-white leading-tight">
                               {item.name}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
@@ -659,7 +661,7 @@ export default function CounterSale() {
                                 if (!isNaN(val)) updateQty(item.name, item.batch, val)
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="w-9 text-center bg-transparent font-mono font-bold text-xs text-slate-900 dark:text-white outline-none"
+                              className="w-9 text-center bg-transparent font-mono font-bold text-xs text-black dark:text-white outline-none"
                             />
 
                             <button
@@ -709,7 +711,7 @@ export default function CounterSale() {
                     </div>
                   )}
                   <div className="flex justify-between items-baseline pt-1.5 border-t border-slate-200 dark:border-slate-800">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">Payable Total</span>
+                    <span className="text-sm font-bold text-black dark:text-white">Payable Total</span>
                     <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(total)}
                     </span>
