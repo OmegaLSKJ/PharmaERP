@@ -25,6 +25,18 @@ function buildApiUrl(path: string): string {
   return `http://127.0.0.1:3000${path}`
 }
 
+function announceResourceMutation(detail: { resource: string; action: 'create' | 'update' | 'delete'; id?: string }): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
+  try {
+    const channel = new BroadcastChannel('erp-resource-mutations')
+    channel.postMessage(detail)
+    channel.close()
+  } catch {
+    // BroadcastChannel is unavailable in a few older browsers; the current window still refreshes.
+  }
+}
+
 async function fetchFromNetwork<T>(resource: string, query?: Record<string, string>): Promise<T> {
   const params = query ? `?${new URLSearchParams(query)}` : ''
   const response = await fetch(buildApiUrl(`/api/v1/${resource}${params}`))
@@ -125,7 +137,7 @@ export async function postErp<T>(resource: string, body: unknown): Promise<T> {
     registerHsnCodesFromDb([payload.data])
   }
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'create' } }))
+    announceResourceMutation({ resource, action: 'create' })
   }
   return payload.data as T
 }
@@ -145,7 +157,7 @@ export async function patchErp<T>(resource: string, id: string, body: unknown): 
     registerHsnCodesFromDb([payload.data])
   }
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'update', id } }))
+    announceResourceMutation({ resource, action: 'update', id })
   }
   return payload.data as T
 }
@@ -160,6 +172,6 @@ export async function deleteErp(resource: string, id: string): Promise<void> {
   }
   await invalidateCache(resource)
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource, action: 'delete', id } }))
+    announceResourceMutation({ resource, action: 'delete', id })
   }
 }

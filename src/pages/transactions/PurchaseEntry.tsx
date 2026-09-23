@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -122,7 +122,7 @@ export default function PurchaseEntry() {
   const addToast = useUIStore((s) => s.addToast)
 
   // Fetch initial suppliers, items, and HSN codes
-  const loadSuppliersAndItems = (force = false) => {
+  const loadSuppliersAndItems = useCallback((force = false) => {
     Promise.all([
       getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined),
       getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined),
@@ -182,11 +182,41 @@ export default function PurchaseEntry() {
         )
       })
       .catch((error) => addToast(error.message, 'error'))
-  }
+  }, [addToast])
 
   useEffect(() => {
     loadSuppliersAndItems(false)
-  }, [addToast])
+  }, [loadSuppliersAndItems])
+
+  // Keep the purchase product picker live when an item is added or changed in
+  // another ERP window, and periodically reconcile direct Supabase updates.
+  useEffect(() => {
+    const refreshCatalog = (event?: Event) => {
+      const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
+      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches') {
+        loadSuppliersAndItems(true)
+      }
+    }
+    const refreshOnFocus = () => loadSuppliersAndItems(true)
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshOnFocus()
+    }
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('erp-resource-mutations') : null
+
+    window.addEventListener('erp-resource-mutated', refreshCatalog)
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    if (channel) channel.onmessage = refreshCatalog
+    const intervalId = window.setInterval(() => loadSuppliersAndItems(true), 15000)
+
+    return () => {
+      window.removeEventListener('erp-resource-mutated', refreshCatalog)
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      window.clearInterval(intervalId)
+      channel?.close()
+    }
+  }, [loadSuppliersAndItems])
 
   // Load existing purchase bill if in edit mode
   useEffect(() => {
