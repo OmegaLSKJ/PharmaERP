@@ -965,6 +965,76 @@ async function context() {
   return { client, organizationId, financialYearId: fy.id }
 }
 
+function partyDetailsValues(body: any) {
+  return {
+    station: body.station || null,
+    balancing_method: body.balancingMethod || 'On Account',
+    opening_type: body.openingType === 'Cr' ? 'Cr' : 'Dr',
+    mail_to: body.mailTo || body.name || null,
+    country: body.country || null,
+    contact_person: body.contactPerson || null,
+    designation: body.designation || null,
+    mobile: body.mobile || null,
+    phone_office: body.phoneOff || null,
+    phone_residence: body.phoneRes || null,
+    fax: body.fax || null,
+    website: body.website || null,
+    freeze_upto: body.freezeUpto || null,
+    narco_schedule_h: String(body.narcoSchH || '').toLowerCase() === 'yes',
+    gst_heading: body.gstHeading || null,
+    gst_registration_date: body.gstinDate || null,
+    pan: body.pan || null,
+    ledger_category: body.ledgerCategory || null,
+    ledger_type: body.ledgerType || null,
+    credit_days: Number(body.creditDays || 0),
+    updated_at: new Date().toISOString(),
+  }
+}
+
+async function savePartyAddress(client: ReturnType<typeof db>, partyId: string, body: any) {
+  const values = {
+    party_id: partyId,
+    address_type: 'business',
+    line1: body.address || body.city || body.station || body.name,
+    line2: body.addressLine2 || null,
+    city: body.city || null,
+    state_code: body.state || null,
+    postal_code: body.pincode || null,
+    country: body.country || null,
+    is_default: true,
+  }
+  const { data: existing, error: findError } = await client.from('party_addresses').select('id').eq('party_id', partyId).eq('address_type', 'business').eq('is_default', true).maybeSingle()
+  if (findError) throw findError
+  const { error } = existing
+    ? await client.from('party_addresses').update(values).eq('id', existing.id)
+    : await client.from('party_addresses').insert(values)
+  if (error) throw error
+}
+
+async function savePartyLicenses(client: ReturnType<typeof db>, organizationId: string, partyId: string, body: any) {
+  const licenses = [
+    { number: String(body.dlNo || body.dlNumber || '').trim(), expiry: body.dlExp || null, type: 'drug_license' },
+    { number: String(body.foodLicenceNo || '').trim(), expiry: body.foodLicenceExp || null, type: 'food_license' },
+  ]
+  for (const license of licenses) {
+    const { data: existing, error: findError } = await client.from('drug_licenses').select('id').eq('organization_id', organizationId).eq('party_id', partyId).eq('license_type', license.type).maybeSingle()
+    if (findError) throw findError
+    if (!license.number) {
+      if (existing) {
+        const { error } = await client.from('drug_licenses').delete().eq('id', existing.id)
+        if (error) throw error
+      }
+      continue
+    }
+    if (!license.expiry) throw new Error(`${license.type === 'drug_license' ? 'Drug licence' : 'Food licence'} expiry date is required.`)
+    const values = { organization_id: organizationId, party_id: partyId, license_number: license.number, license_type: license.type, expires_on: license.expiry, status: 'active' }
+    const { error } = existing
+      ? await client.from('drug_licenses').update(values).eq('id', existing.id)
+      : await client.from('drug_licenses').insert(values)
+    if (error) throw error
+  }
+}
+
 async function party(client: ReturnType<typeof db>, organizationId: string, name: string, partyType: 'customer' | 'supplier' = 'customer') {
   const { data } = await client.from('parties').select('id').eq('organization_id', organizationId).eq('legal_name', name).maybeSingle()
   if (data) return data.id
@@ -1448,12 +1518,18 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (resource === 'report-sales') { const { data,error }=await client.from('sales_invoices').select('invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(category)))').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),parties=new Map<string,number>(),items=new Map<string,{name:string;qty:number;revenue:number;margin:number}>(),categories=new Map<string,number>();for(const invoice of data??[]){const month=String(invoice.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(invoice.grand_total));const party=(invoice.parties as any)?.legal_name??'Unknown';parties.set(party,(parties.get(party)??0)+Number(invoice.grand_total));for(const line of (invoice.sales_invoice_lines as any[])??[]){const name=line.items?.name??'Unknown',revenue=Number(line.line_total),current=items.get(name)??{name,qty:0,revenue:0,margin:0};current.qty+=Number(line.quantity);current.revenue+=revenue;items.set(name,current);const category=line.items?.salts?.category??'Uncategorised';categories.set(category,(categories.get(category)??0)+revenue)}}return{monthlySales:[...months].sort().map(([month,value])=>({month,value})),topParties:[...parties].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,sales])=>({name,sales,growth:0})),topItems:[...items.values()].sort((a,b)=>b.revenue-a.revenue).slice(0,10),categories:[...categories].map(([name,value])=>({name,value})),units:[...items.values()].reduce((n,x)=>n+x.qty,0)} }
   if (resource === 'report-purchases') { const { data,error }=await client.from('purchase_invoices').select('invoice_date,grand_total,parties(legal_name)').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),suppliers=new Map<string,number>();for(const row of data??[]){const month=String(row.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(row.grand_total));const name=(row.parties as any)?.legal_name??'Unknown';suppliers.set(name,(suppliers.get(name)??0)+Number(row.grand_total))}return{monthlyPurchases:[...months].sort().map(([month,value])=>({month,value})),topSuppliers:[...suppliers].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,purchases])=>({name,purchases,growth:0})),activeSuppliers:suppliers.size} }
   if (resource === 'parties') {
-    const [data, accountsData] = await Promise.all([
+    const [data, accountsData, detailsData, licensesData] = await Promise.all([
       fetchAll<any>((from, to) =>
-        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(line1,city,state_code,postal_code,is_default),drug_licenses(license_number,expires_on,status)').eq('organization_id', organizationId).order('legal_name').range(from, to)
+        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(line1,line2,city,state_code,postal_code,country,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
       ),
       fetchAll<any>((from, to) =>
         client.from('chart_of_accounts').select('id,party_id,name,opening_balance,account_group,voucher_lines(debit,credit)').eq('organization_id', organizationId).range(from, to)
+      ).catch(() => []),
+      fetchAll<any>((from, to) =>
+        client.from('party_details').select('*').eq('organization_id', organizationId).range(from, to)
+      ).catch(() => []),
+      fetchAll<any>((from, to) =>
+        client.from('drug_licenses').select('party_id,license_number,license_type,expires_on,status').eq('organization_id', organizationId).range(from, to)
       ).catch(() => []),
     ])
 
@@ -1475,16 +1551,27 @@ export async function list(resource: string, partyName?: string, options?: { man
       if (a.name) accountBalanceMap.set(String(a.name).trim().toLowerCase(), stats)
     }
 
+    const detailMap = new Map((detailsData ?? []).map((detail: any) => [detail.party_id, detail]))
+    const licenseMap = new Map<string, any[]>()
+    for (const license of licensesData ?? []) {
+      const licenses = licenseMap.get(license.party_id) ?? []
+      licenses.push(license)
+      licenseMap.set(license.party_id, licenses)
+    }
+
     const dbParties = (data ?? []).map((p: any) => {
       const pIdKey = String(p.id || '').trim().toLowerCase()
       const pNameKey = String(p.legal_name || '').trim().toLowerCase()
       const accStats = accountBalanceMap.get(pIdKey) || accountBalanceMap.get(pNameKey)
+      const detail = detailMap.get(p.id)
       const partyBal = accStats ? accStats.balance : 0
       const partyDeb = accStats ? accStats.debit : 0
       const partyCred = accStats ? accStats.credit : 0
 
       const addr = p.party_addresses?.find((a: any) => a.is_default) ?? p.party_addresses?.[0]
-      const dl = p.drug_licenses?.find((l: any) => l.status === 'active') ?? p.drug_licenses?.[0]
+      const licenses = licenseMap.get(p.id) ?? []
+      const dl = licenses.find((license: any) => ['drug_license', 'drug', 'dl', 'retail_wholesale'].includes(String(license.license_type).toLowerCase()))
+      const food = licenses.find((license: any) => ['food_license', 'food', 'fssai'].includes(String(license.license_type).toLowerCase()))
       const cleanGstin = String(p.gstin || '').trim().toUpperCase()
       const derivedPan = cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : ''
       const rawState = addr?.state_code || ''
@@ -1495,25 +1582,45 @@ export async function list(resource: string, partyName?: string, options?: { man
         code: p.code,
         name: p.legal_name,
         type: p.party_type || 'both',
+        station: detail?.station ?? addr?.city ?? addr?.line1 ?? '',
         accountGroup: accStats?.group || (p.party_type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors'),
+        balancingMethod: detail?.balancing_method ?? 'On Account',
         phone: p.phone ?? '',
+        mobile: detail?.mobile ?? p.phone ?? '',
+        phoneOff: detail?.phone_office ?? '',
+        phoneRes: detail?.phone_residence ?? '',
+        fax: detail?.fax ?? '',
         email: p.email ?? '',
-        station: addr?.city || addr?.line1 || '',
+        website: detail?.website ?? '',
+        mailTo: detail?.mail_to ?? p.legal_name,
         city: addr?.city ?? '',
         state: formattedState,
         address: addr?.line1 ?? '',
+        addressLine2: addr?.line2 ?? '',
         pincode: addr?.postal_code ?? '',
+        country: addr?.country ?? detail?.country ?? '',
+        contactPerson: detail?.contact_person ?? '',
+        designation: detail?.designation ?? '',
+        freezeUpto: detail?.freeze_upto ?? '',
+        narcoSchH: detail?.narco_schedule_h ? 'Yes' : 'No',
         dlNo: dl?.license_number ?? '',
         dlNumber: dl?.license_number ?? '',
         dlExp: dl?.expires_on ? String(dl.expires_on).slice(0, 10) : '',
+        foodLicenceNo: food?.license_number ?? '',
+        foodLicenceExp: food?.expires_on ? String(food.expires_on).slice(0, 10) : '',
+        gstHeading: detail?.gst_heading ?? '',
         gstin: cleanGstin,
-        pan: derivedPan,
+        gstinDate: detail?.gst_registration_date ?? '',
+        pan: detail?.pan ?? derivedPan,
+        ledgerCategory: detail?.ledger_category ?? '',
+        ledgerType: detail?.ledger_type ?? '',
         openingBalance: accStats ? Math.abs(accStats.opBal) : 0,
-        openingType: accStats && accStats.opBal < 0 ? 'Cr' : 'Dr',
+        openingType: detail?.opening_type ?? (accStats && accStats.opBal < 0 ? 'Cr' : 'Dr'),
         balance: partyBal,
         totalDebit: partyDeb,
         totalCredit: partyCred,
         creditLimit: Number(p.credit_limit),
+        creditDays: Number(detail?.credit_days ?? 0),
         lastSale: '',
         status: p.is_blocked ? 'blocked' : 'active'
       }
@@ -2671,32 +2778,14 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const derivedPan = body.pan || (cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : null)
     const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: cleanGstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
     if (error) throw error
-    if (body.city || body.address || body.station) {
-      const { error: addressError } = await client.from('party_addresses').insert({
-        party_id: data.id,
-        address_type: 'business',
-        line1: body.address || body.station || body.city || '',
-        city: body.city || body.station || '',
-        state_code: body.state || '18-ASSAM',
-        postal_code: body.pincode || '',
-        is_default: true
-      })
-      if (addressError) throw addressError
-    }
-    if (body.dlNo || body.dlNumber) {
-      try {
-        await client.from('drug_licenses').insert({
-          organization_id: organizationId,
-          party_id: data.id,
-          license_number: body.dlNo || body.dlNumber,
-          license_type: 'retail_wholesale',
-          expires_on: body.dlExp || '2030-12-31',
-          status: 'active'
-        })
-      } catch (dlErr) {
-        console.warn('Could not auto-create drug_licenses record for party:', dlErr)
-      }
-    }
+    await savePartyAddress(client, data.id, body)
+    const { error: detailsError } = await client.from('party_details').upsert({
+      party_id: data.id,
+      organization_id: organizationId,
+      ...partyDetailsValues(body),
+    }, { onConflict: 'party_id' })
+    if (detailsError) throw detailsError
+    await savePartyLicenses(client, organizationId, data.id, body)
     const opBal = Number(body.openingBalance || 0)
     const opType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
     const netBal = opType === 'Cr' ? -Math.abs(opBal) : Math.abs(opBal)
@@ -3462,45 +3551,28 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if ('status' in body) values.is_blocked = body.status === 'blocked'
     const { data, error } = await client.from('parties').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
-    if (body.city || body.address || body.station || body.state || body.pincode) {
-      try {
-        await client.from('party_addresses').upsert({
-          party_id: id,
-          address_type: 'business',
-          line1: body.address || body.station || body.city || '',
-          city: body.city || body.station || '',
-          state_code: body.state || '18-ASSAM',
-          postal_code: body.pincode || '',
-          is_default: true
-        }, { onConflict: 'party_id' })
-      } catch {}
+    await savePartyAddress(client, id, body)
+    const { error: detailsError } = await client.from('party_details').upsert({
+      party_id: id,
+      organization_id: organizationId,
+      ...partyDetailsValues(body),
+    }, { onConflict: 'party_id' })
+    if (detailsError) throw detailsError
+    await savePartyLicenses(client, organizationId, id, body)
+    const openingBalance = Number(body.openingBalance || 0)
+    const openingType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
+    const accountValues = {
+      name: body.name,
+      account_group: body.accountGroup || (body.type === 'supplier' ? 'Sundry Creditors' : body.type === 'customer' ? 'Sundry Debtors' : 'Sundry Debtors & Creditors'),
+      opening_balance: openingType === 'Cr' ? -Math.abs(openingBalance) : Math.abs(openingBalance),
+      is_active: body.status !== 'blocked',
     }
-    if (body.dlNo || body.dlNumber) {
-      try {
-        const { data: existingDl } = await client.from('drug_licenses').select('id').eq('party_id', id).maybeSingle()
-        if (existingDl) {
-          await client.from('drug_licenses').update({
-            license_number: body.dlNo || body.dlNumber,
-            expires_on: body.dlExp || '2030-12-31',
-            status: 'active'
-          }).eq('id', existingDl.id)
-        } else {
-          await client.from('drug_licenses').insert({
-            organization_id: organizationId,
-            party_id: id,
-            license_number: body.dlNo || body.dlNumber,
-            license_type: 'retail_wholesale',
-            expires_on: body.dlExp || '2030-12-31',
-            status: 'active'
-          })
-        }
-      } catch {}
-    }
-    if (body.name) {
-      try {
-        await client.from('chart_of_accounts').update({ name: body.name }).eq('party_id', id).eq('organization_id', organizationId)
-      } catch {}
-    }
+    const { data: existingAccount, error: accountFindError } = await client.from('chart_of_accounts').select('id').eq('party_id', id).eq('organization_id', organizationId).maybeSingle()
+    if (accountFindError) throw accountFindError
+    const { error: accountError } = existingAccount
+      ? await client.from('chart_of_accounts').update(accountValues).eq('id', existingAccount.id)
+      : await client.from('chart_of_accounts').insert({ organization_id: organizationId, party_id: id, code: data.code, account_type: 'party', ...accountValues })
+    if (accountError) throw accountError
     return { ...body, id: data.id, code: data.code, ...data }
   }
   if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
