@@ -109,7 +109,21 @@ export function normalizeSources(source: SourceData, organization: string, loade
     const total = sign * n(doc.total), delta = round(total - sum(lines, 'total'))
     if (!lines.length || Math.abs(delta) >= .005) {
       const onlyRounding = lines.length > 0 && Math.abs(delta) <= 1
-      records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, total: delta, gross: onlyRounding ? 0 : null, discount: onlyRounding ? 0 : null, net: onlyRounding ? 0 : null, tax: onlyRounding ? 0 : null, rounding: onlyRounding ? delta : 0, detail: onlyRounding ? 'Document round-off' : 'Unallocated document value; line/tax detail unavailable' }))
+      const lineCompanies = Array.from(new Set(lines.map(l => l.company).filter(c => c && c !== 'Unallocated')))
+      const roundCompany = lineCompanies.length === 1 ? lineCompanies[0] : (lineCompanies.length > 1 ? 'Multiple' : 'Round-off')
+      const roundCompanyId = lineCompanies.length === 1 ? (lines.find(l => l.company === roundCompany)?.companyId || `catalog:${roundCompany}`) : 'round-off'
+      records.push(blank({
+        ...common,
+        id: `${common.documentId}:reconciliation`,
+        total: delta,
+        gross: onlyRounding ? 0 : null,
+        discount: onlyRounding ? 0 : null,
+        net: onlyRounding ? 0 : null,
+        tax: onlyRounding ? 0 : null,
+        rounding: onlyRounding ? delta : 0,
+        ...(onlyRounding ? { quantity: 0, freeQuantity: 0, cost: 0, margin: 0, freeCost: 0, item: 'Document Round-off', company: roundCompany, companyId: roundCompanyId } : {}),
+        detail: onlyRounding ? 'Document round-off' : 'Unallocated document value; line/tax detail unavailable'
+      }))
     }
   }
   // Receipt vouchers are authoritative. Explicit receipt allocations take precedence per voucher.

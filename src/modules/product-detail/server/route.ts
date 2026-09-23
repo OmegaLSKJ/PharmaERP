@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminClient, applyRefreshedSession, hasRealSupabase, verifyRequest } from '../../../../apps/web/lib/auth'
 import { canAccess, userRole } from '../../../../apps/web/lib/permissions'
 import { list } from '../../../../apps/web/lib/erp-store'
+import { lookupCatalogManufacturer } from '../../../lib/catalogManufacturers'
 
 const numberOrUndefined = (value: unknown) => value === null || value === undefined ? undefined : Number(value)
 const isUuid = (value: string | null) => Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
       batchId: batch?.id,
       name: item.name,
       packing: item.packing ?? undefined,
-      manufacturer: item.manufacturers?.name ?? undefined,
+      manufacturer: item.manufacturers?.name ?? lookupCatalogManufacturer(item.name, item.code) ?? undefined,
       salt: item.salts?.composition ?? undefined,
       hsn: item.hsn_codes?.code ?? undefined,
       gstRate: numberOrUndefined(item.hsn_codes?.gst_rate),

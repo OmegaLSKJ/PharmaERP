@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   RefreshCw
 } from 'lucide-react'
+import { lookupCatalogManufacturer } from '../../../lib/catalogManufacturers'
 import { getErp } from '../../../lib/erpApi'
 import { cn, formatCurrency } from '../../../lib/utils'
 import ActiveProductDetailPanel, { ActiveProductDetail } from '../../../components/transactions/ActiveProductDetailPanel'
@@ -128,7 +129,8 @@ export default function ManufacturerMedicinesModal({
         const itemMfgId = String(item.manufacturer_id || item.companyId || '').trim().toLowerCase()
         if (mfgId && itemMfgId && itemMfgId === mfgId) return true
 
-        const itemMfg = String(item.manufacturer || item.company || '').trim().toLowerCase()
+        const resolved = lookupCatalogManufacturer(item.name, item.code)
+        const itemMfg = String(item.manufacturer || item.company || resolved || '').trim().toLowerCase()
         if (!itemMfg) return false
         if (itemMfg === mfgName) return true
         if (itemMfg.includes(mfgName) || mfgName.includes(itemMfg)) return true

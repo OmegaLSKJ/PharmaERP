@@ -69,7 +69,23 @@ export function normalizePurchaseSources(source: SourceData, organization: strin
     const sign = type === 'RETURN' ? -1 : 1, lines = (Array.isArray(detail.lines) ? detail.lines : []).map((line: SourceRow, i: number) => lineRecord({ ...line, id: line.id || i }, common, sign))
     records.push(...lines)
     const delta = round(sign * n(doc.total) - sum(lines, 'total'))
-    if (!lines.length || Math.abs(delta) >= .005) records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, total: delta, gross: null, discount: null, net: null, tax: null, detail: lines.length ? 'Unallocated document value' : 'Document has no item lines' }))
+    if (!lines.length || Math.abs(delta) >= .005) {
+      const onlyRounding = lines.length > 0 && Math.abs(delta) <= 1
+      const lineCompanies: string[] = Array.from(new Set(lines.map((l: PurchaseRecord) => l.company).filter((c: string): c is string => Boolean(c && c !== 'Unallocated'))))
+      const roundCompany: string = lineCompanies.length === 1 ? lineCompanies[0] : (lineCompanies.length > 1 ? 'Multiple' : 'Round-off')
+      const roundCompanyId: string = lineCompanies.length === 1 ? (lines.find((l: PurchaseRecord) => l.company === roundCompany)?.companyId || `catalog:${roundCompany}`) : 'round-off'
+      records.push(blank({
+        ...common,
+        id: `${common.documentId}:reconciliation`,
+        total: delta,
+        gross: onlyRounding ? 0 : null,
+        discount: onlyRounding ? 0 : null,
+        net: onlyRounding ? 0 : null,
+        tax: onlyRounding ? 0 : null,
+        ...(onlyRounding ? { quantity: 0, freeQuantity: 0, item: 'Document Round-off', company: roundCompany, companyId: roundCompanyId } : {}),
+        detail: lines.length ? (onlyRounding ? 'Document round-off' : 'Unallocated document value') : 'Document has no item lines'
+      }))
+    }
   }
   const invoices = index(source.purchase_invoices)
   for (const audit of source.audit_logs || []) {

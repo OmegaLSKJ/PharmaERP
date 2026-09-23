@@ -407,6 +407,38 @@ function refreshCatalogHsnIndex() {
 }
 refreshCatalogHsnIndex()
 
+// Canonical Catalog Manufacturer index for fast resolution across all 11,060+ items
+const catalogMfgByCode = new Map<string, string>()
+const catalogMfgByName = new Map<string, string>()
+
+function refreshCatalogMfgIndex() {
+  if (Array.isArray(mockStore.items)) {
+    for (const item of mockStore.items) {
+      const mfg = String(item.manufacturer || item.company || '').trim()
+      if (!mfg) continue
+      if (item.code) {
+        catalogMfgByCode.set(String(item.code).trim().toUpperCase(), mfg)
+      }
+      if (item.name) {
+        catalogMfgByName.set(String(item.name).trim().toLowerCase(), mfg)
+      }
+    }
+  }
+}
+refreshCatalogMfgIndex()
+
+export function resolveItemManufacturer(code?: string | null, name?: string | null): string {
+  if (code) {
+    const found = catalogMfgByCode.get(String(code).trim().toUpperCase())
+    if (found) return found
+  }
+  if (name) {
+    const found = catalogMfgByName.get(String(name).trim().toLowerCase())
+    if (found) return found
+  }
+  return ''
+}
+
 export function resolveItemHsn(code?: string | null, name?: string | null): { hsn: string; gstRate: number } {
   if (code) {
     const found = catalogHsnByCode.get(String(code).trim().toUpperCase())
@@ -983,7 +1015,8 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
       (mfgId && (item.manufacturer_id === mfgId || item.companyId === mfgId)) ||
       (mfgName && (
         (item.manufacturer && item.manufacturer.trim().toLowerCase() === mfgName) ||
-        (item.company && item.company.trim().toLowerCase() === mfgName)
+        (item.company && item.company.trim().toLowerCase() === mfgName) ||
+        resolveItemManufacturer(item.code, item.name).toLowerCase() === mfgName
       ))
     )
   }
@@ -1488,7 +1521,8 @@ export async function list(resource: string, partyName?: string, options?: { man
         name: i.name,
         packing: i.packing ?? '',
         unit: i.unit ?? '',
-        manufacturer: i.manufacturers?.name ?? '',
+        manufacturer: i.manufacturers?.name || resolveItemManufacturer(i.code, i.name) || '',
+        company: i.manufacturers?.name || resolveItemManufacturer(i.code, i.name) || '',
         manufacturer_id: i.manufacturers?.id ?? '',
         salt: i.salts?.name ?? '',
         hsn,
@@ -1542,7 +1576,7 @@ export async function list(resource: string, partyName?: string, options?: { man
     if (options?.manufacturer) {
       const mfgClean = options.manufacturer.trim().toLowerCase()
       dbItems = dbItems.filter((i: any) => {
-        const m = ((i.manufacturer || i.company || '') as string).trim().toLowerCase()
+        const m = ((i.manufacturer || i.company || resolveItemManufacturer(i.code, i.name) || '') as string).trim().toLowerCase()
         return m === mfgClean || m.includes(mfgClean) || mfgClean.includes(m)
       })
     }
@@ -1742,7 +1776,7 @@ export async function list(resource: string, partyName?: string, options?: { man
         id: l.id,
         name: l.items?.name ?? 'Item',
         code: l.items?.code ?? '',
-        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
+        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
         packing: l.items?.packing ?? '',
         hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
         batch: l.item_batches?.batch_number ?? 'DEFAULT',
@@ -1781,7 +1815,7 @@ export async function list(resource: string, partyName?: string, options?: { man
         id: l.id,
         name: l.items?.name ?? 'Item',
         code: l.items?.code ?? '',
-        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || '',
+        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
         packing: l.items?.packing ?? '',
         hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
         mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
