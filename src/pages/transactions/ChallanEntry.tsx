@@ -66,20 +66,26 @@ export default function ChallanEntry() {
         setParties(partyRows.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => p.name))
         setAvailableItems(
           productRows.flatMap((p) =>
-            (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => ({
-              name: p.name,
-              batch: b.batch,
-              rate: p.saleRate,
-              stock: b.stock,
-              mrp: b.mrp || p.mrp || 0,
-              purchaseRate: b.purchaseRate || p.purchaseRate || 0,
-              packing: p.packing || '',
-              manufacturer: p.manufacturer || p.company || '',
-              salt: p.salt || p.composition || '',
-              hsn: p.hsn || '',
-              gstRate: p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
-              expiry: b.expiry || '',
-            }))
+            (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => {
+              const batchMrp = Number(b.mrp || p.mrp || 0)
+              const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? p.saleRate ?? 0)
+              const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+
+              return {
+                name: p.name,
+                batch: b.batch,
+                rate: autoRate,
+                stock: b.stock,
+                mrp: batchMrp,
+                purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? p.purchaseRate ?? 0),
+                packing: p.packing || '',
+                manufacturer: p.manufacturer || p.company || '',
+                salt: p.salt || p.composition || '',
+                hsn: p.hsn || '',
+                gstRate: p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
+                expiry: b.expiry || '',
+              }
+            })
           )
         )
         setSavedChallans(challanRows || [])
@@ -93,12 +99,13 @@ export default function ChallanEntry() {
       setLines((prev) => prev.map((l, idx) => (idx === existingIndex ? { ...l, qty: l.qty + 1 } : l)))
       setActiveIndex(existingIndex)
     } else {
+      const effectiveRate = Number(i.rate > 0 ? i.rate : (i.mrp || 0))
       const newLine: Line = {
         id: Date.now().toString(),
         name: i.name,
         batch: i.batch,
         qty: 1,
-        rate: i.rate,
+        rate: effectiveRate,
         gstRate: i.gstRate ?? getGstRateForHsn(i.hsn),
         stock: i.stock,
         mrp: i.mrp,

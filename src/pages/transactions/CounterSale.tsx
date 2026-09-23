@@ -86,25 +86,31 @@ export default function CounterSale() {
         const mapped: CounterItem[] = items.flatMap((item) =>
           (item.batches ?? [])
             .filter((b: any) => Number(b.stock ?? 0) > 0)
-            .map((b: any) => ({
-              id: item.id,
-              name: item.name,
-              rate: Number(b.saleRate ?? item.saleRate ?? b.rate ?? 0),
-              batch: String(b.batch || 'DEFAULT'),
-              stock: Number(b.stock || 0),
-              gst:
-                item.gstRate !== undefined && item.gstRate !== null
-                  ? Number(item.gstRate)
-                  : getGstRateForHsn(item.hsn),
-              mrp: Number(b.mrp || item.mrp || 0),
-              purchaseRate: Number(b.purchaseRate || item.purchaseRate || 0),
-              packing: item.packing || '',
-              manufacturer: item.manufacturer || item.company || '',
-              salt: item.salt || item.composition || '',
-              hsn: item.hsn || '',
-              expiry: b.expiry || '',
-              category: item.category || 'General',
-            }))
+            .map((b: any) => {
+              const batchMrp = Number(b.mrp || item.mrp || 0)
+              const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? item.saleRate ?? 0)
+              const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+
+              return {
+                id: item.id,
+                name: item.name,
+                rate: autoRate,
+                batch: String(b.batch || 'DEFAULT'),
+                stock: Number(b.stock || 0),
+                gst:
+                  item.gstRate !== undefined && item.gstRate !== null
+                    ? Number(item.gstRate)
+                    : getGstRateForHsn(item.hsn),
+                mrp: batchMrp,
+                purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? item.purchaseRate ?? 0),
+                packing: item.packing || '',
+                manufacturer: item.manufacturer || item.company || '',
+                salt: item.salt || item.composition || '',
+                hsn: item.hsn || '',
+                expiry: b.expiry || '',
+                category: item.category || 'General',
+              }
+            })
         )
         setAvailable(mapped)
         if (mapped.length > 0 && !activeItem) {
@@ -171,7 +177,8 @@ export default function CounterSale() {
             : c
         )
       }
-      return [{ ...i, qty: 1 }, ...prev]
+      const initialRate = Number(i.rate > 0 ? i.rate : (i.mrp || 0))
+      return [{ ...i, rate: initialRate, qty: 1 }, ...prev]
     })
   }
 
