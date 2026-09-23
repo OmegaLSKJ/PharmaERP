@@ -130,6 +130,26 @@ describe('sale analysis against existing ERP records', () => {
     raw.item_batches[0].cost_price = 0; raw.items[0].purchase_rate = 0
     expect(buildAnalysisReport('adjustments', normalizeSources(raw, 'Test'), filters).totals.activityValue).toBeNull()
   })
+  it('attributes multi-company invoice round-off to Round-off / Adjustments instead of Multiple', () => {
+    const raw = fixture()
+    raw.manufacturers.push({ id: 'm2', name: 'Second Pharma' })
+    raw.items.push({ id: 'i2', code: 'ITEM-2', name: 'Second Item', manufacturer_id: 'm2', purchase_rate: 40 })
+    raw.item_batches.push({ id: 'b2', item_id: 'i2', batch_number: 'B2', cost_price: 40 })
+    raw.sales_invoices = [
+      { id: 's1', party_id: 'p1', invoice_number: 'SI-MULTI', invoice_date: '2026-09-01', status: 'posted', subtotal: 1000, discount_total: 0, tax_total: 0, grand_total: 999.14, rounding_adjustment: -0.86 }
+    ]
+    raw.sales_invoice_lines = [
+      { id: 'l1', invoice_id: 's1', item_id: 'i1', item_batch_id: 'b1', quantity: 5, free_quantity: 0, rate: 100, discount_percent: 0, gst_rate: 0, line_total: 500 },
+      { id: 'l2', invoice_id: 's1', item_id: 'i2', item_batch_id: 'b2', quantity: 5, free_quantity: 0, rate: 100, discount_percent: 0, gst_rate: 0, line_total: 500 }
+    ]
+    raw.business_documents = []
+    const data = normalizeSources(raw, 'Test')
+    const companyReport = buildAnalysisReport('company', data, filters)
+    const roundRow = companyReport.rows.find(r => r.company === 'Round-off / Adjustments')
+    expect(roundRow).toBeDefined()
+    expect(roundRow?.rounding).toBe(-0.86)
+    expect(companyReport.rows.some(r => r.company === 'Multiple')).toBe(false)
+  })
 })
 describe('read-only source loading', () => {
   it('reads beyond 1,000 rows even when the server caps responses below the requested page size', async () => {
