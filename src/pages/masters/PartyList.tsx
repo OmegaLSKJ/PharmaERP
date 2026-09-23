@@ -1059,7 +1059,11 @@ export default function PartyList() {
                     {p.gstin ? (
                       <div>
                         <span className="font-mono text-xs font-bold text-foreground tracking-wider">{p.gstin}</span>
-                        {p.pan && <span className="block text-[10px] font-mono text-muted-foreground">PAN: {p.pan}</span>}
+                        {(p.pan || (p.gstin && p.gstin.trim().length >= 12)) && (
+                          <span className="block text-[10px] font-mono text-muted-foreground">
+                            PAN: {p.pan || p.gstin.trim().slice(2, 12).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>

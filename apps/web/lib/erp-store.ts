@@ -1450,7 +1450,7 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (resource === 'parties') {
     const [data, accountsData] = await Promise.all([
       fetchAll<any>((from, to) =>
-        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
+        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(line1,city,state_code,postal_code,is_default),drug_licenses(license_number,expires_on,status)').eq('organization_id', organizationId).order('legal_name').range(from, to)
       ),
       fetchAll<any>((from, to) =>
         client.from('chart_of_accounts').select('id,party_id,name,opening_balance,account_group,voucher_lines(debit,credit)').eq('organization_id', organizationId).range(from, to)
@@ -1482,6 +1482,14 @@ export async function list(resource: string, partyName?: string, options?: { man
       const partyBal = accStats ? accStats.balance : 0
       const partyDeb = accStats ? accStats.debit : 0
       const partyCred = accStats ? accStats.credit : 0
+
+      const addr = p.party_addresses?.find((a: any) => a.is_default) ?? p.party_addresses?.[0]
+      const dl = p.drug_licenses?.find((l: any) => l.status === 'active') ?? p.drug_licenses?.[0]
+      const cleanGstin = String(p.gstin || '').trim().toUpperCase()
+      const derivedPan = cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : ''
+      const rawState = addr?.state_code || ''
+      const formattedState = rawState ? (rawState.includes('-') ? rawState : `18-${rawState}`) : '18-ASSAM'
+
       return {
         id: p.id,
         code: p.code,
@@ -1490,8 +1498,16 @@ export async function list(resource: string, partyName?: string, options?: { man
         accountGroup: accStats?.group || (p.party_type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors'),
         phone: p.phone ?? '',
         email: p.email ?? '',
-        city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '',
-        gstin: p.gstin ?? '',
+        station: addr?.city || addr?.line1 || '',
+        city: addr?.city ?? '',
+        state: formattedState,
+        address: addr?.line1 ?? '',
+        pincode: addr?.postal_code ?? '',
+        dlNo: dl?.license_number ?? '',
+        dlNumber: dl?.license_number ?? '',
+        dlExp: dl?.expires_on ? String(dl.expires_on).slice(0, 10) : '',
+        gstin: cleanGstin,
+        pan: derivedPan,
         openingBalance: accStats ? Math.abs(accStats.opBal) : 0,
         openingType: accStats && accStats.opBal < 0 ? 'Cr' : 'Dr',
         balance: partyBal,
@@ -2582,9 +2598,36 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (resource === 'parties') {
     if (!body.name) throw new Error('Party name is required.')
     const partyType = 'both'
-    const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
+    const cleanGstin = String(body.gstin || '').trim().toUpperCase()
+    const derivedPan = body.pan || (cleanGstin.length >= 12 ? cleanGstin.slice(2, 12) : null)
+    const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: cleanGstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
     if (error) throw error
-    if (body.city) { const { error: addressError } = await client.from('party_addresses').insert({ party_id: data.id, address_type: 'business', line1: body.address || body.city, city: body.city, is_default: true }); if (addressError) throw addressError }
+    if (body.city || body.address || body.station) {
+      const { error: addressError } = await client.from('party_addresses').insert({
+        party_id: data.id,
+        address_type: 'business',
+        line1: body.address || body.station || body.city || '',
+        city: body.city || body.station || '',
+        state_code: body.state || '18-ASSAM',
+        postal_code: body.pincode || '',
+        is_default: true
+      })
+      if (addressError) throw addressError
+    }
+    if (body.dlNo || body.dlNumber) {
+      try {
+        await client.from('drug_licenses').insert({
+          organization_id: organizationId,
+          party_id: data.id,
+          license_number: body.dlNo || body.dlNumber,
+          license_type: 'retail_wholesale',
+          expires_on: body.dlExp || '2030-12-31',
+          status: 'active'
+        })
+      } catch (dlErr) {
+        console.warn('Could not auto-create drug_licenses record for party:', dlErr)
+      }
+    }
     const opBal = Number(body.openingBalance || 0)
     const opType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
     const netBal = opType === 'Cr' ? -Math.abs(opBal) : Math.abs(opBal)
@@ -2603,7 +2646,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
     } catch (coaErr) {
       console.warn('Could not auto-create chart_of_accounts record for party:', coaErr)
     }
-    return { ...body, id: data.id, code: data.code, type: partyType, balance: netBal, totalDebit: opType === 'Dr' ? opBal : 0, totalCredit: opType === 'Cr' ? opBal : 0, status: 'active' }
+    return { ...body, id: data.id, code: data.code, type: partyType, pan: derivedPan, balance: netBal, totalDebit: opType === 'Dr' ? opBal : 0, totalCredit: opType === 'Cr' ? opBal : 0, status: 'active' }
   }
   if (resource === 'hsn') { const { data, error } = await client.from('hsn_codes').insert({ organization_id: organizationId, code: body.code, description: body.description ?? body.name ?? null, gst_rate: Number(body.gst_rate ?? body.gstRate ?? 0) }).select('*').single(); if (error) throw error; return data }
   if (resource === 'manufacturers') { const { data, error } = await client.from('manufacturers').insert({ organization_id: organizationId, name: body.name, code: body.code || null, is_active: body.status !== 'inactive' }).select('*').single(); if (error) throw error; return data }
@@ -3350,15 +3393,38 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if ('status' in body) values.is_blocked = body.status === 'blocked'
     const { data, error } = await client.from('parties').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
-    if (body.city || body.address) {
+    if (body.city || body.address || body.station || body.state || body.pincode) {
       try {
         await client.from('party_addresses').upsert({
           party_id: id,
           address_type: 'business',
-          line1: body.address || body.city,
-          city: body.city || '',
+          line1: body.address || body.station || body.city || '',
+          city: body.city || body.station || '',
+          state_code: body.state || '18-ASSAM',
+          postal_code: body.pincode || '',
           is_default: true
         }, { onConflict: 'party_id' })
+      } catch {}
+    }
+    if (body.dlNo || body.dlNumber) {
+      try {
+        const { data: existingDl } = await client.from('drug_licenses').select('id').eq('party_id', id).maybeSingle()
+        if (existingDl) {
+          await client.from('drug_licenses').update({
+            license_number: body.dlNo || body.dlNumber,
+            expires_on: body.dlExp || '2030-12-31',
+            status: 'active'
+          }).eq('id', existingDl.id)
+        } else {
+          await client.from('drug_licenses').insert({
+            organization_id: organizationId,
+            party_id: id,
+            license_number: body.dlNo || body.dlNumber,
+            license_type: 'retail_wholesale',
+            expires_on: body.dlExp || '2030-12-31',
+            status: 'active'
+          })
+        }
       } catch {}
     }
     if (body.name) {
