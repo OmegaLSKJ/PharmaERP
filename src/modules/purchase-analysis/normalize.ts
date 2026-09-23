@@ -1,4 +1,5 @@
 import type { PurchaseData, PurchaseRecord, SourceData, SourceRow } from './types'
+import { lookupCatalogManufacturer } from '../../lib/catalogManufacturers'
 
 export const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const n = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0
@@ -21,7 +22,13 @@ export function normalizePurchaseSources(source: SourceData, organization: strin
   const byName = new Map<string, SourceRow[]>()
   for (const item of items.values()) { const key = text(item.name).toLowerCase().trim(); byName.set(key, [...(byName.get(key) || []), item]) }
   const party = (id: unknown, fallback?: unknown) => ({ supplierId: text(id), supplier: text(parties.get(text(id))?.legal_name) || text(fallback) || 'Unassigned' })
-  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated bill values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company) || 'Unallocated', batch: text(batch?.batch_number) })
+  const identity = (item?: SourceRow, batch?: SourceRow) => {
+    const rawCompany = text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company)
+    const fallbackCompany = (!rawCompany || rawCompany === 'Unallocated') ? lookupCatalogManufacturer(text(item?.name), text(item?.code)) : ''
+    const company = rawCompany || fallbackCompany || 'Unallocated'
+    const companyId = text(item?.manufacturer_id) || (fallbackCompany ? `catalog:${fallbackCompany}` : '')
+    return { itemId: text(item?.id), item: text(item?.name) || 'Unallocated bill values', companyId, company, batch: text(batch?.batch_number) }
+  }
   const resolve = (line: SourceRow) => {
     let item = items.get(text(line.item_id || line.itemId))
     if (!item) { const matches = byName.get(text(line.name || line.itemName).toLowerCase().trim()) || []; if (matches.length === 1) item = matches[0] }
@@ -44,7 +51,12 @@ export function normalizePurchaseSources(source: SourceData, organization: strin
     const gross = n(invoice.subtotal), discount = n(invoice.discount_total), tax = n(invoice.tax_total), net = round(gross - discount), total = n(invoice.grand_total), rounding = round(total - net - tax)
     const delta = { gross: round(gross - sum(lines, 'gross')), discount: round(discount - sum(lines, 'discount')), net: round(net - sum(lines, 'net')), tax: round(tax - sum(lines, 'tax')), total: round(total - sum(lines, 'total')), rounding }
     const justRounding = lines.length > 0 && [delta.gross, delta.discount, delta.net, delta.tax].every(value => Math.abs(value) < .005)
-    if (!lines.length || Object.values(delta).some(value => Math.abs(value) >= .005)) records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, ...delta, ...(justRounding ? { quantity: 0, freeQuantity: 0 } : {}), detail: lines.length ? 'Bill-level adjustment / round-off' : 'Purchase bill has no item lines' }))
+    if (!lines.length || Object.values(delta).some(value => Math.abs(value) >= .005)) {
+      const lineCompanies = Array.from(new Set(lines.map(l => l.company).filter(c => c && c !== 'Unallocated')))
+      const roundCompany = lineCompanies.length === 1 ? lineCompanies[0] : (lineCompanies.length > 1 ? 'Multiple' : 'Round-off')
+      const roundCompanyId = lineCompanies.length === 1 ? (lines.find(l => l.company === roundCompany)?.companyId || `catalog:${roundCompany}`) : 'round-off'
+      records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, ...delta, ...(justRounding ? { quantity: 0, freeQuantity: 0, item: 'Bill Round-off', company: roundCompany, companyId: roundCompanyId } : {}), detail: lines.length ? 'Bill-level adjustment / round-off' : 'Purchase bill has no item lines' }))
+    }
     if (!lines.length) headerOnly++
   }
   if (headerOnly) warnings.push(`${headerOnly} posted purchase bill(s) have no item lines. Their recorded totals are included under Unallocated bill values.`)
@@ -67,5 +79,8 @@ export function normalizePurchaseSources(source: SourceData, organization: strin
     records.push(blank({ id: `amendment:${audit.id}`, documentId: `amendment:${audit.id}`, document: replacementNo || text(before.number), date: localDate(audit.occurred_at), type: 'AMENDMENT', status: 'posted', ...party(replacement?.party_id || original?.party_id), reference: text(before.number || original?.invoice_number), amendmentValue: value != null && Number.isFinite(Number(value)) ? Number(value) : null, detail: 'Audited bill replacement; informational, not an additional purchase' }))
   }
   if (!(source.business_documents || []).some(doc => text(doc.document_type).startsWith('purchase_return'))) warnings.push('No purchase return documents are recorded in this organization; Purchase Return Book is empty.')
-  return { organization, loadedAt, records, warnings, counts: Object.fromEntries(Object.entries(source).map(([key, rows]) => [key, rows.length])), options: { suppliers: [...parties.values()].map(row => ({ id: text(row.id), name: text(row.legal_name) })), items: [...items.values()].map(row => ({ id: text(row.id), name: `${text(row.name)}${row.code ? ` · ${row.code}` : ''}` })), companies: [...companies.values()].map(row => ({ id: text(row.id), name: text(row.name) })) } }
+  const companyOptions = new Map<string, string>()
+  for (const row of companies.values()) { if (row.id && row.name) companyOptions.set(text(row.id), text(row.name)) }
+  for (const record of records) { if (record.companyId && record.company && !['Unallocated', 'Round-off', 'Multiple'].includes(record.company) && !companyOptions.has(record.companyId)) companyOptions.set(record.companyId, record.company) }
+  return { organization, loadedAt, records, warnings, counts: Object.fromEntries(Object.entries(source).map(([key, rows]) => [key, rows.length])), options: { suppliers: [...parties.values()].map(row => ({ id: text(row.id), name: text(row.legal_name) })), items: [...items.values()].map(row => ({ id: text(row.id), name: `${text(row.name)}${row.code ? ` · ${row.code}` : ''}` })), companies: [...companyOptions.entries()].map(([id, name]) => ({ id, name })) } }
 }

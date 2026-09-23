@@ -27,6 +27,58 @@ describe('purchase analysis', () => {
     expect(result.totals.total).toBe(1256)
     expect(csvReport([{ supplier: '=DANGER' }], [{ key: 'supplier', label: 'Supplier' }])).toContain("'=DANGER")
   })
+  it('resolves unlinked item manufacturers from catalog and labels round-off adjustments cleanly', () => {
+    const raw: SourceData = {
+      parties: [{ id: 's1', legal_name: 'Borgang Drug Suppliers' }],
+      manufacturers: [{ id: 'm-dwd', name: 'DWD' }],
+      items: [
+        { id: 'i-kido', code: '13862', name: 'KIDODENT 60GM', manufacturer_id: null },
+        { id: 'i-cypon', code: 'A002_2583', name: 'CYPON SYP 200ML', manufacturer_id: null },
+        { id: 'i-funspro', code: 'AF613', name: 'FUNSPRO DUSTING 100GM', manufacturer_id: null },
+        { id: 'i-drep', code: 'o0733', name: 'DREP WAX DROPS 10ML', manufacturer_id: 'm-dwd' },
+      ],
+      item_batches: [],
+      purchase_invoices: [
+        {
+          id: 'p-round',
+          party_id: 's1',
+          invoice_number: 'PB-ROUND-1',
+          invoice_date: '2026-09-01',
+          status: 'posted',
+          subtotal: 1000,
+          discount_total: 0,
+          tax_total: 50,
+          rounding_adjustment: 0.48,
+          grand_total: 1050.48,
+        },
+      ],
+      purchase_invoice_lines: [
+        {
+          id: 'l-kido',
+          invoice_id: 'p-round',
+          item_id: 'i-kido',
+          quantity: 10,
+          rate: 100,
+          discount_percent: 0,
+          gst_rate: 5,
+          line_total: 1050,
+        },
+      ],
+      business_documents: [],
+      audit_logs: [],
+    }
+    const data = normalizePurchaseSources(raw, 'Test Org')
+    const kidoLine = data.records.find(r => r.item === 'KIDODENT 60GM')
+    expect(kidoLine?.company).toBe('TORRENT')
+
+    const roundLine = data.records.find(r => r.id === 'purchase:p-round:reconciliation')
+    expect(roundLine).toBeDefined()
+    expect(roundLine?.item).toBe('Bill Round-off')
+    expect(roundLine?.company).toBe('TORRENT')
+    expect(roundLine?.total).toBe(0.48)
+
+    expect(data.options.companies.some(c => c.name === 'TORRENT')).toBe(true)
+  })
 })
 describe('purchase source reader', () => {
   it('loads every page and scopes every table to the organization', async () => {

@@ -1,4 +1,5 @@
 import type { AnalysisData, SaleRecord, SourceData, SourceRow } from './types'
+import { lookupCatalogManufacturer } from '../../lib/catalogManufacturers'
 
 export const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 const n = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0
@@ -28,7 +29,13 @@ export function normalizeSources(source: SourceData, organization: string, loade
     for (const value of [batch?.cost_price, batch?.purchase_price, item?.purchase_rate]) if (n(value) > 0) return n(value)
     return null
   }
-  const identity = (item?: SourceRow, batch?: SourceRow) => ({ itemId: text(item?.id), item: text(item?.name) || 'Unallocated invoice values', companyId: text(item?.manufacturer_id), company: text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company) || 'Unallocated', batch: text(batch?.batch_number) })
+  const identity = (item?: SourceRow, batch?: SourceRow) => {
+    const rawCompany = text(companies.get(text(item?.manufacturer_id))?.name) || text(item?.manufacturer) || text(item?.company)
+    const fallbackCompany = (!rawCompany || rawCompany === 'Unallocated') ? lookupCatalogManufacturer(text(item?.name), text(item?.code)) : ''
+    const company = rawCompany || fallbackCompany || 'Unallocated'
+    const companyId = text(item?.manufacturer_id) || (fallbackCompany ? `catalog:${fallbackCompany}` : '')
+    return { itemId: text(item?.id), item: text(item?.name) || 'Unallocated invoice values', companyId, company, batch: text(batch?.batch_number) }
+  }
   const partyInfo = (id: unknown, fallback?: unknown) => ({ partyId: text(id), party: text(parties.get(text(id))?.legal_name) || text(fallback) || 'Unassigned' })
   const resolveLine = (line: SourceRow) => {
     let item = items.get(text(line.item_id || line.itemId)) || itemByCode.get(text(line.itemCode))
@@ -57,7 +64,12 @@ export function normalizeSources(source: SourceData, organization: string, loade
     const gross = n(invoice.subtotal), discount = n(invoice.discount_total), tax = n(invoice.tax_total), total = n(invoice.grand_total), net = round(gross - discount), rounding = round(total - net - tax)
     const delta = { gross: round(gross - sum(lines, 'gross')), discount: round(discount - sum(lines, 'discount')), net: round(net - sum(lines, 'net')), tax: round(tax - sum(lines, 'tax')), total: round(total - sum(lines, 'total')), rounding }
     const justRounding = lines.length > 0 && [delta.gross, delta.discount, delta.net, delta.tax].every(v => Math.abs(v) < .005)
-    if (!lines.length || Object.values(delta).some(v => Math.abs(v) >= .005)) records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, ...delta, ...(justRounding ? { quantity: 0, freeQuantity: 0, cost: 0, margin: 0, freeCost: 0 } : {}), detail: lines.length ? 'Invoice-level adjustment / round-off' : 'Invoice has no item lines' }))
+    if (!lines.length || Object.values(delta).some(v => Math.abs(v) >= .005)) {
+      const lineCompanies = Array.from(new Set(lines.map(l => l.company).filter(c => c && c !== 'Unallocated')))
+      const roundCompany = lineCompanies.length === 1 ? lineCompanies[0] : (lineCompanies.length > 1 ? 'Multiple' : 'Round-off')
+      const roundCompanyId = lineCompanies.length === 1 ? (lines.find(l => l.company === roundCompany)?.companyId || `catalog:${roundCompany}`) : 'round-off'
+      records.push(blank({ ...common, id: `${common.documentId}:reconciliation`, ...delta, ...(justRounding ? { quantity: 0, freeQuantity: 0, cost: 0, margin: 0, freeCost: 0, item: 'Invoice Round-off', company: roundCompany, companyId: roundCompanyId } : {}), detail: lines.length ? 'Invoice-level adjustment / round-off' : 'Invoice has no item lines' }))
+    }
     if (!lines.length) headerOnly++
   }
   if (headerOnly) warnings.push(`${headerOnly} posted invoice(s) have no item lines. Their recorded totals are included under Unallocated invoice values; item quantities and costs are unavailable.`)
@@ -169,5 +181,8 @@ export function normalizeSources(source: SourceData, organization: string, loade
   })
   if (records.some(r => ['SALE', 'RETURN'].includes(r.type) && r.quantity !== null && r.cost === null)) warnings.push('Some item lines have no positive recorded unit cost. Cost and margin totals containing those lines are shown as unavailable.')
   if (!(source.business_documents || []).some(d => ['claim', 'incentive'].includes(d.document_type))) warnings.push('No claim or incentive documents are recorded in this organization; that report will be empty.')
-  return { organization, loadedAt, records, movements, warnings, counts: Object.fromEntries(Object.entries(source).map(([key, rows]) => [key, rows.length])), options: { parties: [...parties.values()].map(p => ({ id: text(p.id), name: text(p.legal_name) })), items: [...items.values()].map(i => ({ id: text(i.id), name: `${text(i.name)}${i.code ? ` · ${i.code}` : ''}` })), companies: [...companies.values()].map(c => ({ id: text(c.id), name: text(c.name) })) } }
+  const companyOptions = new Map<string, string>()
+  for (const c of companies.values()) { if (c.id && c.name) companyOptions.set(text(c.id), text(c.name)) }
+  for (const record of records) { if (record.companyId && record.company && !['Unallocated', 'Round-off', 'Multiple'].includes(record.company) && !companyOptions.has(record.companyId)) companyOptions.set(record.companyId, record.company) }
+  return { organization, loadedAt, records, movements, warnings, counts: Object.fromEntries(Object.entries(source).map(([key, rows]) => [key, rows.length])), options: { parties: [...parties.values()].map(p => ({ id: text(p.id), name: text(p.legal_name) })), items: [...items.values()].map(i => ({ id: text(i.id), name: `${text(i.name)}${i.code ? ` · ${i.code}` : ''}` })), companies: [...companyOptions.entries()].map(([id, name]) => ({ id, name })) } }
 }
