@@ -28,13 +28,14 @@ export async function GET(request: NextRequest) {
     if (assigned && assigned !== organization.id) return fail('This session belongs to another organization.', 403)
     let item: any
     if (itemId) {
-      const { data, error } = await client.from('items').select('id,name,packing,mrp,sale_rate,purchase_rate,manufacturers(name),hsn_codes(code,gst_rate),salts(composition)').eq('id', itemId).eq('organization_id', organization.id).maybeSingle()
+      const { data, error } = await client.from('items').select('id,name,code,packing,mrp,sale_rate,purchase_rate,manufacturers(name),hsn_codes(code,gst_rate),salts(name,composition)').eq('id', itemId).eq('organization_id', organization.id).maybeSingle()
       if (error) throw error
       item = data
     } else if (itemName) {
-      const { data, error } = await client.from('items').select('id,name,packing,mrp,sale_rate,purchase_rate,manufacturers(name),hsn_codes(code,gst_rate),salts(composition)').eq('name', itemName!).eq('organization_id', organization.id).limit(2)
+      const cleanName = itemName.trim()
+      const { data, error } = await client.from('items').select('id,name,code,packing,mrp,sale_rate,purchase_rate,manufacturers(name),hsn_codes(code,gst_rate),salts(name,composition)').eq('name', cleanName).eq('organization_id', organization.id).limit(2)
       if (error) throw error
-      if (data?.length === 1) {
+      if (data && data.length > 0) {
         item = data[0]
       }
     }
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       )
       if (!found) return fail('Product not found.', 404)
       const batch = (found.batches && found.batches.length > 0)
-        ? (batchId ? found.batches.find((b: any) => String(b.id) === batchId) : batchNumber ? found.batches.find((b: any) => b.batch === batchNumber) : found.batches[0])
+        ? (batchId ? found.batches.find((b: any) => String(b.id) === batchId) : batchNumber ? found.batches.find((b: any) => String(b.batch).trim().toLowerCase() === batchNumber.trim().toLowerCase()) : found.batches[0])
         : null
       const detail = {
         id: found.id,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
         gstRate: numberOrUndefined(found.gstRate),
         batch: batch?.batch ?? undefined,
         expiry: batch?.expiry ?? undefined,
-        stock: typeof batch?.stock === 'number' ? batch.stock : typeof found.stock === 'number' ? found.stock : undefined,
+        stock: typeof batch?.stock === 'number' ? batch.stock : typeof found.stock === 'number' ? found.stock : 0,
         location: batch?.location ?? batch?.rackNumber ?? batch?.rack_number ?? undefined,
         mrp: numberOrUndefined(batch?.mrp ?? found.mrp),
         saleRate: numberOrUndefined(batch?.saleRate ?? batch?.salePrice ?? batch?.sale_price ?? found.saleRate),
@@ -79,10 +80,26 @@ export async function GET(request: NextRequest) {
     }
     let batchQuery = client.from('item_batches').select('id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,parties(legal_name),stock_movements(quantity)').eq('item_id', item.id)
     if (batchId) batchQuery = batchQuery.eq('id', batchId)
-    else if (batchNumber) batchQuery = batchQuery.eq('batch_number', batchNumber)
+    else if (batchNumber) batchQuery = batchQuery.eq('batch_number', batchNumber.trim())
     const { data: batches, error: batchError } = await batchQuery.order('received_on', { ascending: false }).limit(1)
     if (batchError) throw batchError
-    const batch = batches?.[0]
+    let batch = batches?.[0]
+    if (!batch && !batchId && !batchNumber) {
+      // Fallback to latest batch for this item
+      const { data: latestBatches } = await client.from('item_batches').select('id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,parties(legal_name),stock_movements(quantity)').eq('item_id', item.id).order('received_on', { ascending: false }).limit(1)
+      batch = latestBatches?.[0]
+    }
+
+    let liveStock = batch ? (batch.stock_movements ?? []).reduce((sum: number, movement: { quantity: unknown }) => sum + Number(movement.quantity ?? 0), 0) : undefined
+    if (liveStock === undefined) {
+      // If batch has no direct stock movements or batch wasn't found, compute total item stock from all stock movements
+      const { data: allMovements } = await client
+        .from('stock_movements')
+        .select('quantity,item_batches!inner(item_id)')
+        .eq('item_batches.item_id', item.id)
+      liveStock = (allMovements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity ?? 0), 0)
+    }
+
     const detail = {
       id: item.id,
       code: item.code ?? undefined,
@@ -90,17 +107,17 @@ export async function GET(request: NextRequest) {
       name: item.name,
       packing: item.packing ?? undefined,
       manufacturer: item.manufacturers?.name ?? lookupCatalogManufacturer(item.name, item.code) ?? undefined,
-      salt: item.salts?.composition ?? undefined,
+      salt: item.salts?.name ?? item.salts?.composition ?? undefined,
       hsn: item.hsn_codes?.code ?? undefined,
       gstRate: numberOrUndefined(item.hsn_codes?.gst_rate),
       batch: batch?.batch_number ?? undefined,
       expiry: batch?.expiry_on ?? undefined,
-      stock: batch ? (batch.stock_movements ?? []).reduce((sum: number, movement: { quantity: unknown }) => sum + Number(movement.quantity ?? 0), 0) : undefined,
+      stock: typeof liveStock === 'number' ? liveStock : 0,
       location: batch?.rack_number ?? undefined,
       mrp: numberOrUndefined(batch?.mrp ?? item.mrp),
       saleRate: numberOrUndefined(batch?.sale_price ?? item.sale_rate),
       purchaseRate: numberOrUndefined(batch?.purchase_price ?? item.purchase_rate),
-      costPrice: numberOrUndefined(batch?.cost_price),
+      costPrice: numberOrUndefined(batch?.cost_price ?? item.purchase_rate),
       purchaseSchemeDeal: numberOrUndefined(batch?.purchase_scheme_deal),
       purchaseSchemeFree: numberOrUndefined(batch?.purchase_scheme_free),
       salesSchemeDeal: numberOrUndefined(batch?.sales_scheme_deal),

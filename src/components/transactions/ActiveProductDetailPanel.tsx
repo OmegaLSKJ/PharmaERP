@@ -48,7 +48,9 @@ export interface ActiveBillSummary {
   mrpValue?: number
   valueOfGoods?: number
   discount?: number
+  discountValue?: number
   gstTotal?: number
+  gstValue?: number
   grandTotal?: number
 }
 
@@ -138,7 +140,17 @@ export default function ActiveProductDetailPanel({
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [])
   useEffect(() => {
-    if (!detailOpen || !activeProduct) { setLiveDetail(null); setLiveError(''); return }
+    if (!activeProduct || !activeProduct.name) {
+      setLiveDetail(null)
+      setLiveError('')
+      return
+    }
+    // Don't query product detail if it's a non-medicine label (e.g. credit note or debit note headers)
+    if (activeProduct.name.startsWith('Credit Note:') || activeProduct.name.startsWith('Debit Note:')) {
+      setLiveDetail(null)
+      setLiveError('')
+      return
+    }
     let current = true
     const refresh = async () => {
       try {
@@ -149,20 +161,16 @@ export default function ActiveProductDetailPanel({
           ...(activeProduct.batch ? { batchNumber: activeProduct.batch } : {}),
         }, { forceRefresh: true })
         if (current) { setLiveDetail(detail); setLiveError('') }
-      } catch (error) {
+      } catch {
         if (current) {
-          if (!activeProduct || !activeProduct.name) {
-            setLiveError(error instanceof Error ? error.message : 'Live product details could not be loaded.')
-          } else {
-            setLiveError('')
-          }
+          setLiveError('')
         }
       }
     }
     void refresh()
     const timer = window.setInterval(() => void refresh(), 15_000)
     return () => { current = false; window.clearInterval(timer) }
-  }, [detailOpen, activeProduct?.id, activeProduct?.name, activeProduct?.batchId, activeProduct?.batch])
+  }, [activeProduct?.id, activeProduct?.name, activeProduct?.batchId, activeProduct?.batch])
   const displayedProduct = liveDetail
     ? {
         ...activeProduct,
@@ -196,39 +204,39 @@ export default function ActiveProductDetailPanel({
                 </span>
               )}
             </div>
-            {activeProduct?.hsn && (
+            {displayedProduct?.hsn && (
               <span className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                HSN: <strong className="text-slate-800 dark:text-white font-mono">{activeProduct.hsn}</strong>
-                {typeof activeProduct.gstRate === 'number' && (
-                  <span> (GST {activeProduct.gstRate}%)</span>
+                HSN: <strong className="text-slate-800 dark:text-white font-mono">{displayedProduct.hsn}</strong>
+                {typeof displayedProduct.gstRate === 'number' && (
+                  <span> (GST {displayedProduct.gstRate}%)</span>
                 )}
               </span>
             )}
           </div>
 
-          {activeProduct ? (
+          {displayedProduct ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-slate-700 dark:text-slate-300">
               {/* Product Name & Brand */}
               <div className="sm:col-span-2 flex items-baseline flex-wrap gap-1.5">
                 <span className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Item:</span>
                 <span className="text-slate-900 dark:text-white font-extrabold text-sm tracking-tight">
-                  {activeProduct.name}
+                  {displayedProduct.name}
                 </span>
-                {activeProduct.packing && (
+                {displayedProduct.packing && (
                   <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-sans font-semibold">
-                    {activeProduct.packing}
+                    {displayedProduct.packing}
                   </span>
                 )}
-                {activeProduct.manufacturer && (
-                  <span className="text-[10px] text-slate-500 italic">({activeProduct.manufacturer})</span>
+                {displayedProduct.manufacturer && (
+                  <span className="text-[10px] text-slate-500 italic">({displayedProduct.manufacturer})</span>
                 )}
               </div>
 
               {/* Composition / Salt */}
-              {activeProduct.salt && (
+              {displayedProduct.salt && (
                 <div className="sm:col-span-2 text-[11px] text-indigo-700 dark:text-indigo-300/90 font-sans font-medium bg-indigo-50/70 dark:bg-indigo-950/40 px-2 py-1 rounded border border-indigo-200/60 dark:border-indigo-900/40">
                   <span className="text-indigo-500 dark:text-indigo-400 font-bold uppercase text-[10px] font-mono mr-1">Salt:</span>
-                  {activeProduct.salt}
+                  {displayedProduct.salt}
                 </div>
               )}
 
@@ -236,15 +244,15 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">Batch: </span>
                 <span className="text-amber-600 dark:text-amber-300 font-bold font-mono text-xs">
-                  {activeProduct.batch || '—'}
+                  {displayedProduct.batch || '—'}
                 </span>
               </div>
 
               {/* Stock */}
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">Stock: </span>
-                <span className={cn('font-bold font-mono text-xs', (activeProduct.stock ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')}>
-                  {typeof activeProduct.stock === 'number' ? `${activeProduct.stock} Units` : '—'}
+                <span className={cn('font-bold font-mono text-xs', (displayedProduct.stock ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')}>
+                  {typeof displayedProduct.stock === 'number' ? `${displayedProduct.stock} Units` : '—'}
                 </span>
               </div>
 
@@ -252,7 +260,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">Expiry: </span>
                 <span className="text-slate-800 dark:text-white font-bold font-mono text-xs">
-                  {formatDisplayExpiry(activeProduct.expiry)}
+                  {formatDisplayExpiry(displayedProduct.expiry)}
                 </span>
               </div>
 
@@ -260,7 +268,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">SRate: </span>
                 <span className="text-indigo-600 dark:text-indigo-300 font-bold font-mono text-xs">
-                  {money(activeProduct.saleRate)}
+                  {money(displayedProduct.saleRate)}
                 </span>
               </div>
 
@@ -268,7 +276,7 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">M.R.P.: </span>
                 <span className="text-slate-900 dark:text-white font-bold font-mono text-xs">
-                  {money(activeProduct.mrp)}
+                  {money(displayedProduct.mrp)}
                 </span>
               </div>
 
@@ -276,37 +284,37 @@ export default function ActiveProductDetailPanel({
               <div>
                 <span className="text-slate-500 font-bold uppercase text-[10px]">P.Rate: </span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">
-                  {money(activeProduct.purchaseRate)}
+                  {money(displayedProduct.purchaseRate)}
                 </span>
               </div>
 
               {/* Optional Ref / Invoice */}
-              {activeProduct.refNo && (
+              {displayedProduct.refNo && (
                 <div>
                   <span className="text-slate-500 font-bold uppercase text-[10px]">Chall./Inv: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{activeProduct.refNo}</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.refNo}</span>
                 </div>
               )}
 
               {/* Optional Date */}
-              {activeProduct.date && (
+              {displayedProduct.date && (
                 <div>
                   <span className="text-slate-500 font-bold uppercase text-[10px]">Date: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{activeProduct.date}</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.date}</span>
                 </div>
               )}
 
               {/* Optional Category or Location */}
-              {activeProduct.category && (
+              {displayedProduct.category && (
                 <div>
                   <span className="text-slate-500 font-bold uppercase text-[10px]">Category: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{activeProduct.category}</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.category}</span>
                 </div>
               )}
-              {activeProduct.location && (
+              {displayedProduct.location && (
                 <div>
                   <span className="text-slate-500 font-bold uppercase text-[10px]">Location: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{activeProduct.location}</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.location}</span>
                 </div>
               )}
             </div>
@@ -344,18 +352,18 @@ export default function ActiveProductDetailPanel({
                   <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(billSummary.valueOfGoods)}</span>
                 </div>
               )}
-              {typeof billSummary.discount === 'number' && (
+              {typeof (billSummary.discount ?? billSummary.discountValue) === 'number' && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">DISCOUNT :</span>
                   <span className="font-bold text-amber-600 dark:text-amber-400">
-                    {billSummary.discount > 0 ? `-${formatCurrency(billSummary.discount)}` : '₹0.00'}
+                    {((billSummary.discount ?? billSummary.discountValue) || 0) > 0 ? `-${formatCurrency((billSummary.discount ?? billSummary.discountValue) || 0)}` : '₹0.00'}
                   </span>
                 </div>
               )}
-              {typeof billSummary.gstTotal === 'number' && (
+              {typeof (billSummary.gstTotal ?? billSummary.gstValue) === 'number' && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">GST% Total :</span>
-                  <span className="font-bold text-primary">+{formatCurrency(billSummary.gstTotal)}</span>
+                  <span className="font-bold text-primary">+{formatCurrency((billSummary.gstTotal ?? billSummary.gstValue) || 0)}</span>
                 </div>
               )}
               {typeof billSummary.partyBalance === 'number' && (

@@ -277,7 +277,6 @@ export default function PurchaseReturn() {
                   category: activeReturn.reason || 'Purchase Return',
                   saleRate: activeReturn.total,
                   mrp: activeReturn.total,
-                  stock: activeReturn.items,
                 }
               : null
           }

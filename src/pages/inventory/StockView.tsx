@@ -113,7 +113,54 @@ export default function StockView() {
         </select>
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      {/* Mobile Card View (Phone Screen) */}
+      <div className="md:hidden space-y-2.5">
+        {filtered.map((item, idx) => {
+          const daysLeft = Math.ceil((new Date(item.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          const isActive = idx === activeIndex
+          return (
+            <div
+              key={item.id}
+              onClick={() => setActiveIndex(idx)}
+              className={cn(
+                'bg-slate-900/60 border rounded-xl p-3.5 space-y-2 cursor-pointer transition',
+                isActive
+                  ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-indigo-950/20'
+                  : 'border-slate-800 hover:border-slate-700'
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-white">{item.name}</div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap text-xs text-slate-400">
+                    {item.packing && <span className="bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[11px]">{item.packing}</span>}
+                    {item.manufacturer && <span className="text-[11px] text-slate-400">({item.manufacturer})</span>}
+                  </div>
+                </div>
+                <span className={cn('px-2 py-0.5 rounded text-xs font-mono font-bold whitespace-nowrap', item.stock > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20')}>
+                  {item.stock} Units
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Batch & Exp</span>
+                  <span className="text-amber-400 font-semibold">{item.batch}</span>
+                  <span className="text-slate-400 ml-1">({item.expiry})</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">MRP / P.Rate</span>
+                  <span className="text-white">{formatCurrency(item.mrp)}</span>
+                  <span className="text-emerald-400 ml-1">/ {formatCurrency(item.purchaseRate)}</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>

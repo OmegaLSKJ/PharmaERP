@@ -212,7 +212,7 @@ export default function PurchaseEntry() {
           if (found.lines && found.lines.length > 0) {
             const mapped: LineItem[] = found.lines.map((l: any, idx: number) => {
               const q = Number(l.qty || l.quantity || 1)
-              const rate = Number(l.rate || l.purchaseRate || 100)
+              const rate = Number(l.rate || l.purchaseRate || 0)
               const disc = Number(l.disc || l.discount || 0)
               const gst = Number(l.gst ?? l.gstRate ?? getGstRateForHsn(l.hsn))
               const free = Number(l.free || l.freeQty || 0)
@@ -220,22 +220,31 @@ export default function PurchaseEntry() {
               const afterDisc = baseAmt - (baseAmt * disc) / 100
               const gstAmt = (afterDisc * gst) / 100
               const totalAmt = afterDisc + gstAmt
+
+              const cleanName = String(l.name || l.itemName || '').trim().toLowerCase()
+              const matched = itemOptions.find(o => o.name.toLowerCase() === cleanName || (l.code && o.code === l.code))
+
               return {
                 id: String(l.id || `line-${Date.now()}-${idx}`),
-                itemName: String(l.name || l.itemName || 'PHARMA ITEM'),
-                packing: String(l.packing || '10T'),
-                hsn: String(l.hsn || '3004'),
+                itemId: l.itemId || matched?.id,
+                code: l.code || matched?.code || '',
+                itemName: String(l.name || l.itemName || matched?.name || 'PHARMA ITEM'),
+                packing: String(l.packing || matched?.packing || '10T'),
+                manufacturer: String(l.manufacturer || matched?.manufacturer || ''),
+                salt: String(l.salt || matched?.salt || ''),
+                hsn: String(l.hsn || matched?.hsn || '3004'),
                 batch: String(l.batch || 'DEFAULT'),
                 expiry: String(l.expiry || '12/28'),
                 qty: q,
                 freeQty: free,
-                purchaseRate: rate,
+                purchaseRate: rate || Number(matched?.purchaseRate || 0),
                 discount: disc,
                 scheme: Number(l.scheme || 0),
-                gstRate: gst,
+                gstRate: gst || Number(matched?.gstRate || 0),
                 amount: Math.round(totalAmt * 100) / 100,
-                saleRate: Number(l.saleRate || rate * 1.2),
-                mrp: Number(l.mrp || rate * 1.35),
+                saleRate: Number(l.saleRate || matched?.saleRate || (rate * 1.2)),
+                mrp: Number(l.mrp || matched?.mrp || (rate * 1.35)),
+                stock: typeof l.stock === 'number' ? l.stock : (matched?.stock ?? 0),
               }
             })
             setItems(mapped)

@@ -31,6 +31,7 @@ interface LineItem {
   hsn?: string
   expiry?: string
   itemId?: string
+  batchId?: string
   code?: string
   category?: string
   costPrice?: number
@@ -160,6 +161,32 @@ export default function SaleEntry() {
         const allParties = Array.from(partyMap.values())
         setPartiesList(allParties)
         setProductsList(products)
+        setItems((currentItems) =>
+          currentItems.map((cur) => {
+            const cleanName = String(cur.name || '').trim().toLowerCase()
+            const matched = products.find((p: any) =>
+              (cur.code && p.code === cur.code) ||
+              (p.name && p.name.trim().toLowerCase() === cleanName)
+            )
+            const matchedBatch = matched?.batches?.find((b: any) =>
+              String(b.batch).trim().toLowerCase() === String(cur.batch || '').trim().toLowerCase()
+            )
+            if (!matched && !matchedBatch) return cur
+            return {
+              ...cur,
+              itemId: cur.itemId || matched?.id,
+              batchId: cur.batchId || matchedBatch?.id,
+              stock: typeof matchedBatch?.stock === 'number' ? matchedBatch.stock : (typeof matched?.stock === 'number' ? matched.stock : cur.stock),
+              mrp: cur.mrp || matchedBatch?.mrp || matched?.mrp || 0,
+              purchaseRate: cur.purchaseRate || matchedBatch?.purchasePrice || matched?.purchaseRate || 0,
+              costPrice: cur.costPrice || matchedBatch?.costPrice || matched?.costPrice || cur.purchaseRate,
+              salt: cur.salt || matched?.salt || matched?.composition || '',
+              packing: cur.packing || matched?.packing || '',
+              manufacturer: cur.manufacturer || matched?.manufacturer || matched?.company || '',
+              hsn: cur.hsn || matched?.hsn || '',
+            }
+          })
+        )
         const sortedParties = [...allParties].sort((a, b) => {
           const aIsCustomer = a.type === 'customer' || a.type === 'both' ? 1 : 0
           const bIsCustomer = b.type === 'customer' || b.type === 'both' ? 1 : 0
@@ -311,24 +338,44 @@ export default function SaleEntry() {
               const d = Number(l.disc || l.discount || l.discount_percent || 0)
               const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
               const amt = calculateInvoice([{ qty: q, rate: r, discount: d, gstRate: g }]).lines[0]?.total ?? (q * r)
+
+              const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
+              const matchedProd = productsList.find((p: any) =>
+                (l.code && p.code === l.code) ||
+                (p.name && p.name.trim().toLowerCase() === cleanItemName)
+              )
+              const matchedBatch = matchedProd?.batches?.find((b: any) =>
+                String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
+              )
+              const liveStock = typeof matchedBatch?.stock === 'number'
+                ? matchedBatch.stock
+                : (typeof l.stock === 'number' ? l.stock : (typeof matchedProd?.stock === 'number' ? matchedProd.stock : 0))
+              const liveMrp = Number(l.mrp || matchedBatch?.mrp || matchedProd?.mrp || 0)
+              const livePurchaseRate = Number(l.purchaseRate || matchedBatch?.purchasePrice || matchedProd?.purchaseRate || 0)
+              const liveCostPrice = Number(l.costPrice || matchedBatch?.costPrice || matchedProd?.costPrice || livePurchaseRate)
+
               return {
                 id: String(l.id || `line-${Date.now()}-${idx}`),
+                itemId: l.itemId || matchedProd?.id,
+                code: l.code || matchedProd?.code || '',
                 name: String(l.name || l.itemName || l.product || 'Item'),
                 batch: String(l.batch || l.batch_number || 'DEFAULT'),
-                stock: Number(l.stock || 100),
+                batchId: l.batchId || matchedBatch?.id,
+                stock: liveStock,
                 qty: q,
                 free: Number(l.free || l.freeQty || l.free_quantity || 0),
                 rate: r,
                 disc: d,
-                gst: g,
+                gst: g || (matchedProd?.gstRate ? Number(matchedProd.gstRate) : 0),
                 amount: amt,
-                mrp: Number(l.mrp || 0),
-                purchaseRate: Number(l.purchaseRate || 0),
-                packing: l.packing || '',
-                manufacturer: l.manufacturer || '',
-                salt: l.salt || '',
-                hsn: l.hsn || '',
-                expiry: l.expiry || '',
+                mrp: liveMrp,
+                purchaseRate: livePurchaseRate,
+                costPrice: liveCostPrice,
+                packing: l.packing || matchedProd?.packing || '',
+                manufacturer: l.manufacturer || matchedProd?.manufacturer || matchedProd?.company || '',
+                salt: l.salt || matchedProd?.salt || matchedProd?.composition || '',
+                hsn: l.hsn || matchedProd?.hsn || '',
+                expiry: l.expiry || matchedBatch?.expiry || '',
               }
             })
             setItems(mappedLines)

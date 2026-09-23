@@ -1811,7 +1811,7 @@ export async function list(resource: string, partyName?: string, options?: { man
       client
         .from('sales_invoices')
         .select(
-          'id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,sale_rate,mrp,manufacturers(name,code),hsn_codes(code)),item_batches(batch_number,expiry_on,mrp))'
+          'id,invoice_number,invoice_date,status,grand_total,parties(legal_name),sales_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,sale_rate,mrp,purchase_rate,manufacturers(name,code),hsn_codes(code),salts(name)),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,rack_number,stock_movements(quantity,warehouses(name))))'
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
@@ -1825,23 +1825,36 @@ export async function list(resource: string, partyName?: string, options?: { man
       status: v.status,
       items: Number(v.sales_invoice_lines?.length ?? 0),
       total: Number(v.grand_total),
-      lines: (v.sales_invoice_lines ?? []).map((l: any) => ({
-        id: l.id,
-        name: l.items?.name ?? 'Item',
-        code: l.items?.code ?? '',
-        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
-        packing: l.items?.packing ?? '',
-        hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
-        batch: l.item_batches?.batch_number ?? 'DEFAULT',
-        expiry: l.item_batches?.expiry_on ?? '',
-        qty: Number(l.quantity || 0),
-        free: Number(l.free_quantity || 0),
-        rate: Number(l.rate || 0),
-        disc: Number(l.discount_percent || 0),
-        gst: Number(l.gst_rate || 0),
-        amount: Number(l.line_total || 0),
-        stock: 100
-      }))
+      lines: (v.sales_invoice_lines ?? []).map((l: any) => {
+        const liveStock = (l.item_batches?.stock_movements ?? []).reduce(
+          (sum: number, m: any) => sum + Number(m.quantity || 0),
+          0
+        )
+        return {
+          id: l.id,
+          itemId: l.items?.id,
+          name: l.items?.name ?? 'Item',
+          code: l.items?.code ?? '',
+          manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
+          packing: l.items?.packing ?? '',
+          hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
+          batch: l.item_batches?.batch_number ?? 'DEFAULT',
+          batchId: l.item_batches?.id,
+          expiry: l.item_batches?.expiry_on ?? '',
+          qty: Number(l.quantity || 0),
+          free: Number(l.free_quantity || 0),
+          rate: Number(l.rate || 0),
+          disc: Number(l.discount_percent || 0),
+          gst: Number(l.gst_rate || 0),
+          amount: Number(l.line_total || 0),
+          stock: liveStock,
+          mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
+          purchaseRate: Number(l.item_batches?.purchase_price ?? l.items?.purchase_rate ?? 0),
+          costPrice: Number(l.item_batches?.cost_price ?? l.items?.purchase_rate ?? 0),
+          salt: l.items?.salts?.name ?? '',
+          location: l.item_batches?.rack_number ?? ''
+        }
+      })
     }))
   }
   if (resource === 'purchases') {
@@ -1849,7 +1862,7 @@ export async function list(resource: string, partyName?: string, options?: { man
       client
         .from('purchase_invoices')
         .select(
-          'id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,mrp,manufacturers(name,code),hsn_codes(code)),item_batches(batch_number,expiry_on,mrp))'
+          'id,invoice_number,supplier_invoice_number,invoice_date,status,grand_total,parties(legal_name),purchase_invoice_lines(id,quantity,free_quantity,rate,discount_percent,gst_rate,line_total,items(id,name,code,packing,mrp,sale_rate,purchase_rate,manufacturers(name,code),hsn_codes(code),salts(name)),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,rack_number,stock_movements(quantity,warehouses(name))))'
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
@@ -1864,26 +1877,82 @@ export async function list(resource: string, partyName?: string, options?: { man
       status: v.status === 'posted' ? 'received' : v.status,
       items: Number(v.purchase_invoice_lines?.length ?? 0),
       total: Number(v.grand_total),
-      lines: (v.purchase_invoice_lines ?? []).map((l: any) => ({
-        id: l.id,
-        name: l.items?.name ?? 'Item',
-        code: l.items?.code ?? '',
-        manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
-        packing: l.items?.packing ?? '',
-        hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
-        mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
-        batch: l.item_batches?.batch_number ?? 'DEFAULT',
-        expiry: l.item_batches?.expiry_on ?? '',
-        qty: Number(l.quantity || 0),
-        free: Number(l.free_quantity || 0),
-        rate: Number(l.rate || 0),
-        disc: Number(l.discount_percent || 0),
-        gst: Number(l.gst_rate || 0),
-        amount: Number(l.line_total || 0)
-      }))
+      lines: (v.purchase_invoice_lines ?? []).map((l: any) => {
+        const liveStock = (l.item_batches?.stock_movements ?? []).reduce(
+          (sum: number, m: any) => sum + Number(m.quantity || 0),
+          0
+        )
+        return {
+          id: l.id,
+          itemId: l.items?.id,
+          name: l.items?.name ?? 'Item',
+          code: l.items?.code ?? '',
+          manufacturer: l.items?.manufacturers?.code || l.items?.manufacturers?.name || resolveItemManufacturer(l.items?.code, l.items?.name) || '',
+          packing: l.items?.packing ?? '',
+          hsn: l.items?.hsn_codes?.code || resolveItemHsn(l.items?.code, l.items?.name).hsn,
+          mrp: Number(l.item_batches?.mrp ?? l.items?.mrp ?? 0),
+          saleRate: Number(l.item_batches?.sale_price ?? l.items?.sale_rate ?? 0),
+          purchaseRate: Number(l.rate || (l.item_batches?.purchase_price ?? l.items?.purchase_rate ?? 0)),
+          costPrice: Number(l.item_batches?.cost_price ?? l.items?.purchase_rate ?? 0),
+          batch: l.item_batches?.batch_number ?? 'DEFAULT',
+          batchId: l.item_batches?.id,
+          expiry: l.item_batches?.expiry_on ?? '',
+          qty: Number(l.quantity || 0),
+          free: Number(l.free_quantity || 0),
+          rate: Number(l.rate || 0),
+          disc: Number(l.discount_percent || 0),
+          gst: Number(l.gst_rate || 0),
+          amount: Number(l.line_total || 0),
+          stock: liveStock,
+          salt: l.items?.salts?.name ?? '',
+          location: l.item_batches?.rack_number ?? ''
+        }
+      })
     }))
   }
-  if (resource === 'challans') { const data = await fetchAll<any>((from, to) => client.from('delivery_challans').select('id,challan_number,challan_date,transport_name,status,parties(legal_name),delivery_challan_lines(id,quantity,item_batches(batch_number,items(name,sale_rate)))').eq('organization_id', organizationId).order('challan_date', { ascending: false }).range(from, to)); return (data ?? []).map((v: any) => ({ id: v.challan_number, dbId: v.id, party: v.parties?.legal_name ?? '', date: v.challan_date, transport: v.transport_name ?? '', status: v.status, lines:(v.delivery_challan_lines??[]).map((line:any)=>({id:line.id,name:line.item_batches?.items?.name??'Item',batch:line.item_batches?.batch_number??'',qty:Number(line.quantity||0),rate:Number(line.item_batches?.items?.sale_rate||0)})) })) }
+  if (resource === 'challans') {
+    const data = await fetchAll<any>((from, to) =>
+      client
+        .from('delivery_challans')
+        .select('id,challan_number,challan_date,transport_name,status,parties(legal_name),delivery_challan_lines(id,quantity,item_batches(id,batch_number,expiry_on,mrp,rack_number,stock_movements(quantity),items(id,name,code,sale_rate,mrp,purchase_rate,packing,manufacturers(name,code),hsn_codes(code),salts(name))))')
+        .eq('organization_id', organizationId)
+        .order('challan_date', { ascending: false })
+        .range(from, to)
+    )
+    return (data ?? []).map((v: any) => ({
+      id: v.challan_number,
+      dbId: v.id,
+      party: v.parties?.legal_name ?? '',
+      date: v.challan_date,
+      transport: v.transport_name ?? '',
+      status: v.status,
+      lines: (v.delivery_challan_lines ?? []).map((line: any) => {
+        const liveStock = (line.item_batches?.stock_movements ?? []).reduce(
+          (sum: number, m: any) => sum + Number(m.quantity || 0),
+          0
+        )
+        return {
+          id: line.id,
+          itemId: line.item_batches?.items?.id,
+          name: line.item_batches?.items?.name ?? 'Item',
+          code: line.item_batches?.items?.code ?? '',
+          batch: line.item_batches?.batch_number ?? '',
+          batchId: line.item_batches?.id,
+          expiry: line.item_batches?.expiry_on ?? '',
+          qty: Number(line.quantity || 0),
+          rate: Number(line.item_batches?.items?.sale_rate || 0),
+          mrp: Number(line.item_batches?.mrp || line.item_batches?.items?.mrp || 0),
+          purchaseRate: Number(line.item_batches?.items?.purchase_rate || 0),
+          stock: liveStock,
+          packing: line.item_batches?.items?.packing ?? '',
+          manufacturer: line.item_batches?.items?.manufacturers?.name ?? '',
+          salt: line.item_batches?.items?.salts?.name ?? '',
+          hsn: line.item_batches?.items?.hsn_codes?.code ?? '',
+          location: line.item_batches?.rack_number ?? ''
+        }
+      })
+    }))
+  }
   if (resource === 'vouchers') { const data=await fetchAll<any>((from,to)=>client.from('vouchers').select('*,voucher_lines(id,account_id,debit,credit,narration,chart_of_accounts(name))').eq('organization_id',organizationId).order('voucher_date',{ascending:false}).range(from,to));return(data??[]).map((v:any)=>({...v,id:v.id,number:v.voucher_number,date:v.voucher_date,type:v.voucher_type,status:v.status,lines:(v.voucher_lines??[]).map((line:any)=>({id:line.id,accountId:line.account_id,ledger:line.chart_of_accounts?.name??'',debit:Number(line.debit||0),credit:Number(line.credit||0),narration:line.narration??''}))})) }
   if (resource === 'ledgers') {
     const { data: voucherLines, error: vlError } = await client.from('voucher_lines').select('id,debit,credit,narration,vouchers!inner(voucher_date,voucher_number,voucher_type),chart_of_accounts!inner(name)')
