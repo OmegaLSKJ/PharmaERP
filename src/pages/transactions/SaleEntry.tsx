@@ -902,8 +902,9 @@ export default function SaleEntry() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value))}
+                          value={item.rate === 0 ? '' : item.rate}
+                          placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
+                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
                           onFocus={() => setActiveIndex(idx)}
                           className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
                           inputMode="decimal"
@@ -1027,7 +1028,7 @@ export default function SaleEntry() {
                             value={item.rate === 0 ? '' : item.rate}
                             onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
                             onFocus={() => setActiveIndex(i)}
-                            placeholder="0.00"
+                            placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
                             className="w-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
                             onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
                           />
@@ -1084,7 +1085,7 @@ export default function SaleEntry() {
                       batch: activeItem.batch,
                       expiry: activeItem.expiry,
                       stock: activeItem.stock,
-                      saleRate: activeItem.rate,
+                      saleRate: activeItem.rate > 0 ? activeItem.rate : (activeItem.mrp || 0),
                       mrp: activeItem.mrp,
                       purchaseRate: activeItem.purchaseRate,
                       costPrice: activeItem.costPrice || activeItem.purchaseRate,
@@ -1093,6 +1094,33 @@ export default function SaleEntry() {
                     }
                   : null
               }
+              onDetailLoaded={(detail) => {
+                if (!activeItem) return
+                const detailSaleRate = Number(detail.saleRate || 0)
+                const detailMrp = Number(detail.mrp || 0)
+                const autoRate = detailSaleRate > 0 ? detailSaleRate : detailMrp
+                setItems((rows) =>
+                  rows.map((row) => {
+                    if (row.id !== activeItem.id) return row
+                    const updatedMrp = detailMrp > 0 ? detailMrp : (row.mrp || 0)
+                    const updatedPurchaseRate = Number(detail.purchaseRate || row.purchaseRate || 0)
+                    const updatedCostPrice = Number(detail.costPrice || row.costPrice || updatedPurchaseRate)
+                    const needsRate = (Number(row.rate) || 0) <= 0 && autoRate > 0
+                    const updatedRate = needsRate ? autoRate : row.rate
+                    const updatedAmount = needsRate
+                      ? (calculateInvoice([{ qty: Math.max(row.qty, 0), rate: updatedRate, discount: row.disc, gstRate: row.gst }]).lines[0]?.total ?? (row.qty * updatedRate))
+                      : row.amount
+                    return {
+                      ...row,
+                      rate: updatedRate,
+                      amount: updatedAmount,
+                      mrp: updatedMrp,
+                      purchaseRate: updatedPurchaseRate,
+                      costPrice: updatedCostPrice,
+                    }
+                  })
+                )
+              }}
               billSummary={{
                 title: 'Bill Values & Ledger',
                 partyLabel: 'Customer',
