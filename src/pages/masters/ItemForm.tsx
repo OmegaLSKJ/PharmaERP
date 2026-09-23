@@ -17,6 +17,7 @@ export default function ItemForm() {
   const [salts, setSalts] = useState<string[]>([])
   const [hsnOptions, setHsnOptions] = useState<HsnMasterEntry[]>(() => getAllHsnCodes())
   const [batches, setBatches] = useState<any[]>([])
+  const [resolvedItemId, setResolvedItemId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showAddBatch, setShowAddBatch] = useState(false)
   const [newBatch, setNewBatch] = useState({
@@ -48,6 +49,7 @@ export default function ItemForm() {
       if (id) {
         const item = items.find((row) => String(row.id) === String(id) || String(row.code) === String(id))
         if (item) {
+          setResolvedItemId(item.id || id)
           const batchList = Array.isArray(item.batches) ? item.batches : []
           const initialStock = batchList.length > 0
             ? batchList.reduce((acc: number, b: any) => acc + (Number(b.stock) || 0), 0)
@@ -204,7 +206,7 @@ export default function ItemForm() {
     setSaving(true)
     try {
       if (id) {
-        await patchErp('items', id, payload)
+        await patchErp('items', resolvedItemId || id, payload)
         showToast(`Item "${payload.name}" updated successfully.`)
       } else {
         const created = await postErp<any>('items', payload)

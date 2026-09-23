@@ -3922,7 +3922,11 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if ('salt' in body && !body.salt) values.salt_id = null
     if (body.salt) {
       try {
-        const { data: s } = await client.from('salts').select('id').eq('organization_id', organizationId).ilike('name', body.salt).maybeSingle()
+        let { data: s } = await client.from('salts').select('id').eq('organization_id', organizationId).ilike('name', String(body.salt).trim()).maybeSingle()
+        if (!s) {
+          const { data: created } = await client.from('salts').insert({ organization_id: organizationId, name: String(body.salt).trim() }).select('id').maybeSingle()
+          s = created
+        }
         if (s) values.salt_id = s.id
       } catch {}
     }
@@ -3936,6 +3940,9 @@ export async function update(resource: string, id: string, body: any, actor: Mut
           const { data: h } = await client.from('hsn_codes').select('id').eq('organization_id', organizationId).ilike('code', cleanHsn).maybeSingle()
           if (h) {
             values.hsn_id = h.id
+            if (body.gstRate !== undefined) {
+              await client.from('hsn_codes').update({ gst_rate: Number(body.gstRate) }).eq('id', h.id)
+            }
           } else {
             const rate = Number(body.gstRate ?? body.gst_rate ?? (cleanHsn.startsWith('3004') ? 5 : 12))
             const { data: createdHsn } = await client.from('hsn_codes').insert({
@@ -3949,7 +3956,14 @@ export async function update(resource: string, id: string, body: any, actor: Mut
         } catch {}
       }
     }
-    const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    const isTargetUuid = Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id).trim()))
+    let itemUpdateQuery = client.from('items').update(values).eq('organization_id', organizationId)
+    if (isTargetUuid) {
+      itemUpdateQuery = itemUpdateQuery.eq('id', id)
+    } else {
+      itemUpdateQuery = itemUpdateQuery.eq('code', id)
+    }
+    const { data, error } = await itemUpdateQuery.select('*').single()
     if (error) throw error
     let syncedStock: number | undefined
     let syncedBatches: any[] | undefined
@@ -3958,7 +3972,7 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       const syncRes = await syncItemBatchesAndStock(
         client,
         organizationId,
-        id,
+        data.id,
         body.batches,
         'stock' in body ? Number(body.stock) : undefined,
         {
