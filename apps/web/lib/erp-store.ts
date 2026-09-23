@@ -1448,23 +1448,60 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (resource === 'report-sales') { const { data,error }=await client.from('sales_invoices').select('invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(category)))').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),parties=new Map<string,number>(),items=new Map<string,{name:string;qty:number;revenue:number;margin:number}>(),categories=new Map<string,number>();for(const invoice of data??[]){const month=String(invoice.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(invoice.grand_total));const party=(invoice.parties as any)?.legal_name??'Unknown';parties.set(party,(parties.get(party)??0)+Number(invoice.grand_total));for(const line of (invoice.sales_invoice_lines as any[])??[]){const name=line.items?.name??'Unknown',revenue=Number(line.line_total),current=items.get(name)??{name,qty:0,revenue:0,margin:0};current.qty+=Number(line.quantity);current.revenue+=revenue;items.set(name,current);const category=line.items?.salts?.category??'Uncategorised';categories.set(category,(categories.get(category)??0)+revenue)}}return{monthlySales:[...months].sort().map(([month,value])=>({month,value})),topParties:[...parties].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,sales])=>({name,sales,growth:0})),topItems:[...items.values()].sort((a,b)=>b.revenue-a.revenue).slice(0,10),categories:[...categories].map(([name,value])=>({name,value})),units:[...items.values()].reduce((n,x)=>n+x.qty,0)} }
   if (resource === 'report-purchases') { const { data,error }=await client.from('purchase_invoices').select('invoice_date,grand_total,parties(legal_name)').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),suppliers=new Map<string,number>();for(const row of data??[]){const month=String(row.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(row.grand_total));const name=(row.parties as any)?.legal_name??'Unknown';suppliers.set(name,(suppliers.get(name)??0)+Number(row.grand_total))}return{monthlyPurchases:[...months].sort().map(([month,value])=>({month,value})),topSuppliers:[...suppliers].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,purchases])=>({name,purchases,growth:0})),activeSuppliers:suppliers.size} }
   if (resource === 'parties') {
-    const data = await fetchAll<any>((from, to) =>
-      client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
-    )
-    const dbParties = (data ?? []).map((p: any) => ({
-      id: p.id,
-      code: p.code,
-      name: p.legal_name,
-      type: p.party_type || 'both',
-      phone: p.phone ?? '',
-      email: p.email ?? '',
-      city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '',
-      gstin: p.gstin ?? '',
-      balance: 0,
-      creditLimit: Number(p.credit_limit),
-      lastSale: '',
-      status: p.is_blocked ? 'blocked' : 'active'
-    }))
+    const [data, accountsData] = await Promise.all([
+      fetchAll<any>((from, to) =>
+        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(city,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
+      ),
+      fetchAll<any>((from, to) =>
+        client.from('chart_of_accounts').select('id,party_id,name,opening_balance,account_group,voucher_lines(debit,credit)').eq('organization_id', organizationId).range(from, to)
+      ).catch(() => []),
+    ])
+
+    // Build ledger balance lookup by party_id and party name
+    const accountBalanceMap = new Map<string, { balance: number; debit: number; credit: number; group?: string; opBal: number }>()
+    for (const a of (accountsData ?? [])) {
+      const rawOp = Number(a.opening_balance || 0)
+      const deb = (a.voucher_lines ?? []).reduce((sum: number, l: any) => sum + Number(l.debit || 0), 0)
+      const cred = (a.voucher_lines ?? []).reduce((sum: number, l: any) => sum + Number(l.credit || 0), 0)
+      const bal = rawOp + deb - cred
+      const stats = {
+        balance: bal,
+        debit: deb + (rawOp > 0 ? rawOp : 0),
+        credit: cred + (rawOp < 0 ? Math.abs(rawOp) : 0),
+        group: a.account_group,
+        opBal: rawOp
+      }
+      if (a.party_id) accountBalanceMap.set(String(a.party_id).trim().toLowerCase(), stats)
+      if (a.name) accountBalanceMap.set(String(a.name).trim().toLowerCase(), stats)
+    }
+
+    const dbParties = (data ?? []).map((p: any) => {
+      const pIdKey = String(p.id || '').trim().toLowerCase()
+      const pNameKey = String(p.legal_name || '').trim().toLowerCase()
+      const accStats = accountBalanceMap.get(pIdKey) || accountBalanceMap.get(pNameKey)
+      const partyBal = accStats ? accStats.balance : 0
+      const partyDeb = accStats ? accStats.debit : 0
+      const partyCred = accStats ? accStats.credit : 0
+      return {
+        id: p.id,
+        code: p.code,
+        name: p.legal_name,
+        type: p.party_type || 'both',
+        accountGroup: accStats?.group || (p.party_type === 'supplier' ? 'Sundry Creditors' : 'Sundry Debtors'),
+        phone: p.phone ?? '',
+        email: p.email ?? '',
+        city: p.party_addresses?.find((a: any) => a.is_default)?.city ?? p.party_addresses?.[0]?.city ?? '',
+        gstin: p.gstin ?? '',
+        openingBalance: accStats ? Math.abs(accStats.opBal) : 0,
+        openingType: accStats && accStats.opBal < 0 ? 'Cr' : 'Dr',
+        balance: partyBal,
+        totalDebit: partyDeb,
+        totalCredit: partyCred,
+        creditLimit: Number(p.credit_limit),
+        lastSale: '',
+        status: p.is_blocked ? 'blocked' : 'active'
+      }
+    })
 
     // Deduplicate DB parties by name, collecting redundant duplicate IDs
     const uniqueDbMap = new Map<string, any>()
@@ -2548,20 +2585,25 @@ export async function create(resource: string, body: any, actor: MutationActor =
     const { data, error } = await client.from('parties').insert({ organization_id: organizationId, code: body.code || `PTY-${Date.now()}`, party_type: partyType, legal_name: body.name, phone: body.phone || null, email: body.email || null, gstin: body.gstin || null, credit_limit: Number(body.creditLimit || 0) }).select('id,code').single()
     if (error) throw error
     if (body.city) { const { error: addressError } = await client.from('party_addresses').insert({ party_id: data.id, address_type: 'business', line1: body.address || body.city, city: body.city, is_default: true }); if (addressError) throw addressError }
+    const opBal = Number(body.openingBalance || 0)
+    const opType = body.openingType === 'Cr' ? 'Cr' : 'Dr'
+    const netBal = opType === 'Cr' ? -Math.abs(opBal) : Math.abs(opBal)
+    const rawType = body.type || 'both'
     try {
       await client.from('chart_of_accounts').upsert({
         organization_id: organizationId,
         code: data.code,
         name: body.name,
         account_type: 'party',
-        account_group: body.accountGroup || 'Sundry Debtors & Creditors',
+        account_group: body.accountGroup || (rawType === 'supplier' ? 'Sundry Creditors' : rawType === 'customer' ? 'Sundry Debtors' : 'Sundry Debtors & Creditors'),
+        opening_balance: netBal,
         party_id: data.id,
         is_active: true
       }, { onConflict: 'party_id' })
     } catch (coaErr) {
       console.warn('Could not auto-create chart_of_accounts record for party:', coaErr)
     }
-    return { ...body, id: data.id, code: data.code, type: partyType, balance: 0, status: 'active' }
+    return { ...body, id: data.id, code: data.code, type: partyType, balance: netBal, totalDebit: opType === 'Dr' ? opBal : 0, totalCredit: opType === 'Cr' ? opBal : 0, status: 'active' }
   }
   if (resource === 'hsn') { const { data, error } = await client.from('hsn_codes').insert({ organization_id: organizationId, code: body.code, description: body.description ?? body.name ?? null, gst_rate: Number(body.gst_rate ?? body.gstRate ?? 0) }).select('*').single(); if (error) throw error; return data }
   if (resource === 'manufacturers') { const { data, error } = await client.from('manufacturers').insert({ organization_id: organizationId, name: body.name, code: body.code || null, is_active: body.status !== 'inactive' }).select('*').single(); if (error) throw error; return data }

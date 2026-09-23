@@ -332,12 +332,20 @@ export default function PartyList() {
           const directCount = Number((p as any).totalTransactions || (p as any).transactionsCount || (p as any).billsCount || 0)
           const finalCount = Math.max(stats?.count || 0, directCount)
           const finalVolume = stats?.volume || 0
+          const finalDebit = (stats?.totalDebit || 0) + (p.totalDebit && !stats?.totalDebit ? p.totalDebit : 0)
+          const finalCredit = (stats?.totalCredit || 0) + (p.totalCredit && !stats?.totalCredit ? p.totalCredit : 0)
+
+          // Calculate net balance: use server balance if non-zero; otherwise compute from dynamic transactions
+          const computedNet = finalDebit - finalCredit
+          const finalBalance = (p.balance !== undefined && Number(p.balance) !== 0) ? Number(p.balance) : computedNet
+
           return {
             ...p,
+            balance: finalBalance,
             totalTransactions: finalCount,
             totalVolume: finalVolume,
-            totalDebit: stats?.totalDebit || 0,
-            totalCredit: stats?.totalCredit || 0,
+            totalDebit: finalDebit,
+            totalCredit: finalCredit,
             debitCount: stats?.debitCount || 0,
             creditCount: stats?.creditCount || 0,
           }
