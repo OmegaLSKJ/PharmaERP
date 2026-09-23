@@ -71,6 +71,10 @@ export interface Party {
   status: 'active' | 'blocked'
   totalTransactions?: number
   totalVolume?: number
+  totalDebit?: number
+  totalCredit?: number
+  debitCount?: number
+  creditCount?: number
 }
 
 const GST_STATES = [
@@ -214,20 +218,36 @@ export default function PartyList() {
         }
         const uniqueParties = Array.from(partyMap.values())
 
-        // Pre-aggregate transaction count and total volume for each party
-        const partyStats = new Map<string, { count: number; volume: number; seenDocs: Set<string> }>()
+        // Pre-aggregate transaction count, debits, credits, and total volume for each party
+        const partyStats = new Map<string, {
+          count: number
+          volume: number
+          totalDebit: number
+          totalCredit: number
+          debitCount: number
+          creditCount: number
+          seenDocs: Set<string>
+        }>()
         const cleanStr = (s?: string) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ')
 
         // Initialize stats map for all parties by their id and normalized name
         const partyIndex = new Map<string, string>() // key -> canonical party id
         for (const p of uniqueParties) {
-          partyStats.set(p.id, { count: 0, volume: 0, seenDocs: new Set<string>() })
+          partyStats.set(p.id, {
+            count: 0,
+            volume: 0,
+            totalDebit: 0,
+            totalCredit: 0,
+            debitCount: 0,
+            creditCount: 0,
+            seenDocs: new Set<string>(),
+          })
           if (p.id) partyIndex.set(cleanStr(p.id), p.id)
           if (p.name) partyIndex.set(cleanStr(p.name), p.id)
           if (p.phone) partyIndex.set(cleanStr(p.phone), p.id)
         }
 
-        const recordTxn = (partyIdentifier: string | undefined, docId: string, amount: number) => {
+        const recordTxn = (partyIdentifier: string | undefined, docId: string, amount: number, side: 'dr' | 'cr') => {
           if (!partyIdentifier) return
           const canonicalId = partyIndex.get(cleanStr(partyIdentifier))
           if (!canonicalId) return
@@ -238,48 +258,75 @@ export default function PartyList() {
           if (cleanDoc && stats.seenDocs.has(cleanDoc)) return
           if (cleanDoc) stats.seenDocs.add(cleanDoc)
 
+          const val = Math.max(0, amount)
           stats.count += 1
-          stats.volume += Math.max(0, amount)
+          stats.volume += val
+
+          if (side === 'dr') {
+            stats.totalDebit += val
+            stats.debitCount += 1
+          } else {
+            stats.totalCredit += val
+            stats.creditCount += 1
+          }
         }
 
-        // 1. Process Sales Invoices
+        // 1. Process Sales Invoices (Debits customer)
         for (const s of sales || []) {
           const docId = `sale:${s.id || s.invoiceNo || s.number || ''}`
           const amt = Number(s.total ?? s.grandTotal ?? s.grand_total ?? s.subtotal ?? 0)
           const pKey = s.partyId || s.party_id || s.party || s.customer || s.party_name
-          recordTxn(pKey, docId, amt)
+          recordTxn(pKey, docId, amt, 'dr')
         }
 
-        // 2. Process Purchase Bills
+        // 2. Process Purchase Bills (Credits supplier)
         for (const pu of purchases || []) {
           const docId = `purchase:${pu.id || pu.supplierInvoice || pu.invoiceNo || pu.number || ''}`
           const amt = Number(pu.total ?? pu.grandTotal ?? pu.grand_total ?? pu.subtotal ?? 0)
           const pKey = pu.partyId || pu.party_id || pu.party || pu.supplier || pu.supplier_name
-          recordTxn(pKey, docId, amt)
+          recordTxn(pKey, docId, amt, 'cr')
         }
 
         // 3. Process Vouchers
         for (const v of vouchers || []) {
           const docId = `voucher:${v.id || v.number || v.voucher_number || ''}`
           const amt = Number(v.total ?? v.amount ?? 0)
+          const type = String(v.type || v.voucherType || '').toLowerCase()
+          const isReceipt = type.includes('receipt') || type.includes('rec')
+          const isPayment = type.includes('payment') || type.includes('pay')
+          const side: 'dr' | 'cr' = isPayment ? 'dr' : isReceipt ? 'cr' : 'dr'
           if (v.party) {
-            recordTxn(v.party, docId, amt)
+            recordTxn(v.party, docId, amt, side)
           }
           for (const l of v.lines || []) {
             const pKey = l.ledger || l.party
-            recordTxn(pKey, docId, amt)
+            const lineDr = Number(l.debit || 0)
+            const lineCr = Number(l.credit || 0)
+            if (lineDr > 0) {
+              recordTxn(pKey, `${docId}:${pKey}:dr`, lineDr, 'dr')
+            } else if (lineCr > 0) {
+              recordTxn(pKey, `${docId}:${pKey}:cr`, lineCr, 'cr')
+            } else if (amt > 0) {
+              recordTxn(pKey, docId, amt, side)
+            }
           }
         }
 
         // 4. Process Ledgers
         for (const l of ledgers || []) {
-          const docId = `ledger:${l.vNo || l.voucher_number || l.id || ''}`
-          const amt = Math.max(Number(l.debit || 0), Number(l.credit || 0))
           const pKey = l.party || l.ledger
-          recordTxn(pKey, docId, amt)
+          const dr = Number(l.debit || 0)
+          const cr = Number(l.credit || 0)
+          const baseDocId = `ledger:${l.vNo || l.voucher_number || l.id || ''}`
+          if (dr > 0) {
+            recordTxn(pKey, `${baseDocId}:dr`, dr, 'dr')
+          }
+          if (cr > 0) {
+            recordTxn(pKey, `${baseDocId}:cr`, cr, 'cr')
+          }
         }
 
-        // Attach aggregated totalTransactions & totalVolume to each party
+        // Attach aggregated statistics to each party
         const enrichedParties = uniqueParties.map((p) => {
           const stats = partyStats.get(p.id)
           const directCount = Number((p as any).totalTransactions || (p as any).transactionsCount || (p as any).billsCount || 0)
@@ -289,6 +336,10 @@ export default function PartyList() {
             ...p,
             totalTransactions: finalCount,
             totalVolume: finalVolume,
+            totalDebit: stats?.totalDebit || 0,
+            totalCredit: stats?.totalCredit || 0,
+            debitCount: stats?.debitCount || 0,
+            creditCount: stats?.creditCount || 0,
           }
         })
 
@@ -522,6 +573,8 @@ export default function PartyList() {
       'GSTIN',
       'PAN',
       'Balance',
+      'Debit (Dr)',
+      'Credit (Cr)',
       'Total Transactions',
       'Status',
     ]
@@ -536,6 +589,8 @@ export default function PartyList() {
       p.gstin,
       p.pan || '',
       p.balance,
+      p.totalDebit ?? 0,
+      p.totalCredit ?? 0,
       p.totalTransactions ?? 0,
       p.status,
     ])
@@ -934,7 +989,7 @@ export default function PartyList() {
                 <th className="text-left px-4 py-3 font-medium">D.L. No.</th>
                 <th className="text-left px-4 py-3 font-medium">GSTIN &amp; PAN</th>
                 <th className="text-right px-4 py-3 font-medium">Balance</th>
-                <th className="text-right px-4 py-3 font-medium">Total Transactions</th>
+                <th className="text-right px-4 py-3 font-medium">Debit / Credit</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
@@ -1011,19 +1066,37 @@ export default function PartyList() {
                     {formatCurrency(p.balance)}
                   </td>
                   <td className="px-4 py-3 text-right font-mono">
-                    {p.totalTransactions !== undefined && p.totalTransactions > 0 ? (
-                      <div className="flex flex-col items-end">
-                        <span className="font-bold text-foreground">
-                          {p.totalTransactions} <span className="text-[11px] text-muted-foreground font-normal">txns</span>
-                        </span>
-                        {p.totalVolume !== undefined && p.totalVolume > 0 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {formatCurrency(p.totalVolume)}
+                    {(p.totalDebit !== undefined && p.totalDebit > 0) || (p.totalCredit !== undefined && p.totalCredit > 0) ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1 rounded leading-tight">
+                            Dr
                           </span>
-                        )}
+                          <span className="font-semibold text-foreground">
+                            {formatCurrency(p.totalDebit || 0)}
+                          </span>
+                          {p.debitCount !== undefined && p.debitCount > 0 && (
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              ({p.debitCount})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 rounded leading-tight">
+                            Cr
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {formatCurrency(p.totalCredit || 0)}
+                          </span>
+                          {p.creditCount !== undefined && p.creditCount > 0 && (
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              ({p.creditCount})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground font-normal">0 txns</span>
+                      <span className="text-muted-foreground font-normal text-xs">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
