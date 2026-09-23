@@ -56,7 +56,7 @@ export default function CounterSale() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [saving, setSaving] = useState(false)
-  const [showDetailPanel, setShowDetailPanel] = useState(false)
+  const [showDetailPanel, setShowDetailPanel] = useState(true)
   const [completedSale, setCompletedSale] = useState<{
     invoiceNo: string
     date: string
@@ -282,10 +282,10 @@ export default function CounterSale() {
             <button
               type="button"
               onClick={() => openTransactionWindow(window.location.pathname)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 transition shadow-xs cursor-pointer active:scale-[0.98]"
               title="Open another instance in a popout window"
             >
-              <ExternalLink size={14} />
+              <ExternalLink size={14} className="text-zinc-800 dark:text-zinc-200" />
               <span>New Window</span>
             </button>
 
@@ -293,14 +293,14 @@ export default function CounterSale() {
               type="button"
               onClick={() => setShowDetailPanel((v) => !v)}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition cursor-pointer',
+                'inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border transition shadow-xs cursor-pointer active:scale-[0.98]',
                 showDetailPanel
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-300'
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm hover:bg-blue-700'
+                  : 'bg-white dark:bg-slate-800 border-zinc-300 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-black dark:text-white hover:border-zinc-400'
               )}
             >
-              <Layers size={14} />
-              <span>{showDetailPanel ? 'Hide Inspector' : 'Inspect Margin & Salt'}</span>
+              <Layers size={14} className={showDetailPanel ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'} />
+              <span>{showDetailPanel ? 'Margin & Salt Inspector (ON)' : 'Inspect Margin & Salt'}</span>
             </button>
 
             {completedSale && (
