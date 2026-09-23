@@ -1183,22 +1183,34 @@ async function syncItemBatchesAndStock(
     if (batchErr) throw batchErr
 
     if (batchRow) {
-      // Clear previous manual opening movement for this batch & warehouse so we don't accumulate duplicates
-      await client.from('stock_movements').delete()
+      // A master stock value is the requested total, not extra inward stock.
+      // Remove only earlier master entries, preserve posted purchases/sales, then
+      // write the difference required to reach the entered balance.
+      const { error: clearError } = await client.from('stock_movements').delete()
         .eq('organization_id', organizationId)
         .eq('item_batch_id', batchRow.id)
         .eq('warehouse_id', warehouseId)
-        .eq('movement_type', 'opening')
+        .eq('source_type', 'manual_entry')
+        .in('movement_type', ['opening', 'adjustment'])
+      if (clearError) throw clearError
 
-      if (batchStock > 0) {
+      const { data: existingMovements, error: movementError } = await client.from('stock_movements')
+        .select('quantity')
+        .eq('organization_id', organizationId)
+        .eq('item_batch_id', batchRow.id)
+      if (movementError) throw movementError
+      const liveBalance = (existingMovements ?? []).reduce((total: number, movement: any) => total + Number(movement.quantity || 0), 0)
+      const adjustment = batchStock - liveBalance
+
+      if (Math.abs(adjustment) > 0.0005) {
         const { error: smErr } = await client.from('stock_movements').insert({
           organization_id: organizationId,
           item_batch_id: batchRow.id,
           warehouse_id: warehouseId,
-          movement_type: 'opening',
-          quantity: batchStock,
+          movement_type: 'adjustment',
+          quantity: adjustment,
           source_type: 'manual_entry',
-          remarks: 'Manual master stock entry'
+          remarks: 'Manual master stock reconciliation'
         })
         if (smErr) throw smErr
       }
