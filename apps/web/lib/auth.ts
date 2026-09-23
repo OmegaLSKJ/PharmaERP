@@ -63,6 +63,9 @@ export type AuthenticatedRequest = {
 
 export async function signIn(email: string, password: string) {
   if (!hasRealSupabase()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Authentication backend is not configured or unavailable.')
+    }
     const cleanEmail = email.trim().toLowerCase()
     if (cleanEmail === 'admin@borgangdrugdistributors.com' && password === 'admin12345678') {
       return {
@@ -91,6 +94,9 @@ export async function signIn(email: string, password: string) {
 
 export async function acceptInvite(accessToken: string, refreshToken: string, password: string) {
   if (!hasRealSupabase()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Authentication backend is not configured or unavailable.')
+    }
     return {
       user: {
         id: 'mock-admin-id',
@@ -125,6 +131,9 @@ export async function verifyRequest(request: NextRequest): Promise<Authenticated
   if (!accessToken && !refreshToken) return null
 
   if (!hasRealSupabase()) {
+    if (process.env.NODE_ENV === 'production') {
+      return null
+    }
     if (accessToken === 'mock-access-token') {
       return {
         user: {

@@ -18,11 +18,13 @@ async function authorize(request: NextRequest) {
     try {
       const originUrl = new URL(origin)
       const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host')
-      const isAllowed = (hostHeader && originUrl.hostname === hostHeader.split(':')[0]) ||
-        originUrl.hostname.endsWith('.vercel.app') ||
-        originUrl.hostname === 'localhost' ||
-        originUrl.hostname === '127.0.0.1' ||
-        origin === request.nextUrl.origin
+      const isDev = process.env.NODE_ENV !== 'production'
+      const isAllowed = 
+        origin === request.nextUrl.origin ||
+        originUrl.hostname === request.nextUrl.hostname ||
+        (hostHeader && originUrl.hostname.toLowerCase() === hostHeader.split(':')[0].trim().toLowerCase()) ||
+        (process.env.ALLOWED_ORIGIN && (origin === process.env.ALLOWED_ORIGIN || originUrl.hostname === process.env.ALLOWED_ORIGIN)) ||
+        (isDev && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1'))
       if (!isAllowed) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }
     } catch {
       return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }

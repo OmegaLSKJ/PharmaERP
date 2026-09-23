@@ -31,20 +31,37 @@ function mutationOriginAllowed(request: NextRequest) {
   if (!origin) return true;
   try {
     const originUrl = new URL(origin);
+    const nextUrl = request.nextUrl;
+    
+    // 1. Direct same-origin match
+    if (origin === nextUrl.origin || originUrl.hostname === nextUrl.hostname) {
+      return true;
+    }
+
+    // 2. Reverse proxy / forwarded host match
     const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host');
     if (hostHeader) {
-      const host = hostHeader.split(':')[0];
-      if (originUrl.hostname === host) return true;
+      const cleanHost = hostHeader.split(':')[0].trim().toLowerCase();
+      if (originUrl.hostname.toLowerCase() === cleanHost) {
+        return true;
+      }
     }
-    const nextUrl = request.nextUrl;
-    const isLocal = (h: string) => h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0';
-    if (isLocal(originUrl.hostname) && isLocal(nextUrl.hostname)) {
+
+    // 3. Custom configured allowed origin
+    const configuredOrigin = process.env.ALLOWED_ORIGIN;
+    if (configuredOrigin && (origin === configuredOrigin || originUrl.hostname === configuredOrigin)) {
       return true;
     }
-    if (originUrl.hostname.endsWith('.vercel.app') || originUrl.hostname.endsWith('localhost')) {
-      return true;
+
+    // 4. Localhost allowed ONLY during development / testing
+    if (process.env.NODE_ENV !== 'production') {
+      const isLocal = (h: string) => h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0';
+      if (isLocal(originUrl.hostname)) {
+        return true;
+      }
     }
-    return origin === nextUrl.origin;
+
+    return false;
   } catch {
     return false;
   }
