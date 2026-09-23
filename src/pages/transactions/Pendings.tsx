@@ -1,43 +1,6 @@
-import { useState } from 'react'
-import { Clock, CheckCircle, XCircle, ArrowRight } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
-import { useNavigate } from 'react-router-dom'
-import { openTransactionWindow } from '../../lib/windowUtils'
-
-const PENDING: Array<{ id:string; type:string; ref:string; party:string; date:string; amount:number; status:string; items:number }> = []
-const ST: Record<string,string> = {
-  'awaiting-stock':'bg-amber-500/10 text-amber-400','awaiting-delivery':'bg-blue-500/10 text-blue-400',
-  'convert-pending':'bg-purple-500/10 text-purple-400','partially-received':'bg-cyan-500/10 text-cyan-400' }
-
-export default function Pendings() {
-  const navigate = useNavigate()
-  const [f,setF] = useState('all')
-  const fl = f==='all'?PENDING:PENDING.filter(p=>p.type===f)
-  return (
-    <div className="p-6 space-y-4">
-      <div><h1 className="text-2xl font-bold tracking-tight text-white">Pending Transactions</h1>
-        <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Clock size={14} className="text-amber-400"/>Open orders &amp; challans awaiting action</p></div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[{l:'Total Pending',v:PENDING.length,c:'text-white'},{l:'Awaiting Stock',v:PENDING.filter(p=>p.status==='awaiting-stock').length,c:'text-amber-400'},{l:'Awaiting Delivery',v:PENDING.filter(p=>p.status==='awaiting-delivery').length,c:'text-blue-400'},{l:'Convert to Invoice',v:PENDING.filter(p=>p.status==='convert-pending').length,c:'text-purple-400'}].map(s=>(
-          <div key={s.l} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4"><div className="text-[10px] text-slate-400 uppercase font-semibold">{s.l}</div><div className={cn('text-xl font-bold mt-1',s.c)}>{s.v}</div></div>
-        ))}
-      </div>
-      <div className="flex gap-2">{['all','Sales Order','Purchase Order','Challan to Invoice'].map(x=>(<button key={x} onClick={()=>setF(x)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition',f===x?'bg-indigo-600 text-white':'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{x}</button>))}</div>
-      <div className="space-y-2">
-        {fl.map(p=>(<div key={p.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center justify-between hover:border-indigo-500/50 transition">
-          <div className="flex items-center gap-4">
-            <span className={cn('px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap',ST[p.status])}>{p.status.replace('-',' ')}</span>
-            <div><div className="text-sm font-medium text-white">{p.ref} <span className="text-slate-500 text-xs">| {p.type}</span></div>
-            <div className="text-xs text-slate-400">{p.party} | {p.items} items | {p.date}</div></div>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-emerald-400">{formatCurrency(p.amount)}</span>
-            <button onClick={() => openTransactionWindow(p.type === 'Purchase Order' ? '/transactions/purchase/new' : '/transactions/sale/new')} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition',p.type==='Purchase Order'?'bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40':'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40')}>
-              {p.type==='Purchase Order'?'Receive':p.type==='Challan to Invoice'?'Convert':'Fulfill'} <ArrowRight size={12}/>
-            </button>
-          </div>
-        </div>))}
-      </div>
-    </div>
-  )
-}
+import { useEffect, useState } from 'react'
+import { Clock } from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
+import { getErp } from '../../lib/erpApi'
+type Pending = { id:string; type:string; ref:string; party:string; date:string; amount:number; status:string; items:number }
+export default function Pendings(){const [rows,setRows]=useState<Pending[]>([]);const [loading,setLoading]=useState(true);useEffect(()=>{Promise.all([getErp<any[]>('orders'),getErp<any[]>('challans'),getErp<any[]>('sales')]).then(([orders,challans,sales])=>{const map=(data:any[],type:string)=>(data||[]).filter((row:any)=>['pending','draft','partially_received','dispatched'].includes(String(row.status||'').toLowerCase())).map((row:any)=>({id:String(row.id||row.dbId),type,ref:row.number||row.orderNo||row.id,party:row.party||'',date:row.date||'',amount:Number(row.total||0),status:row.status||'pending',items:Number(row.items||(row.lines||[]).length)}));setRows([...map(orders,'Order'),...map(challans,'Challan'),...map(sales,'Sale')])}).finally(()=>setLoading(false))},[]);return <div className="p-6 space-y-4"><div><h1 className="text-2xl font-bold tracking-tight text-white">Pending Transactions</h1><p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Clock size={14} className="text-amber-400"/>Live pending orders, challans and sales</p></div><div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs"><thead><tr className="bg-slate-900/80 text-slate-400 uppercase"><th className="p-3 text-left">Reference</th><th className="p-3 text-left">Type</th><th className="p-3 text-left">Party</th><th className="p-3 text-left">Date</th><th className="p-3 text-right">Items</th><th className="p-3 text-right">Amount</th><th className="p-3 text-left">Status</th></tr></thead><tbody>{loading?<tr><td colSpan={7} className="p-8 text-center text-slate-400">Loading live transactions…</td></tr>:rows.map(row=><tr key={`${row.type}-${row.id}`} className="border-t border-slate-800"><td className="p-3 font-mono">{row.ref}</td><td className="p-3">{row.type}</td><td className="p-3">{row.party}</td><td className="p-3">{row.date}</td><td className="p-3 text-right">{row.items}</td><td className="p-3 text-right font-mono">{formatCurrency(row.amount)}</td><td className="p-3 capitalize text-amber-400">{row.status}</td></tr>)}{!loading&&!rows.length&&<tr><td colSpan={7} className="p-8 text-center text-slate-500">No pending transactions are recorded.</td></tr>}</tbody></table></div></div>}

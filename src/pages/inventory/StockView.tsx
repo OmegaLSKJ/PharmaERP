@@ -35,7 +35,10 @@ export default function StockView() {
     getErp<any[]>('items')
       .then((items) => {
         const list = items.flatMap((item) =>
-          (item.batches ?? []).map((batch: any) => ({
+          (item.batches ?? []).flatMap((batch: any) => {
+            const locations = Object.entries(batch.stockByLocation ?? {})
+            const quantities = locations.length ? locations : [['Unassigned', batch.stock ?? 0]]
+            return quantities.map(([location, quantity]) => ({
             id: batch.id || `${item.id}-${batch.batch}`,
             name: item.name,
             packing: item.packing || '',
@@ -47,10 +50,11 @@ export default function StockView() {
             mrp: batch.mrp || item.mrp || 0,
             saleRate: item.saleRate || 0,
             purchaseRate: item.purchaseRate || 0,
-            stock: batch.stock,
-            location: 'Main Warehouse',
+            stock: Number(quantity),
+            location,
             category: item.category || '',
-          }))
+            }))
+          })
         )
         setStockData(list)
         if (list.length > 0) setActiveIndex(0)
