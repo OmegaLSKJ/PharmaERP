@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
@@ -80,6 +80,7 @@ function formatDisplayExpiry(dateStr?: string): string {
 export default function PurchaseEntry() {
   const { id: editPurchaseId } = useParams<{ id?: string }>()
   const navigate = useNavigate()
+  const [existingPurchase, setExistingPurchase] = useState<any>(null)
   const isEditMode = Boolean(editPurchaseId)
 
   useEffect(() => {
@@ -201,6 +202,7 @@ export default function PurchaseEntry() {
           return pid === decodedId || pno === decodedId || pinv === decodedId || pdb === decodedId
         })
         if (found) {
+          setExistingPurchase(found)
           const loadedSupplier = String(found.party || found.supplier || '').replace(/\s+/g, ' ').trim()
           setSupplier(loadedSupplier)
           setInvoiceNo(found.supplierInvoice || found.invoiceNo || found.number || editPurchaseId)
@@ -238,25 +240,8 @@ export default function PurchaseEntry() {
             })
             setItems(mapped)
           } else {
-            const billTotal = Number(found.total || found.grand_total || 1000)
-            const fallbackItem: LineItem = {
-              id: `line-${Date.now()}-0`,
-              itemName: 'PHARMA GOODS (BILL ITEM)',
-              packing: '10T',
-              hsn: '3004',
-              batch: 'BT' + Math.floor(100000 + Math.random() * 900000),
-              expiry: '12/28',
-              qty: 1,
-              freeQty: 0,
-              purchaseRate: billTotal,
-              discount: 0,
-              scheme: 0,
-              gstRate: 0,
-              amount: billTotal,
-              saleRate: billTotal * 1.2,
-              mrp: billTotal * 1.35,
-            }
-            setItems([fallbackItem])
+            // Purchase bill has no line items recorded in the database
+            setItems([])
           }
         }
       })
@@ -361,9 +346,35 @@ export default function PurchaseEntry() {
     })
   }
 
-  const subtotal = items.reduce((sum, i) => sum + i.amount, 0)
-  const totalGst = items.reduce((sum, i) => sum + (i.amount * (Number(i.gstRate) || 0)) / 100, 0)
-  const grandTotal = subtotal + totalGst
+  const recordedGrandTotal = Math.max(
+    0,
+    Number(
+      existingPurchase?.total ??
+        existingPurchase?.grandTotal ??
+        existingPurchase?.grand_total ??
+        existingPurchase?.net_amount ??
+        existingPurchase?.amount ??
+        0
+    )
+  )
+  const rawSubtotal = Number(
+    existingPurchase?.subtotal ??
+      existingPurchase?.total ??
+      existingPurchase?.grandTotal ??
+      existingPurchase?.grand_total ??
+      0
+  )
+  const recordedSubtotal = rawSubtotal > 0 ? rawSubtotal : recordedGrandTotal
+  const recordedGst = Number(
+    existingPurchase?.taxTotal ??
+      existingPurchase?.tax_total ??
+      existingPurchase?.tax ??
+      0
+  )
+
+  const subtotal = items.length ? items.reduce((sum, i) => sum + i.amount, 0) : recordedSubtotal
+  const totalGst = items.length ? items.reduce((sum, i) => sum + (i.amount * (Number(i.gstRate) || 0)) / 100, 0) : recordedGst
+  const grandTotal = items.length ? subtotal + totalGst : recordedGrandTotal
   const totalValue = items.reduce((sum, i) => sum + i.mrp * (i.qty + i.freeQty), 0)
   const totalDiscount = items.reduce((sum, i) => {
     const base = Number(i.purchaseRate || 0) * Number(i.qty || 0)
@@ -602,6 +613,25 @@ export default function PurchaseEntry() {
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 {isEditMode ? 'Edit supplier, invoice details, batches, items or rates' : 'Inward stock • Auto HSN & GST calculation • Batch + Expiry mandatory'}
               </p>
+              {isEditMode && (
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg">
+                    <span className="text-xs text-slate-300 font-medium">Bill Total:</span>
+                    <span className="text-sm font-bold font-mono text-emerald-400">{formatCurrency(grandTotal)}</span>
+                  </div>
+                  {supplier && (
+                    <span className="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg font-medium">
+                      Supplier: <span className="text-white font-semibold">{supplier}</span>
+                    </span>
+                  )}
+                  {items.length === 0 && (
+                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/70 border border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <Info size={13} />
+                      <span>No line items in DB (Header Total: {formatCurrency(grandTotal)})</span>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
@@ -729,16 +759,32 @@ export default function PurchaseEntry() {
               <Pill size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">No purchase line items added</p>
-              <p className="text-xs text-muted-foreground mt-1">Use the quick add bar above or click "Add Item"</p>
+              <p className="text-sm font-medium text-foreground">
+                {isEditMode && existingPurchase && (!existingPurchase.lines || existingPurchase.lines.length === 0)
+                  ? 'This posted purchase bill has no item lines recorded in the database'
+                  : 'No purchase line items added'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isEditMode && existingPurchase && (!existingPurchase.lines || existingPurchase.lines.length === 0) && grandTotal > 0
+                  ? `Recorded bill total is ${formatCurrency(grandTotal)}. Use the quick add bar above or click "Add Item" to record line items.`
+                  : 'Use the quick add bar above or click "Add Item"'}
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowItemSearch(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition"
-            >
-              <Plus size={14} /> Browse Catalog
-            </button>
+            {isEditMode && grandTotal > 0 && (
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-950/80 border border-emerald-800 rounded-xl text-xs font-semibold text-emerald-300 shadow-xs">
+                <span>Recorded Bill Total:</span>
+                <span className="font-mono text-base font-bold text-emerald-400">{formatCurrency(grandTotal)}</span>
+              </div>
+            )}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowItemSearch(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition"
+              >
+                <Plus size={14} /> Browse Catalog
+              </button>
+            </div>
           </div>
         ) : (
           <>

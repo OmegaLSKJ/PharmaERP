@@ -85,9 +85,61 @@ export default function SaleEntry() {
   const [productsList, setProductsList] = useState<any[]>([])
   const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  const recordedGrandTotal = Math.max(
+    0,
+    Number(
+      existingInvoice?.total ??
+        existingInvoice?.grandTotal ??
+        existingInvoice?.grand_total ??
+        existingInvoice?.net_amount ??
+        existingInvoice?.amount ??
+        0
+    )
+  )
+  const rawSubtotal = Number(
+    existingInvoice?.subtotal ??
+      existingInvoice?.total ??
+      existingInvoice?.grandTotal ??
+      existingInvoice?.grand_total ??
+      0
+  )
+  const recordedSubtotal = rawSubtotal > 0 ? rawSubtotal : recordedGrandTotal
+  const recordedDiscount = Number(
+    existingInvoice?.discountTotal ??
+      existingInvoice?.discount_total ??
+      existingInvoice?.discount ??
+      0
+  )
+  const recordedTax = Number(
+    existingInvoice?.taxTotal ??
+      existingInvoice?.tax_total ??
+      existingInvoice?.tax ??
+      0
+  )
+  const recordedRounding = Number(
+    existingInvoice?.roundingAdjustment ??
+      existingInvoice?.rounding_adjustment ??
+      existingInvoice?.rounding ??
+      0
+  )
+
   const totals = items.length
-    ? calculateInvoice(items.map((item) => ({ qty: Math.max(0, item.qty), rate: Math.max(0, item.rate), discount: item.disc, gstRate: item.gst })))
-    : calculateInvoice([])
+    ? calculateInvoice(
+        items.map((item) => ({
+          qty: Math.max(0, item.qty),
+          rate: Math.max(0, item.rate),
+          discount: item.disc,
+          gstRate: item.gst,
+        }))
+      )
+    : {
+        subtotal: recordedSubtotal,
+        discountTotal: recordedDiscount,
+        taxTotal: recordedTax,
+        roundingAdjustment: recordedRounding,
+        grandTotal: recordedGrandTotal,
+        lines: [],
+      }
 
   const loadCatalog = (force = false) => {
     Promise.all([
@@ -520,6 +572,25 @@ export default function SaleEntry() {
                 ? 'Update items, quantities, rates, customer, and prescription metadata'
                 : 'Wholesale & retail billing with batch tracking'}
             </p>
+            {isEditMode && (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg">
+                  <span className="text-xs text-slate-300 font-medium">Invoice Total:</span>
+                  <span className="text-sm font-bold font-mono text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+                </div>
+                {customer && (
+                  <span className="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg font-medium">
+                    Party: <span className="text-white font-semibold">{customer}</span>
+                  </span>
+                )}
+                {items.length === 0 && (
+                  <span className="text-xs font-semibold text-amber-300 bg-amber-950/70 border border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <Info size={13} />
+                    <span>No item lines in DB (Header Total: {formatCurrency(totals.grandTotal)})</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
@@ -635,18 +706,26 @@ export default function SaleEntry() {
                   : 'No items added to invoice yet'}
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && Number(existingInvoice.total || existingInvoice.grandTotal || existingInvoice.grand_total || 0) > 0
-                  ? `Recorded invoice total is ${formatCurrency(Number(existingInvoice.total || existingInvoice.grandTotal || existingInvoice.grand_total || 0))}. Search and select medicine items below to record lines.`
+                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && totals.grandTotal > 0
+                  ? `Recorded bill total is ${formatCurrency(totals.grandTotal)}. Search and add medicine items below if you wish to record detailed line items.`
                   : 'Select from the Quick Add bar above or tap the button below'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowItemSearch(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
-            >
-              <Plus size={14} /> Browse All Available Items
-            </button>
+            {isEditMode && totals.grandTotal > 0 && (
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-950/80 border border-emerald-800 rounded-xl text-xs font-semibold text-emerald-300 shadow-xs">
+                <span>Recorded Bill Total:</span>
+                <span className="font-mono text-base font-bold text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+              </div>
+            )}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowItemSearch(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
+              >
+                <Plus size={14} /> Browse All Available Items
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -959,6 +1038,11 @@ export default function SaleEntry() {
         <div className="col-span-2 border-t border-slate-800 my-1"></div>
         <span className="font-bold text-white text-base">Grand Total</span>
         <span className="text-right font-mono font-bold text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</span>
+        {isEditMode && items.length === 0 && totals.grandTotal > 0 && (
+          <div className="col-span-2 text-[11px] text-amber-400/90 text-right font-medium pt-1">
+            * Amount preserved from posted invoice record (no item lines in DB)
+          </div>
+        )}
       </div>
 
       {/* Search & Add Item Modal */}
