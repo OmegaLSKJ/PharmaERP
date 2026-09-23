@@ -100,6 +100,9 @@ function backgroundRevalidate(resource: string, query: Record<string, string> | 
       if (resource === 'hsn' && Array.isArray(data)) {
         registerHsnCodesFromDb(data)
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource, cacheKey, data } }))
+      }
     } catch (err) {
       // Silently ignore background revalidation errors so user experience is not disrupted
       console.warn(`[erpCache] Background revalidation failed for ${cacheKey}:`, err)

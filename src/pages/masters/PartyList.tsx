@@ -20,6 +20,7 @@ import {
   Edit2,
   Pencil,
   Trash2,
+  RefreshCw,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
@@ -201,13 +202,14 @@ export default function PartyList() {
     creditDays: '30',
   })
 
-  useEffect(() => {
+  const loadParties = (forceRefresh = false) => {
+    setLoading(true)
     Promise.all([
-      getErp<Party[]>('parties'),
-      getErp<any[]>('sales').catch(() => []),
-      getErp<any[]>('purchases').catch(() => []),
-      getErp<any[]>('ledgers').catch(() => []),
-      getErp<any[]>('vouchers').catch(() => []),
+      getErp<Party[]>('parties', undefined, { forceRefresh }),
+      getErp<any[]>('sales', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('purchases', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('ledgers', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('vouchers', undefined, { forceRefresh }).catch(() => []),
     ])
       .then(([serverParties, sales, purchases, ledgers, vouchers]) => {
         const partyMap = new Map<string, Party>()
@@ -358,7 +360,30 @@ export default function PartyList() {
         showToast(error instanceof Error ? error.message : 'Could not load parties.')
       })
       .finally(() => setLoading(false))
-  }, [showToast])
+  }
+
+  useEffect(() => {
+    loadParties(true)
+  }, [])
+
+  useEffect(() => {
+    const handleRevalidated = (e: any) => {
+      if (e.detail?.resource === 'parties') {
+        loadParties(false)
+      }
+    }
+    const handleMutated = (e: any) => {
+      if (e.detail?.resource === 'parties') {
+        loadParties(true)
+      }
+    }
+    window.addEventListener('erp-cache-revalidated', handleRevalidated)
+    window.addEventListener('erp-resource-mutated', handleMutated)
+    return () => {
+      window.removeEventListener('erp-cache-revalidated', handleRevalidated)
+      window.removeEventListener('erp-resource-mutated', handleMutated)
+    }
+  }, [])
 
   const purgeDuplicates = async () => {
     try {
@@ -806,9 +831,20 @@ export default function PartyList() {
             {filtered.length} parties &bull; Customers &amp; Suppliers &bull; Drug License &amp; GST compliance
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowCreate(true) }} className="w-full sm:w-auto">
-          <Plus size={16} /> New Party / Ledger
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => loadParties(true)}
+            disabled={loading}
+            className="flex-1 sm:flex-initial"
+            title="Sync live parties & balances from Supabase"
+          >
+            <RefreshCw size={14} className={cn(loading && 'animate-spin text-primary')} /> Refresh
+          </Button>
+          <Button onClick={() => { resetForm(); setShowCreate(true) }} className="flex-1 sm:flex-initial">
+            <Plus size={16} /> New Party / Ledger
+          </Button>
+        </div>
       </div>
 
       {/* Filters & Chunk Controls */}

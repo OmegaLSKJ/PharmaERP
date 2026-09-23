@@ -27,6 +27,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  RefreshCw,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate, getTxnDateTime } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
@@ -110,6 +111,8 @@ export default function Party360() {
     foodLicenceNo: '',
     creditLimit: '0',
     creditDays: '30',
+    openingBalance: '0.00',
+    openingType: 'Cr' as 'Dr' | 'Cr',
   })
 
   const copyToClipboard = (text: string, field: string) => {
@@ -344,13 +347,21 @@ export default function Party360() {
         ...editForm,
         creditLimit: Number(editForm.creditLimit) || 0,
         creditDays: Number(editForm.creditDays) || 0,
+        openingBalance: Number(editForm.openingBalance) || 0,
+        openingType: editForm.openingType,
         dlNumber: editForm.dlNo,
       }
       await patchErp('parties', partyData.id, payload)
-      setPartyData((prev: any) => ({ ...prev, ...payload }))
+      setPartyData((prev: any) => ({
+        ...prev,
+        ...payload,
+        openingBalance: Number(editForm.openingBalance) || 0,
+        openingType: editForm.openingType,
+      }))
 
       showToast('Party details updated successfully!')
       setShowEditModal(false)
+      loadPartyData(true)
     } catch (err: any) {
       showToast(err?.message || 'Could not update party details.')
     } finally {
@@ -358,18 +369,18 @@ export default function Party360() {
     }
   }
 
-  useEffect(() => {
+  const loadPartyData = (forceRefresh = false) => {
     if (!id) return
     setLoading(true)
 
     Promise.all([
-      getErp<any[]>('parties').catch(() => []),
-      getErp<any[]>('purchases').catch(() => []),
-      getErp<any[]>('sales').catch(() => []),
-      getErp<any[]>('ledgers').catch(() => []),
-      getErp<any[]>('vouchers').catch(() => []),
-      getErp<any[]>('item-mappings').catch(() => []),
-      getErp<any[]>('items').catch(() => []),
+      getErp<any[]>('parties', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('purchases', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('sales', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('ledgers', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('vouchers', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('item-mappings', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('items', undefined, { forceRefresh }).catch(() => []),
     ])
       .then(([allParties, allPurchases, allSales, allLedgers, allVouchers, allMappings, allItems]) => {
         const combinedParties = allParties || []
@@ -642,7 +653,8 @@ export default function Party360() {
           found.type === 'supplier' ||
           (found.accountGroup || '').toLowerCase().includes('creditor')
         const opBal = Number(found.openingBalance || 0)
-        let runningBal = found.openingType === 'Dr' ? opBal : -opBal
+        const opType = found.openingType || (isSupplier ? 'Cr' : 'Dr')
+        let runningBal = opType === 'Dr' ? opBal : -opBal
 
         let totalDebitSum = 0
         let totalCreditSum = 0
@@ -666,10 +678,22 @@ export default function Party360() {
           }
         })
 
-        // Outstanding balance
-        const netBal = isSupplier ? totalCreditSum - totalDebitSum : totalDebitSum - totalCreditSum
+        // Outstanding balance including opening balance
+        let netBal = 0
+        if (isSupplier) {
+          // Supplier: Cr is payable (+), Dr is advance/prepayment (-)
+          const initialPayable = opType === 'Cr' ? opBal : -opBal
+          netBal = initialPayable + (totalCreditSum - totalDebitSum)
+        } else {
+          // Customer: Dr is receivable (+), Cr is advance received (-)
+          const initialReceivable = opType === 'Dr' ? opBal : -opBal
+          netBal = initialReceivable + (totalDebitSum - totalCreditSum)
+        }
+
         const finalOutstanding = Math.abs(netBal)
-        const finalBalType = netBal >= 0 ? (isSupplier ? 'Cr' : 'Dr') : (isSupplier ? 'Dr' : 'Cr')
+        const finalBalType = isSupplier
+          ? (netBal >= 0 ? 'Cr' : 'Dr')
+          : (netBal >= 0 ? 'Dr' : 'Cr')
 
         // 8. Compute Real 6-Month Volume Trend
         const monthlyTotals = new Map<string, { value: number; count: number }>()
@@ -820,6 +844,7 @@ export default function Party360() {
           outstanding: finalOutstanding,
           balType: finalBalType,
           openingBalance: opBal,
+          openingType: opType,
           totalDebit: totalDebitSum,
           totalCredit: totalCreditSum,
           billsCount: formattedTxns.length,
@@ -834,7 +859,32 @@ export default function Party360() {
         showToast(err?.message || 'Failed to load party details.')
       })
       .finally(() => setLoading(false))
-  }, [id, showToast])
+  }
+
+  useEffect(() => {
+    loadPartyData(true)
+  }, [id])
+
+  useEffect(() => {
+    const handleRevalidated = (e: any) => {
+      const res = e.detail?.resource
+      if (res === 'parties' || res === 'ledgers' || res === 'vouchers' || res === 'sales' || res === 'purchases') {
+        loadPartyData(false)
+      }
+    }
+    const handleMutated = (e: any) => {
+      const res = e.detail?.resource
+      if (res === 'parties' || res === 'ledgers' || res === 'vouchers' || res === 'sales' || res === 'purchases') {
+        loadPartyData(true)
+      }
+    }
+    window.addEventListener('erp-cache-revalidated', handleRevalidated)
+    window.addEventListener('erp-resource-mutated', handleMutated)
+    return () => {
+      window.removeEventListener('erp-cache-revalidated', handleRevalidated)
+      window.removeEventListener('erp-resource-mutated', handleMutated)
+    }
+  }, [id])
 
   // Filtered & sorted transactions for Transactions Tab (Ledger)
   const filteredTxns = useMemo(() => {
@@ -1014,6 +1064,8 @@ export default function Party360() {
                 foodLicenceNo: partyData.foodLicenceNo || '',
                 creditLimit: String(partyData.creditLimit || '0'),
                 creditDays: String(partyData.creditDays || '30'),
+                openingBalance: String(partyData.openingBalance || '0.00'),
+                openingType: (partyData.openingType || 'Cr') as 'Dr' | 'Cr',
               })
               setShowEditModal(true)
             }}
@@ -1146,7 +1198,19 @@ export default function Party360() {
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Receipt size={16} className="text-primary" /> Balance & Statement Summary
                   </h3>
-                  <span className="text-[11px] font-mono text-muted-foreground">Real-time Ledgers</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => loadPartyData(true)}
+                      disabled={loading}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                      title="Sync live opening balance and ledgers from Supabase"
+                    >
+                      <RefreshCw size={12} className={cn(loading && 'animate-spin text-primary')} />
+                      <span>Sync Live</span>
+                    </button>
+                    <span className="text-[11px] font-mono text-muted-foreground">Real-time Ledgers</span>
+                  </div>
                 </div>
 
                 <div className="space-y-2.5">
@@ -2108,6 +2172,27 @@ export default function Party360() {
                       onChange={(e) => setEditForm({ ...editForm, creditDays: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg p-2 text-foreground font-mono outline-none focus:border-primary"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-muted-foreground uppercase font-semibold mb-1">Opening Balance (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.openingBalance}
+                      onChange={(e) => setEditForm({ ...editForm, openingBalance: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-foreground font-mono outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-muted-foreground uppercase font-semibold mb-1">Opening Balance Type</label>
+                    <select
+                      value={editForm.openingType}
+                      onChange={(e) => setEditForm({ ...editForm, openingType: e.target.value as 'Dr' | 'Cr' })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-foreground outline-none focus:border-primary cursor-pointer"
+                    >
+                      <option value="Cr">Cr (Creditor / Payable to Supplier)</option>
+                      <option value="Dr">Dr (Debtor / Receivable from Customer)</option>
+                    </select>
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-muted-foreground uppercase font-semibold mb-1">Address</label>

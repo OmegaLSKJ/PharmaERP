@@ -1051,14 +1051,183 @@ async function account(client: ReturnType<typeof db>, organizationId: string, na
   return created.id
 }
 
+async function getOrCreateDefaultWarehouse(client: ReturnType<typeof db>, organizationId: string): Promise<string> {
+  const { data: w } = await client.from('warehouses')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('code', 'MAIN')
+    .maybeSingle()
+
+  if (w?.id) return w.id
+
+  const { data: anyW } = await client.from('warehouses')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .limit(1)
+    .maybeSingle()
+
+  if (anyW?.id) return anyW.id
+
+  const { data: created, error } = await client.from('warehouses').insert({
+    organization_id: organizationId,
+    code: 'MAIN',
+    name: 'Main Store'
+  }).select('id').single()
+
+  if (error) throw error
+  return created.id
+}
+
+async function syncItemBatchesAndStock(
+  client: ReturnType<typeof db>,
+  organizationId: string,
+  itemId: string,
+  batches: any[] | undefined,
+  stockValue: number | undefined,
+  defaults: {
+    mrp?: number
+    purchaseRate?: number
+    saleRate?: number
+    rackNumber?: string
+    manufacturer?: string
+  }
+): Promise<{ totalStock: number; batches: any[] }> {
+  let batchesToSync = Array.isArray(batches) ? [...batches] : []
+  const explicitStock = Number(stockValue ?? 0)
+
+  if (batchesToSync.length === 0 && explicitStock > 0) {
+    batchesToSync = [{
+      batch: 'DEFAULT',
+      expiry: '2028-12-31',
+      stock: explicitStock,
+      costPrice: defaults.purchaseRate,
+      purchasePrice: defaults.purchaseRate,
+      salePrice: defaults.saleRate,
+      mrp: defaults.mrp,
+      rackNumber: defaults.rackNumber
+    }]
+  } else if (batchesToSync.length === 1 && (batchesToSync[0].stock === undefined || batchesToSync[0].stock === null)) {
+    batchesToSync[0].stock = explicitStock
+  }
+
+  // If no batches were provided in body, but stock was updated directly
+  if (batchesToSync.length === 0 && stockValue !== undefined) {
+    const { data: existingBatches } = await client.from('item_batches')
+      .select('id,batch_number,mrp,cost_price,purchase_price,sale_price,rack_number')
+      .eq('item_id', itemId)
+
+    if (existingBatches && existingBatches.length === 1) {
+      batchesToSync = [{
+        batch: existingBatches[0].batch_number,
+        stock: explicitStock,
+        mrp: existingBatches[0].mrp,
+        purchasePrice: existingBatches[0].purchase_price,
+        salePrice: existingBatches[0].sale_price,
+        rackNumber: existingBatches[0].rack_number
+      }]
+    } else if ((!existingBatches || existingBatches.length === 0) && explicitStock > 0) {
+      batchesToSync = [{
+        batch: 'DEFAULT',
+        expiry: '2028-12-31',
+        stock: explicitStock,
+        costPrice: defaults.purchaseRate,
+        purchasePrice: defaults.purchaseRate,
+        salePrice: defaults.saleRate,
+        mrp: defaults.mrp,
+        rackNumber: defaults.rackNumber
+      }]
+    }
+  }
+
+  if (batchesToSync.length === 0) {
+    return { totalStock: 0, batches: [] }
+  }
+
+  const warehouseId = await getOrCreateDefaultWarehouse(client, organizationId)
+  const savedBatches: any[] = []
+  let totalComputedStock = 0
+
+  for (const b of batchesToSync) {
+    const batchNum = String(b.batch || b.batchNumber || 'DEFAULT').trim()
+    if (!batchNum) continue
+    const batchStock = Number(b.stock ?? b.quantity ?? 0)
+    const expiryOn = normalizeExpiryDate(b.expiry || b.expiryOn)
+    const supplierId = b.supplier ? await party(client, organizationId, String(b.supplier), 'supplier') : null
+
+    const batchValues: any = {
+      item_id: itemId,
+      batch_number: batchNum,
+      expiry_on: expiryOn,
+      received_on: b.receivedOn || null,
+      manufactured_on: b.manufacturedOn || null,
+      mrp: Number(b.mrp ?? defaults.mrp ?? 0),
+      cost_price: Number(b.costPrice ?? b.purchasePrice ?? defaults.purchaseRate ?? 0),
+      purchase_price: Number(b.purchasePrice ?? b.costPrice ?? defaults.purchaseRate ?? 0),
+      sale_price: Number(b.salePrice ?? defaults.saleRate ?? 0),
+      sales_scheme_deal: Number(b.salesSchemeDeal || 0),
+      sales_scheme_free: Number(b.salesSchemeFree || 0),
+      purchase_scheme_deal: Number(b.purchaseSchemeDeal || 0),
+      purchase_scheme_free: Number(b.purchaseSchemeFree || 0),
+      supplier_id: supplierId,
+      supplier_invoice_number: b.supplierInvoiceNumber || b.invoiceNumber || null,
+      supplier_invoice_date: b.supplierInvoiceDate || b.invoiceDate || null,
+      rack_number: b.rackNumber || b.rack || defaults.rackNumber || null,
+      source_report_value: Number(b.sourceReportValue || b.reportedValue || 0)
+    }
+
+    const { data: batchRow, error: batchErr } = await client.from('item_batches')
+      .upsert(batchValues, { onConflict: 'item_id,batch_number' })
+      .select('id')
+      .single()
+
+    if (batchErr) throw batchErr
+
+    if (batchRow) {
+      // Clear previous manual opening movement for this batch & warehouse so we don't accumulate duplicates
+      await client.from('stock_movements').delete()
+        .eq('organization_id', organizationId)
+        .eq('item_batch_id', batchRow.id)
+        .eq('warehouse_id', warehouseId)
+        .eq('movement_type', 'opening')
+
+      if (batchStock > 0) {
+        const { error: smErr } = await client.from('stock_movements').insert({
+          organization_id: organizationId,
+          item_batch_id: batchRow.id,
+          warehouse_id: warehouseId,
+          movement_type: 'opening',
+          quantity: batchStock,
+          source_type: 'manual_entry',
+          remarks: 'Manual master stock entry'
+        })
+        if (smErr) throw smErr
+      }
+    }
+
+    totalComputedStock += batchStock
+    savedBatches.push({
+      id: batchRow?.id,
+      batch: batchNum,
+      expiry: expiryOn,
+      mrp: batchValues.mrp,
+      costPrice: batchValues.cost_price,
+      purchasePrice: batchValues.purchase_price,
+      salePrice: batchValues.sale_price,
+      stock: batchStock,
+      rackNumber: batchValues.rack_number
+    })
+  }
+
+  return { totalStock: totalComputedStock, batches: savedBatches }
+}
+
 async function stock(client: ReturnType<typeof db>, organizationId: string, line: Line) {
   const { data: i } = await client.from('items').select('id').eq('organization_id', organizationId).eq('name', line.name).maybeSingle()
   const itemId = i?.id ?? (await client.from('items').insert({ organization_id: organizationId, code: `ITM-${Date.now()}`, name: line.name, mrp: +line.rate, sale_rate: +line.rate }).select('id').single()).data?.id
   const batchNumber = line.batch || 'UNSPECIFIED'
   const { data: b } = await client.from('item_batches').select('id').eq('item_id', itemId!).eq('batch_number', batchNumber).maybeSingle()
   const batchId = b?.id ?? (await client.from('item_batches').insert({ item_id: itemId!, batch_number: batchNumber, expiry_on: normalizeExpiryDate(line.expiry), mrp: +(line.mrp ?? line.rate) }).select('id').single()).data?.id
-  const { data: w } = await client.from('warehouses').select('id').eq('organization_id', organizationId).eq('code', 'MAIN').maybeSingle()
-  const warehouseId = w?.id ?? (await client.from('warehouses').insert({ organization_id: organizationId, code: 'MAIN', name: 'Main Warehouse' }).select('id').single()).data?.id
+  const warehouseId = await getOrCreateDefaultWarehouse(client, organizationId)
   if (!itemId || !batchId || !warehouseId) throw new Error('Unable to create inventory data.')
   return { itemId, batchId, warehouseId }
 }
@@ -1520,10 +1689,10 @@ export async function list(resource: string, partyName?: string, options?: { man
   if (resource === 'parties') {
     const [data, accountsData, detailsData, licensesData] = await Promise.all([
       fetchAll<any>((from, to) =>
-        client.from('parties').select('id,code,party_type,legal_name,phone,email,gstin,credit_limit,is_blocked,created_at,party_addresses(line1,line2,city,state_code,postal_code,country,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
+        client.from('parties').select('*,party_addresses(line1,line2,city,state_code,postal_code,country,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
       ),
       fetchAll<any>((from, to) =>
-        client.from('chart_of_accounts').select('id,party_id,name,opening_balance,account_group,voucher_lines(debit,credit)').eq('organization_id', organizationId).range(from, to)
+        client.from('chart_of_accounts').select('id,party_id,code,name,opening_balance,account_group,voucher_lines(debit,credit)').eq('organization_id', organizationId).range(from, to)
       ).catch(() => []),
       fetchAll<any>((from, to) =>
         client.from('party_details').select('*').eq('organization_id', organizationId).range(from, to)
@@ -1533,8 +1702,10 @@ export async function list(resource: string, partyName?: string, options?: { man
       ).catch(() => []),
     ])
 
-    // Build ledger balance lookup by party_id and party name
+    // Build ledger balance lookup by party_id, name, and code
     const accountBalanceMap = new Map<string, { balance: number; debit: number; credit: number; group?: string; opBal: number }>()
+    const normKey = (str?: string) => (str || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
     for (const a of (accountsData ?? [])) {
       const rawOp = Number(a.opening_balance || 0)
       const deb = (a.voucher_lines ?? []).reduce((sum: number, l: any) => sum + Number(l.debit || 0), 0)
@@ -1547,8 +1718,18 @@ export async function list(resource: string, partyName?: string, options?: { man
         group: a.account_group,
         opBal: rawOp
       }
-      if (a.party_id) accountBalanceMap.set(String(a.party_id).trim().toLowerCase(), stats)
-      if (a.name) accountBalanceMap.set(String(a.name).trim().toLowerCase(), stats)
+      if (a.party_id) {
+        accountBalanceMap.set(String(a.party_id).trim().toLowerCase(), stats)
+        accountBalanceMap.set(normKey(a.party_id), stats)
+      }
+      if (a.name) {
+        accountBalanceMap.set(String(a.name).trim().toLowerCase(), stats)
+        accountBalanceMap.set(normKey(a.name), stats)
+      }
+      if (a.code) {
+        accountBalanceMap.set(String(a.code).trim().toLowerCase(), stats)
+        accountBalanceMap.set(normKey(a.code), stats)
+      }
     }
 
     const detailMap = new Map((detailsData ?? []).map((detail: any) => [detail.party_id, detail]))
@@ -1561,12 +1742,38 @@ export async function list(resource: string, partyName?: string, options?: { man
 
     const dbParties = (data ?? []).map((p: any) => {
       const pIdKey = String(p.id || '').trim().toLowerCase()
-      const pNameKey = String(p.legal_name || '').trim().toLowerCase()
-      const accStats = accountBalanceMap.get(pIdKey) || accountBalanceMap.get(pNameKey)
+      const pCodeKey = String(p.code || '').trim().toLowerCase()
+      const pNormName = normKey(p.legal_name)
+      const pNormCode = normKey(p.code)
+
+      const accStats =
+        accountBalanceMap.get(pIdKey) ||
+        accountBalanceMap.get(normKey(p.id)) ||
+        accountBalanceMap.get(pNameKey) ||
+        accountBalanceMap.get(pNormName) ||
+        accountBalanceMap.get(pCodeKey) ||
+        accountBalanceMap.get(pNormCode)
+
       const detail = detailMap.get(p.id)
-      const partyBal = accStats ? accStats.balance : 0
+      const partyBal = accStats ? accStats.balance : Number(p.balance || 0)
       const partyDeb = accStats ? accStats.debit : 0
       const partyCred = accStats ? accStats.credit : 0
+
+      // Read opening balance: check COA opening balance first; then check parties table opening_balance / balance
+      const coaOp = accStats ? Number(accStats.opBal || 0) : 0
+      const partyOp = Number(p.opening_balance ?? p.openingBalance ?? (p.balance && !accStats ? p.balance : 0))
+      const partyOpType = (p.opening_type ?? p.openingType ?? (partyOp < 0 ? 'Cr' : 'Dr')) as 'Dr' | 'Cr'
+
+      let resolvedOpBal = 0
+      let resolvedOpType: 'Dr' | 'Cr' = 'Dr'
+
+      if (coaOp !== 0) {
+        resolvedOpBal = Math.abs(coaOp)
+        resolvedOpType = coaOp < 0 ? 'Cr' : 'Dr'
+      } else if (partyOp !== 0) {
+        resolvedOpBal = Math.abs(partyOp)
+        resolvedOpType = partyOpType === 'Cr' ? 'Cr' : 'Dr'
+      }
 
       const addr = p.party_addresses?.find((a: any) => a.is_default) ?? p.party_addresses?.[0]
       const licenses = licenseMap.get(p.id) ?? []
@@ -1609,13 +1816,12 @@ export async function list(resource: string, partyName?: string, options?: { man
         foodLicenceNo: food?.license_number ?? '',
         foodLicenceExp: food?.expires_on ? String(food.expires_on).slice(0, 10) : '',
         gstHeading: detail?.gst_heading ?? '',
-        gstin: cleanGstin,
         gstinDate: detail?.gst_registration_date ?? '',
         pan: detail?.pan ?? derivedPan,
         ledgerCategory: detail?.ledger_category ?? '',
         ledgerType: detail?.ledger_type ?? '',
-        openingBalance: accStats ? Math.abs(accStats.opBal) : 0,
-        openingType: detail?.opening_type ?? (accStats && accStats.opBal < 0 ? 'Cr' : 'Dr'),
+        openingBalance: resolvedOpBal,
+        openingType: resolvedOpType,
         balance: partyBal,
         totalDebit: partyDeb,
         totalCredit: partyCred,
@@ -2372,6 +2578,21 @@ export async function create(resource: string, body: any, actor: MutationActor =
       const resolvedHsn = resolveItemHsn(code, body.name)
       const hsn = body.hsn || resolvedHsn.hsn
       const gstRate = Number(body.gstRate !== undefined && body.gstRate !== null && body.gstRate !== '' ? body.gstRate : resolvedHsn.gstRate)
+      const rawBatches = Array.isArray(body.batches) ? [...body.batches] : []
+      const totalStock = Number(body.stock ?? rawBatches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0))
+      const batchList = rawBatches.length > 0
+        ? rawBatches
+        : (totalStock > 0 ? [{
+            id: `b-${id}`,
+            batch: 'DEFAULT',
+            expiry: '2028-12-31',
+            stock: totalStock,
+            mrp: Number(body.mrp || 0),
+            costPrice: Number(body.purchaseRate || 0),
+            purchasePrice: Number(body.purchaseRate || 0),
+            salePrice: Number(body.saleRate || 0),
+            rackNumber: body.rackNumber || ''
+          }] : [])
       const item = {
         id,
         code,
@@ -2390,9 +2611,9 @@ export async function create(resource: string, body: any, actor: MutationActor =
         coldChain: Boolean(body.coldChain),
         controlledSubstance: Boolean(body.controlledSubstance),
         recalled: Boolean(body.recalled),
-        stock: Number(body.stock ?? (Array.isArray(body.batches) ? body.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0) : 0)),
-        batches: Array.isArray(body.batches) ? body.batches : [],
-        batchCount: Array.isArray(body.batches) ? body.batches.length : 0,
+        stock: totalStock,
+        batches: batchList,
+        batchCount: batchList.length,
         category: body.category || 'Medicine',
         status: body.status || 'active'
       }
@@ -2937,7 +3158,31 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
     const { data, error } = await client.from('items').insert({ organization_id: organizationId, code: body.code || `ITM-${Date.now()}`, name: body.name, packing: body.packing || null, unit: body.unit || null, manufacturer_id: manufacturerId ?? null, salt_id: saltId ?? null, hsn_id: hsnId ?? null, mrp: Number(body.mrp || 0), sale_rate: Number(body.saleRate || 0), purchase_rate: Number(body.purchaseRate || 0), is_active: body.status !== 'banned', schedule_class:body.scheduleClass || 'OTC', prescription_required:Boolean(body.prescriptionRequired), cold_chain:Boolean(body.coldChain), controlled_substance:Boolean(body.controlledSubstance), is_recalled:Boolean(body.recalled) }).select('id,code').single()
     if (error) throw error
-    return { ...body, id: data.id, code: data.code, stock: 0, batchCount: 0, status: body.status ?? 'active' }
+
+    const { totalStock: syncedStock, batches: syncedBatches } = await syncItemBatchesAndStock(
+      client,
+      organizationId,
+      data.id,
+      body.batches,
+      body.stock,
+      {
+        mrp: Number(body.mrp || 0),
+        purchaseRate: Number(body.purchaseRate || 0),
+        saleRate: Number(body.saleRate || 0),
+        rackNumber: body.rackNumber || body.rack,
+        manufacturer: body.manufacturer
+      }
+    )
+
+    return {
+      ...body,
+      id: data.id,
+      code: data.code,
+      stock: syncedStock,
+      batches: syncedBatches,
+      batchCount: syncedBatches.length,
+      status: body.status ?? 'active'
+    }
   }
   if (resource === 'item-batches') {
     if (!body.itemId || !body.batchNumber?.trim()) throw new Error('Item and batch number are required.')
@@ -2954,7 +3199,22 @@ export async function create(resource: string, body: any, actor: MutationActor =
       supplier_invoice_date: body.supplierInvoiceDate || null, rack_number: body.rackNumber || null, source_report_value: Number(body.sourceReportValue || 0)
     }).select('id').single()
     if (error) throw error
-    return { ...body, id: data.id, stock: 0 }
+
+    const batchStock = Number(body.stock ?? body.quantity ?? 0)
+    if (batchStock > 0) {
+      const warehouseId = await getOrCreateDefaultWarehouse(client, organizationId)
+      const { error: smErr } = await client.from('stock_movements').insert({
+        organization_id: organizationId,
+        item_batch_id: data.id,
+        warehouse_id: warehouseId,
+        movement_type: 'opening',
+        quantity: batchStock,
+        source_type: 'manual_entry',
+        remarks: 'Manual batch creation opening stock'
+      })
+      if (smErr) throw smErr
+    }
+    return { ...body, id: data.id, stock: batchStock }
   }
   if (resource === 'stock-transfers') {
     if (!body.lines?.length) throw new Error('Add at least one stock transfer line.')
@@ -3461,6 +3721,8 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       if (idx !== -1) {
         list[idx] = { ...list[idx], ...body }
         if (resource === 'parties') {
+          if ('openingBalance' in body) list[idx].openingBalance = Number(body.openingBalance)
+          if ('openingType' in body) list[idx].openingType = body.openingType
           persistCustomParty(list[idx])
         }
         if (resource === 'warehouses') {
@@ -3491,6 +3753,19 @@ export async function update(resource: string, id: string, body: any, actor: Mut
             if (!('stock' in body)) {
               list[idx].stock = body.batches.reduce((s: number, b: any) => s + (Number(b.stock) || 0), 0)
             }
+          } else if ('stock' in body && Number(body.stock) > 0 && (!list[idx].batches || list[idx].batches.length === 0)) {
+            list[idx].batches = [{
+              id: `b-${id}`,
+              batch: 'DEFAULT',
+              expiry: '2028-12-31',
+              stock: Number(body.stock),
+              mrp: Number(list[idx].mrp || 0),
+              purchasePrice: Number(list[idx].purchaseRate || 0),
+              salePrice: Number(list[idx].saleRate || 0)
+            }]
+            list[idx].batchCount = 1
+          } else if ('stock' in body && list[idx].batches?.length === 1) {
+            list[idx].batches[0].stock = Number(body.stock)
           }
           persistCustomItem(list[idx])
         }
@@ -3671,7 +3946,35 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     }
     const { data, error } = await client.from('items').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
     if (error) throw error
-    return data
+
+    let syncedStock: number | undefined
+    let syncedBatches: any[] | undefined
+
+    if (Array.isArray(body.batches) || 'stock' in body) {
+      const syncRes = await syncItemBatchesAndStock(
+        client,
+        organizationId,
+        id,
+        body.batches,
+        'stock' in body ? Number(body.stock) : undefined,
+        {
+          mrp: Number(body.mrp ?? data.mrp ?? 0),
+          purchaseRate: Number(body.purchaseRate ?? data.purchase_rate ?? 0),
+          saleRate: Number(body.saleRate ?? data.sale_rate ?? 0),
+          rackNumber: body.rackNumber || body.rack,
+          manufacturer: body.manufacturer
+        }
+      )
+      syncedStock = syncRes.totalStock
+      syncedBatches = syncRes.batches
+    }
+
+    return {
+      ...data,
+      ...body,
+      ...(syncedStock !== undefined ? { stock: syncedStock } : {}),
+      ...(syncedBatches !== undefined ? { batches: syncedBatches, batchCount: syncedBatches.length } : {})
+    }
   }
   if (resource === 'item-mappings') {
     if (id.startsWith('import-')) {
@@ -3733,7 +4036,30 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if ('supplier' in body) values.supplier_id = body.supplier ? await party(client, organizationId, String(body.supplier), 'supplier') : null
     const { data, error } = await client.from('item_batches').update(values).eq('id', id).select('id').single()
     if (error) throw error
-    return { ...body, id: data.id }
+
+    let updatedStock = body.stock !== undefined ? Number(body.stock) : (body.quantity !== undefined ? Number(body.quantity) : undefined)
+    if (updatedStock !== undefined) {
+      const warehouseId = await getOrCreateDefaultWarehouse(client, organizationId)
+      await client.from('stock_movements').delete()
+        .eq('organization_id', organizationId)
+        .eq('item_batch_id', id)
+        .eq('warehouse_id', warehouseId)
+        .eq('movement_type', 'opening')
+
+      if (updatedStock > 0) {
+        const { error: smErr } = await client.from('stock_movements').insert({
+          organization_id: organizationId,
+          item_batch_id: id,
+          warehouse_id: warehouseId,
+          movement_type: 'opening',
+          quantity: updatedStock,
+          source_type: 'manual_entry',
+          remarks: 'Manual batch stock update'
+        })
+        if (smErr) throw smErr
+      }
+    }
+    return { ...body, id: data.id, ...(updatedStock !== undefined ? { stock: updatedStock } : {}) }
   }
   if (resource === 'manufacturers') {
     const values: any = {}
@@ -3918,7 +4244,12 @@ export async function remove(resource: string, id: string, actor: MutationActor 
       return { id, softDeleted: true }
     }
     try {
-      await client.from('item_batches').delete().eq('item_id', id)
+      const { data: batchesToDelete } = await client.from('item_batches').select('id').eq('item_id', id)
+      if (batchesToDelete && batchesToDelete.length > 0) {
+        const batchIds = batchesToDelete.map((b: any) => b.id)
+        await client.from('stock_movements').delete().in('item_batch_id', batchIds)
+        await client.from('item_batches').delete().eq('item_id', id)
+      }
     } catch {}
     const { error } = await client.from('items').delete().eq('id', id).eq('organization_id', organizationId)
     if (error) throw error

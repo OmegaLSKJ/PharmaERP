@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -13,7 +13,8 @@ import {
   Layers,
   ArrowDownCircle,
   CheckCircle2,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp } from '../../lib/erpApi'
@@ -47,6 +48,7 @@ export default function ItemList() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Continuous Page Chunking Controls
   const [pageSize, setPageSize] = useState<number>(50)
@@ -67,12 +69,35 @@ export default function ItemList() {
     }
   }
 
-  useEffect(() => {
-    getErp<Item[]>('items')
-      .then(setItems)
-      .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load items.'))
-      .finally(() => setLoading(false))
+  const loadItems = useCallback(async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) setRefreshing(true)
+      else setLoading(true)
+      const data = await getErp<Item[]>('items', undefined, { forceRefresh })
+      setItems(data)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not load items.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [showToast])
+
+  useEffect(() => {
+    loadItems()
+    const handleRevalidation = (event: Event) => {
+      const customEvent = event as CustomEvent<{ resource?: string }>
+      if (!customEvent.detail?.resource || customEvent.detail.resource === 'items' || customEvent.detail.resource === 'item-batches') {
+        loadItems(true)
+      }
+    }
+    window.addEventListener('erp-cache-revalidated', handleRevalidation)
+    window.addEventListener('erp-resource-mutated', handleRevalidation)
+    return () => {
+      window.removeEventListener('erp-cache-revalidated', handleRevalidation)
+      window.removeEventListener('erp-resource-mutated', handleRevalidation)
+    }
+  }, [loadItems])
 
   const categories = useMemo(() => ['all', ...new Set(items.map((i) => i.category))], [items])
 
@@ -142,6 +167,16 @@ export default function ItemList() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => loadItems(true)}
+            disabled={refreshing || loading}
+            title="Sync live data from Supabase"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted text-foreground transition-colors shadow-xs disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={refreshing ? 'animate-spin text-primary' : ''} />
+            <span className="hidden sm:inline">Sync Live</span>
+          </button>
           <Link
             to="/masters/items/new"
             className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-xs w-full sm:w-auto"
