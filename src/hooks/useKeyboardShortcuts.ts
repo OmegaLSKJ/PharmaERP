@@ -1,6 +1,7 @@
-﻿import { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '../store/uiStore'
+import { isTransactionEntryPath, openTransactionWindow } from '../lib/windowUtils'
 
 const SHORTCUTS: Record<string, { path?: string; label: string }> = {
   'alt+n': { path: '/transactions/sale/new', label: 'New Sale Invoice' },
@@ -29,7 +30,16 @@ export function useKeyboardShortcuts() {
       const key = `${e.altKey ? 'alt+' : ''}${e.ctrlKey ? 'ctrl+' : ''}${e.key.toLowerCase()}`
       if (key === 'ctrl+k') { e.preventDefault(); toggleCommandPalette(); return }
       const shortcut = SHORTCUTS[key]
-      if (shortcut) { e.preventDefault(); if (shortcut.path) navigate(shortcut.path) }
+      if (shortcut) {
+        e.preventDefault()
+        if (shortcut.path) {
+          if (isTransactionEntryPath(shortcut.path)) {
+            openTransactionWindow(shortcut.path)
+          } else {
+            navigate(shortcut.path)
+          }
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

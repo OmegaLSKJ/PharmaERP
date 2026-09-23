@@ -1,7 +1,8 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Clock, CheckCircle, XCircle, ArrowRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 const PENDING: Array<{ id:string; type:string; ref:string; party:string; date:string; amount:number; status:string; items:number }> = []
 const ST: Record<string,string> = {
@@ -31,7 +32,7 @@ export default function Pendings() {
           </div>
           <div className="flex items-center gap-4">
             <span className="font-mono text-emerald-400">{formatCurrency(p.amount)}</span>
-            <button onClick={() => navigate(p.type === 'Purchase Order' ? '/transactions/purchase/new' : '/transactions/sale/new')} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition',p.type==='Purchase Order'?'bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40':'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40')}>
+            <button onClick={() => openTransactionWindow(p.type === 'Purchase Order' ? '/transactions/purchase/new' : '/transactions/sale/new')} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition',p.type==='Purchase Order'?'bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/40':'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40')}>
               {p.type==='Purchase Order'?'Receive':p.type==='Challan to Invoice'?'Convert':'Fulfill'} <ArrowRight size={12}/>
             </button>
           </div>

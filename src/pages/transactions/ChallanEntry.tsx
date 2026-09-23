@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3 } from 'lucide-react'
+import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -8,6 +8,7 @@ import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 interface AvailableItem {
   name: string
@@ -54,6 +55,10 @@ export default function ChallanEntry() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
+
+  useEffect(() => {
+    document.title = editingId ? `Edit Challan ${editingId} · Borgang ERP` : 'Delivery Challan · Borgang ERP'
+  }, [editingId])
 
   useEffect(() => {
     Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<SavedChallan[]>('challans')])
@@ -193,6 +198,15 @@ export default function ChallanEntry() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
+          <button
+            type="button"
+            onClick={() => openTransactionWindow(window.location.pathname)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-900 hover:bg-slate-800 rounded-lg text-xs sm:text-sm text-slate-300 font-semibold no-print transition border border-slate-700 shadow-sm active:scale-[0.98] cursor-pointer"
+            title="Open another instance in a separate window"
+          >
+            <ExternalLink size={14} />
+            <span className="hidden sm:inline">New Window</span>
+          </button>
           <button
             onClick={() => setShowPrintModal(true)}
             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 sm:px-4 bg-black hover:bg-neutral-900 rounded-lg text-xs sm:text-sm text-white font-semibold no-print transition border border-black shadow-sm active:scale-[0.98] cursor-pointer"

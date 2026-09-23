@@ -85,20 +85,26 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
-          <Link
-            to="/transactions/sale/new"
+          <a
+            href="/transactions/sale/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="New sale (opens in new window)"
             className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:shadow-sm transition-all duration-150 active:scale-[0.98] border border-blue-500/50"
           >
             <Plus size={15} className="shrink-0" />
             <span className="leading-none text-center">New sale</span>
-          </Link>
-          <Link
-            to="/transactions/orders"
+          </a>
+          <a
+            href="/transactions/orders"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Orders (opens in new window)"
             className="inline-flex h-9 items-center justify-center text-center gap-2 rounded-lg border border-border bg-card hover:bg-secondary px-3.5 text-xs sm:text-sm font-semibold text-foreground shadow-2xs transition-all duration-150 active:scale-[0.98]"
           >
             <ClipboardList size={15} className="shrink-0" />
             <span className="leading-none text-center">Orders</span>
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -167,16 +173,23 @@ export default function Dashboard() {
           <div className="divide-y divide-border">
             {!loading && recentInvoices.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No sales have been posted yet.</div>}
             {recentInvoices.map((inv, idx) => (
-              <Link to="/transactions/sale" key={`${inv.id}-${idx}`} className="flex items-center justify-between px-4 py-3 table-row-hover hover:bg-secondary/50 transition-colors">
+              <a
+                href={`/transactions/sale/edit/${encodeURIComponent(inv.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                key={`${inv.id}-${idx}`}
+                title={`Open invoice ${inv.id} in new window`}
+                className="flex items-center justify-between px-4 py-3 table-row-hover hover:bg-secondary/50 transition-colors"
+              >
                 <div>
-                  <div className="text-sm font-mono font-medium">{inv.id}</div>
+                  <div className="text-sm font-mono font-medium text-indigo-600 dark:text-indigo-400 hover:underline">{inv.id}</div>
                   <div className="text-xs text-muted-foreground">{inv.party}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium">{formatCurrency(inv.amount)}</div>
                   <StatusBadge status={inv.status} />
                 </div>
-              </Link>
+              </a>
             ))}
           </div>
         </div>

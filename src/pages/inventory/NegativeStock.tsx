@@ -21,6 +21,7 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, postErp } from '../../lib/erpApi'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 export interface NegativeStockRow {
   id: string
@@ -410,9 +411,9 @@ export default function NegativeStock() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => navigate('/transactions/purchase/new')}
+                        onClick={() => openTransactionWindow('/transactions/purchase/new')}
                         className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
-                        title="Inward Missing Stock via Purchase Entry"
+                        title="Inward Missing Stock via Purchase Entry (opens in new window)"
                       >
                         <Truck size={13} />
                       </button>

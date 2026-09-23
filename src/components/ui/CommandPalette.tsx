@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileText, Users, Package, Truck, Receipt, Landmark, Database, Settings, BarChart3 } from 'lucide-react'
+import { Search, FileText, Users, Package, Truck, Receipt, Landmark, Database, Settings, BarChart3, ExternalLink } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { cn } from '../../lib/utils'
+import { isTransactionEntryPath, openTransactionWindow } from '../../lib/windowUtils'
 
 interface CommandItem { label: string; path: string; icon: React.ReactNode; category: string }
 
@@ -44,7 +45,14 @@ export default function CommandPalette() {
 
   useEffect(() => { setSelectedIndex(0) }, [query])
 
-  const handleSelect = (path: string) => { navigate(path); toggleCommandPalette() }
+  const handleSelect = (path: string) => {
+    if (isTransactionEntryPath(path)) {
+      openTransactionWindow(path)
+    } else {
+      navigate(path)
+    }
+    toggleCommandPalette()
+  }
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex((i) => Math.max(i - 1, 0)) }
@@ -64,12 +72,21 @@ export default function CommandPalette() {
         </div>
         <div className="max-h-64 overflow-y-auto p-1">
           {filtered.length === 0 && <div className="px-4 py-6 text-center text-sm text-muted-foreground">No results found</div>}
-          {filtered.map((cmd, i) => (
-            <button key={cmd.path} onClick={() => handleSelect(cmd.path)} className={cn('w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-left', i === selectedIndex ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted')}>
-              {cmd.icon}<span className="flex-1">{cmd.label}</span>
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{cmd.category}</span>
-            </button>
-          ))}
+          {filtered.map((cmd, i) => {
+            const isTxn = isTransactionEntryPath(cmd.path)
+            return (
+              <button key={cmd.path} onClick={() => handleSelect(cmd.path)} className={cn('w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-left', i === selectedIndex ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted')}>
+                {cmd.icon}
+                <span className="flex-1">{cmd.label}</span>
+                {isTxn && (
+                  <span title="Opens in new window" className="inline-flex items-center">
+                    <ExternalLink size={12} className="text-muted-foreground/60" />
+                  </span>
+                )}
+                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{cmd.category}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

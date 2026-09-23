@@ -21,6 +21,7 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, postErp } from '../../lib/erpApi'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 export interface DumpItem {
   id: string
@@ -537,9 +538,9 @@ export default function DumpStock() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => navigate('/transactions/purchase-return')}
+                        onClick={() => openTransactionWindow('/transactions/purchase-return')}
                         className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
-                        title="Return to Supplier via Debit Note"
+                        title="Return to Supplier via Debit Note (opens in new window)"
                       >
                         <ExternalLink size={13} />
                       </button>

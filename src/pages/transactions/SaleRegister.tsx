@@ -14,7 +14,8 @@ import {
   Receipt,
   Download,
   ArrowRight,
-  Trash2
+  Trash2,
+  ExternalLink
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp } from '../../lib/erpApi'
@@ -22,6 +23,7 @@ import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 interface SaleLine {
   id?: string
@@ -143,7 +145,7 @@ export default function SaleRegister() {
 
   const editInvoice = (invoiceNo: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
-    navigate(`/transactions/sale/edit/${encodeURIComponent(invoiceNo)}`)
+    openTransactionWindow(`/transactions/sale/edit/${encodeURIComponent(invoiceNo)}`)
   }
 
   const cancelInvoice = async (sale: SaleInv, e?: React.MouseEvent) => {
@@ -264,13 +266,16 @@ export default function SaleRegister() {
             <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatCurrency(totalVal)}</span>
           </p>
         </div>
-        <Link
-          to="/transactions/sale/new"
+        <a
+          href="/transactions/sale/new"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="New Sale (opens in new window)"
           className="inline-flex h-9 items-center justify-center text-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
         >
           <Plus size={15} className="shrink-0" />
           <span className="leading-none text-center">New Sale</span>
-        </Link>
+        </a>
       </div>
 
       {/* Filters Toolbar */}
@@ -444,6 +449,15 @@ export default function SaleRegister() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => editInvoice(selected.invoiceNo)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  title="Open and edit invoice in new window"
+                >
+                  <ExternalLink size={13} />
+                  <span>Edit in New Window</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => window.print()}

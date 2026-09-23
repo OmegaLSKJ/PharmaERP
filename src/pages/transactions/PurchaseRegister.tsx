@@ -6,6 +6,7 @@ import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
 import { getGstRateForHsn, getAllHsnCodes } from '../../lib/hsnUtils'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 interface PurchaseInv {
   id: string
@@ -366,12 +367,15 @@ export default function PurchaseRegister() {
               {filtered.length} challans | Total: {formatCurrency(totalVal)}
             </p>
           </div>
-          <Link
-            to="/transactions/purchase/new"
+          <a
+            href="/transactions/purchase/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="New Purchase (opens in new window)"
             className="inline-flex h-9 items-center justify-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
           >
             <Plus size={15} /> New Purchase
-          </Link>
+          </a>
         </div>
         <div className="relative w-full sm:max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -426,6 +430,14 @@ export default function PurchaseRegister() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1.5 items-center">
+                      <button
+                        aria-label={`Open ${s.challanNo} in new window`}
+                        onClick={() => openTransactionWindow(`/transactions/purchase/edit/${encodeURIComponent(s.challanNo)}`)}
+                        className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-muted rounded transition cursor-pointer"
+                        title="Open in New Window"
+                      >
+                        <ExternalLink size={15} />
+                      </button>
                       <button
                         aria-label={`Modify ${s.challanNo}`}
                         onClick={() => openEditModal(s)}
@@ -494,11 +506,11 @@ export default function PurchaseRegister() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate(`/transactions/purchase/edit/${encodeURIComponent(editing.challanNo)}`)}
+                  onClick={() => openTransactionWindow(`/transactions/purchase/edit/${encodeURIComponent(editing.challanNo)}`)}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 bg-muted hover:bg-muted/80 border border-border rounded-lg transition"
-                  title="Open full-page purchase entry editor"
+                  title="Open full-page purchase entry editor in new window"
                 >
-                  <ExternalLink size={13} /> Full Screen
+                  <ExternalLink size={13} /> Open in New Window
                 </button>
                 <button
                   onClick={() => setEditing(null)}

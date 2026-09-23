@@ -40,6 +40,7 @@ import { cn, formatCurrency, formatDate, getTxnDateTime } from '../../../lib/uti
 import { exportVisibleTables } from '../../../lib/download'
 import PrintHeader from '../../../components/layout/PrintHeader'
 import accountGroupMaster from '../../../data/accountGroupMasterData.json'
+import { openTransactionWindow } from '../../../lib/windowUtils'
 
 interface Ledger {
   id: string
@@ -164,7 +165,7 @@ export default function LedgerList() {
       rawNo.toUpperCase().startsWith('SI') ||
       rawNo.toUpperCase().startsWith('INV')
     ) {
-      navigate(`/transactions/sale/edit/${encoded}`)
+      openTransactionWindow(`/transactions/sale/edit/${encoded}`)
     } else if (
       type === 'purchase' ||
       type === 'purchases' ||
@@ -172,17 +173,17 @@ export default function LedgerList() {
       rawNo.toUpperCase().startsWith('PB') ||
       rawNo.toUpperCase().startsWith('PUR')
     ) {
-      navigate(`/transactions/purchase/edit/${encoded}`)
+      openTransactionWindow(`/transactions/purchase/edit/${encoded}`)
     } else if (type === 'sale-return' || type === 'sale_return') {
-      navigate(`/transactions/sale-return`)
+      openTransactionWindow(`/transactions/sale-return`)
     } else if (type === 'purchase-return' || type === 'purchase_return') {
-      navigate(`/transactions/purchase-return`)
+      openTransactionWindow(`/transactions/purchase-return`)
     } else if (type === 'challan') {
-      navigate(`/transactions/sale/challan`)
+      openTransactionWindow(`/transactions/sale/challan`)
     } else {
       // Vouchers: Receipt, Payment, Journal, Contra, Notes
       const party = encodeURIComponent(t.party || selectedLedger || '')
-      navigate(`/accounting/vouchers?vNo=${encoded}&type=${encodeURIComponent(type)}&party=${party}`)
+      openTransactionWindow(`/accounting/vouchers?vNo=${encoded}&type=${encodeURIComponent(type)}&party=${party}`)
     }
   }
 

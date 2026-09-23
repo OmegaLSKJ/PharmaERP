@@ -228,18 +228,21 @@ export default function SelectedBook() {
                   <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
                   <td className="px-4 py-3"><span className={cn('rounded px-2 py-1 text-[10px] font-semibold', TYPE_BADGE[d.vType] || 'bg-slate-800 text-slate-300')}>{d.vType}</span></td>
                   <td className="px-4 py-3 font-mono">
-                    <Link
-                      to={
+                    <a
+                      href={
                         d.vType.toLowerCase().includes('sale')
                           ? `/transactions/sale/edit/${encodeURIComponent(d.vNo)}`
                           : d.vType.toLowerCase().includes('purchase')
                           ? `/transactions/purchase/edit/${encodeURIComponent(d.vNo)}`
                           : `/accounting/vouchers?vNo=${encodeURIComponent(d.vNo)}&type=${encodeURIComponent(d.vType)}&party=${encodeURIComponent(d.ledger)}`
                       }
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-indigo-400 hover:text-indigo-300 hover:underline"
+                      title="Open in new window"
                     >
                       {d.vNo}
-                    </Link>
+                    </a>
                   </td>
                   <td className="px-4 py-3 font-mono text-indigo-400 text-[11px]">{d.physicalVchNo || '—'}</td>
                   <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>

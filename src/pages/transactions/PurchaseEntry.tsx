@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2 } from 'lucide-react'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
@@ -8,6 +8,7 @@ import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 interface LineItem {
   id: string
@@ -80,6 +81,13 @@ export default function PurchaseEntry() {
   const { id: editPurchaseId } = useParams<{ id?: string }>()
   const navigate = useNavigate()
   const isEditMode = Boolean(editPurchaseId)
+
+  useEffect(() => {
+    const purTitle = isEditMode
+      ? `Edit Purchase ${editPurchaseId || ''} · Borgang ERP`
+      : 'New Purchase Entry · Borgang ERP'
+    document.title = purTitle
+  }, [isEditMode, editPurchaseId])
 
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
   const [hsnList, setHsnList] = useState<HsnOption[]>(() =>
@@ -597,6 +605,15 @@ export default function PurchaseEntry() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
+            <button
+              type="button"
+              onClick={() => openTransactionWindow(window.location.pathname)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 px-3 rounded-lg bg-card hover:bg-secondary text-foreground text-xs sm:text-sm font-semibold shadow-xs border border-border transition-all active:scale-[0.98] cursor-pointer"
+              title="Open another instance in a separate window"
+            >
+              <ExternalLink size={14} />
+              <span className="hidden sm:inline">New Window</span>
+            </button>
             <button
               onClick={handlePrint}
               className="inline-flex h-9 items-center justify-center gap-2 px-3.5 sm:px-4 rounded-lg bg-card hover:bg-secondary text-foreground text-xs sm:text-sm font-semibold shadow-xs border border-border transition-all active:scale-[0.98] cursor-pointer"

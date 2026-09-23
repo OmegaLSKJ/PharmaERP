@@ -113,18 +113,21 @@ export default function DayBook() {
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', TYPE_STYLE[d.vType])}>{d.vType}</span></td>
                 <td className="px-4 py-3">
                   <div>
-                    <Link
-                      to={
+                    <a
+                      href={
                         d.vType.toLowerCase().includes('sale')
                           ? `/transactions/sale/edit/${encodeURIComponent(d.vNo)}`
                           : d.vType.toLowerCase().includes('purchase')
                           ? `/transactions/purchase/edit/${encodeURIComponent(d.vNo)}`
                           : `/accounting/vouchers?vNo=${encodeURIComponent(d.vNo)}&type=${encodeURIComponent(d.vType)}&party=${encodeURIComponent(d.ledger)}`
                       }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open in new window"
                       className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
                     >
                       {d.vNo}
-                    </Link>
+                    </a>
                   </div>
                   {d.physicalVchNo && <div className="text-[10px] text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
                 </td>

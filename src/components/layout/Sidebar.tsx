@@ -6,11 +6,12 @@ import {
   ClipboardList, TrendingUp, Shield, Database, Link2, Hash, Ban,
   Percent, Clock, Upload, Download, FileCheck, Calculator, Scale,
   Wallet, Activity, Boxes, AlertTriangle, Flame, Turtle, Zap,
-  PanelLeftClose, PanelLeft, IndianRupee
+  PanelLeftClose, PanelLeft, IndianRupee, ExternalLink
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useUIStore } from '../../store/uiStore'
+import { isTransactionEntryPath } from '../../lib/windowUtils'
 
 interface NavItem {
   label: string; path: string; icon: React.ReactNode;
@@ -212,33 +213,73 @@ export default function Sidebar() {
                       </button>
                       {expanded[item.label] && !collapsed && (
                         <div className="mt-0.5 ml-[18px] pl-3.5 border-l border-border/80 space-y-0.5 py-0.5">
-                          {item.children.map((child) => (
-                            <NavLink key={child.path} to={child.path}
-                              className={({ isActive }) => cn(
-                                'block px-2.5 py-1 rounded text-[11px] transition-all duration-150',
-                                isActive ? 'text-primary bg-primary/10 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
-                              )}>
-                              {child.label}
-                            </NavLink>
-                          ))}
+                          {item.children.map((child) => {
+                            const isTxn = isTransactionEntryPath(child.path)
+                            if (isTxn) {
+                              return (
+                                <a
+                                  key={child.path}
+                                  href={child.path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group/sub flex items-center justify-between px-2.5 py-1 rounded text-[11px] transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                                  title={`${child.label} (opens in new window)`}
+                                >
+                                  <span className="truncate">{child.label}</span>
+                                  <ExternalLink size={10} className="shrink-0 opacity-40 group-hover/sub:opacity-90 ml-1" />
+                                </a>
+                              )
+                            }
+                            return (
+                              <NavLink key={child.path} to={child.path}
+                                className={({ isActive }) => cn(
+                                  'block px-2.5 py-1 rounded text-[11px] transition-all duration-150',
+                                  isActive ? 'text-primary bg-primary/10 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+                                )}>
+                                {child.label}
+                              </NavLink>
+                            )
+                          })}
                         </div>
                       )}
                     </>
                   ) : (
-                    <NavLink to={item.path} title={collapsed ? item.label : undefined}
-                      aria-label={collapsed ? item.label : undefined}
-                      className={({ isActive }) => cn(
-                        'relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
-                        collapsed ? 'justify-center' : '',
-                        isActive
-                          ? 'text-primary bg-primary/10 border-l-2 border-primary font-semibold'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                      )}>
-                      {({ isActive }) => (<>
-                        <span className={cn('shrink-0', isActive ? 'text-primary' : 'text-muted-foreground/80 group-hover:text-primary')}>{item.icon}</span>
-                        {!collapsed && <span className="truncate">{item.label}</span>}
-                      </>)}
-                    </NavLink>
+                    isTransactionEntryPath(item.path) ? (
+                      <a
+                        href={item.path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={collapsed ? `${item.label} (opens in new window)` : undefined}
+                        aria-label={collapsed ? `${item.label} (opens in new window)` : undefined}
+                        className={cn(
+                          'relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-secondary/60',
+                          collapsed ? 'justify-center' : ''
+                        )}
+                      >
+                        <span className="shrink-0 text-muted-foreground/80 group-hover:text-primary">{item.icon}</span>
+                        {!collapsed && (
+                          <>
+                            <span className="truncate flex-1">{item.label}</span>
+                            <ExternalLink size={11} className="shrink-0 opacity-40 group-hover:opacity-90" />
+                          </>
+                        )}
+                      </a>
+                    ) : (
+                      <NavLink to={item.path} title={collapsed ? item.label : undefined}
+                        aria-label={collapsed ? item.label : undefined}
+                        className={({ isActive }) => cn(
+                          'relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
+                          collapsed ? 'justify-center' : '',
+                          isActive
+                            ? 'text-primary bg-primary/10 border-l-2 border-primary font-semibold'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                        )}>
+                        {({ isActive }) => (<>
+                          <span className={cn('shrink-0', isActive ? 'text-primary' : 'text-muted-foreground/80 group-hover:text-primary')}>{item.icon}</span>
+                          {!collapsed && <span className="truncate">{item.label}</span>}
+                        </>)}
+                      </NavLink>
+                    )
                   )}
                 </div>
               ))}

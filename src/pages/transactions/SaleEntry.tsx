@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2 } from 'lucide-react'
+import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -10,6 +10,7 @@ import { useUIStore } from '../../store/uiStore'
 import { calculateInvoice } from '../../lib/invoiceCalculations'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { openTransactionWindow } from '../../lib/windowUtils'
 
 interface LineItem {
   id: string
@@ -60,6 +61,13 @@ export default function SaleEntry() {
   const navigate = useNavigate()
   const [existingInvoice, setExistingInvoice] = useState<any>(null)
   const isEditMode = Boolean(editInvoiceId)
+
+  useEffect(() => {
+    const invTitle = isEditMode
+      ? `Edit Invoice ${existingInvoice?.invoiceNo || editInvoiceId || ''} · Borgang ERP`
+      : 'New Sale Invoice · Borgang ERP'
+    document.title = invTitle
+  }, [isEditMode, existingInvoice, editInvoiceId])
 
   const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([])
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
@@ -529,6 +537,17 @@ export default function SaleEntry() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
+          {/* Pop Out to New Window */}
+          <button
+            type="button"
+            onClick={() => openTransactionWindow(window.location.pathname)}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-700 transition cursor-pointer"
+            title="Open another instance in a separate window"
+          >
+            <ExternalLink size={14} />
+            <span className="hidden sm:inline">New Window</span>
+          </button>
+
           {/* Professional Print Bill Button */}
           <button
             type="button"

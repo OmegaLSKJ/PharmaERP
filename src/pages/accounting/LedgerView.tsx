@@ -233,19 +233,21 @@ export default function LedgerView() {
                     <td className="px-4 py-3 font-mono text-muted-foreground">{e.date}</td>
                     <td className="px-4 py-3 text-foreground">{e.vType}</td>
                     <td className="px-4 py-3 font-mono font-semibold">
-                      <Link
-                        to={
+                      <a
+                        href={
                           e.vType.toLowerCase().includes('sale')
                             ? `/transactions/sale/edit/${encodeURIComponent(e.vNo)}`
                             : e.vType.toLowerCase().includes('purchase')
                             ? `/transactions/purchase/edit/${encodeURIComponent(e.vNo)}`
                             : `/accounting/vouchers?vNo=${encodeURIComponent(e.vNo)}&type=${encodeURIComponent(e.vType)}&party=${encodeURIComponent(e.party || selectedLedger)}`
                         }
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-indigo-400 hover:text-indigo-300 hover:underline"
-                        title="Click to view/edit voucher"
+                        title="Click to view/edit voucher in new window"
                       >
                         {e.vNo}
-                      </Link>
+                      </a>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{e.debit > 0 ? formatCurrency(e.debit) : '-'}</td>
                     <td className="px-4 py-3 text-right font-mono">{e.credit > 0 ? formatCurrency(e.credit) : '-'}</td>
