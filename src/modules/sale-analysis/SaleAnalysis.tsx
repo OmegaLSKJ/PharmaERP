@@ -539,17 +539,24 @@ export default function SaleAnalysis() {
               </div>
             </div>
             <footer className="sa-modal-actions">
-              <button type="button" className="sa-btn-secondary" onClick={() => setViewingUnallocatedModal(false)}>Close</button>
-              <button
-                type="button"
-                className="sa-btn-primary"
-                onClick={() => {
-                  setViewingUnallocatedModal(false)
-                  drilldownToUnallocated()
-                }}
-              >
-                View in Sale Book →
-              </button>
+              <div className="sa-modal-actions-left">
+                <button
+                  type="button"
+                  className="sa-modal-btn-primary"
+                  onClick={() => {
+                    setViewingUnallocatedModal(false)
+                    drilldownToUnallocated()
+                  }}
+                >
+                  <BookOpen size={14} />
+                  <span>View in Sale Book ({unallocatedInvoices.length}) →</span>
+                </button>
+              </div>
+              <div className="sa-modal-actions-right">
+                <button type="button" className="sa-btn-secondary" onClick={() => setViewingUnallocatedModal(false)}>
+                  Close
+                </button>
+              </div>
             </footer>
           </div>
         </div>,
