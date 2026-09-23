@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
+import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 import { cn } from '../../../lib/utils'
 import ManufacturerMedicinesModal from './ManufacturerMedicinesModal'
 
@@ -95,6 +96,10 @@ export default function ManufacturerList() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useErpAutoRefresh(['manufacturers'], () => {
+    loadData()
+  })
 
   const openAddModal = () => {
     setModalMode('add')

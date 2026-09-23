@@ -11,7 +11,14 @@ async function authenticate(request: NextRequest) {
   if (!auth) return { response: clearSessionCookies(NextResponse.json({ error: { message: 'Unauthorized.' } }, { status: 401 })) }
   return { auth }
 }
-function success(data: unknown, auth: AuthenticatedRequest, requestId: string, status = 200) { const response = NextResponse.json({ data }, { status }); response.headers.set('X-Request-Id', requestId); return applyRefreshedSession(response, auth) }
+function success(data: unknown, auth: AuthenticatedRequest, requestId: string, status = 200) {
+  const response = NextResponse.json({ data }, { status });
+  response.headers.set('X-Request-Id', requestId);
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  return applyRefreshedSession(response, auth);
+}
 function failure(error: unknown, requestId: string, status = 422) {
   let raw = 'Invalid request.'
   if (error instanceof Error) {

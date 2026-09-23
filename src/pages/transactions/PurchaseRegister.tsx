@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
 import { getGstRateForHsn, getAllHsnCodes } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface PurchaseInv {
   id: string
@@ -57,10 +58,10 @@ export default function PurchaseRegister() {
   const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
   const addToast = useUIStore((s) => s.addToast)
 
-  useEffect(() => {
+  const loadPurchases = useCallback((force = false) => {
     Promise.all([
-      getErp<any[]>('purchases'),
-      getErp<any[]>('parties').catch(() => [])
+      getErp<any[]>('purchases', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined).catch(() => [])
     ])
       .then(([rows, parties]) => {
         const pMap: Record<string, any> = {}
@@ -87,6 +88,12 @@ export default function PurchaseRegister() {
       })
       .catch((e) => addToast(e.message, 'error'))
   }, [addToast])
+
+  useEffect(() => {
+    loadPurchases()
+  }, [loadPurchases])
+
+  useErpAutoRefresh(['purchases', 'parties'], () => loadPurchases(true))
 
   const filtered = purchases.filter(
     (s) =>

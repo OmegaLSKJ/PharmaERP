@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Edit2, Plus, Save, Trash2, X } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import { cn } from '../../lib/utils'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 
@@ -23,6 +24,7 @@ export default function BatchMaster() {
   const showToast = useUIStore((state) => state.showToast)
   const load = () => Promise.all([getErp<Item[]>('items'), getErp<Batch[]>('item-batches')]).then(([itemRows, batchRows]) => { setItems(itemRows); setBatches(batchRows) }).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load batches.'))
   useEffect(() => { load() }, [showToast])
+  useErpAutoRefresh(['item-batches', 'items'], () => { load() })
   const filtered = useMemo(() => { const term = search.trim().toLowerCase(); return term ? batches.filter((batch) => [batch.itemName, batch.itemCode, batch.batchNumber, batch.supplier, batch.rackNumber].some((value) => value.toLowerCase().includes(term))) : batches }, [batches, search])
   const activeBatch = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
   const set = <K extends keyof BatchForm>(key: K, value: BatchForm[K]) => setForm((current) => ({ ...current, [key]: value }))

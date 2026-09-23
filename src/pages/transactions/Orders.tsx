@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface Order { id: string; orderNo: string; date: string; party: string; type: string; items: number; total: number; deliveryDate: string; status: string }
 
@@ -26,8 +27,9 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const showToast = useUIStore((s) => s.showToast)
-  const load = () => getErp<any[]>('orders').then((rows) => setOrders(rows.map((row) => ({ id:row.id, orderNo:row.number, date:row.date, party:row.party, type:row.type ?? 'Sale', items:Number(row.items ?? 0), total:Number(row.total), deliveryDate:row.deliveryDate ?? '', status:row.status })))).catch((e) => showToast(e.message))
+  const load = () => getErp<any[]>('orders', undefined, { forceRefresh: true }).then((rows) => setOrders(rows.map((row) => ({ id:row.id, orderNo:row.number, date:row.date, party:row.party, type:row.type ?? 'Sale', items:Number(row.items ?? 0), total:Number(row.total), deliveryDate:row.deliveryDate ?? '', status:row.status })))).catch((e) => showToast(e.message))
   useEffect(() => { void load() }, [showToast])
+  useErpAutoRefresh(['orders', 'sales'], () => load())
   const filtered = orders.filter(o => {
     const ms = o.party.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase())
     return ms && (typeFilter === 'all' || o.type === typeFilter) && (statusFilter === 'all' || o.status === statusFilter)

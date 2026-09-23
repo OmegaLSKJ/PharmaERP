@@ -25,21 +25,64 @@ function buildApiUrl(path: string): string {
   return `http://127.0.0.1:3000${path}`
 }
 
+// Global multi-window and multi-tab synchronization
+if (typeof window !== 'undefined') {
+  try {
+    const globalChannel = new BroadcastChannel('erp-resource-mutations')
+    globalChannel.onmessage = (event) => {
+      const detail = event.data
+      if (detail && detail.resource) {
+        resetInFlightRequests()
+        void invalidateCache(detail.resource).then(() => {
+          window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
+          window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
+        })
+      }
+    }
+  } catch {}
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'erp_last_mutation' && event.newValue) {
+      try {
+        const detail = JSON.parse(event.newValue)
+        if (detail && detail.resource) {
+          resetInFlightRequests()
+          void invalidateCache(detail.resource).then(() => {
+            window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
+            window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
+          })
+        }
+      } catch {}
+    }
+  })
+}
+
 function announceResourceMutation(detail: { resource: string; action: 'create' | 'update' | 'delete'; id?: string }): void {
   if (typeof window === 'undefined') return
+  resetInFlightRequests()
   window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
+  window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
   try {
     const channel = new BroadcastChannel('erp-resource-mutations')
     channel.postMessage(detail)
     channel.close()
   } catch {
-    // BroadcastChannel is unavailable in a few older browsers; the current window still refreshes.
+    // BroadcastChannel is unavailable in a few older browsers; storage event handles cross-window
   }
+  try {
+    localStorage.setItem('erp_last_mutation', JSON.stringify({ ...detail, _ts: Date.now() }))
+  } catch {}
 }
 
 async function fetchFromNetwork<T>(resource: string, query?: Record<string, string>): Promise<T> {
   const params = query ? `?${new URLSearchParams(query)}` : ''
-  const response = await fetch(buildApiUrl(`/api/v1/${resource}${params}`))
+  const response = await fetch(buildApiUrl(`/api/v1/${resource}${params}`), {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+    },
+  })
   const payload = await response.json()
   if (!response.ok) {
     throw new Error(payload.error?.message || 'Request failed')

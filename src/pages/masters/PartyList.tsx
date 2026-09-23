@@ -26,6 +26,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, patchErp, postErp, deleteErp } from '../../lib/erpApi'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 export interface Party {
   id: string
@@ -366,24 +367,7 @@ export default function PartyList() {
     loadParties(true)
   }, [])
 
-  useEffect(() => {
-    const handleRevalidated = (e: any) => {
-      if (e.detail?.resource === 'parties') {
-        loadParties(false)
-      }
-    }
-    const handleMutated = (e: any) => {
-      if (e.detail?.resource === 'parties') {
-        loadParties(true)
-      }
-    }
-    window.addEventListener('erp-cache-revalidated', handleRevalidated)
-    window.addEventListener('erp-resource-mutated', handleMutated)
-    return () => {
-      window.removeEventListener('erp-cache-revalidated', handleRevalidated)
-      window.removeEventListener('erp-resource-mutated', handleMutated)
-    }
-  }, [])
+  useErpAutoRefresh(['parties'], () => loadParties(true))
 
   const purgeDuplicates = async () => {
     try {

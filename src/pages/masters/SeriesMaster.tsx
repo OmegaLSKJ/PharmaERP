@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface Series { id:string; doc:string; prefix:string; suffix:string; nextNo:number; padding:number; fyReset:boolean; active:boolean }
 
@@ -11,7 +12,9 @@ export default function SeriesMaster() {
   const [series,setSeries] = useState<Series[]>([])
   const [saving, setSaving] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
-  useEffect(() => { getErp<Series[]>('series').then(setSeries).catch((e) => addToast(e.message, 'error')) }, [addToast])
+  const loadSeries = () => { getErp<Series[]>('series').then(setSeries).catch((e) => addToast(e.message, 'error')) }
+  useEffect(() => { loadSeries() }, [addToast])
+  useErpAutoRefresh(['series'], () => { loadSeries() })
   const update = (id:string, field:keyof Series, value:any) => setSeries(series.map(s=>s.id===id?{...s,[field]:value}:s))
   const preview = (s:Series) => `${s.prefix}${String(s.nextNo).padStart(s.padding,'0')}${s.suffix}`
   const saveAll = async () => { setSaving(true); try { const saved = await Promise.all(series.map((s) => s.id.startsWith('new-') ? postErp<Series>('series', s) : patchErp<Series>('series', s.id, s).then(() => s))); setSeries(saved); addToast('Document series saved', 'success') } catch (error) { addToast(error instanceof Error ? error.message : 'Unable to save series', 'error') } finally { setSaving(false) } }

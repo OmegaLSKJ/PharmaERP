@@ -3,6 +3,7 @@ import { Search, Plus, Printer, Eye, X } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -59,6 +60,10 @@ export default function PurchaseReturn() {
   useEffect(() => {
     void load()
   }, [showToast])
+
+  useErpAutoRefresh(['purchase-returns', 'purchases'], () => {
+    void load()
+  })
 
   const filtered = returns.filter(
     (s) => s.supplier.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase())

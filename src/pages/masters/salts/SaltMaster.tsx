@@ -4,6 +4,7 @@ import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Check, FlaskConical } fr
 import { cn } from '../../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
+import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 
 interface Salt {
   id: string
@@ -53,6 +54,10 @@ export default function SaltMaster() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useErpAutoRefresh(['salts'], () => {
+    loadData()
+  })
 
   const openAddModal = () => {
     setModalMode('add')

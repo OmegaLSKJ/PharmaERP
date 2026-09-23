@@ -36,6 +36,7 @@ import { useUIStore } from '../../store/uiStore'
 import VoucherPrint, { VoucherPrintData, VoucherPrintLine } from '../../components/accounting/VoucherPrint'
 import PurchaseInvoicePrint, { InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 export default function Party360() {
   const nav = useNavigate()
@@ -865,26 +866,7 @@ export default function Party360() {
     loadPartyData(true)
   }, [id])
 
-  useEffect(() => {
-    const handleRevalidated = (e: any) => {
-      const res = e.detail?.resource
-      if (res === 'parties' || res === 'ledgers' || res === 'vouchers' || res === 'sales' || res === 'purchases') {
-        loadPartyData(false)
-      }
-    }
-    const handleMutated = (e: any) => {
-      const res = e.detail?.resource
-      if (res === 'parties' || res === 'ledgers' || res === 'vouchers' || res === 'sales' || res === 'purchases') {
-        loadPartyData(true)
-      }
-    }
-    window.addEventListener('erp-cache-revalidated', handleRevalidated)
-    window.addEventListener('erp-resource-mutated', handleMutated)
-    return () => {
-      window.removeEventListener('erp-cache-revalidated', handleRevalidated)
-      window.removeEventListener('erp-resource-mutated', handleMutated)
-    }
-  }, [id])
+  useErpAutoRefresh(['parties', 'ledgers', 'vouchers', 'sales', 'purchases'], () => loadPartyData(true))
 
   // Filtered & sorted transactions for Transactions Tab (Ledger)
   const filteredTxns = useMemo(() => {

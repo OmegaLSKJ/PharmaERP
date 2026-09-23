@@ -5,6 +5,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintHeader from '../../components/layout/PrintHeader'
 
 interface DayBookEntry { id: string; date: string; vType: string; vNo: string; physicalVchNo?: string; ledger: string; debit: number; credit: number; narration: string }
@@ -23,7 +24,7 @@ export default function DayBook() {
   const types = ['all', 'Receipt', 'Payment', 'Sale', 'Purchase', 'Journal', 'Contra', 'Debit Note', 'Credit Note']
   const showToast = useUIStore((s) => s.showToast)
 
-  useEffect(() => {
+  const loadData = () => {
     getErp<any[]>('ledgers')
       .then((rows) => {
         const seenKeys = new Set<string>()
@@ -55,7 +56,15 @@ export default function DayBook() {
         )
       })
       .catch((e) => showToast(e.message))
+  }
+
+  useEffect(() => {
+    loadData()
   }, [showToast])
+
+  useErpAutoRefresh(['ledgers', 'sales', 'purchases', 'vouchers'], () => {
+    loadData()
+  })
   const filtered = entries.filter(d => {
     const ms =
       d.ledger.toLowerCase().includes(search.toLowerCase()) ||

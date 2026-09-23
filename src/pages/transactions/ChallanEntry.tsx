@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
@@ -9,6 +9,7 @@ import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface AvailableItem {
   name: string
@@ -60,8 +61,12 @@ export default function ChallanEntry() {
     document.title = editingId ? `Edit Challan ${editingId} · Borgang ERP` : 'Delivery Challan · Borgang ERP'
   }, [editingId])
 
-  useEffect(() => {
-    Promise.all([getErp<any[]>('parties'), getErp<any[]>('items'), getErp<SavedChallan[]>('challans')])
+  const loadChallanData = useCallback((force = false) => {
+    Promise.all([
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<SavedChallan[]>('challans', undefined, force ? { forceRefresh: true } : undefined)
+    ])
       .then(([partyRows, productRows, challanRows]) => {
         setParties(partyRows.filter((p) => p.type === 'customer' || p.type === 'both').map((p) => p.name))
         setAvailableItems(
@@ -92,6 +97,12 @@ export default function ChallanEntry() {
       })
       .catch((e) => showToast(e.message))
   }, [showToast])
+
+  useEffect(() => {
+    loadChallanData()
+  }, [loadChallanData])
+
+  useErpAutoRefresh(['challans', 'parties', 'items'], () => loadChallanData(true))
 
   const addItem = (i: AvailableItem) => {
     const existingIndex = lines.findIndex((l) => l.name === i.name && l.batch === i.batch)

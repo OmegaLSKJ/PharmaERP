@@ -4,6 +4,7 @@ import { Plus, Search, Edit2, Trash2, Warehouse, X, AlertTriangle } from 'lucide
 import { cn } from '../../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
+import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 
 interface Location {
   id: string
@@ -35,11 +36,19 @@ export default function LocationMaster() {
 
   const addToast = useUIStore((s) => s.addToast)
 
-  useEffect(() => {
+  const loadLocations = () => {
     getErp<Location[]>('warehouses')
       .then(setLocations)
       .catch((e) => addToast(e.message, 'error'))
+  }
+
+  useEffect(() => {
+    loadLocations()
   }, [addToast])
+
+  useErpAutoRefresh(['warehouses'], () => {
+    loadLocations()
+  })
 
   const filtered = locations.filter(
     (l) =>

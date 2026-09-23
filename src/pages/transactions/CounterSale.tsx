@@ -24,6 +24,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import Typeahead from '../../components/ui/Typeahead'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -123,6 +124,10 @@ export default function CounterSale() {
   useEffect(() => {
     loadItems(false)
   }, [showToast])
+
+  useErpAutoRefresh(['items', 'item-batches', 'stock', 'sales'], () => {
+    loadItems(true)
+  })
 
   // Keyboard shortcut listener
   useEffect(() => {

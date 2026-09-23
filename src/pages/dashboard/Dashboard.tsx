@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { usePreloaderStore } from '../../lib/erpPreloader'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 type DashboardData = {
   kpis: { sales: number; purchases: number; activeItems: number; pendingInvoices: number }
@@ -58,10 +59,21 @@ export default function Dashboard() {
   const syncStatus = usePreloaderStore((s) => s.status)
   const syncPercent = usePreloaderStore((s) => s.percent)
 
+  const loadData = useCallback(async (force = false) => {
+    try {
+      const res = await getErp<DashboardData>('dashboard', undefined, { forceRefresh: force })
+      setData(res)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void usePreloaderStore.getState().startPreload()
-    getErp<DashboardData>('dashboard').then(setData).finally(() => setLoading(false))
-  }, [])
+    loadData()
+  }, [loadData])
+
+  useErpAutoRefresh(['dashboard', 'sales', 'purchases', 'items'], () => loadData(true))
   const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
   return (
     <div className="space-y-6">

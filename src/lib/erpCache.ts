@@ -214,7 +214,7 @@ export async function setCached<T = unknown>(
   })
 }
 
-async function removeKeyFromIdb(key: string): Promise<void> {
+export async function removeKeyFromIdb(key: string): Promise<void> {
   const db = await openDB()
   if (!db) return
 
@@ -231,27 +231,67 @@ async function removeKeyFromIdb(key: string): Promise<void> {
   })
 }
 
+export async function removeResourceFromIdb(resource: string): Promise<void> {
+  const db = await openDB()
+  if (!db) return
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite')
+      const store = tx.objectStore(STORE_NAME)
+      const request = store.openCursor()
+
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result
+        if (cursor) {
+          const key = String(cursor.key)
+          if (key === resource || key.startsWith(`${resource}?`)) {
+            cursor.delete()
+          }
+          cursor.continue()
+        } else {
+          resolve()
+        }
+      }
+      request.onerror = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
+}
+
 /**
  * Mapping of resources to related resources that should also be invalidated
  */
 const RELATED_RESOURCES: Record<string, string[]> = {
-  'item-batches': ['items', 'dashboard', 'stock', 'report-stock'],
-  items: ['item-batches', 'dashboard', 'stock', 'report-stock', 'report-sales'],
-  parties: ['dashboard', 'ledgers', 'report-sales', 'report-purchases'],
-  sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'items', 'item-batches', 'parties'],
-  purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'item-batches', 'items', 'parties'],
+  'item-batches': ['items', 'dashboard', 'stock', 'report-stock', 'item-mappings'],
+  items: ['item-batches', 'dashboard', 'stock', 'report-stock', 'report-sales', 'item-mappings'],
+  parties: ['dashboard', 'ledgers', 'report-sales', 'report-purchases', 'sales', 'purchases'],
+  sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'items', 'item-batches', 'parties', 'pendings'],
+  purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'item-batches', 'items', 'parties', 'pendings'],
   'sale-returns': ['sales', 'stock', 'report-stock', 'dashboard', 'ledgers', 'items', 'item-batches'],
   'purchase-returns': ['purchases', 'stock', 'report-stock', 'dashboard', 'ledgers', 'items', 'item-batches'],
-  orders: ['dashboard'],
-  challans: ['dashboard', 'stock', 'items', 'item-batches'],
+  orders: ['dashboard', 'pendings', 'sales'],
+  challans: ['dashboard', 'stock', 'items', 'item-batches', 'pendings'],
   cancellations: ['sales', 'purchases', 'challans', 'stock', 'report-stock', 'report-sales', 'report-purchases', 'dashboard', 'ledgers', 'day-book', 'items', 'item-batches'],
   'stock-transfers': ['stock', 'report-stock', 'items', 'item-batches', 'dashboard'],
   'inventory-adjustments': ['stock', 'report-stock', 'items', 'item-batches', 'dashboard'],
   'credit-notes': ['sales', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'items', 'item-batches'],
   'debit-notes': ['purchases', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'items', 'item-batches'],
-  vouchers: ['ledgers', 'day-book', 'report-financial'],
+  vouchers: ['ledgers', 'day-book', 'report-financial', 'dashboard'],
   ledgers: ['day-book', 'report-financial', 'dashboard'],
-  warehouses: ['stock', 'report-stock'],
+  warehouses: ['stock', 'report-stock', 'items'],
+  manufacturers: ['items', 'dashboard', 'stock'],
+  salts: ['items', 'dashboard'],
+  hsn: ['items', 'sales', 'purchases'],
+  series: ['sales', 'purchases', 'challans', 'orders', 'vouchers'],
+  accounts: ['ledgers', 'day-book', 'vouchers', 'report-financial'],
+  pendings: ['orders', 'challans', 'sales'],
+  'counter-sales': ['sales', 'stock', 'items', 'dashboard', 'report-sales'],
+  breakages: ['stock', 'items', 'claims', 'dashboard'],
+  replacements: ['stock', 'items', 'dashboard'],
+  'price-differences': ['sales', 'purchases', 'dashboard'],
+  claims: ['breakages', 'dashboard'],
 }
 
 /**
@@ -272,11 +312,10 @@ export async function invalidateCache(resource: string): Promise<void> {
 
   for (const key of keysToDelete) {
     memoryCache.delete(key)
-    await removeKeyFromIdb(key)
   }
 
   for (const res of resourcesToInvalidate) {
-    await removeKeyFromIdb(res)
+    await removeResourceFromIdb(res)
   }
 }
 
@@ -309,9 +348,9 @@ export function isCached(key: string): boolean {
 }
 
 /**
- * Checks if a cached entry is older than maxAgeMs (default 2 minutes)
+ * Checks if a cached entry is older than maxAgeMs (default 10 seconds for real-time reactivity)
  */
-export function isStale(key: string, maxAgeMs = 120_000): boolean {
+export function isStale(key: string, maxAgeMs = 10_000): boolean {
   const entry = memoryCache.get(key)
   if (!entry) return true
   return Date.now() - entry.timestamp > maxAgeMs

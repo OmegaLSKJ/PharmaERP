@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
+import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 import { cn } from '../../../lib/utils'
 
 interface HsnItem {
@@ -79,6 +80,10 @@ export default function HsnList() {
   useEffect(() => {
     void loadItems()
   }, [])
+
+  useErpAutoRefresh(['hsn'], () => {
+    void loadItems()
+  })
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()

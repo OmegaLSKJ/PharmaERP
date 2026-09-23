@@ -22,6 +22,7 @@ import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface Item {
   id: string
@@ -85,19 +86,9 @@ export default function ItemList() {
 
   useEffect(() => {
     loadItems()
-    const handleRevalidation = (event: Event) => {
-      const customEvent = event as CustomEvent<{ resource?: string }>
-      if (!customEvent.detail?.resource || customEvent.detail.resource === 'items' || customEvent.detail.resource === 'item-batches') {
-        loadItems(true)
-      }
-    }
-    window.addEventListener('erp-cache-revalidated', handleRevalidation)
-    window.addEventListener('erp-resource-mutated', handleRevalidation)
-    return () => {
-      window.removeEventListener('erp-cache-revalidated', handleRevalidation)
-      window.removeEventListener('erp-resource-mutated', handleRevalidation)
-    }
   }, [loadItems])
+
+  useErpAutoRefresh(['items', 'item-batches', 'manufacturers', 'salts', 'hsn'], () => loadItems(true))
 
   const categories = useMemo(() => ['all', ...new Set(items.map((i) => i.category))], [items])
 

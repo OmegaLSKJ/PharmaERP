@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, Download, Filter } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
@@ -6,6 +6,7 @@ import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface StockItem {
   id: string
@@ -31,8 +32,8 @@ export default function StockView() {
   const [locationFilter, setLocationFilter] = useState('all')
   const showToast = useUIStore((s) => s.showToast)
 
-  useEffect(() => {
-    getErp<any[]>('items')
+  const loadStock = useCallback((force = false) => {
+    getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
       .then((items) => {
         const list = items.flatMap((item) =>
           (item.batches ?? []).flatMap((batch: any) => {
@@ -61,6 +62,12 @@ export default function StockView() {
       })
       .catch((e) => showToast(e.message))
   }, [showToast])
+
+  useEffect(() => {
+    loadStock()
+  }, [loadStock])
+
+  useErpAutoRefresh(['items', 'stock', 'item-batches', 'sales', 'purchases'], () => loadStock(true))
 
   const locations = ['all', ...new Set(stockData.map((s) => s.location))]
 

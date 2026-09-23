@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -24,6 +24,7 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface SaleLine {
   id?: string
@@ -87,10 +88,10 @@ export default function SaleRegister() {
   const addToast = useUIStore((s) => s.addToast)
   const navigate = useNavigate()
 
-  useEffect(() => {
+  const loadSales = useCallback((force = false) => {
     Promise.all([
-      getErp<any[]>('sales'),
-      getErp<any[]>('parties').catch(() => [])
+      getErp<any[]>('sales', undefined, force ? { forceRefresh: true } : undefined),
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined).catch(() => [])
     ])
       .then(([rows, partyRows]) => {
         setParties(partyRows || [])
@@ -124,6 +125,12 @@ export default function SaleRegister() {
       .catch((e) => addToast(e.message, 'error'))
       .finally(() => setLoading(false))
   }, [addToast])
+
+  useEffect(() => {
+    loadSales()
+  }, [loadSales])
+
+  useErpAutoRefresh(['sales', 'parties'], () => loadSales(true))
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
