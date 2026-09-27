@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle } from 'lucide-react'
+import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -42,7 +42,9 @@ interface EditableLine {
 
 const STATUS_STYLE: Record<string, string> = {
   received: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
+  posted: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-semibold shadow-2xs',
   pending: 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-semibold shadow-2xs',
+  draft: 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-semibold shadow-2xs',
   partial: 'bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-semibold shadow-2xs',
   cancelled: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs',
 }
@@ -55,6 +57,7 @@ export default function PurchaseRegister() {
   const [editLines, setEditLines] = useState<EditableLine[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'pending' | 'partial' | 'cancelled'>('all')
   const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
   const addToast = useUIStore((s) => s.addToast)
 
@@ -81,7 +84,7 @@ export default function PurchaseRegister() {
             supplier: row.party,
             items: row.items || row.lines?.length || 1,
             total: row.total,
-            status: row.status || 'received',
+            status: row.status === 'posted' ? 'received' : (row.status === 'draft' ? 'pending' : (row.status || 'received')),
             lines: row.lines || [],
           }))
         )
@@ -95,12 +98,26 @@ export default function PurchaseRegister() {
 
   useErpAutoRefresh(['purchases', 'parties'], () => loadPurchases(true))
 
-  const filtered = purchases.filter(
-    (s) =>
+  const statusCounts = {
+    all: purchases.length,
+    received: purchases.filter((p) => p.status === 'received' || p.status === 'posted').length,
+    pending: purchases.filter((p) => p.status === 'pending' || p.status === 'draft').length,
+    partial: purchases.filter((p) => p.status === 'partial').length,
+    cancelled: purchases.filter((p) => p.status === 'cancelled').length,
+  }
+
+  const filtered = purchases.filter((s) => {
+    const matchesSearch =
       s.supplier.toLowerCase().includes(search.toLowerCase()) ||
       s.challanNo.toLowerCase().includes(search.toLowerCase()) ||
       s.invoiceNo.toLowerCase().includes(search.toLowerCase())
-  )
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'received' ? (s.status === 'received' || s.status === 'posted') :
+       statusFilter === 'pending' ? (s.status === 'pending' || s.status === 'draft') :
+       s.status === statusFilter)
+    return matchesSearch && matchesStatus
+  })
   const totalVal = filtered.reduce((a, s) => a + s.total, 0)
 
   const handlePrint = (inv: PurchaseInv) => {
@@ -108,6 +125,28 @@ export default function PurchaseRegister() {
     setTimeout(() => {
       window.print()
     }, 150)
+  }
+
+  const updatePurchaseStatus = async (invoice: PurchaseInv, newStatus: string) => {
+    if (invoice.status === newStatus) return
+    try {
+      await patchErp('purchases', invoice.id, {
+        status: newStatus,
+        reason: `Status changed to ${newStatus}`,
+      })
+      setPurchases((rows) =>
+        rows.map((row) => (row.id === invoice.id ? { ...row, status: newStatus } : row))
+      )
+      setSelected((current) =>
+        current?.id === invoice.id ? { ...current, status: newStatus } : current
+      )
+      addToast(
+        `Purchase ${invoice.challanNo} status updated to ${newStatus === 'received' ? 'Received (Goods Inwarded)' : newStatus.toUpperCase()}.`,
+        'success'
+      )
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not update status.', 'error')
+    }
   }
 
   const cancelPurchase = async (invoice: PurchaseInv) => {
@@ -384,15 +423,44 @@ export default function PurchaseRegister() {
             <Plus size={15} /> New Purchase
           </a>
         </div>
-        <div className="relative w-full sm:max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by challan or supplier..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 flex-wrap">
+          <div className="relative w-full sm:max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by challan or supplier..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {(['all', 'received', 'pending', 'partial', 'cancelled'] as const).map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStatusFilter(st)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer',
+                  statusFilter === st
+                    ? 'bg-primary text-primary-foreground shadow-2xs'
+                    : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                <span>{st === 'all' ? 'All Orders' : st}</span>
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-full text-[10px] font-mono',
+                    statusFilter === st
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {statusCounts[st]}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
           <table className="min-w-[700px] w-full text-xs">
@@ -426,17 +494,34 @@ export default function PurchaseRegister() {
                   <td className="px-4 py-3 text-right font-mono text-muted-foreground">{s.items}</td>
                   <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(s.total)}</td>
                   <td className="px-4 py-3">
-                    <span
+                    <select
+                      aria-label={`Change status of ${s.challanNo}`}
+                      value={s.status}
+                      onChange={(e) => void updatePurchaseStatus(s, e.target.value)}
                       className={cn(
-                        'px-2.5 py-0.5 rounded-full text-[10px] font-semibold capitalize',
+                        'px-2.5 py-1 rounded-full text-xs font-semibold capitalize border outline-none cursor-pointer transition shadow-2xs',
                         STATUS_STYLE[s.status] || STATUS_STYLE.received
                       )}
                     >
-                      {s.status}
-                    </span>
+                      <option value="received" className="bg-card text-foreground">Received</option>
+                      <option value="pending" className="bg-card text-foreground">Pending</option>
+                      <option value="partial" className="bg-card text-foreground">Partial</option>
+                      <option value="cancelled" className="bg-card text-foreground">Cancelled</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1.5 items-center">
+                      {s.status !== 'received' && s.status !== 'cancelled' && (
+                        <button
+                          type="button"
+                          aria-label={`Mark ${s.challanNo} as Received`}
+                          onClick={() => void updatePurchaseStatus(s, 'received')}
+                          className="p-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/60 rounded-md transition cursor-pointer shadow-2xs"
+                          title="Mark Order as Received (Goods Received into Stock)"
+                        >
+                          <CheckCircle2 size={15} />
+                        </button>
+                      )}
                       <button
                         aria-label={`Open ${s.challanNo} in new window`}
                         onClick={() => openTransactionWindow(`/transactions/purchase/edit/${encodeURIComponent(s.challanNo)}`)}
@@ -567,6 +652,7 @@ export default function PurchaseRegister() {
                   <option value="received">Received</option>
                   <option value="pending">Pending</option>
                   <option value="partial">Partial</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
             </div>

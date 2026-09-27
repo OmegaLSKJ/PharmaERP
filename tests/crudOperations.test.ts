@@ -456,4 +456,35 @@ describe('Comprehensive Master CRUD Operations & Persistence', () => {
     expect(found).toBeDefined()
     expect(found.status).toBe('delivered')
   })
+
+  it('updates purchase order / challan status to received when goods arrive', async () => {
+    const challanNo = `PB-REC-${Date.now()}`
+    const supplierInvoice = `G-${Date.now().toString().slice(-6)}`
+    const created: any = await create('purchases', {
+      id: challanNo,
+      number: challanNo,
+      supplierInvoice,
+      party: 'ATISH PHARMACEUTICALS TE',
+      date: '2026-09-27',
+      status: 'pending',
+      total: 1000,
+      lines: [
+        { name: 'DOLOFRESH SP TAB', batch: 'T99001', qty: 10, freeQty: 0, rate: 20, disc: 0, gst: 5, amount: 210 }
+      ]
+    })
+    expect(created).toBeDefined()
+
+    // Update status to received
+    const updated: any = await update('purchases', created.id || challanNo, {
+      status: 'received'
+    })
+    expect(updated).toBeDefined()
+    expect(updated.status === 'received' || updated.status === 'posted').toBe(true)
+
+    // Verify list reflects received status
+    const allPurchases: any = await list('purchases')
+    const found = allPurchases.find((p: any) => p.id === challanNo || p.number === challanNo)
+    expect(found).toBeDefined()
+    expect(found.status === 'received' || found.status === 'posted').toBe(true)
+  })
 })

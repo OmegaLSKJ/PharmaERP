@@ -2205,7 +2205,7 @@ export async function list(resource: string, partyName?: string, options?: { man
       supplierInvoice: v.supplier_invoice_number ?? '',
       party: v.parties?.legal_name ?? '',
       date: v.invoice_date,
-      status: v.status === 'posted' ? 'received' : v.status,
+      status: v.status === 'posted' ? 'received' : (v.status === 'draft' ? 'pending' : (v.status || 'received')),
       items: Number(v.purchase_invoice_lines?.length ?? 0),
       total: Number(v.grand_total),
       lines: (v.purchase_invoice_lines ?? []).map((l: any) => {
@@ -3837,9 +3837,9 @@ export async function update(resource: string, id: string, body: any, actor: Mut
 
     const partyId = body.party || body.supplier ? await party(client, organizationId, body.party || body.supplier, 'supplier') : invoice.party_id
     const grandTotal = Number(body.grandTotal ?? body.total ?? invoice.grand_total)
-    const subtotal = Number(body.subtotal ?? grandTotal)
-    const taxTotal = Number(body.taxTotal ?? 0)
-    const discountTotal = Number(body.discountTotal ?? 0)
+    const subtotal = Number(body.subtotal ?? invoice.subtotal ?? grandTotal)
+    const taxTotal = Number(body.taxTotal ?? invoice.tax_total ?? 0)
+    const discountTotal = Number(body.discountTotal ?? invoice.discount_total ?? 0)
     const invoiceDate = body.date || invoice.invoice_date
     const supplierInvoiceNumber = body.supplierInvoice || body.invoiceNo || body.supplier_invoice_number || invoice.supplier_invoice_number
 
@@ -3853,7 +3853,15 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       grand_total: grandTotal,
     }
     if (body.status) {
-      updateFields.status = body.status === 'received' ? 'posted' : body.status
+      if (body.status === 'received' || body.status === 'posted') {
+        updateFields.status = 'posted'
+      } else if (body.status === 'pending') {
+        updateFields.status = 'draft'
+      } else if (body.status === 'cancelled') {
+        updateFields.status = 'cancelled'
+      } else {
+        updateFields.status = body.status
+      }
     }
 
     if (Array.isArray(body.lines) && body.lines.length > 0) {

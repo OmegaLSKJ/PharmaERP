@@ -104,6 +104,7 @@ export default function PurchaseEntry() {
   const [invoiceNo, setInvoiceNo] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [orderStatus, setOrderStatus] = useState<string>('received')
   const [items, setItems] = useState<LineItem[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(0)
   const [showItemSearch, setShowItemSearch] = useState(false)
@@ -238,6 +239,7 @@ export default function PurchaseEntry() {
           setInvoiceNo(found.supplierInvoice || found.invoiceNo || found.number || editPurchaseId)
           setInvoiceDate(found.date || new Date().toISOString().slice(0, 10))
           if (found.entryDate) setEntryDate(found.entryDate)
+          if (found.status) setOrderStatus(found.status === 'posted' ? 'received' : found.status)
 
           if (found.lines && found.lines.length > 0) {
             const mapped: LineItem[] = found.lines.map((l: any, idx: number) => {
@@ -454,6 +456,7 @@ export default function PurchaseEntry() {
         party: supplier,
         supplierInvoice: invoiceNo,
         date: invoiceDate,
+        status: orderStatus,
         subtotal,
         taxTotal: totalGst,
         total: grandTotal,
@@ -488,11 +491,12 @@ export default function PurchaseEntry() {
         loadSuppliersAndItems(true)  // refresh stock after edit
       } else {
         const saved = await postErp<{ id: string }>('purchases', payload)
-        addToast(`Purchase ${saved.id} posted — stock updated`, 'success')
+        addToast(`Purchase ${saved.id} posted — status: ${orderStatus === 'received' ? 'Received' : orderStatus}`, 'success')
         setItems([])
         setSupplier('')
         setInvoiceNo('')
         setInvoiceDate('')
+        setOrderStatus('received')
         loadSuppliersAndItems(true)  // refresh stock after save
       }
     } catch (error) {
@@ -702,7 +706,7 @@ export default function PurchaseEntry() {
 
       {/* Header Fields Panel */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="sm:col-span-2">
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-muted-foreground uppercase">Supplier / Vendor *</label>
@@ -756,6 +760,18 @@ export default function PurchaseEntry() {
               onKeyDown={(e) => e.key === 'Enter' && setShowItemSearch(true)}
               className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg pl-3 pr-10 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Receipt Status</label>
+            <select
+              value={orderStatus}
+              onChange={(e) => setOrderStatus(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition shadow-2xs capitalize cursor-pointer font-medium"
+            >
+              <option value="received">Received (In Stock)</option>
+              <option value="pending">Pending (Order)</option>
+              <option value="partial">Partial</option>
+            </select>
           </div>
         </div>
       </div>

@@ -139,7 +139,9 @@ export default function Orders() {
                     <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
                     <option value="confirmed" className="bg-slate-900 text-blue-400">Confirmed</option>
                     <option value="dispatched" className="bg-slate-900 text-purple-400">Dispatched</option>
-                    <option value="delivered" className="bg-slate-900 text-emerald-400">Delivered / Complete</option>
+                    <option value="delivered" className="bg-slate-900 text-emerald-400">
+                      {o.type === 'Purchase' ? 'Received / Complete' : 'Delivered / Complete'}
+                    </option>
                     <option value="cancelled" className="bg-slate-900 text-rose-400">Cancelled</option>
                   </select>
                 </td>
@@ -150,7 +152,7 @@ export default function Orders() {
                         type="button"
                         onClick={() => void updateOrderStatus(o.id, 'delivered')}
                         className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/90 text-emerald-400 hover:text-emerald-300 border border-emerald-800/60 transition cursor-pointer"
-                        title="Mark as Complete (Delivered)"
+                        title={o.type === 'Purchase' ? 'Mark as Received (Goods Received)' : 'Mark as Complete (Delivered)'}
                       >
                         <CheckCircle2 size={14} />
                       </button>
