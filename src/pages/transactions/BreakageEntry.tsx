@@ -28,7 +28,7 @@ export default function BreakageEntry() {
   const saveEntry = async () => { if (!lines.length) { showToast('Add at least one stock line.'); return } setSaving(true); try { const saved = await postErp<{number:string}>('breakages', { entryType, date, remark, total:totalValue, lines }); showToast(`${saved.number} posted and inventory adjusted.`); setLines([]); setRemark('') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to post stock adjustment.') } finally { setSaving(false) } }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Breakage / Expiry Entry</h1>
@@ -48,37 +48,39 @@ export default function BreakageEntry() {
           <div className="flex items-end"><div className="bg-slate-950 border border-slate-800 rounded-lg p-2 w-full"><div className="text-[10px] text-slate-400 uppercase">Total Value</div><div className="text-lg font-bold text-amber-400">{formatCurrency(totalValue)}</div></div></div>
         </div>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-slate-800"><h3 className="text-sm font-semibold text-white">Items ({lines.length})</h3></div>
-        <table className="w-full text-xs">
-          <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">Expiry</th><th className="text-right px-4 py-3 font-medium">Days Left</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">Rate</th><th className="text-right px-4 py-3 font-medium">Value</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {lines.map((l, i) => {
-              const days = daysUntilExpiry(l.expiry)
-              return (<tr key={l.id} className="hover:bg-slate-900/30">
-                <td className="px-4 py-3 font-medium text-white">{l.name}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{l.expiry}</td>
-                <td className="px-4 py-3 text-right"><span className={cn('font-medium', days <= 30 ? 'text-red-400' : 'text-amber-400')}>{days}d</span></td>
-                <td className="px-4 py-3 text-right"><input type="number" value={l.qty} onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /></td>
-                <td className="px-4 py-3 text-right font-mono">{formatCurrency(l.rate)}</td>
-                <td className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(l.qty * l.rate)}</td>
-              </tr>)
-            })}
-            {lines.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">Select near-expiry items from the list below</td></tr>}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[650px]">
+            <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">Expiry</th><th className="text-right px-4 py-3 font-medium">Days Left</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">Rate</th><th className="text-right px-4 py-3 font-medium">Value</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {lines.map((l) => {
+                const days = daysUntilExpiry(l.expiry)
+                return (<tr key={l.id} className="hover:bg-slate-900/30">
+                  <td className="px-4 py-3 font-medium text-white">{l.name}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{l.expiry}</td>
+                  <td className="px-4 py-3 text-right"><span className={cn('font-medium', days <= 30 ? 'text-red-400' : 'text-amber-400')}>{days}d</span></td>
+                  <td className="px-4 py-3 text-right"><input type="number" value={l.qty} onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /></td>
+                  <td className="px-4 py-3 text-right font-mono">{formatCurrency(l.rate)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(l.qty * l.rate)}</td>
+                </tr>)
+              })}
+              {lines.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">Select near-expiry items from the list below</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-slate-800"><h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2"><AlertTriangle size={14} /> Near-Expiry Items</h3></div>
         <div className="divide-y divide-slate-800">
           {availableItems.map((item) => {
             const days = daysUntilExpiry(item.expiry)
-            return (<div key={item.batch} className="flex items-center justify-between px-4 py-3 hover:bg-slate-900/30">
+            return (<div key={item.batch} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 hover:bg-slate-900/30">
               <div><div className="text-sm font-medium text-white">{item.name}</div><div className="text-xs text-slate-500 font-mono">{item.batch} | Stock: {item.stock}</div></div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className={cn('text-xs font-semibold', days <= 30 ? 'text-red-400' : 'text-amber-400')}>{days}d left</span>
                 <span className="text-xs font-mono text-slate-400">Exp: {item.expiry}</span>
                 <button onClick={() => addItem(item)} className="px-3 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 rounded text-xs font-semibold transition">Add</button>

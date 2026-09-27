@@ -21,5 +21,62 @@ export default function DeliveryManagement() {
       .finally(() => setLoading(false))
   }, [])
   const visible = filter === 'all' ? rows : rows.filter((row) => row.status === filter)
-  return <div className="p-6 space-y-4"><div><h1 className="text-2xl font-bold tracking-tight text-white">Delivery Management</h1><p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><Truck size={14} className="text-cyan-400" />Live delivery challans from Supabase</p></div><div className="flex gap-2 flex-wrap">{['all','draft','dispatched','delivered','cancelled'].map((value) => <button key={value} onClick={() => setFilter(value)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize', filter === value ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400')}>{value}</button>)}</div><div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"><table className="w-full text-xs"><thead><tr className="bg-slate-900/80 text-slate-400 uppercase"><th className="text-left p-3">Challan</th><th className="text-left p-3">Customer</th><th className="text-right p-3">Items</th><th className="text-right p-3">Total</th><th className="text-left p-3">Transport</th><th className="text-left p-3">Status</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-slate-400">Loading live challans…</td></tr> : visible.map((row) => <tr key={row.id} className="border-t border-slate-800"><td className="p-3 font-mono text-white">{row.order}</td><td className="p-3">{row.customer}</td><td className="p-3 text-right">{row.items}</td><td className="p-3 text-right font-mono">{formatCurrency(row.total)}</td><td className="p-3">{row.transport}</td><td className={cn('p-3 capitalize font-semibold', colors[row.status] || 'text-slate-300')}>{row.status}</td></tr>)}{!loading && !visible.length && <tr><td colSpan={6} className="p-8 text-center text-slate-500">No delivery challans match this view.</td></tr>}</tbody></table></div></div>
+  return (
+    <div className="p-3 sm:p-6 space-y-4">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Delivery Management</h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center gap-2">
+          <Truck size={14} className="text-cyan-400" /> Live delivery challans from Supabase
+        </p>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {['all', 'draft', 'dispatched', 'delivered', 'cancelled'].map((value) => (
+          <button
+            key={value}
+            onClick={() => setFilter(value)}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors', filter === value ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200')}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[600px]">
+            <thead>
+              <tr className="bg-slate-900/80 text-slate-400 uppercase text-[11px]">
+                <th className="text-left p-3">Challan</th>
+                <th className="text-left p-3">Customer</th>
+                <th className="text-right p-3">Items</th>
+                <th className="text-right p-3">Total</th>
+                <th className="text-left p-3">Transport</th>
+                <th className="text-left p-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400">Loading live challans…</td>
+                </tr>
+              ) : visible.map((row) => (
+                <tr key={row.id} className="border-t border-slate-800 hover:bg-slate-800/30">
+                  <td className="p-3 font-mono text-white">{row.order}</td>
+                  <td className="p-3">{row.customer}</td>
+                  <td className="p-3 text-right">{row.items}</td>
+                  <td className="p-3 text-right font-mono">{formatCurrency(row.total)}</td>
+                  <td className="p-3">{row.transport}</td>
+                  <td className={cn('p-3 capitalize font-semibold', colors[row.status] || 'text-slate-300')}>{row.status}</td>
+                </tr>
+              ))}
+              {!loading && !visible.length && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-500">No delivery challans match this view.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
 }

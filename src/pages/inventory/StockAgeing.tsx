@@ -38,41 +38,43 @@ export default function StockAgeing() {
   ]
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <PrintHeader title="Stock Ageing & Expiry" />
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold tracking-tight text-white">Stock Ageing & Expiry</h1>
-          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><AlertTriangle size={14} className="text-amber-400" /> Near-expiry monitoring for pharma compliance</p></div>
-        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('stock-ageing', useUIStore.getState().company))} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"><Download size={16} /> Export</button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div><h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Stock Ageing & Expiry</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center gap-2"><AlertTriangle size={14} className="text-amber-400" /> Near-expiry monitoring for pharma compliance</p></div>
+        <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('stock-ageing', useUIStore.getState().company))} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs sm:text-sm font-medium transition border border-slate-700 w-fit cursor-pointer"><Download size={16} /> Export</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {summary.map(s => (<div key={s.label} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+        {summary.map(s => (<div key={s.label} className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 sm:p-4">
           <div className="text-[10px] text-slate-400 uppercase font-semibold">{s.label}</div>
-          <div className={cn('text-xl font-bold mt-1', s.color)}>{s.count} items</div>
-          <div className="text-xs text-slate-500 mt-0.5">Value: {formatCurrency(s.value)}</div></div>))}
+          <div className={cn('text-lg sm:text-xl font-bold mt-1', s.color)}>{s.count} items</div>
+          <div className="text-xs text-slate-500 mt-0.5 truncate">Value: {formatCurrency(s.value)}</div></div>))}
       </div>
       <div className="flex gap-2 flex-wrap">
         {groups.map(g => (<button key={g} onClick={() => setFilter(g)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition', filter === g ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{g === 'all' ? 'All' : g}</button>))}
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
-          <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">Expiry</th><th className="text-right px-4 py-3 font-medium">Days Left</th><th className="text-left px-4 py-3 font-medium">Age Group</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">MRP</th><th className="text-right px-4 py-3 font-medium">Value</th><th className="text-left px-4 py-3 font-medium">Location</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {filtered.map((d, i) => (<tr key={i} className="hover:bg-slate-900/30">
-              <td className="px-4 py-3 font-medium text-white">{d.name}</td>
-              <td className="px-4 py-3 font-mono text-slate-400">{d.batch}</td>
-              <td className="px-4 py-3 font-mono text-slate-400">{d.expiry}</td>
-              <td className="px-4 py-3 text-right font-bold"><span className={d.days <= 30 ? 'text-red-400' : d.days <= 90 ? 'text-amber-400' : 'text-slate-400'}>{d.days}</span></td>
-              <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', d.ageGroup.color)}>{d.ageGroup.label}</span></td>
-              <td className="px-4 py-3 text-right font-medium">{d.qty}</td>
-              <td className="px-4 py-3 text-right font-mono">{formatCurrency(d.mrp)}</td>
-              <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(d.qty * d.rate)}</td>
-              <td className="px-4 py-3 text-slate-400">{d.location}</td>
-            </tr>))}
-          </tbody>
-        </table>
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[750px]">
+            <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">Expiry</th><th className="text-right px-4 py-3 font-medium">Days Left</th><th className="text-left px-4 py-3 font-medium">Age Group</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">MRP</th><th className="text-right px-4 py-3 font-medium">Value</th><th className="text-left px-4 py-3 font-medium">Location</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {filtered.map((d, i) => (<tr key={i} className="hover:bg-slate-900/30">
+                <td className="px-4 py-3 font-medium text-white">{d.name}</td>
+                <td className="px-4 py-3 font-mono text-slate-400">{d.batch}</td>
+                <td className="px-4 py-3 font-mono text-slate-400">{d.expiry}</td>
+                <td className="px-4 py-3 text-right font-bold"><span className={d.days <= 30 ? 'text-red-400' : d.days <= 90 ? 'text-amber-400' : 'text-slate-400'}>{d.days}</span></td>
+                <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', d.ageGroup.color)}>{d.ageGroup.label}</span></td>
+                <td className="px-4 py-3 text-right font-medium">{d.qty}</td>
+                <td className="px-4 py-3 text-right font-mono">{formatCurrency(d.mrp)}</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(d.qty * d.rate)}</td>
+                <td className="px-4 py-3 text-slate-400">{d.location}</td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

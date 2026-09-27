@@ -119,15 +119,15 @@ export default function TdsTcs() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4">
       <PrintHeader title="TDS / TCS Tax Register" subtitle="Deductee &amp; Collector Tax Ledger | FY 2025-26" />
       {/* Title Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">TDS / TCS</h1>
           <p className="text-sm text-muted-foreground mt-1">Deductee &amp; collector ledger | FY 2025-26</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
@@ -151,7 +151,7 @@ export default function TdsTcs() {
       </div>
 
       {/* KPI stats cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { l: tab === 'tds' ? 'Total Deducted' : 'Total Collected', v: formatCurrency(totalTax), c: 'text-emerald-600 dark:text-emerald-400' },
           { l: 'Entries', v: String(rows.length), c: 'text-foreground' },
@@ -188,7 +188,8 @@ export default function TdsTcs() {
 
       {/* Ledger Table Grid */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[700px]">
           <thead>
             <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-semibold">Type</th>
@@ -232,6 +233,7 @@ export default function TdsTcs() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

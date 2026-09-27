@@ -32,7 +32,7 @@ export default function ReplacementEntry() {
   const saveReplacement = async () => { if (!party || !lines.length) { showToast('Party and at least one item are required.'); return } setSaving(true); try { const saved = await postErp<{number:string}>('replacements', { party, mode, date, remark, total:totalValue, lines }); showToast(`Replacement ${saved.number} saved.`); setLines([]); setRemark('') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to save replacement.') } finally { setSaving(false) } }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div><h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Replacement Entry</h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Issue or receive replacement stock</p></div>
@@ -62,20 +62,22 @@ export default function ReplacementEntry() {
           </button>))}
         </div>
       </div>
-      {lines.length > 0 && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
-          <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">Rate</th><th className="text-right px-4 py-3 font-medium">Value</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {lines.map(l => (<tr key={l.id} className="hover:bg-slate-900/30">
-              <td className="px-4 py-3 font-medium text-white">{l.name}</td><td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td>
-              <td className="px-4 py-3 text-right"><input type="number" value={l.qty} onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /></td>
-              <td className="px-4 py-3 text-right font-mono">{formatCurrency(l.rate)}</td>
-              <td className="px-4 py-3 text-right font-mono text-cyan-400">{formatCurrency(l.qty * l.rate)}</td>
-            </tr>))}
-          </tbody>
-        </table>
+      {lines.length > 0 && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[550px]">
+            <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">Rate</th><th className="text-right px-4 py-3 font-medium">Value</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {lines.map(l => (<tr key={l.id} className="hover:bg-slate-900/30">
+                <td className="px-4 py-3 font-medium text-white">{l.name}</td><td className="px-4 py-3 font-mono text-slate-400">{l.batch}</td>
+                <td className="px-4 py-3 text-right"><input type="number" value={l.qty} onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /></td>
+                <td className="px-4 py-3 text-right font-mono">{formatCurrency(l.rate)}</td>
+                <td className="px-4 py-3 text-right font-mono text-cyan-400">{formatCurrency(l.qty * l.rate)}</td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
       </div>)}
       <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Remark</label>
         <input type="text" value={remark} onChange={(e) => setRemark(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500" placeholder="Enter remark..." /></div>

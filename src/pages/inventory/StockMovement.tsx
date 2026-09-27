@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Save, ArrowLeftRight } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect } from 'react'
@@ -33,13 +33,13 @@ export default function StockMovement() {
   const saveTransfer = async () => { if (!movements.length) { showToast('Add at least one transfer line.'); return } setSaving(true); try { const saved = await postErp<{ id: string }>('stock-transfers', { date, lines: movements }); showToast(`Transfer ${saved.id} posted.`); setMovements([]) } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to post transfer.') } finally { setSaving(false) } }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold tracking-tight text-white">Stock Movement</h1>
-          <p className="text-sm text-slate-400 mt-1 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Inter-godown / store transfer</p></div>
-        <button onClick={saveTransfer} disabled={saving || !movements.length} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-md transition"><Save size={16} /> {saving ? 'Posting…' : 'Save Transfer'}</button>
+    <div className="p-3 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div><h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Stock Movement</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center gap-2"><ArrowLeftRight size={14} className="text-cyan-400" /> Inter-godown / store transfer</p></div>
+        <button onClick={saveTransfer} disabled={saving || !movements.length} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition cursor-pointer"><Save size={16} /> {saving ? 'Posting…' : 'Save Transfer'}</button>
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 sm:p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div><label className="block text-xs font-semibold text-slate-400 uppercase mb-1">From Location</label>
             <select value={fromLoc} onChange={(e) => setFromLoc(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500">
@@ -50,37 +50,39 @@ export default function StockMovement() {
               {locations.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
         </div>
       </div>
-      {fromLoc !== toLoc && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      {fromLoc !== toLoc && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-slate-800"><h3 className="text-sm font-semibold text-white">Available in {fromLoc}</h3></div>
         <div className="divide-y divide-slate-800">
           {availableItems.filter(i => (i.stock[fromLoc] || 0) > 0).map(item => {
             const avail = item.stock[fromLoc] || 0
-            return (<div key={item.batch} className="flex items-center justify-between px-4 py-3 hover:bg-slate-900/30">
+            return (<div key={item.batch} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 hover:bg-slate-900/30">
               <div><div className="text-sm font-medium text-white">{item.name}</div><div className="text-xs text-slate-500 font-mono">{item.batch}</div></div>
               <div className="flex items-center gap-3"><span className="text-xs text-slate-400">Avail: {avail}</span>
-                <button onClick={() => addMovement(item)} className="px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded text-xs font-semibold transition">Transfer</button>
+                <button onClick={() => addMovement(item)} className="px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded text-xs font-semibold transition cursor-pointer">Transfer</button>
               </div>
             </div>)
           })}
         </div>
       </div>)}
-      {movements.length > 0 && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      {movements.length > 0 && (<div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-slate-800"><h3 className="text-sm font-semibold text-white">Transfer Queue ({movements.length})</h3></div>
-        <table className="w-full text-xs">
-          <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">From</th><th className="text-center px-4 py-3 font-medium"><ArrowLeftRight size={12} /></th><th className="text-left px-4 py-3 font-medium">To</th><th className="text-right px-4 py-3 font-medium">Qty</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {movements.map(m => (<tr key={m.id} className="hover:bg-slate-900/30">
-              <td className="px-4 py-3 font-medium text-white">{m.itemName}</td>
-              <td className="px-4 py-3 font-mono text-slate-400">{m.batch}</td>
-              <td className="px-4 py-3 text-cyan-400">{m.from}</td>
-              <td className="px-4 py-3 text-center text-slate-500"><ArrowLeftRight size={12} /></td>
-              <td className="px-4 py-3 text-purple-400">{m.to}</td>
-              <td className="px-4 py-3 text-right"><input type="number" min="1" value={m.qty} onChange={(e) => updateMovement(m.id, Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /><button aria-label={`Remove ${m.itemName}`} onClick={() => removeMovement(m.id)} className="ml-2 text-rose-400">×</button></td>
-            </tr>))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[550px]">
+            <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-left px-4 py-3 font-medium">From</th><th className="text-center px-4 py-3 font-medium"><ArrowLeftRight size={12} /></th><th className="text-left px-4 py-3 font-medium">To</th><th className="text-right px-4 py-3 font-medium">Qty</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {movements.map(m => (<tr key={m.id} className="hover:bg-slate-900/30">
+                <td className="px-4 py-3 font-medium text-white">{m.itemName}</td>
+                <td className="px-4 py-3 font-mono text-slate-400">{m.batch}</td>
+                <td className="px-4 py-3 text-cyan-400">{m.from}</td>
+                <td className="px-4 py-3 text-center text-slate-500"><ArrowLeftRight size={12} /></td>
+                <td className="px-4 py-3 text-purple-400">{m.to}</td>
+                <td className="px-4 py-3 text-right"><input type="number" min="1" value={m.qty} onChange={(e) => updateMovement(m.id, Number(e.target.value))} className="w-16 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white outline-none" /><button aria-label={`Remove ${m.itemName}`} onClick={() => removeMovement(m.id)} className="ml-2 text-rose-400">×</button></td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
       </div>)}
     </div>
   )

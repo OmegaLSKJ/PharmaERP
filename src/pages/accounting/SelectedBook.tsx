@@ -116,23 +116,23 @@ export default function SelectedBook() {
   const currentBook = BOOK_TYPES.find((b) => b.key === selectedType) ?? BOOK_TYPES[0]
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
       <PrintHeader title={`${currentBook.label} — Selected Book`} />
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <BookOpen size={22} className="text-indigo-400" />
             Excel Book View
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Spreadsheet view for receipts, payments, sales, purchases, challans, and vouchers
           </p>
         </div>
         <button
           onClick={() => exportVisibleTables('selected-book', useUIStore.getState().company)}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs sm:text-sm font-medium transition border border-slate-700"
         >
           <Download size={16} /> Export Excel (CSV)
         </button>
@@ -181,7 +181,7 @@ export default function SelectedBook() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'Entries', value: filtered.length, mono: false },
           { label: 'Total Debit', value: formatCurrency(totalDr), mono: true },
@@ -195,14 +195,15 @@ export default function SelectedBook() {
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <h2 className={cn('text-sm font-bold px-3 py-1 rounded-lg border', currentBook.color)}>
             {currentBook.label}
           </h2>
           <span className="text-xs text-slate-500">{filtered.length} records</span>
         </div>
-        <table className="w-full text-xs border-collapse" id="selected-book">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse min-w-[750px]" id="selected-book">
           <thead className="sticky top-0 z-10">
             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-medium">Date</th>
@@ -266,6 +267,7 @@ export default function SelectedBook() {
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   )

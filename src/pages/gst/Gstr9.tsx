@@ -78,14 +78,14 @@ export default function Gstr9() {
   const totalTaxable = tables.reduce((a, t) => a + t.taxable, 0)
   const totalTax = tables.reduce((a, t) => a + t.tax, 0)
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4">
       <PrintHeader title="GSTR-9 Annual Return" subtitle="FY 2025-26 | Consolidated Annual GST Return" />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">GSTR-9 (Annual Return)</h1>
           <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Consolidated annual GST return</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
@@ -111,7 +111,7 @@ export default function Gstr9() {
 
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { l: 'Total Taxable', v: formatCurrency(totalTaxable), c: 'text-blue-600 dark:text-blue-400' },
           { l: 'Total Tax', v: formatCurrency(totalTax), c: 'text-emerald-600 dark:text-emerald-400' },
@@ -126,7 +126,8 @@ export default function Gstr9() {
 
       {/* Main Tables Grid */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[650px]">
           <thead>
             <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="w-16 text-left px-4 py-3 font-medium">Table</th>
@@ -159,6 +160,7 @@ export default function Gstr9() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

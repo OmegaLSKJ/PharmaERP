@@ -434,7 +434,7 @@ export default function PurchaseRegister() {
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-2xs transition"
             />
           </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="w-full min-w-0 sm:w-auto flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {(['all', 'received', 'pending', 'partial', 'cancelled'] as const).map((st) => (
               <button
                 key={st}

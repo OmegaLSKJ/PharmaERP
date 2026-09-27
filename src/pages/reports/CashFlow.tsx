@@ -30,25 +30,25 @@ export default function CashFlow() {
     { title: 'Financing Activities', rows: cashFlow.financing, net: finNet, color: 'text-purple-600 dark:text-purple-400' },
   ]
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <PrintHeader title="Cash Flow Statement" />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Cash Flow Statement</h1>
-          <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Indirect Method</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Cash Flow Statement</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 | Indirect Method</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={15} /> Export PDF
           </button>
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('cash-flow', useUIStore.getState().company))}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20 cursor-pointer"
           >
-            <Download size={16} /> Export Excel
+            <Download size={15} /> Export Excel
           </button>
         </div>
       </div>
@@ -56,55 +56,59 @@ export default function CashFlow() {
       {sections.map((s) => (
         <div key={s.title} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className={cn('text-sm font-semibold uppercase px-4 py-3 bg-secondary/50 border-b border-border', s.color)}>{s.title}</div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
-                <th className="text-left px-4 py-2 font-semibold">Particulars</th>
-                <th className="text-right px-4 py-2 font-semibold w-48">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-foreground">
-              {s.rows.map((r) => (
-                <tr key={r.item} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-2.5 pl-6 text-foreground">{r.item}</td>
-                  <td className={cn('px-4 py-2.5 text-right font-mono font-medium', r.inflow > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                    {r.inflow > 0 ? '+' : '-'}{formatCurrency(Math.abs(r.inflow || r.outflow))}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[300px]">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
+                  <th className="text-left px-4 py-2 font-semibold">Particulars</th>
+                  <th className="text-right px-4 py-2 font-semibold w-48">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-secondary/30 font-bold border-t border-border">
-                <td className="px-4 py-3 text-foreground">Net from {s.title}</td>
-                <td className={cn('px-4 py-3 text-right font-mono', s.color)}>{formatCurrency(s.net)}</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground">
+                {s.rows.map((r) => (
+                  <tr key={r.item} className="hover:bg-secondary/20 transition-colors">
+                    <td className="px-4 py-2.5 pl-6 text-foreground">{r.item}</td>
+                    <td className={cn('px-4 py-2.5 text-right font-mono font-medium', r.inflow > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                      {r.inflow > 0 ? '+' : '-'}{formatCurrency(Math.abs(r.inflow || r.outflow))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-secondary/30 font-bold border-t border-border">
+                  <td className="px-4 py-3 text-foreground">Net from {s.title}</td>
+                  <td className={cn('px-4 py-3 text-right font-mono', s.color)}>{formatCurrency(s.net)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       ))}
 
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="text-sm font-semibold uppercase px-4 py-3 bg-secondary/50 border-b border-border text-foreground">Cash Reconciliation</div>
-        <table className="w-full text-xs">
-          <tbody className="divide-y divide-border text-foreground">
-            <tr className="hover:bg-secondary/20 transition-colors">
-              <td className="px-4 py-2.5 pl-6 text-muted-foreground">Opening Cash &amp; Bank</td>
-              <td className="px-4 py-2.5 text-right font-mono text-foreground font-medium">{formatCurrency(openingCash)}</td>
-            </tr>
-            <tr className="hover:bg-secondary/20 transition-colors">
-              <td className="px-4 py-2.5 pl-6 text-muted-foreground">Net Change in Cash</td>
-              <td className={cn('px-4 py-2.5 text-right font-mono font-bold', netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                {formatCurrency(netChange)}
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr className="bg-secondary/30 font-bold border-t border-border text-foreground">
-              <td className="px-4 py-3 text-sm">Closing Cash &amp; Bank</td>
-              <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(openingCash + netChange)}</td>
-            </tr>
-          </tfoot>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[300px]">
+            <tbody className="divide-y divide-border text-foreground">
+              <tr className="hover:bg-secondary/20 transition-colors">
+                <td className="px-4 py-2.5 pl-6 text-muted-foreground">Opening Cash &amp; Bank</td>
+                <td className="px-4 py-2.5 text-right font-mono text-foreground font-medium">{formatCurrency(openingCash)}</td>
+              </tr>
+              <tr className="hover:bg-secondary/20 transition-colors">
+                <td className="px-4 py-2.5 pl-6 text-muted-foreground">Net Change in Cash</td>
+                <td className={cn('px-4 py-2.5 text-right font-mono font-bold', netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                  {formatCurrency(netChange)}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr className="bg-secondary/30 font-bold border-t border-border text-foreground">
+                <td className="px-4 py-3 text-sm">Closing Cash &amp; Bank</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(openingCash + netChange)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   )

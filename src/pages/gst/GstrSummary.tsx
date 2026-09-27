@@ -113,15 +113,15 @@ export default function GstrSummary() {
   const totalCount = rows.reduce((a, r) => a + r.count, 0)
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4">
       <PrintHeader title="GSTR-1 Category Summary" subtitle="Return Period: March 2026 | Outward supply category breakdown" />
       {/* Title Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">GSTR-1 Summary</h1>
           <p className="text-sm text-muted-foreground mt-1">March 2026 | Outward supply breakdown by category</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
@@ -144,7 +144,7 @@ export default function GstrSummary() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { l: 'Total Invoices', v: String(totalCount), c: 'text-foreground' },
           { l: 'Total Taxable', v: formatCurrency(totalTaxable), c: 'text-blue-600 dark:text-blue-400' },
@@ -159,7 +159,8 @@ export default function GstrSummary() {
 
       {/* GSTR-1 Summary Grid Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[750px]">
           <thead>
             <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-semibold">Description</th>
@@ -212,6 +213,7 @@ export default function GstrSummary() {
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   )

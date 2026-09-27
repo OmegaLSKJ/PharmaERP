@@ -234,14 +234,14 @@ export default function ProfitLoss() {
   }, [activePeriod, fromDate, toDate])
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <PrintHeader title="Profit & Loss Statement" subtitle={periodSubtitle} />
 
       {/* Screen Header */}
       <div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Profit &amp; Loss Statement</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{periodSubtitle}</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Profit &amp; Loss Statement</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{periodSubtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -460,32 +460,34 @@ export default function ProfitLoss() {
               {formatCurrency(financials.totalIncome)}
             </span>
           </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
-                <th className="text-left px-4 py-2.5 font-semibold">Ledger Particulars</th>
-                <th className="text-right px-4 py-2.5 font-semibold w-48">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-foreground">
-              {financials.incomeItems.map((i) => (
-                <tr key={i.item} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-2.5 pl-6 text-foreground font-medium">{i.item}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                    {formatCurrency(i.amount)}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[300px]">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
+                  <th className="text-left px-4 py-2.5 font-semibold">Ledger Particulars</th>
+                  <th className="text-right px-4 py-2.5 font-semibold w-48">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground">
+                {financials.incomeItems.map((i) => (
+                  <tr key={i.item} className="hover:bg-secondary/20 transition-colors">
+                    <td className="px-4 py-2.5 pl-6 text-foreground font-medium">{i.item}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {formatCurrency(i.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-secondary/30 font-bold border-t border-border">
+                  <td className="px-4 py-3 text-foreground">Total Income &amp; Stock Value</td>
+                  <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(financials.totalIncome)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-secondary/30 font-bold border-t border-border">
-                <td className="px-4 py-3 text-foreground">Total Income &amp; Stock Value</td>
-                <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(financials.totalIncome)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+              </tfoot>
+            </table>
+          </div>
         </div>
 
         {/* Expenses Card Table */}
@@ -496,59 +498,63 @@ export default function ProfitLoss() {
               {formatCurrency(financials.totalExpenses)}
             </span>
           </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
-                <th className="text-left px-4 py-2.5 font-semibold">Ledger Particulars</th>
-                <th className="text-right px-4 py-2.5 font-semibold w-48">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-foreground">
-              {financials.expenseItems.map((i) => (
-                <tr key={i.item} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-2.5 pl-6 text-foreground font-medium">{i.item}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">
-                    {formatCurrency(i.amount)}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[300px]">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground uppercase tracking-wider bg-secondary/20">
+                  <th className="text-left px-4 py-2.5 font-semibold">Ledger Particulars</th>
+                  <th className="text-right px-4 py-2.5 font-semibold w-48">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground">
+                {financials.expenseItems.map((i) => (
+                  <tr key={i.item} className="hover:bg-secondary/20 transition-colors">
+                    <td className="px-4 py-2.5 pl-6 text-foreground font-medium">{i.item}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">
+                      {formatCurrency(i.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-secondary/30 font-bold border-t border-border">
+                  <td className="px-4 py-3 text-foreground">Total Cost &amp; Expenses</td>
+                  <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">
+                    {formatCurrency(financials.totalExpenses)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-secondary/30 font-bold border-t border-border">
-                <td className="px-4 py-3 text-foreground">Total Cost &amp; Expenses</td>
-                <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">
-                  {formatCurrency(financials.totalExpenses)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* Net Summary Card */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-xs">
-          <tfoot>
-            <tr
-              className={cn(
-                'font-bold text-sm bg-secondary/20',
-                financials.netProfit >= 0
-                  ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
-                  : 'text-rose-600 dark:text-rose-400 bg-rose-500/10'
-              )}
-            >
-              <td className="px-4 py-3.5 text-base">
-                Net {financials.netProfit >= 0 ? 'Profit' : 'Loss'} for the Period
-                <span className="text-xs font-normal ml-2 opacity-80">({periodSubtitle})</span>
-              </td>
-              <td className="px-4 py-3.5 text-right font-mono text-xl">
-                {financials.netProfit >= 0
-                  ? formatCurrency(financials.netProfit)
-                  : `- ${formatCurrency(Math.abs(financials.netProfit))}`}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[300px]">
+            <tfoot>
+              <tr
+                className={cn(
+                  'font-bold text-sm bg-secondary/20',
+                  financials.netProfit >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                    : 'text-rose-600 dark:text-rose-400 bg-rose-500/10'
+                )}
+              >
+                <td className="px-4 py-3.5 text-base">
+                  Net {financials.netProfit >= 0 ? 'Profit' : 'Loss'} for the Period
+                  <span className="text-xs font-normal ml-2 opacity-80">({periodSubtitle})</span>
+                </td>
+                <td className="px-4 py-3.5 text-right font-mono text-xl">
+                  {financials.netProfit >= 0
+                    ? formatCurrency(financials.netProfit)
+                    : `- ${formatCurrency(Math.abs(financials.netProfit))}`}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   )

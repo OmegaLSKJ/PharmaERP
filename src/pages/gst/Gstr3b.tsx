@@ -113,15 +113,15 @@ export default function Gstr3b() {
   const reverseCharge = sections[3]?.totalTax || 0
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-6">
       <PrintHeader title="GSTR-3B Monthly Return" subtitle={`${month} | Monthly Summary Return & Tax Liability`} />
       {/* Title block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">GSTR-3B</h1>
           <p className="text-sm text-muted-foreground mt-1">{month} | Monthly Summary Return</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
@@ -179,7 +179,8 @@ export default function Gstr3b() {
             <Calculator size={14} /> 3.1 - Outward Supplies & Inward Supplies (Reverse Charge)
           </h3>
         </div>
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[550px]">
           <thead>
             <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-semibold">Description</th>
@@ -209,6 +210,7 @@ export default function Gstr3b() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Exempt Breakdown */}

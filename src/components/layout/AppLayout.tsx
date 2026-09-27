@@ -61,9 +61,9 @@ export default function AppLayout() {
       )}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Ambient background glow */}
-        <div className="no-print print:hidden pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          <div className="absolute -top-40 right-[10%] w-[560px] h-[360px] rounded-full bg-blue-600/[0.06] blur-[120px]" />
-          <div className="absolute bottom-[-160px] left-[20%] w-[480px] h-[320px] rounded-full bg-emerald-600/[0.04] blur-[110px]" />
+        <div className="no-print print:hidden pointer-events-none absolute inset-0 overflow-hidden max-w-full" aria-hidden>
+          <div className="hidden sm:block absolute -top-40 right-[10%] w-[560px] h-[360px] rounded-full bg-blue-600/[0.06] blur-[120px]" />
+          <div className="hidden sm:block absolute bottom-[-160px] left-[20%] w-[480px] h-[320px] rounded-full bg-emerald-600/[0.04] blur-[110px]" />
         </div>
         <div className="no-print print:hidden shrink-0" data-no-print>
           <Topbar />

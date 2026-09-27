@@ -53,15 +53,15 @@ export default function SalesAnalytics() {
   }, [monthlySales, dateScaleFactor])
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <PrintHeader title="Sales Analytics & Intelligence" subtitle="FY 2025-26 | Comprehensive sales intelligence" />
       {/* Title Block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Sales Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Comprehensive sales intelligence</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Sales Analytics</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 | Comprehensive sales intelligence</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
@@ -70,7 +70,7 @@ export default function SalesAnalytics() {
           </button>
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics', useUIStore.getState().company))}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV
           </button>
@@ -78,12 +78,12 @@ export default function SalesAnalytics() {
       </div>
 
       {/* Date Filter Bar */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Calendar className="text-primary animate-pulse" size={16} />
           <span className="text-xs font-semibold text-foreground">Analytics Date Filter</span>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <select
             value={preset}
             onChange={(e) => {
@@ -104,7 +104,7 @@ export default function SalesAnalytics() {
                 setEndDate('2027-03-31')
               }
             }}
-            className="px-2 py-1.5 text-xs bg-secondary/50 border border-border rounded-md text-foreground max-w-[140px] focus:outline-none"
+            className="px-2 py-1.5 text-xs bg-secondary/50 border border-border rounded-md text-foreground w-full sm:w-auto sm:max-w-[140px] focus:outline-none"
           >
             <option value="FY">Financial Year</option>
             <option value="Today">Today</option>
@@ -112,7 +112,7 @@ export default function SalesAnalytics() {
             <option value="Quarter">This Quarter</option>
             <option value="Custom">Custom Range</option>
           </select>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto max-w-full">
             <input
               type="date"
               value={startDate}
@@ -120,9 +120,9 @@ export default function SalesAnalytics() {
                 setStartDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[130px] sm:max-w-none px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
             />
-            <span className="text-xs text-muted-foreground">to</span>
+            <span className="text-xs text-muted-foreground shrink-0">to</span>
             <input
               type="date"
               value={endDate}
@@ -130,7 +130,7 @@ export default function SalesAnalytics() {
                 setEndDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[130px] sm:max-w-none px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
             />
           </div>
         </div>

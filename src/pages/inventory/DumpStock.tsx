@@ -299,7 +299,7 @@ export default function DumpStock() {
             Auto-linked expired, unsaleable, and zero-movement stock
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={loadData}
             className="flex items-center gap-1.5 h-9 px-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold shadow-xs transition border border-border cursor-pointer"
@@ -380,7 +380,7 @@ export default function DumpStock() {
 
       {/* Filter Tabs & Search */}
       <div className="no-print flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-fit shadow-xs">
+        <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-full max-w-full overflow-x-auto shadow-xs">
           <button
             onClick={() => setTab('all')}
             className={cn(
@@ -699,7 +699,7 @@ export default function DumpStock() {
               </div>
 
               {/* Batch, Expiry, Qty */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label className="block font-semibold uppercase text-[10px] text-muted-foreground mb-1">
                     Batch *

@@ -108,13 +108,13 @@ export default function LedgerView() {
   const lastBalance = filtered.length > 0 ? filtered[filtered.length - 1] : null
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <PrintHeader title={`General Ledger: ${selectedLedger || 'All'}`} />
       {/* Header Block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Ledger View</h1>
-          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Ledger View</h1>
+          <div className="text-xs sm:text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
             <span>{selectedLedger || 'Select a ledger'}</span>
             {selectedLedger && (
               <Link
@@ -126,26 +126,26 @@ export default function LedgerView() {
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => loadLedger()}
             disabled={refreshing}
             title="Refresh ledger"
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border no-print"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border no-print cursor-pointer"
           >
-            <RefreshCw size={15} className={cn(refreshing && 'animate-spin')} /> Refresh
+            <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} /> Refresh
           </button>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border cursor-pointer"
           >
-            <FileText size={16} /> Export PDF
+            <FileText size={14} /> Export PDF
           </button>
           <button
             onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`, useUIStore.getState().company)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20 cursor-pointer"
           >
-            <Download size={16} /> Export Excel
+            <Download size={14} /> Export Excel
           </button>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function LedgerView() {
         {/* Right Side Ledger view */}
         <div className="md:col-span-3 space-y-4">
           {/* KPI summaries */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
               <div className="text-[10px] text-muted-foreground uppercase font-semibold">Total Debit</div>
               <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">
@@ -214,7 +214,8 @@ export default function LedgerView() {
 
           {/* Ledger Table Grid */}
           <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[750px]">
               <thead>
                 <tr className="bg-secondary/40 border-b border-border text-muted-foreground uppercase tracking-wider">
                   <th className="text-left px-4 py-3 font-semibold">Date</th>
@@ -282,6 +283,7 @@ export default function LedgerView() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>
