@@ -1,3 +1,7 @@
+-- Migration 029: Fix purchase amendment stock order to avoid negative stock errors
+-- When amending purchase invoices, post the replacement invoice first so new stock
+-- is recorded before the old invoice's stock is cancelled.
+
 create or replace function public.erp_amend_invoice(
   p_kind text,
   p_organization_id uuid,
@@ -39,6 +43,7 @@ begin
   if v_status <> 'posted' then raise exception 'Only posted invoices can be amended.'; end if;
 
   if p_kind = 'purchases' then
+    -- For purchases, posting replacement first adds inward stock before cancelling old invoice
     select count(*) + 1 into v_revision
     from public.purchase_invoices
     where organization_id = p_organization_id
@@ -65,6 +70,7 @@ begin
       p_request_id
     );
   else
+    -- For sales, cancelling old invoice first returns stock before deducting for replacement
     perform public.erp_cancel_invoice(
       p_kind,
       p_organization_id,

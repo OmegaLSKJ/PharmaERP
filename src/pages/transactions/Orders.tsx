@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, Printer, Eye, X } from 'lucide-react'
+import { Search, Plus, Printer, Eye, X, CheckCircle2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { getErp, postErp } from '../../lib/erpApi'
+import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
@@ -9,9 +9,12 @@ import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 interface Order { id: string; orderNo: string; date: string; party: string; type: string; items: number; total: number; deliveryDate: string; status: string }
 
 const STATUS_STYLE: Record<string, string> = {
-  pending: 'bg-amber-500/10 text-amber-400', confirmed: 'bg-blue-500/10 text-blue-400',
-  dispatched: 'bg-purple-500/10 text-purple-400', delivered: 'bg-emerald-500/10 text-emerald-400',
-  cancelled: 'bg-rose-500/10 text-rose-400',
+  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  confirmed: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  dispatched: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  delivered: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  cancelled: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
 }
 
 export default function Orders() {
@@ -32,8 +35,24 @@ export default function Orders() {
   useErpAutoRefresh(['orders', 'sales'], () => load())
   const filtered = orders.filter(o => {
     const ms = o.party.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase())
-    return ms && (typeFilter === 'all' || o.type === typeFilter) && (statusFilter === 'all' || o.status === statusFilter)
+    const matchesType = typeFilter === 'all' || o.type === typeFilter
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'delivered' ? (o.status === 'delivered' || o.status === 'completed') : o.status === statusFilter)
+    return ms && matchesType && matchesStatus
   })
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      await patchErp('orders', orderId, { status: newStatus })
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+      setSelectedOrder((prev) => (prev && prev.id === orderId ? { ...prev, status: newStatus } : prev))
+      showToast(`Order status updated to ${newStatus === 'delivered' ? 'complete (delivered)' : newStatus}.`)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to update status.')
+    }
+  }
+
   const saveOrder = async (e: React.FormEvent) => { e.preventDefault(); try { await postErp('orders', { party, partyType:orderType === 'Purchase' ? 'supplier' : 'customer', type:orderType, items, total, deliveryDate, status:'pending' }); setShowForm(false); setParty(''); setTotal(0); await load(); showToast('Order saved.') } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to save order.') } }
 
   const getPrintDataForOrder = (o: Order): TaxInvoicePrintData => ({
@@ -81,7 +100,7 @@ export default function Orders() {
           <button key={t} onClick={() => setTypeFilter(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition', typeFilter === t ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{t === 'all' ? 'All' : t}</button>
         ))}
         {['all', 'pending', 'confirmed', 'dispatched', 'delivered'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition', statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{s}</button>
+          <button key={s} onClick={() => setStatusFilter(s)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition', statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{s === 'delivered' ? 'Delivered / Complete' : s}</button>
         ))}
       </div>
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
@@ -95,7 +114,7 @@ export default function Orders() {
             <th className="text-right px-4 py-3 font-medium">Total</th>
             <th className="text-left px-4 py-3 font-medium">Delivery</th>
             <th className="text-left px-4 py-3 font-medium">Status</th>
-            <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
+            <th className="text-center px-4 py-3 font-medium w-28">Actions</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-800 text-slate-300">
             {filtered.map(o => (
@@ -107,9 +126,35 @@ export default function Orders() {
                 <td className="px-4 py-3 text-right">{o.items}</td>
                 <td className="px-4 py-3 text-right font-medium text-emerald-400">{formatCurrency(o.total)}</td>
                 <td className="px-4 py-3 font-mono text-slate-400">{o.deliveryDate}</td>
-                <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold capitalize', STATUS_STYLE[o.status])}>{o.status}</span></td>
+                <td className="px-4 py-3">
+                  <select
+                    aria-label={`Change status of ${o.orderNo}`}
+                    value={o.status === 'completed' ? 'delivered' : o.status}
+                    onChange={(e) => void updateOrderStatus(o.id, e.target.value)}
+                    className={cn(
+                      'px-2 py-1 rounded text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer transition',
+                      STATUS_STYLE[o.status] || 'text-slate-300 border-slate-700'
+                    )}
+                  >
+                    <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
+                    <option value="confirmed" className="bg-slate-900 text-blue-400">Confirmed</option>
+                    <option value="dispatched" className="bg-slate-900 text-purple-400">Dispatched</option>
+                    <option value="delivered" className="bg-slate-900 text-emerald-400">Delivered / Complete</option>
+                    <option value="cancelled" className="bg-slate-900 text-rose-400">Cancelled</option>
+                  </select>
+                </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
+                    {o.status !== 'delivered' && o.status !== 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => void updateOrderStatus(o.id, 'delivered')}
+                        className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/90 text-emerald-400 hover:text-emerald-300 border border-emerald-800/60 transition cursor-pointer"
+                        title="Mark as Complete (Delivered)"
+                      >
+                        <CheckCircle2 size={14} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(o)}
@@ -170,7 +215,34 @@ export default function Orders() {
                   <X size={16} />
                 </button>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <select
+                  aria-label={`Change status of ${selectedOrder.orderNo}`}
+                  value={selectedOrder.status === 'completed' ? 'delivered' : selectedOrder.status}
+                  onChange={(e) => void updateOrderStatus(selectedOrder.id, e.target.value)}
+                  className={cn(
+                    'px-2.5 py-1.5 rounded-lg text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer transition',
+                    STATUS_STYLE[selectedOrder.status] || 'text-slate-300 border-slate-700'
+                  )}
+                >
+                  <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
+                  <option value="confirmed" className="bg-slate-900 text-blue-400">Confirmed</option>
+                  <option value="dispatched" className="bg-slate-900 text-purple-400">Dispatched</option>
+                  <option value="delivered" className="bg-slate-900 text-emerald-400">Delivered / Complete</option>
+                  <option value="cancelled" className="bg-slate-900 text-rose-400">Cancelled</option>
+                </select>
+
+                {selectedOrder.status !== 'delivered' && selectedOrder.status !== 'completed' && (
+                  <button
+                    type="button"
+                    onClick={() => void updateOrderStatus(selectedOrder.id, 'delivered')}
+                    className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/90 border border-emerald-800/60 transition active:scale-[0.98] cursor-pointer"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>Complete</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => window.print()}

@@ -3810,7 +3810,7 @@ export async function update(resource: string, id: string, body: any, actor: Mut
           }
           persistTransactions()
         }
-        if (resource === 'sales' || resource === 'purchases' || resource === 'challans') {
+        if (resource === 'sales' || resource === 'purchases' || resource === 'challans' || resource === 'orders') {
           persistTransactions()
         }
         return list[idx]
@@ -3820,8 +3820,202 @@ export async function update(resource: string, id: string, body: any, actor: Mut
   }
 
   const { client, organizationId, financialYearId } = await context()
-  if (resource === 'sales' || resource === 'purchases') {
-    const table = resource === 'sales' ? 'sales_invoices' : 'purchase_invoices'
+  if (resource === 'purchases') {
+    let invoiceId = id
+    let invoice: any = null
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      const { data, error } = await client.from('purchase_invoices').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
+      if (error) throw error
+      invoice = data
+    } else {
+      const { data, error } = await client.from('purchase_invoices').select('*').eq('organization_id', organizationId).eq('invoice_number', id).maybeSingle()
+      if (error) throw error
+      invoice = data
+    }
+    if (!invoice) throw new Error('Purchase invoice was not found.')
+    invoiceId = invoice.id
+
+    const partyId = body.party || body.supplier ? await party(client, organizationId, body.party || body.supplier, 'supplier') : invoice.party_id
+    const grandTotal = Number(body.grandTotal ?? body.total ?? invoice.grand_total)
+    const subtotal = Number(body.subtotal ?? grandTotal)
+    const taxTotal = Number(body.taxTotal ?? 0)
+    const discountTotal = Number(body.discountTotal ?? 0)
+    const invoiceDate = body.date || invoice.invoice_date
+    const supplierInvoiceNumber = body.supplierInvoice || body.invoiceNo || body.supplier_invoice_number || invoice.supplier_invoice_number
+
+    const updateFields: any = {
+      party_id: partyId,
+      supplier_invoice_number: supplierInvoiceNumber,
+      invoice_date: invoiceDate,
+      subtotal,
+      discount_total: discountTotal,
+      tax_total: taxTotal,
+      grand_total: grandTotal,
+    }
+    if (body.status) {
+      updateFields.status = body.status === 'received' ? 'posted' : body.status
+    }
+
+    if (Array.isArray(body.lines) && body.lines.length > 0) {
+      const { data: existingLines } = await client
+        .from('purchase_invoice_lines')
+        .select('id, item_id, item_batch_id, quantity, free_quantity')
+        .eq('invoice_id', invoiceId)
+
+      const { data: existingMovements } = await client
+        .from('stock_movements')
+        .select('id, item_batch_id, warehouse_id, quantity')
+        .eq('organization_id', organizationId)
+        .eq('source_id', invoiceId)
+        .eq('source_type', 'purchase_invoice')
+
+      const { data: wh } = await client
+        .from('warehouses')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .order('code')
+        .limit(1)
+        .maybeSingle()
+      const warehouseId = wh?.id
+
+      const oldQtyByBatch = new Map<string, number>()
+      for (const el of existingLines ?? []) {
+        const bId = el.item_batch_id
+        if (bId) {
+          const q = Number(el.quantity || 0) + Number(el.free_quantity || 0)
+          oldQtyByBatch.set(bId, (oldQtyByBatch.get(bId) || 0) + q)
+        }
+      }
+      if (oldQtyByBatch.size === 0 && existingMovements && existingMovements.length > 0) {
+        for (const m of existingMovements) {
+          const bId = m.item_batch_id
+          if (bId && Number(m.quantity) > 0) {
+            oldQtyByBatch.set(bId, (oldQtyByBatch.get(bId) || 0) + Number(m.quantity))
+          }
+        }
+      }
+
+      const newQtyByBatch = new Map<string, { batchId: string; delta: number; name: string }>()
+      const preparedLines: any[] = []
+
+      for (const line of body.lines) {
+        const { itemId, batchId } = await stock(client, organizationId, line)
+        const qty = Number(line.qty ?? line.quantity ?? 0)
+        const free = Number(line.freeQty ?? line.free ?? line.free_quantity ?? 0)
+        const rate = Number(line.rate ?? 0)
+        const lineTotal = Number(line.amount || (qty * rate))
+
+        if (batchId) {
+          const batchUpdate: any = {}
+          if (line.mrp) batchUpdate.mrp = Number(line.mrp)
+          if (line.saleRate) batchUpdate.sale_price = Number(line.saleRate)
+          if (rate) batchUpdate.purchase_price = rate
+          if (line.expiry) batchUpdate.expiry_on = normalizeExpiryDate(line.expiry)
+          if (Object.keys(batchUpdate).length > 0) {
+            await client.from('item_batches').update(batchUpdate).eq('id', batchId)
+          }
+        }
+
+        preparedLines.push({
+          invoice_id: invoiceId,
+          item_id: itemId,
+          item_batch_id: batchId,
+          quantity: Math.max(1, qty),
+          free_quantity: free,
+          rate,
+          discount_percent: Number(line.discount ?? line.disc ?? 0),
+          gst_rate: Number(line.gstRate ?? line.gst ?? 0),
+          line_total: lineTotal,
+        })
+
+        const totalLineQty = qty + free
+        const currentEntry = newQtyByBatch.get(batchId) || { batchId, delta: 0, name: line.name || line.itemName || 'Item' }
+        currentEntry.delta += totalLineQty
+        newQtyByBatch.set(batchId, currentEntry)
+      }
+
+      for (const [bId, oldQ] of oldQtyByBatch.entries()) {
+        if (!newQtyByBatch.has(bId)) {
+          newQtyByBatch.set(bId, { batchId: bId, delta: -oldQ, name: 'Item' })
+        } else {
+          newQtyByBatch.get(bId)!.delta -= oldQ
+        }
+      }
+
+      for (const [bId, info] of newQtyByBatch.entries()) {
+        const delta = info.delta
+        if (Math.abs(delta) > 0.0005 && warehouseId) {
+          if (delta < 0) {
+            const { data: movements } = await client
+              .from('stock_movements')
+              .select('quantity')
+              .eq('item_batch_id', bId)
+              .eq('warehouse_id', warehouseId)
+            const available = (movements ?? []).reduce((sum: number, m: any) => sum + Number(m.quantity || 0), 0)
+            if (available + delta < 0) {
+              throw new Error(`Cannot reduce quantity for ${info.name}. Available stock is ${available}, cannot deduct ${Math.abs(delta)}.`)
+            }
+          }
+
+          await client.from('stock_movements').insert({
+            organization_id: organizationId,
+            item_batch_id: bId,
+            warehouse_id: warehouseId,
+            movement_type: delta > 0 ? 'purchase' : 'purchase_return',
+            quantity: delta,
+            source_type: 'purchase_invoice',
+            source_id: invoiceId,
+            occurred_at: `${invoiceDate}T12:00:00Z`,
+            remarks: `Purchase modification delta: ${delta > 0 ? '+' : ''}${delta}`,
+          })
+        }
+      }
+
+      await client.from('purchase_invoice_lines').delete().eq('invoice_id', invoiceId)
+      const { error: linesInsertError } = await client.from('purchase_invoice_lines').insert(preparedLines)
+      if (linesInsertError) throw linesInsertError
+    }
+
+    const { data: updatedInvoice, error: updateError } = await client
+      .from('purchase_invoices')
+      .update(updateFields)
+      .eq('id', invoiceId)
+      .select('*')
+      .single()
+    if (updateError) throw updateError
+
+    if (invoice.voucher_id) {
+      try {
+        await client.from('vouchers').update({ voucher_date: invoiceDate }).eq('id', invoice.voucher_id)
+      } catch (vErr) {
+        console.warn('Voucher date update non-fatal warning:', vErr)
+      }
+    }
+
+    try {
+      await client.from('audit_logs').insert({
+        organization_id: organizationId,
+        entity_type: 'purchases',
+        entity_id: invoiceId,
+        action: 'updated',
+        before_state: invoice,
+        after_state: updatedInvoice,
+        actor_auth_id: actor.id ?? null,
+        actor_email: actor.email ?? null,
+        request_id: actor.requestId ?? null,
+        metadata: { reason: body.reason || 'Purchase updated by user' },
+      })
+    } catch {}
+
+    return {
+      ...body,
+      id: updatedInvoice.invoice_number,
+      dbId: updatedInvoice.id,
+      status: updatedInvoice.status === 'posted' ? 'received' : updatedInvoice.status,
+    }
+  }
+  if (resource === 'sales') {
+    const table = 'sales_invoices'
     let invoiceId = id
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
       const { data: invoice, error: lookupError } = await client.from(table).select('id').eq('organization_id', organizationId).eq('invoice_number', id).maybeSingle()
@@ -3864,11 +4058,15 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if (error) throw error
     return data
   }
-  if (resource === 'sale-returns' || resource === 'purchase-returns') {
-    const docType = resource === 'sale-returns' ? 'sale_return' : 'purchase_return'
-    const { data, error } = await client.from('business_documents').update({ status: body.status, details: body.details || {} }).eq('id', id).eq('organization_id', organizationId).eq('document_type', docType).select('*').single()
+  if (resource === 'orders' || resource === 'sale-returns' || resource === 'purchase-returns' || resource === 'breakages' || resource === 'replacements') {
+    const docType = resource === 'orders' ? 'order' : resource === 'sale-returns' ? 'sale_return' : resource === 'purchase-returns' ? 'purchase_return' : resource === 'breakages' ? 'breakage' : 'replacement'
+    const updateValues: any = {}
+    if (body.status) updateValues.status = body.status
+    if (body.details) updateValues.details = body.details
+    if (body.total !== undefined) updateValues.total = Number(body.total)
+    const { data, error } = await client.from('business_documents').update(updateValues).eq('id', id).eq('organization_id', organizationId).eq('document_type', docType).select('*').single()
     if (error) throw error
-    return data
+    return { ...body, id: data.id, number: data.document_number, status: data.status, ...data.details }
   }
   if (resource === 'parties') {
     const values: any = {}

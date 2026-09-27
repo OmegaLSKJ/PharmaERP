@@ -396,4 +396,64 @@ describe('Comprehensive Master CRUD Operations & Persistence', () => {
       expect(['cancelled', 'deleted']).toContain(foundSale.status || 'cancelled')
     }
   })
+
+  it('updates and modifies purchase challans/invoices successfully', async () => {
+    const challanNo = `PB-${Date.now()}`
+    const supplierInvoice = `G-${Date.now().toString().slice(-6)}`
+    const createdPurchase: any = await create('purchases', {
+      id: challanNo,
+      number: challanNo,
+      supplierInvoice,
+      party: 'ATISH PHARMACEUTICALS TE',
+      date: '2026-09-25',
+      total: 2165.52,
+      lines: [
+        { name: 'DOLOFRESH SP TAB', batch: 'T03252', qty: 30, freeQty: 10, rate: 23, disc: 4, gst: 5, amount: 695.52 },
+        { name: 'UDIBLESS-300 TAB', batch: 'E53601', qty: 10, freeQty: 0, rate: 140, disc: 0, gst: 5, amount: 1470.00 }
+      ]
+    })
+    expect(createdPurchase).toBeDefined()
+
+    // Update purchase challan (e.g. modify supplier invoice or rates)
+    const updatedPurchase: any = await update('purchases', createdPurchase.id || challanNo, {
+      supplierInvoice: `${supplierInvoice}-MOD`,
+      party: 'ATISH PHARMACEUTICALS TE',
+      date: '2026-09-25',
+      total: 2165.52,
+      lines: [
+        { name: 'DOLOFRESH SP TAB', batch: 'T03252', qty: 30, freeQty: 10, rate: 23, disc: 4, gst: 5, amount: 695.52 },
+        { name: 'UDIBLESS-300 TAB', batch: 'E53601', qty: 10, freeQty: 0, rate: 140, disc: 0, gst: 5, amount: 1470.00 }
+      ]
+    })
+    expect(updatedPurchase).toBeDefined()
+    expect(updatedPurchase.supplierInvoice || updatedPurchase.supplier_invoice_number).toBe(`${supplierInvoice}-MOD`)
+  })
+
+  it('creates an order and updates its status to complete (delivered)', async () => {
+    const orderNo = `ORD-${Date.now()}`
+    const createdOrder: any = await create('orders', {
+      number: orderNo,
+      party: 'DM PHARMACO',
+      partyType: 'customer',
+      type: 'Sale',
+      items: 5,
+      total: 15000,
+      deliveryDate: '2026-09-28',
+      status: 'pending'
+    })
+    expect(createdOrder).toBeDefined()
+    expect(createdOrder.status).toBe('pending')
+
+    // Update status to delivered (complete)
+    const updatedOrder: any = await update('orders', createdOrder.id, {
+      status: 'delivered'
+    })
+    expect(updatedOrder).toBeDefined()
+    expect(updatedOrder.status).toBe('delivered')
+
+    const allOrders: any = await list('orders')
+    const found = allOrders.find((o: any) => o.id === createdOrder.id || o.number === orderNo)
+    expect(found).toBeDefined()
+    expect(found.status).toBe('delivered')
+  })
 })
