@@ -212,11 +212,11 @@ export default function Typeahead({
         maxHeight: dropdownMaxHeight,
         zIndex: 99999,
       }}
-      className="overflow-y-auto rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl divide-y divide-border"
+      className="overflow-y-auto rounded-xl border border-border bg-white dark:bg-zinc-900 text-foreground shadow-2xl divide-y divide-border"
     >
       {/* Sticky search-info header */}
       {isSearching && (
-        <div className="sticky top-0 z-10 px-3 py-1.5 bg-muted/95 backdrop-blur-sm border-b border-border flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="sticky top-0 z-10 px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 border-b border-border flex items-center justify-between text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Sparkles size={12} className="text-primary" />
             {hasDirectMatch ? (
@@ -291,7 +291,7 @@ export default function Typeahead({
         width: dropdownWidth,
         zIndex: 99999,
       }}
-      className="rounded-xl border border-border bg-popover shadow-2xl px-4 py-3.5 text-xs text-muted-foreground space-y-1.5"
+      className="rounded-xl border border-border bg-white dark:bg-zinc-900 shadow-2xl px-4 py-3.5 text-xs text-foreground space-y-1.5"
     >
       <div className="text-foreground font-medium">No matching or similar names found for "{q}"</div>
       <p className="text-[11px]">
