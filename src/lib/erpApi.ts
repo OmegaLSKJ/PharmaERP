@@ -104,11 +104,14 @@ async function fetchFromNetwork<T>(resource: string, query?: Record<string, stri
       Pragma: 'no-cache',
     },
   })
-  const payload = await response.json()
-  if (!response.ok) {
-    throw new Error(payload.error?.message || 'Request failed')
-  }
-  return payload.data as T
+const payload = await response.json()
+if (!response.ok) {
+throw new Error(payload.error?.message || 'Request failed')
+}
+if (!payload || !Object.prototype.hasOwnProperty.call(payload, 'data')) {
+throw new Error('The server returned an incomplete response.')
+}
+return payload.data as T
 }
 
 /**

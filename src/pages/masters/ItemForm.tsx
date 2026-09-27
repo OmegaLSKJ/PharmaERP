@@ -35,11 +35,11 @@ export default function ItemForm() {
     Promise.all([
       getErp<any[]>('manufacturers').catch(() => []),
       getErp<any[]>('salts').catch(() => []),
-      getErp<any[]>('hsn').catch(() => []),
-      getErp<any[]>('items').catch(() => [])
+    getErp<any[]>('hsn').catch(() => []),
+    getErp<any[]>('items').catch(() => [])
     ]).then(([m, s, h, items]) => {
-      setManufacturers(m.map((row) => row.name))
-      setSalts(s.map((row) => row.name))
+      setManufacturers((Array.isArray(m) ? m : []).map((row) => row.name))
+      setSalts((Array.isArray(s) ? s : []).map((row) => row.name))
 
       if (Array.isArray(h) && h.length > 0) {
         registerHsnCodesFromDb(h)
@@ -47,7 +47,7 @@ export default function ItemForm() {
       setHsnOptions(getAllHsnCodes())
 
       if (id) {
-        const item = items.find((row) => String(row.id) === String(id) || String(row.code) === String(id))
+        const item = (Array.isArray(items) ? items : []).find((row) => String(row.id) === String(id) || String(row.code) === String(id))
         if (item) {
           setResolvedItemId(item.id || id)
           const batchList = Array.isArray(item.batches) ? item.batches : []
