@@ -643,7 +643,7 @@ export default function PurchaseEntry() {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-lg transition"
+                className="p-2 bg-card hover:bg-secondary border border-border text-foreground rounded-lg transition shadow-2xs cursor-pointer"
                 title="Go back"
               >
                 <ArrowLeft size={16} />
@@ -658,17 +658,17 @@ export default function PurchaseEntry() {
               </p>
               {isEditMode && (
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg">
-                    <span className="text-xs text-slate-300 font-medium">Bill Total:</span>
-                    <span className="text-sm font-bold font-mono text-emerald-400">{formatCurrency(grandTotal)}</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80 rounded-lg shadow-2xs">
+                    <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">Bill Total:</span>
+                    <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">{formatCurrency(grandTotal)}</span>
                   </div>
                   {supplier && (
-                    <span className="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg font-medium">
-                      Supplier: <span className="text-white font-semibold">{supplier}</span>
+                    <span className="text-xs text-foreground bg-card border border-border px-2.5 py-1 rounded-lg font-medium shadow-2xs">
+                      Supplier: <span className="font-semibold text-foreground">{supplier}</span>
                     </span>
                   )}
                   {items.length === 0 && (
-                    <span className="text-xs font-semibold text-amber-300 bg-amber-950/70 border border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
                       <Info size={13} />
                       <span>No line items in DB (Header Total: {formatCurrency(grandTotal)})</span>
                     </span>
@@ -826,9 +826,9 @@ export default function PurchaseEntry() {
               </p>
             </div>
             {isEditMode && grandTotal > 0 && (
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-950/80 border border-emerald-800 rounded-xl text-xs font-semibold text-emerald-300 shadow-xs">
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs">
                 <span>Recorded Bill Total:</span>
-                <span className="font-mono text-base font-bold text-emerald-400">{formatCurrency(grandTotal)}</span>
+                <span className="font-mono text-base font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(grandTotal)}</span>
               </div>
             )}
             <div>
