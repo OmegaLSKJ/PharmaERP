@@ -2,6 +2,8 @@ import React from 'react'
 import { numberToWordsIndian } from '../../lib/numberToWords'
 import { manufacturerShortName } from '../../lib/manufacturerShortName'
 import { useUIStore } from '../../store/uiStore'
+import { DocumentSeries, formatBillWithActiveSeries } from '../../lib/seriesUtils'
+import { getErp } from '../../lib/erpApi'
 
 export interface InvoicePrintItem {
   id?: string
@@ -83,7 +85,14 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
     balance: data.buyerBalance !== undefined ? data.buyerBalance : -144352.0,
   }
 
-  const receiptNo = data.receiptNo || data.invoiceNo || 'P000045'
+  const [seriesList, setSeriesList] = React.useState<DocumentSeries[]>([])
+
+  React.useEffect(() => {
+    getErp<DocumentSeries[]>('series').then((res) => { if (res) setSeriesList(res) }).catch(() => {})
+  }, [])
+
+  const rawReceiptNo = data.receiptNo || data.invoiceNo || 'P000045'
+  const receiptNo = formatBillWithActiveSeries(rawReceiptNo, 'Purchase Bill', seriesList)
   const invDate = data.invoiceDate ? formatDateDisplay(data.invoiceDate) : '02-04-2026'
   const orderNo = data.orderNo || ''
   const orderDate = data.orderDate ? formatDateDisplay(data.orderDate) : ''

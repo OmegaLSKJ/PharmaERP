@@ -130,7 +130,7 @@ export default function SaleRegister() {
     loadSales()
   }, [loadSales])
 
-  useErpAutoRefresh(['sales', 'parties'], () => loadSales(true))
+  useErpAutoRefresh(['sales', 'parties', 'series'], () => loadSales(true))
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()

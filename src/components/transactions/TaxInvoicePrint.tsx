@@ -2,6 +2,8 @@ import React from 'react'
 import { numberToWordsIndian } from '../../lib/numberToWords'
 import { manufacturerShortName } from '../../lib/manufacturerShortName'
 import { useUIStore } from '../../store/uiStore'
+import { DocumentSeries, formatBillWithActiveSeries } from '../../lib/seriesUtils'
+import { getErp } from '../../lib/erpApi'
 
 export interface TaxInvoiceItem {
   id?: string
@@ -65,10 +67,16 @@ export interface TaxInvoicePrintData {
 
 export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData }) {
   const company = useUIStore((s) => s.company)
+  const [seriesList, setSeriesList] = React.useState<DocumentSeries[]>([])
+
+  React.useEffect(() => {
+    getErp<DocumentSeries[]>('series').then((res) => { if (res) setSeriesList(res) }).catch(() => {})
+  }, [])
 
   const docTitle = data.title || 'TAX INVOICE'
   const copyType = data.copyType || 'Original for Recipient'
-  const invNo = data.invoiceNo || 'INV-TEMP'
+  const rawInvNo = data.invoiceNo || 'INV-TEMP'
+  const invNo = formatBillWithActiveSeries(rawInvNo, 'Sale Invoice', seriesList)
   const invDate = data.invoiceDate || new Date().toISOString().split('T')[0]
   const payMode = data.paymentMode || 'Credit'
   const jurisdiction = company.jurisdiction || company.city || 'Guwahati'

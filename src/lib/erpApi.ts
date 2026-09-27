@@ -36,6 +36,13 @@ if (typeof window !== 'undefined') {
         void invalidateCache(detail.resource).then(() => {
           window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
           window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
+          if (detail.resource === 'series') {
+            const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
+            cascaded.forEach((res) => {
+              window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
+              window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
+            })
+          }
         })
       }
     }
@@ -50,6 +57,13 @@ if (typeof window !== 'undefined') {
           void invalidateCache(detail.resource).then(() => {
             window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
             window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
+            if (detail.resource === 'series') {
+              const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
+              cascaded.forEach((res) => {
+                window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
+                window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
+              })
+            }
           })
         }
       } catch {}
@@ -62,6 +76,13 @@ function announceResourceMutation(detail: { resource: string; action: 'create' |
   resetInFlightRequests()
   window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
   window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
+  if (detail.resource === 'series') {
+    const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
+    cascaded.forEach((res) => {
+      window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
+      window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
+    })
+  }
   try {
     const channel = new BroadcastChannel('erp-resource-mutations')
     channel.postMessage(detail)

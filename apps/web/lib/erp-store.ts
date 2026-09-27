@@ -37,6 +37,296 @@ function normalizeExpiryDate(dateStr?: string | null): string | null {
   return null
 }
 
+function extractDocSequence(
+  docNumber: string,
+  knownPrefix?: string,
+  knownSuffix?: string
+): { sequence: number; rawCore: string } {
+  let str = (docNumber || '').trim()
+  if (!str) return { sequence: 1, rawCore: '1' }
+
+  // 1. Strip known suffix if provided
+  if (knownSuffix && knownSuffix.trim() && str.endsWith(knownSuffix.trim())) {
+    str = str.slice(0, str.length - knownSuffix.trim().length)
+  } else {
+    const suffixMatch = str.match(/([/-](?:FY\d{2,4}|\d{2,4}[/-]\d{2,4}|\d{2,4}|[A-Za-z][A-Za-z0-9_-]*))$/i)
+    if (suffixMatch && suffixMatch.index && suffixMatch.index > 0) {
+      const before = str.slice(0, suffixMatch.index)
+      if (/\d/.test(before)) {
+        str = before
+      }
+    }
+  }
+
+  // 2. Strip known prefix if provided
+  if (knownPrefix && knownPrefix.trim() && str.startsWith(knownPrefix.trim())) {
+    str = str.slice(knownPrefix.trim().length)
+  } else {
+    const prefixMatch = str.match(/^([A-Za-z]+[-_]?)/)
+    if (prefixMatch && str.length > prefixMatch[1].length) {
+      str = str.slice(prefixMatch[1].length)
+    }
+  }
+
+  // 3. Extract the trailing numeric block
+  const numMatch = str.match(/(\d+)$/)
+  if (numMatch) {
+    const seq = parseInt(numMatch[1], 10)
+    return { sequence: isNaN(seq) ? 1 : seq, rawCore: numMatch[1] }
+  }
+
+  return { sequence: 1, rawCore: str || '1' }
+}
+
+function formatDocNumber(
+  sequence: number | string,
+  prefix: string = '',
+  suffix: string = '',
+  padding: number = 4
+): string {
+  const num = typeof sequence === 'number' ? sequence : (parseInt(sequence, 10) || 1)
+  const padded = String(num).padStart(Math.max(1, padding), '0')
+  return `${prefix || ''}${padded}${suffix || ''}`
+}
+
+function applySeriesToDocNumber(
+  currentNumber: string,
+  series: { prefix?: string; suffix?: string; padding?: number },
+  oldSeries?: { prefix?: string; suffix?: string }
+): string {
+  const { sequence } = extractDocSequence(currentNumber, oldSeries?.prefix, oldSeries?.suffix)
+  return formatDocNumber(sequence, series.prefix ?? '', series.suffix ?? '', series.padding ?? 4)
+}
+
+function cascadeSeriesUpdateMock(docType: string, newSeries: any, oldSeries?: any) {
+  const normType = (docType || '').toLowerCase().trim()
+
+  if (normType === 'sale invoice' || normType === 'sales') {
+    for (const s of (mockStore.sales || [])) {
+      const oldNo = s.number || s.invoiceNo || s.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      if (oldNo !== newNo) {
+        s.number = newNo
+        s.invoiceNo = newNo
+        if (s.id === oldNo) s.id = newNo
+        // Update ledgers
+        for (const l of (mockStore.ledgers || [])) {
+          if (l.vNo === oldNo) l.vNo = newNo
+          if (l.narration && typeof l.narration === 'string' && l.narration.includes(oldNo)) {
+            l.narration = l.narration.replaceAll(oldNo, newNo)
+          }
+        }
+        // Update vouchers
+        for (const v of (mockStore.vouchers || [])) {
+          if (v.voucher_number === oldNo) v.voucher_number = newNo
+          if (v.narration && typeof v.narration === 'string' && v.narration.includes(oldNo)) {
+            v.narration = v.narration.replaceAll(oldNo, newNo)
+          }
+        }
+        // Update challans
+        for (const c of (mockStore.challans || [])) {
+          if (c.invoiceNo === oldNo) c.invoiceNo = newNo
+        }
+        // Update sale-returns
+        for (const r of (mockStore['sale-returns'] || [])) {
+          if (r.origInvoice === oldNo) r.origInvoice = newNo
+        }
+      }
+    }
+  } else if (normType === 'purchase bill' || normType === 'purchases') {
+    for (const p of (mockStore.purchases || [])) {
+      const oldNo = p.number || p.invoiceNo || p.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      if (oldNo !== newNo) {
+        p.number = newNo
+        p.invoiceNo = newNo
+        p.supplierInvoice = newNo
+        if (p.id === oldNo) p.id = newNo
+        // Update ledgers
+        for (const l of (mockStore.ledgers || [])) {
+          if (l.vNo === oldNo) l.vNo = newNo
+          if (l.narration && typeof l.narration === 'string' && l.narration.includes(oldNo)) {
+            l.narration = l.narration.replaceAll(oldNo, newNo)
+          }
+        }
+        // Update vouchers
+        for (const v of (mockStore.vouchers || [])) {
+          if (v.voucher_number === oldNo) v.voucher_number = newNo
+          if (v.narration && typeof v.narration === 'string' && v.narration.includes(oldNo)) {
+            v.narration = v.narration.replaceAll(oldNo, newNo)
+          }
+        }
+        // Update batches
+        for (const itm of (mockStore.items || [])) {
+          for (const b of (itm.batches || [])) {
+            if (b.supplierInvoiceNumber === oldNo) b.supplierInvoiceNumber = newNo
+          }
+        }
+      }
+    }
+  } else if (normType === 'challan' || normType === 'challans') {
+    for (const c of (mockStore.challans || [])) {
+      const oldNo = c.number || c.invoiceNo || c.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      c.number = newNo
+      c.invoiceNo = newNo
+      if (c.id === oldNo) c.id = newNo
+    }
+  } else if (normType === 'sales order' || normType === 'purchase order') {
+    const isPurchase = normType.startsWith('purchase')
+    for (const o of (mockStore.orders || [])) {
+      const oType = (o.type || o.partyType || '').toLowerCase()
+      if ((isPurchase && (oType === 'purchase' || oType === 'supplier')) || (!isPurchase && (oType === 'sales' || oType === 'sale' || oType === 'customer'))) {
+        const oldNo = o.orderNo || o.number || o.id
+        const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+        o.orderNo = newNo
+        o.number = newNo
+        if (o.id === oldNo) o.id = newNo
+      }
+    }
+  } else if (normType === 'credit note' || normType === 'credit-notes') {
+    for (const doc of (mockStore['credit-notes'] || [])) {
+      const oldNo = doc.number || doc.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      doc.number = newNo
+      if (doc.id === oldNo) doc.id = newNo
+    }
+  } else if (normType === 'debit note' || normType === 'debit-notes') {
+    for (const doc of (mockStore['debit-notes'] || [])) {
+      const oldNo = doc.number || doc.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      doc.number = newNo
+      if (doc.id === oldNo) doc.id = newNo
+    }
+  } else if (normType === 'sale return' || normType === 'sale-returns') {
+    for (const doc of (mockStore['sale-returns'] || [])) {
+      const oldNo = doc.number || doc.returnNo || doc.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      doc.number = newNo
+      doc.returnNo = newNo
+      if (doc.id === oldNo) doc.id = newNo
+    }
+  } else if (normType === 'purchase return' || normType === 'purchase-returns') {
+    for (const doc of (mockStore['purchase-returns'] || [])) {
+      const oldNo = doc.number || doc.returnNo || doc.id
+      const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+      doc.number = newNo
+      doc.returnNo = newNo
+      if (doc.id === oldNo) doc.id = newNo
+    }
+  }
+}
+
+async function cascadeSeriesUpdateDb(
+  client: any,
+  organizationId: string,
+  docType: string,
+  newSeries: { prefix?: string; suffix?: string; padding?: number },
+  oldSeries?: { prefix?: string; suffix?: string }
+) {
+  const normType = (docType || '').toLowerCase().trim()
+  try {
+    if (normType === 'sale invoice' || normType === 'sales') {
+      const { data: invList, error } = await client.from('sales_invoices').select('id, invoice_number, voucher_id').eq('organization_id', organizationId)
+      if (!error && invList) {
+        for (const inv of invList) {
+          const oldNo = inv.invoice_number
+          const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+          if (oldNo !== newNo) {
+            await client.from('sales_invoices').update({ invoice_number: newNo }).eq('id', inv.id)
+            if (inv.voucher_id) {
+              const { data: v } = await client.from('vouchers').select('id, narration').eq('id', inv.voucher_id).maybeSingle()
+              if (v && v.narration && v.narration.includes(oldNo)) {
+                await client.from('vouchers').update({ narration: v.narration.replaceAll(oldNo, newNo) }).eq('id', v.id)
+              }
+            }
+          }
+        }
+      }
+    } else if (normType === 'purchase bill' || normType === 'purchases') {
+      const { data: invList, error } = await client.from('purchase_invoices').select('id, invoice_number, supplier_invoice_number, voucher_id').eq('organization_id', organizationId)
+      if (!error && invList) {
+        for (const inv of invList) {
+          const oldNo = inv.invoice_number
+          const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+          if (oldNo !== newNo) {
+            await client.from('purchase_invoices').update({ invoice_number: newNo }).eq('id', inv.id)
+            if (inv.voucher_id) {
+              const { data: v } = await client.from('vouchers').select('id, narration').eq('id', inv.voucher_id).maybeSingle()
+              if (v && v.narration && v.narration.includes(oldNo)) {
+                await client.from('vouchers').update({ narration: v.narration.replaceAll(oldNo, newNo) }).eq('id', v.id)
+              }
+            }
+            await client.from('item_batches').update({ supplier_invoice_number: newNo }).eq('supplier_invoice_number', oldNo)
+          }
+        }
+      }
+    } else if (normType === 'challan' || normType === 'challans') {
+      const { data: chList, error } = await client.from('delivery_challans').select('id, challan_number').eq('organization_id', organizationId)
+      if (!error && chList) {
+        for (const ch of chList) {
+          const oldNo = ch.challan_number
+          const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+          if (oldNo !== newNo) {
+            await client.from('delivery_challans').update({ challan_number: newNo }).eq('id', ch.id)
+          }
+        }
+      }
+    } else {
+      const docMap: Record<string, string> = {
+        'credit note': 'credit_note',
+        'debit note': 'debit_note',
+        'sales order': 'order',
+        'purchase order': 'order',
+        'sale return': 'sale_return',
+        'purchase return': 'purchase_return'
+      }
+      const bType = docMap[normType]
+      if (bType) {
+        const { data: bDocs, error } = await client.from('business_documents').select('id, document_number').eq('organization_id', organizationId).eq('document_type', bType)
+        if (!error && bDocs) {
+          for (const doc of bDocs) {
+            const oldNo = doc.document_number
+            const newNo = applySeriesToDocNumber(oldNo, newSeries, oldSeries)
+            if (oldNo !== newNo) {
+              await client.from('business_documents').update({ document_number: newNo }).eq('id', doc.id)
+            }
+          }
+        }
+      }
+    }
+  } catch (cascadeErr) {
+    console.warn('cascadeSeriesUpdateDb non-fatal warning:', cascadeErr)
+  }
+}
+
+function getNextSeriesNumberMock(docType: string): string {
+  const normType = docType.toLowerCase().trim()
+  const s = (mockStore.series || []).find((x: any) => (x.doc || '').toLowerCase().trim() === normType && x.active !== false)
+  if (s) {
+    const nextNo = Number(s.nextNo || 1)
+    const formatted = formatDocNumber(nextNo, s.prefix || '', s.suffix || '', Number(s.padding || 4))
+    s.nextNo = nextNo + 1
+    return formatted
+  }
+  return number(docType.slice(0, 2).toUpperCase())
+}
+
+async function getNextSeriesNumberDb(docType: string, client: any, organizationId: string): Promise<string> {
+  try {
+    const { data: s } = await client.from('document_series').select('*').eq('organization_id', organizationId).ilike('document_type', docType).maybeSingle()
+    if (s && s.is_active !== false) {
+      const nextNo = Number(s.next_number || 1)
+      const formatted = formatDocNumber(nextNo, s.prefix || '', s.suffix || '', Number(s.padding || 4))
+      await client.from('document_series').update({ next_number: nextNo + 1 }).eq('id', s.id)
+      return formatted
+    }
+  } catch (err) {
+    console.warn('getNextSeriesNumberDb non-fatal warning:', err)
+  }
+  return number(docType.slice(0, 2).toUpperCase())
+}
+
 // OPTION B: In-memory mock database state for local offline development
 const mockStore: Record<string, any[]> = {
   parties: [
@@ -69,7 +359,15 @@ const mockStore: Record<string, any[]> = {
     { id: 'a2', code: 'ACC-HDFC', name: 'HDFC Bank', group: 'Bank Accounts', balance: 280000, type: 'Dr', active: true }
   ],
   series: [
-    { id: 'se1', doc: 'Sale Invoice', prefix: 'SI-', suffix: '', nextNo: 5, padding: 4, fyReset: true, active: true }
+    { id: 'se-ch', doc: 'Challan', prefix: 'CH-', suffix: '', nextNo: 1, padding: 4, fyReset: true, active: true },
+    { id: 'se-cn', doc: 'Credit Note', prefix: 'CN-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
+    { id: 'se-dn', doc: 'Debit Note', prefix: 'DN-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
+    { id: 'se-pb', doc: 'Purchase Bill', prefix: 'PB-', suffix: '', nextNo: 1, padding: 4, fyReset: true, active: true },
+    { id: 'se-po', doc: 'Purchase Order', prefix: 'PO-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
+    { id: 'se-pr', doc: 'Purchase Return', prefix: 'PR-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
+    { id: 'se-si', doc: 'Sale Invoice', prefix: 'G', suffix: '', nextNo: 5, padding: 4, fyReset: true, active: true },
+    { id: 'se-sr', doc: 'Sale Return', prefix: 'SR-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
+    { id: 'se-so', doc: 'Sales Order', prefix: 'SO-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
   ],
   'communication-blocks': [
     { id: 'cb1', type: 'email', value: 'spammer@unreliable.com', reason: 'Bounced multiple times', blockedOn: '2026-08-20' }
@@ -2717,6 +3015,7 @@ export async function create(resource: string, body: any, actor: MutationActor =
     if (resource === 'series') {
       const s = { id, doc: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', nextNo: Number(body.nextNo || 1), padding: Number(body.padding || 4), fyReset: body.fyReset !== false, active: body.active !== false }
       mockStore.series.push(s)
+      cascadeSeriesUpdateMock(s.doc, s)
       return s
     }
     if (resource === 'communication-blocks') {
@@ -2873,7 +3172,17 @@ export async function create(resource: string, body: any, actor: MutationActor =
       const docTotal = Number(body.total ?? body.grandTotal ?? body.grand_total ?? 0)
       const docItems = Number(body.items ?? body.lines?.length ?? 1)
       const docParty = body.party || body.customer || body.supplier || 'Cash Customer'
-      const docNumber = body.number || body.invoiceNo || body.id || (resource === 'sales' ? number('SI') : resource === 'purchases' ? number('PB') : number('MOCK'))
+      const docTypeForResource = resource === 'sales' ? 'Sale Invoice' : resource === 'purchases' ? 'Purchase Bill' : resource === 'challans' ? 'Challan' : ''
+      let generatedDocNumber = ''
+      if (docTypeForResource) {
+        const ms = (mockStore.series || []).find((s: any) => s.doc?.toLowerCase() === docTypeForResource.toLowerCase() && s.active !== false)
+        if (ms) {
+          const nextNo = Number(ms.nextNo || 1)
+          generatedDocNumber = formatDocNumber(nextNo, ms.prefix || '', ms.suffix || '', Number(ms.padding || 4))
+          ms.nextNo = nextNo + 1
+        }
+      }
+      const docNumber = body.number || body.invoiceNo || (body.id && !body.id.startsWith('s') && !body.id.startsWith('pu') ? body.id : '') || generatedDocNumber || (resource === 'sales' ? number('SI') : resource === 'purchases' ? number('PB') : number('MOCK'))
       const docDate = body.date || date()
       const docTime = new Date().toTimeString().slice(0, 8) // "HH:MM:SS"
       const doc = {
@@ -3093,7 +3402,21 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (resource === 'salts') { const { data, error } = await client.from('salts').insert({ organization_id: organizationId, code: body.code || `S-${Date.now()}`, name: body.name, composition: body.composition || null, category: body.category || null }).select('*').single(); if (error) throw error; return { ...data, itemcount: 0 } }
   if (resource === 'warehouses') { const { data, error } = await client.from('warehouses').insert({ organization_id: organizationId, code: body.code || `WH-${Date.now()}`, name: body.name, warehouse_type: body.type || 'Store Room', address: body.address || null, capacity: Number(body.capacity || 0) }).select('*').single(); if (error) throw error; return { id: data.id, code: data.code, name: data.name, type: data.warehouse_type, address: data.address ?? '', capacity: Number(data.capacity), used: 0, status: 'active' } }
   if (resource === 'accounts') { const { data, error } = await client.from('chart_of_accounts').insert({ organization_id: organizationId, code: body.code || `ACC-${Date.now()}`, name: body.name, account_type: body.accountType || 'general', account_group: body.group || 'General', opening_balance: Number(body.openingBalance || 0) }).select('*').single(); if (error) throw error; return { id: data.id, name: data.name, group: data.account_group, balance: Math.abs(Number(data.opening_balance)), type: Number(data.opening_balance) < 0 ? 'Cr' : 'Dr' } }
-  if (resource === 'series') { const { data, error } = await client.from('document_series').insert({ organization_id: organizationId, document_type: body.doc, prefix: body.prefix || '', suffix: body.suffix || '', next_number: Number(body.nextNo || 1), padding: Number(body.padding || 4), financial_year_reset: body.fyReset !== false, is_active: body.active !== false }).select('*').single(); if (error) throw error; return { ...body, id: data.id } }
+  if (resource === 'series') {
+    const { data, error } = await client.from('document_series').insert({
+      organization_id: organizationId,
+      document_type: body.doc,
+      prefix: body.prefix || '',
+      suffix: body.suffix || '',
+      next_number: Number(body.nextNo || 1),
+      padding: Number(body.padding || 4),
+      financial_year_reset: body.fyReset !== false,
+      is_active: body.active !== false
+    }).select('*').single()
+    if (error) throw error
+    await cascadeSeriesUpdateDb(client, organizationId, body.doc, body)
+    return { ...body, id: data.id }
+  }
   if (resource === 'communication-blocks') { const { data, error } = await client.from('communication_blocks').insert({ organization_id: organizationId, channel: body.type, destination: body.value, reason: body.reason || null }).select('*').single(); if (error) throw error; return { id: data.id, type: data.channel, value: data.destination, reason: data.reason ?? '', blockedOn: data.blocked_on } }
   if (resource === 'breakages') {
     const rawLines = Array.isArray(body.lines) && body.lines.length > 0 ? body.lines : (body.name || body.itemName) ? [{ name: body.name || body.itemName, batch: body.batch, qty: body.qty, rate: body.rate, mrp: body.mrp, expiry: body.expiry }] : []
@@ -3347,9 +3670,10 @@ export async function create(resource: string, body: any, actor: MutationActor =
 
   if (resource === 'sales') {
     await ensureInvoicePrerequisites('sales')
+    const generatedId = body.id || (await getNextSeriesNumberDb('Sale Invoice', client, organizationId))
     const invoiceDoc = {
       ...body,
-      id: body.id || number('SI'),
+      id: generatedId,
       date: body.date || date(),
       patientName: body.patientName || body.party || 'General Patient',
       prescriberName: body.prescriberName || 'Attending Physician',
@@ -3428,9 +3752,10 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
   if (resource === 'purchases') {
     await ensureInvoicePrerequisites('purchases')
+    const generatedId = body.id || (await getNextSeriesNumberDb('Purchase Bill', client, organizationId))
     const invoiceDoc = {
       ...body,
-      id: body.id || number('PB'),
+      id: generatedId,
       date: body.date || date()
     }
     try {
@@ -3736,7 +4061,11 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if (list) {
       const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.code === id || (x.name && x.name.toLowerCase() === id.toLowerCase()))
       if (idx !== -1) {
+        const oldSeries = resource === 'series' ? { ...list[idx] } : undefined
         list[idx] = { ...list[idx], ...body }
+        if (resource === 'series') {
+          cascadeSeriesUpdateMock(list[idx].doc || body.doc, list[idx], oldSeries)
+        }
         if (resource === 'parties') {
           if ('openingBalance' in body) list[idx].openingBalance = Number(body.openingBalance)
           if ('openingType' in body) list[idx].openingType = body.openingType
@@ -4116,7 +4445,22 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     if (accountError) throw accountError
     return { ...body, id: data.id, code: data.code, ...data }
   }
-  if (resource === 'series') { const values = { document_type: body.doc, prefix: body.prefix, suffix: body.suffix, next_number: Number(body.nextNo), padding: Number(body.padding), financial_year_reset: body.fyReset, is_active: body.active }; const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
+  if (resource === 'series') {
+    const { data: existing } = await client.from('document_series').select('*').eq('id', id).eq('organization_id', organizationId).maybeSingle()
+    const values = {
+      document_type: body.doc,
+      prefix: body.prefix,
+      suffix: body.suffix,
+      next_number: Number(body.nextNo),
+      padding: Number(body.padding),
+      financial_year_reset: body.fyReset,
+      is_active: body.active
+    }
+    const { data, error } = await client.from('document_series').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single()
+    if (error) throw error
+    await cascadeSeriesUpdateDb(client, organizationId, body.doc || existing?.document_type, values, existing)
+    return data
+  }
   if (resource === 'warehouses') { const values: any = {}; if ('name' in body) values.name = body.name; if ('type' in body) values.warehouse_type = body.type; if ('address' in body) values.address = body.address; if ('capacity' in body) values.capacity = Number(body.capacity); if ('status' in body) values.is_active = body.status === 'active'; const { data, error } = await client.from('warehouses').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'accounts') { const values: any = {}; if ('name' in body) values.name = body.name; if ('group' in body) values.account_group = body.group; if ('openingBalance' in body) values.opening_balance = Number(body.openingBalance); const { data, error } = await client.from('chart_of_accounts').update(values).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data }
   if (resource === 'items') {
