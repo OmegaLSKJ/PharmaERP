@@ -658,13 +658,13 @@ export default function PurchaseEntry() {
               </p>
               {isEditMode && (
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg">
-                    <span className="text-xs text-slate-300 font-medium">Bill Total:</span>
-                    <span className="text-sm font-bold font-mono text-emerald-400">{formatCurrency(grandTotal)}</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                    <span className="text-xs text-foreground font-medium">Bill Total:</span>
+                    <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">{formatCurrency(grandTotal)}</span>
                   </div>
                   {supplier && (
-                    <span className="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg font-medium">
-                      Supplier: <span className="text-white font-semibold">{supplier}</span>
+                    <span className="text-xs text-muted-foreground bg-card border border-border px-2.5 py-1 rounded-lg font-medium">
+                      Supplier: <span className="text-foreground font-semibold">{supplier}</span>
                     </span>
                   )}
                   {items.length === 0 && (
