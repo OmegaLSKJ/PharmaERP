@@ -28,7 +28,7 @@ const IMPORT_TYPES = {
 const normalizeHeader = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 const hasValue = (value: unknown) => value !== null && value !== undefined && String(value).trim() !== ''
 const normalizeCell = (value: unknown): ImportRow[string] => {
-  if (value === null || value === undefined || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value ?? null
+  if (value === null || value === undefined || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return (value ?? null) as ImportRow[string]
   if (value instanceof Date) return value.toISOString().slice(0, 10)
   return String(value)
 }
@@ -73,7 +73,7 @@ export default function TransactionImport() {
         if (!matrix.length) throw new Error('The workbook is empty.')
         const headers = matrix[0].map(normalizeHeader)
         if (headers.some((header) => !header)) throw new Error('Every Excel column must have a header in the first row.')
-        parsedRows = matrix.slice(1).filter((row) => row.some(hasValue)).map((row) => Object.fromEntries(headers.map((header, index) => [header, normalizeCell(row[index])])))
+        parsedRows = matrix.slice(1).filter((row) => row.some(hasValue)).map((row) => Object.fromEntries(headers.map((header, index) => [header, normalizeCell(row[index])])) as ImportRow)
       } else throw new Error('Choose a .csv or .xlsx file.')
       setFile(selected)
       setRows(parsedRows)
