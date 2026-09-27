@@ -1171,20 +1171,20 @@ export default function SaleEntry() {
       </div>
 
       {/* Invoice Totals */}
-      <div className="w-full sm:max-w-md sm:ml-auto grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm shadow-sm">
-        <span className="text-slate-400">Subtotal</span>
-        <span className="text-right font-mono">{formatCurrency(totals.subtotal)}</span>
-        <span className="text-slate-400">Discount</span>
-        <span className="text-right font-mono text-rose-400">-{formatCurrency(totals.discountTotal)}</span>
-        <span className="text-slate-400">GST</span>
-        <span className="text-right font-mono">{formatCurrency(totals.taxTotal)}</span>
-        <span className="text-slate-400">Rounding</span>
-        <span className="text-right font-mono">{formatCurrency(totals.roundingAdjustment)}</span>
-        <div className="col-span-2 border-t border-slate-800 my-1"></div>
-        <span className="font-bold text-white text-base">Grand Total</span>
-        <span className="text-right font-mono font-bold text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</span>
+      <div className="w-full sm:max-w-md sm:ml-auto grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-border dark:border-slate-800 bg-card dark:bg-slate-900 p-4 text-sm shadow-sm text-black dark:text-white">
+        <span className="text-black dark:text-slate-400 font-semibold">Subtotal</span>
+        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.subtotal)}</span>
+        <span className="text-black dark:text-slate-400 font-semibold">Discount</span>
+        <span className="text-right font-mono font-bold text-rose-600 dark:text-rose-400">-{formatCurrency(totals.discountTotal)}</span>
+        <span className="text-black dark:text-slate-400 font-semibold">GST</span>
+        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.taxTotal)}</span>
+        <span className="text-black dark:text-slate-400 font-semibold">Rounding</span>
+        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.roundingAdjustment)}</span>
+        <div className="col-span-2 border-t border-border dark:border-slate-800 my-1"></div>
+        <span className="font-bold text-black dark:text-white text-base">Grand Total</span>
+        <span className="text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</span>
         {isEditMode && items.length === 0 && totals.grandTotal > 0 && (
-          <div className="col-span-2 text-[11px] text-amber-400/90 text-right font-medium pt-1">
+          <div className="col-span-2 text-[11px] text-amber-600 dark:text-amber-400/90 text-right font-medium pt-1">
             * Amount preserved from posted invoice record (no item lines in DB)
           </div>
         )}

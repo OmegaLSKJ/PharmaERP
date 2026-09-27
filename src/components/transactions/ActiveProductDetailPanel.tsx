@@ -194,25 +194,25 @@ export default function ActiveProductDetailPanel({
         {/* Left / Main: Active Product Live Inspection Box */}
         <div
           className={cn(
-            'bg-slate-100/95 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2.5 font-mono shadow-xs text-xs transition-all',
+            'bg-white dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2.5 font-mono shadow-xs text-xs transition-all text-black dark:text-slate-200',
             hasBillSummary ? 'lg:col-span-7' : 'w-full'
           )}
         >
           {/* Header Strip */}
           <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5 gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <button type="button" onClick={() => activeProduct && setDetailOpen(true)} disabled={!activeProduct} className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px] disabled:opacity-50">
+              <button type="button" onClick={() => activeProduct && setDetailOpen(true)} disabled={!activeProduct} className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-black uppercase tracking-wider text-[10px] disabled:opacity-50">
                 Product Description
               </button>
               {typeof totalRows === 'number' && totalRows > 0 && activeProduct && (
-                <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                <span className="text-black dark:text-slate-400 font-bold text-[11px]">
                   Row #{activeIndex + 1} of {totalRows}
                 </span>
               )}
             </div>
             {displayedProduct?.hsn && (
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                HSN: <strong className="text-slate-800 dark:text-white font-mono">{displayedProduct.hsn}</strong>
+              <span className="text-[10px] text-black dark:text-slate-400 font-bold whitespace-nowrap">
+                HSN: <strong className="text-black dark:text-white font-mono font-black">{displayedProduct.hsn}</strong>
                 {typeof displayedProduct.gstRate === 'number' && (
                   <span> (GST {displayedProduct.gstRate}%)</span>
                 )}
@@ -221,75 +221,75 @@ export default function ActiveProductDetailPanel({
           </div>
 
           {displayedProduct ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-slate-700 dark:text-slate-300">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-black dark:text-slate-300">
               {/* Product Name & Brand */}
               <div className="sm:col-span-2 flex items-baseline flex-wrap gap-1.5">
-                <span className="text-slate-500 font-bold uppercase text-[10px] tracking-wider">Item:</span>
-                <span className="text-slate-900 dark:text-white font-extrabold text-sm tracking-tight">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px] tracking-wider">Item:</span>
+                <span className="text-black dark:text-white font-black text-sm tracking-tight">
                   {displayedProduct.name}
                 </span>
                 {displayedProduct.packing && (
-                  <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-sans font-semibold">
+                  <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-black dark:text-slate-200 text-[10px] font-sans font-bold">
                     {displayedProduct.packing}
                   </span>
                 )}
                 {displayedProduct.manufacturer && (
-                  <span className="text-[10px] text-slate-500 italic">({displayedProduct.manufacturer})</span>
+                  <span className="text-[10px] text-black dark:text-slate-400 font-semibold italic">({displayedProduct.manufacturer})</span>
                 )}
               </div>
 
               {/* Composition / Salt */}
               {displayedProduct.salt && (
-                <div className="sm:col-span-2 text-[11px] text-indigo-700 dark:text-indigo-300/90 font-sans font-medium bg-indigo-50/70 dark:bg-indigo-950/40 px-2 py-1 rounded border border-indigo-200/60 dark:border-indigo-900/40">
-                  <span className="text-indigo-500 dark:text-indigo-400 font-bold uppercase text-[10px] font-mono mr-1">Salt:</span>
+                <div className="sm:col-span-2 text-[11px] text-black dark:text-indigo-300/90 font-sans font-semibold bg-indigo-50/80 dark:bg-indigo-950/40 px-2 py-1 rounded border border-indigo-200/80 dark:border-indigo-900/40">
+                  <span className="text-indigo-950 dark:text-indigo-400 font-black uppercase text-[10px] font-mono mr-1">Salt:</span>
                   {displayedProduct.salt}
                 </div>
               )}
 
               {/* Batch */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">Batch: </span>
-                <span className="text-amber-600 dark:text-amber-300 font-bold font-mono text-xs">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Batch: </span>
+                <span className="text-amber-700 dark:text-amber-300 font-black font-mono text-xs">
                   {displayedProduct.batch || '—'}
                 </span>
               </div>
 
               {/* Stock */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">Stock: </span>
-                <span className={cn('font-bold font-mono text-xs', (displayedProduct.stock ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')}>
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Stock: </span>
+                <span className={cn('font-black font-mono text-xs', (displayedProduct.stock ?? 0) > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-500')}>
                   {typeof displayedProduct.stock === 'number' ? `${displayedProduct.stock} Units` : '—'}
                 </span>
               </div>
 
               {/* Expiry */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">Expiry: </span>
-                <span className="text-slate-800 dark:text-white font-bold font-mono text-xs">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Expiry: </span>
+                <span className="text-black dark:text-white font-black font-mono text-xs">
                   {formatDisplayExpiry(displayedProduct.expiry)}
                 </span>
               </div>
 
               {/* Sale Rate */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">SRate: </span>
-                <span className="text-indigo-600 dark:text-indigo-300 font-bold font-mono text-xs">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">SRate: </span>
+                <span className="text-blue-700 dark:text-indigo-300 font-black font-mono text-xs">
                   {money(displayedProduct.saleRate)}
                 </span>
               </div>
 
               {/* MRP */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">M.R.P.: </span>
-                <span className="text-slate-900 dark:text-white font-bold font-mono text-xs">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">M.R.P.: </span>
+                <span className="text-black dark:text-white font-black font-mono text-xs">
                   {money(displayedProduct.mrp)}
                 </span>
               </div>
 
               {/* Purchase Rate */}
               <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px]">P.Rate: </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">
+                <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">P.Rate: </span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-black font-mono text-xs">
                   {money(displayedProduct.purchaseRate)}
                 </span>
               </div>
@@ -297,35 +297,35 @@ export default function ActiveProductDetailPanel({
               {/* Optional Ref / Invoice */}
               {displayedProduct.refNo && (
                 <div>
-                  <span className="text-slate-500 font-bold uppercase text-[10px]">Chall./Inv: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.refNo}</span>
+                  <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Chall./Inv: </span>
+                  <span className="text-black dark:text-slate-200 font-mono text-xs font-bold">{displayedProduct.refNo}</span>
                 </div>
               )}
 
               {/* Optional Date */}
               {displayedProduct.date && (
                 <div>
-                  <span className="text-slate-500 font-bold uppercase text-[10px]">Date: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.date}</span>
+                  <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Date: </span>
+                  <span className="text-black dark:text-slate-200 font-mono text-xs font-bold">{displayedProduct.date}</span>
                 </div>
               )}
 
               {/* Optional Category or Location */}
               {displayedProduct.category && (
                 <div>
-                  <span className="text-slate-500 font-bold uppercase text-[10px]">Category: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.category}</span>
+                  <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Category: </span>
+                  <span className="text-black dark:text-slate-200 font-mono text-xs font-bold">{displayedProduct.category}</span>
                 </div>
               )}
               {displayedProduct.location && (
                 <div>
-                  <span className="text-slate-500 font-bold uppercase text-[10px]">Location: </span>
-                  <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{displayedProduct.location}</span>
+                  <span className="text-black dark:text-slate-400 font-extrabold uppercase text-[10px]">Location: </span>
+                  <span className="text-black dark:text-slate-200 font-mono text-xs font-bold">{displayedProduct.location}</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="py-7 text-center text-slate-400 text-xs">
+            <div className="py-7 text-center text-black dark:text-slate-400 text-xs font-medium">
               {emptyMessage}
             </div>
           )}
@@ -333,52 +333,52 @@ export default function ActiveProductDetailPanel({
 
         {/* Right: Bill Values & Account Summary (if in billing context) */}
         {billSummary && (
-          <div className="lg:col-span-5 bg-slate-100/95 dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2 font-mono shadow-xs text-xs">
+          <div className="lg:col-span-5 bg-white dark:bg-slate-950/90 border-2 border-slate-300 dark:border-slate-700/80 rounded-xl p-3.5 space-y-2 font-mono shadow-xs text-xs text-black dark:text-slate-200">
             <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-1.5 gap-2">
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-900 dark:text-blue-300 font-black uppercase tracking-wider text-[10px]">
                 {billSummary.title || 'Bill Values & Ledger'}
               </span>
               {billSummary.partyName && (
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[190px]" title={billSummary.partyName}>
-                  {billSummary.partyLabel || 'Party'}: <strong className="text-slate-800 dark:text-white">{billSummary.partyName}</strong>
+                <span className="text-[10px] text-black dark:text-slate-400 truncate max-w-[190px] font-bold" title={billSummary.partyName}>
+                  {billSummary.partyLabel || 'Party'}: <strong className="text-black dark:text-white font-black">{billSummary.partyName}</strong>
                 </span>
               )}
             </div>
 
-            <div className="space-y-1 text-slate-700 dark:text-slate-300 pt-0.5">
+            <div className="space-y-1 text-black dark:text-slate-300 pt-0.5">
               {typeof billSummary.mrpValue === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">MRP Value :</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(billSummary.mrpValue)}</span>
+                  <span className="text-black dark:text-slate-400 font-bold">MRP Value :</span>
+                  <span className="font-black text-black dark:text-white">{formatCurrency(billSummary.mrpValue)}</span>
                 </div>
               )}
               {typeof billSummary.valueOfGoods === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">VALUE OF GOODS :</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(billSummary.valueOfGoods)}</span>
+                  <span className="text-black dark:text-slate-400 font-bold">VALUE OF GOODS :</span>
+                  <span className="font-black text-black dark:text-white">{formatCurrency(billSummary.valueOfGoods)}</span>
                 </div>
               )}
               {typeof (billSummary.discount ?? billSummary.discountValue) === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">DISCOUNT :</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400">
+                  <span className="text-black dark:text-slate-400 font-bold">DISCOUNT :</span>
+                  <span className="font-black text-amber-700 dark:text-amber-400">
                     {((billSummary.discount ?? billSummary.discountValue) || 0) > 0 ? `-${formatCurrency((billSummary.discount ?? billSummary.discountValue) || 0)}` : '₹0.00'}
                   </span>
                 </div>
               )}
               {typeof (billSummary.gstTotal ?? billSummary.gstValue) === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">GST% Total :</span>
-                  <span className="font-bold text-primary">+{formatCurrency((billSummary.gstTotal ?? billSummary.gstValue) || 0)}</span>
+                  <span className="text-black dark:text-slate-400 font-bold">GST% Total :</span>
+                  <span className="font-black text-blue-700 dark:text-primary">+{formatCurrency((billSummary.gstTotal ?? billSummary.gstValue) || 0)}</span>
                 </div>
               )}
               {typeof billSummary.partyBalance === 'number' && (
                 <div className="flex justify-between border-t border-slate-300 dark:border-slate-800/80 pt-1">
-                  <span className="text-slate-500">Party Balance :</span>
+                  <span className="text-black dark:text-slate-400 font-bold">Party Balance :</span>
                   <span
                     className={cn(
-                      'font-bold',
-                      billSummary.partyBalance < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-200'
+                      'font-black',
+                      billSummary.partyBalance < 0 ? 'text-rose-600 dark:text-rose-500' : 'text-black dark:text-slate-200'
                     )}
                   >
                     {formatCurrency(Math.abs(billSummary.partyBalance))} {billSummary.partyBalance >= 0 ? 'Cr' : 'Dr'}
@@ -387,8 +387,8 @@ export default function ActiveProductDetailPanel({
               )}
               {typeof billSummary.grandTotal === 'number' && (
                 <div className="flex justify-between border-t border-slate-300 dark:border-slate-800/80 pt-1.5 text-sm">
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold uppercase">Bill Total :</span>
-                  <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono text-base">
+                  <span className="text-black dark:text-slate-200 font-black uppercase">Bill Total :</span>
+                  <span className="font-black text-emerald-700 dark:text-emerald-400 font-mono text-base">
                     {formatCurrency(billSummary.grandTotal)}
                   </span>
                 </div>
@@ -494,15 +494,15 @@ function Detail({ label, value }: { label: string; value?: string }) {
   const hasValue = Boolean(value && value !== '—' && value.trim() !== '')
   return (
     <div className="bg-card px-5 py-3">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-black dark:text-muted-foreground">
         {label}
       </span>
       <strong
         className={cn(
           'mt-1 block font-mono text-sm tracking-tight',
           hasValue
-            ? 'text-foreground font-bold'
-            : 'text-muted-foreground/60 font-normal'
+            ? 'text-black dark:text-white font-bold'
+            : 'text-black/60 dark:text-muted-foreground/60 font-normal'
         )}
       >
         {hasValue ? value : '—'}
@@ -514,15 +514,15 @@ function Detail({ label, value }: { label: string; value?: string }) {
 function Margin({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="rounded border border-border bg-card p-3 shadow-2xs">
-      <span className="font-mono text-[10px] uppercase font-medium text-muted-foreground">{label}</span>
+      <span className="font-mono text-[10px] uppercase font-bold text-black dark:text-muted-foreground">{label}</span>
       <strong
         className={cn(
           'mt-1 block font-mono text-base font-bold',
           value === null
-            ? 'text-muted-foreground/60 font-normal'
+            ? 'text-black/60 dark:text-muted-foreground/60 font-normal'
             : value < 0
             ? 'text-rose-600 dark:text-rose-400'
-            : 'text-emerald-600 dark:text-emerald-400'
+            : 'text-emerald-700 dark:text-emerald-400 font-black'
         )}
       >
         {value === null ? '—' : `${value.toFixed(2)}%`}

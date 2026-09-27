@@ -7,17 +7,17 @@
 @layer base {
   :root {
     --background: 210 16% 96%;        /* #f5f6f7 - SAP Horizon Light Gray */
-    --foreground: 215 15% 15%;        /* #1e293b - Slate 800 */
+    --foreground: 0 0% 0%;             /* Pure Solid Black #000000 */
     --card: 0 0% 100%;                /* #ffffff */
-    --card-foreground: 215 15% 15%;
+    --card-foreground: 0 0% 0%;        /* Pure Solid Black */
     --popover: 0 0% 100%;
-    --popover-foreground: 215 15% 15%;
+    --popover-foreground: 0 0% 0%;     /* Pure Solid Black */
     --primary: 215 15% 15%;            /* #1e293b - Slate brand accent */
     --primary-foreground: 0 0% 100%;  /* #ffffff */
     --secondary: 210 12% 92%;          /* #eaf0f6 */
-    --secondary-foreground: 215 15% 15%;
+    --secondary-foreground: 0 0% 0%;   /* Pure Solid Black */
     --muted: 210 10% 90%;              /* #e1e4e7 */
-    --muted-foreground: 215 16% 47%;   /* #64748b */
+    --muted-foreground: 0 0% 20%;      /* Solid dark text #333333 */
     --accent: 215 15% 15%;
     --accent-foreground: 0 0% 100%;
     --destructive: 354 86% 52%;        /* SAP Destructive Red */
@@ -27,20 +27,20 @@
     --ring: 215 15% 30%;
     --radius: 6px;                     /* Consistent professional border radius */
     --sidebar: 0 0% 100%;              /* Option B: Clean Light Sidebar */
-    --sidebar-foreground: 215 16% 36%; /* Muted slate gray */
+    --sidebar-foreground: 0 0% 0%;     /* Pure Solid Black */
 
-    /* Option B: Light theme mappings for hardcoded slate colors */
-    --slate-50: 210 16% 96%;
-    --slate-100: 210 16% 96%;
-    --slate-200: 210 12% 92%;
-    --slate-300: 215 15% 15%;
-    --slate-400: 215 15% 30%;
-    --slate-500: 215 16% 47%;
-    --slate-600: 215 16% 47%;
-    --slate-700: 210 10% 80%;
-    --slate-800: 210 12% 87%;
-    --slate-900: 0 0% 100%;
-    --slate-950: 210 16% 96%;
+    /* Light theme mappings for slate colors - high contrast solid black letters */
+    --slate-50: 210 20% 98%;
+    --slate-100: 210 20% 96%;
+    --slate-200: 210 16% 92%;
+    --slate-300: 210 14% 85%;
+    --slate-400: 215 16% 40%;
+    --slate-500: 215 16% 25%;
+    --slate-600: 215 20% 15%;
+    --slate-700: 220 25% 10%;
+    --slate-800: 220 30% 5%;
+    --slate-900: 0 0% 0%;             /* Pure solid black */
+    --slate-950: 0 0% 0%;             /* Pure solid black */
   }
 
   .dark {
