@@ -87,35 +87,35 @@ export default function StockView() {
       <PrintHeader title="Batch Stock View" />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Stock View</h1>
-          <p className="text-sm text-slate-400 mt-1">Batch-wise inventory &bull; {filtered.length} entries</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Stock View</h1>
+          <p className="text-sm text-muted-foreground mt-1">Batch-wise inventory &bull; {filtered.length} entries</p>
         </div>
-        <button onClick={() => exportVisibleTables('batch-stock', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('batch-stock', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
           <Download size={16} /> Export
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400 uppercase font-semibold">Total Qty</div>
-          <div className="text-2xl font-bold text-white mt-1">{filtered.reduce((s, i) => s + i.stock, 0).toLocaleString()}</div>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="text-xs text-muted-foreground uppercase font-semibold">Total Qty</div>
+          <div className="text-2xl font-bold text-foreground mt-1">{filtered.reduce((s, i) => s + i.stock, 0).toLocaleString()}</div>
         </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400 uppercase font-semibold">Purchase Value</div>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">{formatCurrency(totalValue)}</div>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="text-xs text-muted-foreground uppercase font-semibold">Purchase Value</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(totalValue)}</div>
         </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400 uppercase font-semibold">MRP Value</div>
-          <div className="text-2xl font-bold text-indigo-400 mt-1">{formatCurrency(mrpValue)}</div>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="text-xs text-muted-foreground uppercase font-semibold">MRP Value</div>
+          <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{formatCurrency(mrpValue)}</div>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Search by name or batch..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input type="text" placeholder="Search by name or batch..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:border-indigo-500" />
         </div>
-        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500">
+        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:border-indigo-500">
           {locations.map((l) => <option key={l} value={l}>{l === 'all' ? 'All Locations' : l}</option>)}
         </select>
       </div>
@@ -130,35 +130,35 @@ export default function StockView() {
               key={item.id}
               onClick={() => setActiveIndex(idx)}
               className={cn(
-                'bg-slate-900/60 border rounded-xl p-3.5 space-y-2 cursor-pointer transition',
+                'bg-card border rounded-xl p-3.5 space-y-2 cursor-pointer transition shadow-xs',
                 isActive
-                  ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-indigo-950/20'
-                  : 'border-slate-800 hover:border-slate-700'
+                  ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-indigo-500/10'
+                  : 'border-border hover:border-primary/50'
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-white">{item.name}</div>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap text-xs text-slate-400">
-                    {item.packing && <span className="bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[11px]">{item.packing}</span>}
-                    {item.manufacturer && <span className="text-[11px] text-slate-400">({item.manufacturer})</span>}
+                  <div className="text-sm font-semibold text-foreground">{item.name}</div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap text-xs text-muted-foreground">
+                    {item.packing && <span className="bg-secondary px-1.5 py-0.5 rounded font-mono text-[11px] text-foreground">{item.packing}</span>}
+                    {item.manufacturer && <span className="text-[11px] text-muted-foreground">({item.manufacturer})</span>}
                   </div>
                 </div>
-                <span className={cn('px-2 py-0.5 rounded text-xs font-mono font-bold whitespace-nowrap', item.stock > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20')}>
+                <span className={cn('px-2 py-0.5 rounded text-xs font-mono font-bold whitespace-nowrap', item.stock > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20')}>
                   {item.stock} Units
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-[11px] font-mono">
                 <div>
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Batch & Exp</span>
-                  <span className="text-amber-400 font-semibold">{item.batch}</span>
-                  <span className="text-slate-400 ml-1">({item.expiry})</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">Batch & Exp</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">{item.batch}</span>
+                  <span className="text-muted-foreground ml-1">({item.expiry})</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">MRP / P.Rate</span>
-                  <span className="text-white">{formatCurrency(item.mrp)}</span>
-                  <span className="text-emerald-400 ml-1">/ {formatCurrency(item.purchaseRate)}</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">MRP / P.Rate</span>
+                  <span className="text-foreground">{formatCurrency(item.mrp)}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 ml-1">/ {formatCurrency(item.purchaseRate)}</span>
                 </div>
               </div>
             </div>
@@ -167,11 +167,11 @@ export default function StockView() {
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+              <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                 <th className="text-left px-4 py-3 font-medium">Item Name</th>
                 <th className="text-left px-4 py-3 font-medium">Packing</th>
                 <th className="text-left px-4 py-3 font-medium">Manufacturer</th>
@@ -184,7 +184,7 @@ export default function StockView() {
                 <th className="text-left px-4 py-3 font-medium">Location</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
+            <tbody className="divide-y divide-border text-foreground">
               {filtered.map((item, idx) => {
                 const daysLeft = Math.ceil((new Date(item.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                 const isActive = idx === activeIndex
@@ -194,16 +194,16 @@ export default function StockView() {
                     onClick={() => setActiveIndex(idx)}
                     className={cn(
                       'cursor-pointer transition-colors',
-                      isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-900/30'
+                      isActive ? 'bg-indigo-500/10 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-secondary/40'
                     )}
                   >
-                    <td className="px-4 py-3 font-medium text-white">{item.name}</td>
-                    <td className="px-4 py-3 text-slate-400">{item.packing}</td>
-                    <td className="px-4 py-3 text-slate-400">{item.manufacturer}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{item.batch}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.packing}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.manufacturer}</td>
+                    <td className="px-4 py-3 font-mono text-muted-foreground">{item.batch}</td>
                     <td className="px-4 py-3 font-mono">
-                      <span className={cn(daysLeft <= 60 ? 'text-amber-400' : 'text-slate-400')}>{item.expiry}</span>
-                      <span className={cn('ml-1 text-[10px]', daysLeft <= 30 ? 'text-rose-400' : daysLeft <= 60 ? 'text-amber-400' : 'text-slate-500')}>({daysLeft}d)</span>
+                      <span className={cn(daysLeft <= 60 ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground')}>{item.expiry}</span>
+                      <span className={cn('ml-1 text-[10px]', daysLeft <= 30 ? 'text-rose-500 dark:text-rose-400' : daysLeft <= 60 ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground')}>({daysLeft}d)</span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{formatCurrency(item.mrp)}</td>
                     <td className="px-4 py-3 text-right font-mono">{formatCurrency(item.purchaseRate)}</td>

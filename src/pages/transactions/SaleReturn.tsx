@@ -96,9 +96,9 @@ export default function SaleReturn() {
       <PrintHeader title="Sale Returns" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Sale Returns</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            {filtered.length} returns | Total: <span className="font-mono font-semibold text-rose-400">{formatCurrency(totalVal)}</span>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Sale Returns</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            {filtered.length} returns | Total: <span className="font-mono font-semibold text-rose-600 dark:text-rose-400">{formatCurrency(totalVal)}</span>
           </p>
         </div>
         <button
@@ -110,13 +110,13 @@ export default function SaleReturn() {
       </div>
 
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           placeholder="Search by return no or party..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500 transition"
+          className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm outline-none focus:border-primary transition"
         />
       </div>
 
@@ -129,33 +129,33 @@ export default function SaleReturn() {
               key={s.id}
               onClick={() => setActiveIndex(idx)}
               className={cn(
-                'bg-slate-900 border rounded-xl p-3.5 space-y-2.5 shadow-sm cursor-pointer transition',
-                isActive ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800'
+                'bg-card border rounded-xl p-3.5 space-y-2.5 shadow-sm cursor-pointer transition',
+                isActive ? 'border-primary ring-2 ring-primary/30' : 'border-border'
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="font-mono text-xs font-semibold text-indigo-400">{s.returnNo}</div>
-                  <div className="font-semibold text-white text-sm mt-0.5">{s.party}</div>
+                  <div className="font-mono text-xs font-semibold text-primary">{s.returnNo}</div>
+                  <div className="font-semibold text-foreground text-sm mt-0.5">{s.party}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-bold text-rose-400 text-sm">{formatCurrency(s.total)}</div>
-                  <span className="text-[10px] text-slate-500 font-mono">{s.date}</span>
+                  <div className="font-mono font-bold text-rose-600 dark:text-rose-400 text-sm">{formatCurrency(s.total)}</div>
+                  <span className="text-[10px] text-muted-foreground font-mono">{s.date}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800 text-slate-400">
-                <div>Orig. Invoice: <span className="font-mono text-slate-300">{s.origInvoice || 'N/A'}</span></div>
-                <div>Items: <span className="font-mono text-white">{s.items}</span></div>
+              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border text-muted-foreground">
+                <div>Orig. Invoice: <span className="font-mono text-foreground">{s.origInvoice || 'N/A'}</span></div>
+                <div>Items: <span className="font-mono text-foreground">{s.items}</span></div>
               </div>
 
               {s.reason && (
-                <div className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                  <span className="text-slate-500 font-medium">Reason: </span>{s.reason}
+                <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border">
+                  <span className="text-foreground font-medium">Reason: </span>{s.reason}
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+              <div className="flex items-center justify-between pt-1 border-t border-border">
                 <select
                   aria-label={`Change status of ${s.returnNo}`}
                   value={s.status}
@@ -170,13 +170,13 @@ export default function SaleReturn() {
                     }
                   }}
                   className={cn(
-                    'px-2 py-1 rounded text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer',
+                    'px-2 py-1 rounded text-xs font-semibold capitalize border bg-card text-foreground outline-none cursor-pointer',
                     STATUS_STYLE[s.status]
                   )}
                 >
-                  <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                  <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
-                  <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
+                  <option value="pending" className="bg-card text-amber-600 dark:text-amber-400">Pending</option>
+                  <option value="processed" className="bg-card text-emerald-600 dark:text-emerald-400">Processed</option>
+                  <option value="rejected" className="bg-card text-rose-600 dark:text-rose-400">Rejected</option>
                 </select>
 
                 <div className="flex items-center gap-1.5">
@@ -186,7 +186,7 @@ export default function SaleReturn() {
                       e.stopPropagation()
                       setSelectedReturn(s)
                     }}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                    className="p-1.5 rounded-lg bg-card hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition cursor-pointer"
                     title="View Credit Note"
                   >
                     <Eye size={15} />
@@ -198,7 +198,7 @@ export default function SaleReturn() {
                       setSelectedReturn(s)
                       setTimeout(() => window.print(), 100)
                     }}
-                    className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                    className="p-1.5 rounded-lg bg-card hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition shadow-xs cursor-pointer"
                     title="Print Credit Note"
                   >
                     <Printer size={15} />
@@ -211,10 +211,10 @@ export default function SaleReturn() {
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      <div className="hidden md:block bg-card border border-border rounded-xl overflow-x-auto shadow-sm">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+            <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-medium">Return No</th>
               <th className="text-left px-4 py-3 font-medium">Date</th>
               <th className="text-left px-4 py-3 font-medium">Party</th>
@@ -226,7 +226,7 @@ export default function SaleReturn() {
               <th className="text-center px-4 py-3 font-medium w-24">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {filtered.map((s, idx) => {
               const isActive = idx === activeIndex
               return (
@@ -235,16 +235,16 @@ export default function SaleReturn() {
                   onClick={() => setActiveIndex(idx)}
                   className={cn(
                     'transition cursor-pointer',
-                    isActive ? 'bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-slate-900/30'
+                    isActive ? 'bg-primary/10 ring-1 ring-inset ring-primary/40 border-l-4 border-l-primary' : 'hover:bg-secondary/40'
                   )}
                 >
-                  <td className="px-4 py-3 font-mono text-white">{s.returnNo}</td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{s.date}</td>
-                  <td className="px-4 py-3 font-medium text-white">{s.party}</td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{s.origInvoice}</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground">{s.returnNo}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{s.date}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{s.party}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{s.origInvoice}</td>
                   <td className="px-4 py-3 text-right">{s.items}</td>
-                  <td className="px-4 py-3 text-right font-medium text-rose-400">{formatCurrency(s.total)}</td>
-                  <td className="px-4 py-3 text-slate-400">{s.reason}</td>
+                  <td className="px-4 py-3 text-right font-medium text-rose-600 dark:text-rose-400">{formatCurrency(s.total)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{s.reason}</td>
                   <td className="px-4 py-3">
                     <select
                       aria-label={`Change status of ${s.returnNo}`}
@@ -260,13 +260,13 @@ export default function SaleReturn() {
                         }
                       }}
                       className={cn(
-                        'px-2 py-0.5 rounded text-[10px] font-semibold capitalize border border-transparent bg-slate-950 text-white outline-none focus:border-indigo-500 cursor-pointer',
+                        'px-2 py-0.5 rounded text-[10px] font-semibold capitalize border border-transparent bg-card text-foreground outline-none focus:border-primary cursor-pointer',
                         STATUS_STYLE[s.status]
                       )}
                     >
-                      <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                      <option value="processed" className="bg-slate-900 text-emerald-400">Processed</option>
-                      <option value="rejected" className="bg-slate-900 text-rose-400">Rejected</option>
+                      <option value="pending" className="bg-card text-amber-600 dark:text-amber-400">Pending</option>
+                      <option value="processed" className="bg-card text-emerald-600 dark:text-emerald-400">Processed</option>
+                      <option value="rejected" className="bg-card text-rose-600 dark:text-rose-400">Rejected</option>
                     </select>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -291,7 +291,7 @@ export default function SaleReturn() {
                           setSelectedReturn(s)
                           setTimeout(() => window.print(), 100)
                         }}
-                        className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                        className="p-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition border border-border shadow-xs cursor-pointer"
                         title="Direct Print (Ctrl+P)"
                       >
                         <Printer size={14} />
@@ -333,34 +333,34 @@ export default function SaleReturn() {
       />
 
       {showForm && (
-        <div className="no-print fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-xs p-3 sm:p-4">
-          <form onSubmit={saveReturn} className="bg-slate-900 border border-slate-800 w-full max-w-lg space-y-4 rounded-2xl p-5 sm:p-6 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h2 className="text-base sm:text-lg font-semibold text-white">New Sale Return</h2>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white text-sm">
+        <div className="no-print fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <form onSubmit={saveReturn} className="bg-card border border-border text-foreground w-full max-w-lg space-y-4 rounded-2xl p-5 sm:p-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-border pb-3">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">New Sale Return</h2>
+              <button type="button" onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground text-sm cursor-pointer">
                 Close
               </button>
             </div>
-            <label className="grid gap-1 text-xs text-slate-400">
+            <label className="grid gap-1 text-xs text-muted-foreground">
               Party / Customer *
-              <input required autoFocus value={party} onChange={(e) => setParty(e.target.value)} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500" />
+              <input required autoFocus value={party} onChange={(e) => setParty(e.target.value)} className="rounded-lg border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:border-indigo-500" />
             </label>
-            <label className="grid gap-1 text-xs text-slate-400">
+            <label className="grid gap-1 text-xs text-muted-foreground">
               Original Invoice Number *
-              <input required value={origInvoice} onChange={(e) => setOrigInvoice(e.target.value)} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500 font-mono" />
+              <input required value={origInvoice} onChange={(e) => setOrigInvoice(e.target.value)} className="rounded-lg border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:border-indigo-500 font-mono" />
             </label>
-            <label className="grid gap-1 text-xs text-slate-400">
+            <label className="grid gap-1 text-xs text-muted-foreground">
               Reason for Return *
-              <input required value={reason} onChange={(e) => setReason(e.target.value)} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500" />
+              <input required value={reason} onChange={(e) => setReason(e.target.value)} className="rounded-lg border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:border-indigo-500" />
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs text-muted-foreground">
                 Number of Items
-                <input type="number" min="1" value={items} onChange={(e) => setItems(Number(e.target.value))} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500 font-mono" />
+                <input type="number" min="1" value={items} onChange={(e) => setItems(Number(e.target.value))} className="rounded-lg border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:border-indigo-500 font-mono" />
               </label>
-              <label className="grid gap-1 text-xs text-slate-400">
+              <label className="grid gap-1 text-xs text-muted-foreground">
                 Return Value (₹) *
-                <input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(Number(e.target.value))} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-indigo-500 font-mono" />
+                <input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(Number(e.target.value))} className="rounded-lg border border-border bg-background p-2.5 text-sm text-foreground outline-none focus:border-indigo-500 font-mono" />
               </label>
             </div>
             <button className="w-full h-11 px-4 rounded-xl bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 font-semibold text-white shadow-md active:scale-[0.98] transition cursor-pointer">
@@ -374,25 +374,25 @@ export default function SaleReturn() {
       {/* Credit Note / Sale Return Print Preview Modal */}
       {selectedReturn && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setSelectedReturn(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border text-foreground w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
-                <h2 className="text-sm sm:text-base font-bold text-white truncate">Credit Note / Sale Return Bill</h2>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-                  <span>Return No: <span className="text-white font-mono">{selectedReturn.returnNo}</span></span>
-                  <span className="hidden sm:inline text-slate-600">•</span>
-                  <span className="truncate">Party: <span className="text-white">{selectedReturn.party}</span></span>
+                <h2 className="text-sm sm:text-base font-bold text-foreground truncate">Credit Note / Sale Return Bill</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
+                  <span>Return No: <span className="text-foreground font-mono">{selectedReturn.returnNo}</span></span>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <span className="truncate">Party: <span className="text-foreground">{selectedReturn.party}</span></span>
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   onClick={() => setSelectedReturn(null)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -401,13 +401,13 @@ export default function SaleReturn() {
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-semibold shadow-xs active:scale-[0.98] transition border border-black cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold shadow-xs active:scale-[0.98] transition border border-border cursor-pointer"
                 >
-                  <Printer size={14} className="text-white" /> <span>Print Credit Note</span>
+                  <Printer size={14} className="text-muted-foreground" /> <span>Print Credit Note</span>
                 </button>
                 <button
                   onClick={() => setSelectedReturn(null)}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />

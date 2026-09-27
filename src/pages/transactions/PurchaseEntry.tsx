@@ -846,7 +846,7 @@ export default function PurchaseEntry() {
             {/* Mobile View: Touch-Friendly Responsive Item Cards */}
             <div className="space-y-3 block md:hidden">
               {items.map((item, idx) => (
-                <div key={item.id} className="bg-slate-950/90 border border-border rounded-xl p-3.5 space-y-3 shadow-sm">
+                <div key={item.id} className="bg-card border border-border rounded-xl p-3.5 space-y-3 shadow-xs">
                   {/* Card Top */}
                   <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-2.5">
                     <div>
@@ -861,7 +861,7 @@ export default function PurchaseEntry() {
                           <span className="text-[11px] text-muted-foreground">{item.packing}</span>
                         )}
                         {item.hsn && (
-                          <span className="text-[10px] font-mono bg-slate-900 border border-border px-1.5 py-0.5 rounded text-primary">
+                          <span className="text-[10px] font-mono bg-secondary border border-border px-1.5 py-0.5 rounded text-primary">
                             HSN: {item.hsn}
                           </span>
                         )}
@@ -1364,7 +1364,7 @@ export default function PurchaseEntry() {
               </button>
             </div>
 
-            <div className="p-3 border-b border-border bg-slate-950/60">
+            <div className="p-3 border-b border-border bg-secondary/30">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -1384,7 +1384,7 @@ export default function PurchaseEntry() {
                 <button
                   key={item.name}
                   onClick={() => addItem(item)}
-                  className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/70 transition text-left group"
+                  className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/70 transition text-left group cursor-pointer"
                 >
                   <div>
                     <div className="font-semibold text-sm text-foreground group-hover:text-primary transition">{item.name}</div>
@@ -1409,9 +1409,9 @@ export default function PurchaseEntry() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.purchaseRate)}</div>
+                    <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(item.purchaseRate)}</div>
                     <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-2 mt-0.5">
-                      {item.saleRate > 0 && <span className="text-indigo-400 font-medium">Sale: ₹{item.saleRate}</span>}
+                      {item.saleRate > 0 && <span className="text-indigo-600 dark:text-indigo-400 font-medium">Sale: ₹{item.saleRate}</span>}
                       <span>MRP: ₹{item.mrp}</span>
                     </div>
                   </div>
@@ -1422,12 +1422,12 @@ export default function PurchaseEntry() {
               )}
             </div>
 
-            <div className="p-3 bg-slate-950 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
+            <div className="p-3 bg-secondary/30 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
               <span>{filteredItems.length} products found</span>
               <button
                 type="button"
                 onClick={() => setShowItemSearch(false)}
-                className="px-3 py-1 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg font-medium"
+                className="px-3 py-1 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg font-medium cursor-pointer"
               >
                 Close
               </button>
@@ -1437,7 +1437,7 @@ export default function PurchaseEntry() {
       )}
 
       {/* Sticky Bottom Action Bar on Mobile Screen */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total ({items.length} items)</div>
           <div className="font-mono font-bold text-emerald-400 text-base">{formatCurrency(grandTotal)}</div>
@@ -1467,26 +1467,26 @@ export default function PurchaseEntry() {
       {/* Print Preview Modal */}
       {showPrintModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setShowPrintModal(false)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border text-foreground w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
-                <h2 className="text-sm sm:text-base font-bold text-white truncate">Goods Receipt Note / Purchase Invoice</h2>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-                  <span>Invoice No: <span className="text-white font-mono">{invoiceNo || 'P000045'}</span></span>
-                  <span className="hidden sm:inline text-slate-600">•</span>
-                  <span>Date: <span className="text-white font-mono">{invoiceDate || '02-04-2026'}</span></span>
+                <h2 className="text-sm sm:text-base font-bold text-foreground truncate">Goods Receipt Note / Purchase Invoice</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
+                  <span>Invoice No: <span className="text-foreground font-mono">{invoiceNo || 'P000045'}</span></span>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <span>Date: <span className="text-foreground font-mono">{invoiceDate || '02-04-2026'}</span></span>
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -1496,17 +1496,17 @@ export default function PurchaseEntry() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <Printer size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
                   <span>Print Invoice</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-background rounded border border-border">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />

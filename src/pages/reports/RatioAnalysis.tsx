@@ -58,26 +58,26 @@ export default function RatioAnalysis() {
       <PrintHeader title="Financial Ratio Analysis" subtitle="Key financial health indicators derived from live ledger books" />
       <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Ratio Analysis</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">Financial health indicators | FY 2025-26</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Ratio Analysis</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Financial health indicators | FY 2025-26</p>
         </div>
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-neutral-700 cursor-pointer w-fit"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer w-fit"
         >
           <Printer size={15} /> Export PDF
         </button>
       </div>
       {ratios.map(g => (
-        <div key={g.group} className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/80"><h3 className="text-sm font-semibold text-white">{g.group}</h3></div>
+        <div key={g.group} className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border bg-secondary/50"><h3 className="text-sm font-semibold text-foreground">{g.group}</h3></div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs min-w-[320px]">
-              <tbody className="divide-y divide-slate-800 text-slate-300">
-                {g.items.map(r => (<tr key={r.name} className="hover:bg-slate-900/30">
-                  <td className="px-4 py-3 font-medium text-white">{r.name}</td>
-                  <td className="px-4 py-3 text-slate-500">{r.formula}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-base sm:text-lg"><span className={r.good ? 'text-emerald-400' : 'text-amber-400'}>{r.value}</span></td>
+              <tbody className="divide-y divide-border text-foreground">
+                {g.items.map(r => (<tr key={r.name} className="hover:bg-secondary/40">
+                  <td className="px-4 py-3 font-medium text-foreground">{r.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{r.formula}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-base sm:text-lg"><span className={r.good ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>{r.value}</span></td>
                 </tr>))}
               </tbody>
             </table>

@@ -42,7 +42,7 @@ function HighlightMatch({ text, ranges }: { text: string; ranges?: [number, numb
     parts.push(
       <span
         key={idx}
-        className="text-indigo-300 dark:text-indigo-400 font-semibold underline decoration-indigo-400/50 underline-offset-2"
+        className="text-indigo-600 dark:text-indigo-400 font-semibold underline decoration-indigo-500/50 underline-offset-2"
       >
         {text.slice(start, end)}
       </span>
@@ -185,9 +185,9 @@ export default function Typeahead({
           autoComplete="off"
           style={{ paddingRight: '3.75rem' }}
           className={cn(
-            'w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-3 pr-16 py-2 text-sm text-white outline-none truncate',
-            'placeholder:text-slate-500 placeholder:truncate transition-colors',
-            'focus:border-indigo-500/60 focus:bg-slate-950 focus:ring-1 focus:ring-indigo-500/40'
+            'w-full bg-background border border-input rounded-lg pl-3 pr-16 py-2 text-sm text-foreground outline-none truncate',
+            'placeholder:text-muted-foreground placeholder:truncate transition-colors',
+            'focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary/40'
           )}
         />
         <button
@@ -203,11 +203,11 @@ export default function Typeahead({
             }
           }}
           aria-label="Toggle options"
-          className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center cursor-pointer rounded"
+          className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer rounded"
         >
           <ChevronDown
             size={16}
-            className={cn('transition-transform duration-200 text-slate-400', open && 'rotate-180 text-indigo-400')}
+            className={cn('transition-transform duration-200 text-muted-foreground', open && 'rotate-180 text-primary')}
           />
         </button>
       </div>
@@ -216,24 +216,24 @@ export default function Typeahead({
       {open && scoredResults.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-40 top-full mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-white/[0.08] bg-slate-950 shadow-dialog divide-y divide-slate-900/60"
+          className="absolute z-40 top-full mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-border bg-popover text-popover-foreground shadow-xl divide-y divide-border"
         >
           {/* Informative Header when user types */}
           {isSearching && (
-            <div className="sticky top-0 z-10 px-3 py-1.5 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <div className="sticky top-0 z-10 px-3 py-1.5 bg-muted/95 backdrop-blur-sm border-b border-border flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <Sparkles size={12} className="text-indigo-400" />
+                <Sparkles size={12} className="text-primary" />
                 {hasDirectMatch ? (
                   <>
-                    Recommendations for <b className="text-slate-200">"{q}"</b>
+                    Recommendations for <b className="text-foreground">"{q}"</b>
                   </>
                 ) : (
                   <>
-                    <span className="text-amber-400 font-medium">No exact match</span> — suggesting similar names:
+                    <span className="text-amber-500 font-medium">No exact match</span> — suggesting similar names:
                   </>
                 )}
               </span>
-              <span className="text-slate-500 font-mono text-[10px]">{scoredResults.length} suggested</span>
+              <span className="text-muted-foreground font-mono text-[10px]">{scoredResults.length} suggested</span>
             </div>
           )}
 
@@ -250,8 +250,8 @@ export default function Typeahead({
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors cursor-pointer group',
                   isSelected
-                    ? 'bg-indigo-600/20 text-white font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-300 hover:bg-slate-900'
+                    ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
+                    : 'text-foreground hover:bg-muted/50'
                 )}
               >
                 <div className="flex-1 min-w-0">
@@ -266,33 +266,33 @@ export default function Typeahead({
 
                     {/* Auto-Recommendation Badge */}
                     {isSearching && scored.isSimilarRecommendation && (
-                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                        <Sparkles size={10} className="text-amber-400" />
+                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                        <Sparkles size={10} className="text-amber-500 dark:text-amber-400" />
                         Similar
                       </span>
                     )}
                     {isSearching && scored.matchType === 'exact' && (
-                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
                         Exact
                       </span>
                     )}
                   </div>
 
                   {o.sub && (
-                    <div className="text-xs text-slate-500 truncate mt-0.5">
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">
                       {o.sub}
                     </div>
                   )}
                 </div>
 
                 {o.right && (
-                  <span className="shrink-0 font-mono text-xs text-emerald-400">
+                  <span className="shrink-0 font-mono text-xs text-emerald-600 dark:text-emerald-400">
                     {o.right}
                   </span>
                 )}
 
                 {isSelected && (
-                  <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                  <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                     ENTER
                   </span>
                 )}
@@ -304,10 +304,10 @@ export default function Typeahead({
 
       {/* Empty State with Fallback */}
       {open && scoredResults.length === 0 && (
-        <div className="absolute z-40 top-full mt-1 w-full rounded-xl border border-white/[0.08] bg-slate-950 shadow-dialog px-4 py-3.5 text-xs text-slate-400 space-y-1.5">
-          <div className="text-slate-300 font-medium">No matching or similar names found for "{q}"</div>
-          <p className="text-[11px] text-slate-500">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono border border-slate-700 text-[10px]">Enter</kbd> to accept "{q}" as a custom name.
+        <div className="absolute z-40 top-full mt-1 w-full rounded-xl border border-border bg-popover shadow-xl px-4 py-3.5 text-xs text-muted-foreground space-y-1.5">
+          <div className="text-foreground font-medium">No matching or similar names found for "{q}"</div>
+          <p className="text-[11px] text-muted-foreground">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono border border-border text-[10px]">Enter</kbd> to accept "{q}" as a custom name.
           </p>
         </div>
       )}

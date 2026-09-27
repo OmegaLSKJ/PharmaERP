@@ -662,41 +662,41 @@ export default function SaleEntry() {
           {isEditMode && (
             <button
               onClick={() => navigate('/transactions/sale')}
-              className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition"
+              className="p-2 bg-card border border-border hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer"
               title="Back to Sale Register"
             >
               <ArrowLeft size={18} />
             </button>
           )}
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
               {isEditMode ? (
                 <>
                   <span>Edit Sale Invoice:</span>
-                  <span className="font-mono text-indigo-400">{existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId}</span>
+                  <span className="font-mono text-indigo-500 dark:text-indigo-400">{existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId}</span>
                 </>
               ) : (
                 'Sale Invoice (Alt+N)'
               )}
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {isEditMode
                 ? 'Update items, quantities, rates, customer, and prescription metadata'
                 : 'Wholesale & retail billing with batch tracking'}
             </p>
             {isEditMode && (
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg">
-                  <span className="text-xs text-slate-300 font-medium">Invoice Total:</span>
-                  <span className="text-sm font-bold font-mono text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80 rounded-lg">
+                  <span className="text-xs text-emerald-800 dark:text-slate-300 font-medium">Invoice Total:</span>
+                  <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
                 </div>
                 {customer && (
-                  <span className="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg font-medium">
-                    Party: <span className="text-white font-semibold">{customer}</span>
+                  <span className="text-xs text-foreground bg-secondary border border-border px-2.5 py-1 rounded-lg font-medium">
+                    Party: <span className="font-semibold">{customer}</span>
                   </span>
                 )}
                 {items.length === 0 && (
-                  <span className="text-xs font-semibold text-amber-300 bg-amber-950/70 border border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                     <Info size={13} />
                     <span>No item lines in DB (Header Total: {formatCurrency(totals.grandTotal)})</span>
                   </span>
@@ -710,7 +710,7 @@ export default function SaleEntry() {
           <button
             type="button"
             onClick={() => openTransactionWindow(window.location.pathname)}
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-700 transition cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs transition cursor-pointer"
             title="Open another instance in a separate window"
           >
             <ExternalLink size={14} />
@@ -721,12 +721,12 @@ export default function SaleEntry() {
           <button
             type="button"
             onClick={() => setShowPrintModal(true)}
-            className="group relative inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-medium text-white bg-gradient-to-b from-zinc-900 via-neutral-950 to-black hover:from-zinc-800 hover:to-neutral-900 border border-neutral-700 hover:border-neutral-500 shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
+            className="group relative inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
             title="Print Preview & Tax Invoice Bill (Alt+P)"
           >
-            <Printer size={15} className="text-zinc-300 group-hover:text-white transition-colors" />
+            <Printer size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
             <span className="tracking-tight font-semibold">Print Bill</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10 group-hover:text-zinc-200 group-hover:border-white/20 transition-colors">
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-muted rounded border border-border group-hover:text-foreground transition-colors">
               Alt+P
             </kbd>
           </button>
@@ -748,14 +748,14 @@ export default function SaleEntry() {
       </div>
 
       {/* Customer Selection */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Customer / Party *</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Customer / Party *</label>
           {customer && (
             <Link
               to={`/masters/parties?search=${encodeURIComponent(customer)}`}
               target="_blank"
-              className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline inline-flex items-center gap-1 font-medium"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
             >
               <Edit2 size={11} /> Edit Customer Details
             </Link>
@@ -772,11 +772,11 @@ export default function SaleEntry() {
 
 
       {/* Items Section */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={18} className="text-indigo-400" />
-            <h2 className="text-sm font-semibold text-white">Invoice Items ({items.length})</h2>
+            <ShoppingBag size={18} className="text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Invoice Items ({items.length})</h2>
           </div>
           <button
             type="button"
@@ -789,7 +789,7 @@ export default function SaleEntry() {
 
         {/* Auto-given Mobile / Quick Item Selector */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-indigo-400 flex items-center gap-1">
+          <label className="text-xs font-medium text-primary flex items-center gap-1">
             <Plus size={13} /> Quick Add Medicine
           </label>
           <Typeahead
@@ -807,33 +807,33 @@ export default function SaleEntry() {
 
         {/* Empty State */}
         {items.length === 0 ? (
-          <div className="border border-dashed border-slate-800 rounded-xl p-6 text-center space-y-3 bg-slate-950/40">
-            <div className="w-10 h-10 rounded-full bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto">
+          <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-3 bg-muted/20">
+            <div className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mx-auto">
               <Pill size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-300">
+              <p className="text-sm font-medium text-foreground">
                 {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0)
                   ? 'This posted invoice has no item lines recorded in the database'
                   : 'No items added to invoice yet'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && totals.grandTotal > 0
                   ? `Recorded bill total is ${formatCurrency(totals.grandTotal)}. Search and add medicine items below if you wish to record detailed line items.`
                   : 'Select from the Quick Add bar above or tap the button below'}
               </p>
             </div>
             {isEditMode && totals.grandTotal > 0 && (
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-950/80 border border-emerald-800 rounded-xl text-xs font-semibold text-emerald-300 shadow-xs">
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-xs">
                 <span>Recorded Bill Total:</span>
-                <span className="font-mono text-base font-bold text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+                <span className="font-mono text-base font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
               </div>
             )}
             <div>
               <button
                 type="button"
                 onClick={() => setShowItemSearch(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-semibold transition cursor-pointer"
               >
                 <Plus size={14} /> Browse All Available Items
               </button>
@@ -882,17 +882,17 @@ export default function SaleEntry() {
                           e.stopPropagation()
                           removeRow(item.id)
                         }}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
                         aria-label="Remove item"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-900">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
                       {/* Qty */}
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Qty</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Qty</label>
                         <input
                           type="number"
                           min="0"
@@ -903,14 +903,14 @@ export default function SaleEntry() {
                             e.target.select()
                             setActiveIndex(idx)
                           }}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
                           inputMode="numeric"
                         />
                       </div>
 
                       {/* Free Qty */}
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Free Qty</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Free Qty</label>
                         <input
                           type="number"
                           min="0"
@@ -920,14 +920,14 @@ export default function SaleEntry() {
                             e.target.select()
                             setActiveIndex(idx)
                           }}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
                           inputMode="numeric"
                         />
                       </div>
 
                       {/* Rate */}
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Rate (₹)</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Rate (₹)</label>
                         <input
                           type="number"
                           min="0"
@@ -936,14 +936,14 @@ export default function SaleEntry() {
                           placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
                           onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
                           onFocus={() => setActiveIndex(idx)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
                           inputMode="decimal"
                         />
                       </div>
 
                       {/* Discount */}
                       <div>
-                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Disc %</label>
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Disc %</label>
                         <input
                           type="number"
                           min="0"
@@ -951,15 +951,15 @@ export default function SaleEntry() {
                           value={item.disc}
                           onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
                           onFocus={() => setActiveIndex(idx)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm text-right font-mono text-white outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
                           inputMode="numeric"
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
-                      <span className="text-slate-400 font-medium">Item Total:</span>
-                      <span className="font-mono font-bold text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
+                      <span className="text-muted-foreground font-medium">Item Total:</span>
+                      <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
                     </div>
                   </div>
                 )
@@ -1279,16 +1279,16 @@ export default function SaleEntry() {
       )}
 
       {/* Sticky Bottom Action Bar for Mobile Screen */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-400">Total ({items.length} items)</div>
-          <div className="font-mono font-bold text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total ({items.length} items)</div>
+          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</div>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowItemSearch(true)}
-            className="flex items-center gap-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition"
+            className="flex items-center gap-1 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border cursor-pointer"
           >
             <Plus size={14} /> Add Item
           </button>
@@ -1296,7 +1296,7 @@ export default function SaleEntry() {
             type="button"
             onClick={saveInvoice}
             disabled={saving || !customer || !items.length}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md transition cursor-pointer"
           >
             <Save size={14} /> {saving ? 'Saving…' : 'Save'}
           </button>
@@ -1304,7 +1304,7 @@ export default function SaleEntry() {
       </div>
 
       {/* Desktop Keyboard Shortcuts Hint */}
-      <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 text-[10px] text-center uppercase tracking-widest text-slate-400 z-30">
+      <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 text-[10px] text-center uppercase tracking-widest text-muted-foreground z-30">
         F2: Item Search | Enter: Next Field/Row | Alt+S: Save | Esc: Cancel
       </div>
       </div>
@@ -1312,23 +1312,23 @@ export default function SaleEntry() {
       {/* Print Preview Modal */}
       {showPrintModal && (
         <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setShowPrintModal(false)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
-                <h2 className="text-sm sm:text-base font-bold text-white truncate">Tax Invoice Bill Preview</h2>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                <h2 className="text-sm sm:text-base font-bold text-foreground truncate">Tax Invoice Bill Preview</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                   Standard A4 pharmaceutical wholesale &amp; retail tax invoice ready for print or PDF
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -1338,17 +1338,17 @@ export default function SaleEntry() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <Printer size={14} className="text-indigo-500" />
                   <span>Print Bill</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-muted rounded border border-border">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -1356,7 +1356,7 @@ export default function SaleEntry() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto">
+            <div className="bg-white rounded-lg p-2 shadow-inner border border-gray-300 overflow-x-auto text-black">
               <TaxInvoicePrint data={getPrintData()} />
             </div>
           </div>
@@ -1365,16 +1365,16 @@ export default function SaleEntry() {
 
       {/* Mobile Sticky Checkout Bar */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 md:hidden shadow-xl">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 md:hidden shadow-xl">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Grand Total ({items.length} items)</div>
-            <div className="text-base font-bold font-mono text-emerald-400">{formatCurrency(totals.grandTotal)}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Grand Total ({items.length} items)</div>
+            <div className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</div>
           </div>
           <button
             type="button"
             onClick={saveInvoice}
             disabled={saving || !customer || !items.length}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold shadow transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
           >
             <Save size={14} />
             <span>{saving ? 'Saving…' : isEditMode ? 'Update' : 'Save Bill'}</span>

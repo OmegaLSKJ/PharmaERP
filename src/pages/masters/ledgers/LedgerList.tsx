@@ -96,27 +96,27 @@ const Section = ({ title, icon: Icon, iconColor, badgeBg, transactions, children
   const cr = transactions.reduce((acc, t) => acc + t.credit, 0)
   if (transactions.length === 0) return null
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-slate-900/80 hover:bg-slate-800/80 transition"
+        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-secondary/30 hover:bg-secondary/60 transition"
       >
         <div className="flex items-center gap-2.5">
-          {isOpen ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+          {isOpen ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground" />}
           <div className={cn('p-1.5 rounded-lg border flex items-center justify-center', badgeBg)}>
             <Icon size={16} className={iconColor} />
           </div>
-          <span className="font-semibold text-sm text-white tracking-tight">{title}</span>
-          <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] font-mono text-slate-300">
+          <span className="font-semibold text-sm text-foreground tracking-tight">{title}</span>
+          <span className="px-2 py-0.5 rounded-full bg-secondary border border-border text-[11px] font-mono text-muted-foreground">
             {transactions.length}
           </span>
         </div>
         <div className="flex items-center gap-3 sm:gap-4 text-xs font-mono">
-          {dr > 0 && <span className="text-emerald-400">Dr: {formatCurrency(dr)}</span>}
-          {cr > 0 && <span className="text-rose-400">Cr: {formatCurrency(cr)}</span>}
+          {dr > 0 && <span className="text-emerald-500 dark:text-emerald-400">Dr: {formatCurrency(dr)}</span>}
+          {cr > 0 && <span className="text-rose-500 dark:text-rose-400">Cr: {formatCurrency(cr)}</span>}
         </div>
       </button>
-      {isOpen && <div className="border-t border-slate-800">{children}</div>}
+      {isOpen && <div className="border-t border-border">{children}</div>}
     </div>
   )
 }
@@ -520,7 +520,7 @@ export default function LedgerList() {
   const TransactionTable = ({ txns }: { txns: any[] }) => (
     <table className="w-full text-xs text-left min-w-[700px]">
       <thead>
-        <tr className="bg-slate-950/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider">
+        <tr className="bg-secondary/50 text-muted-foreground border-b border-border uppercase tracking-wider">
           <th className="px-4 py-3 font-medium w-36">Date &amp; Time</th>
           <th className="px-4 py-3 font-medium w-28">Type</th>
           <th className="px-4 py-3 font-medium w-36">Voucher No</th>
@@ -531,9 +531,9 @@ export default function LedgerList() {
           <th className="px-3 py-3 font-medium text-center w-20">Action</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-slate-800 text-slate-300">
+      <tbody className="divide-y divide-border text-foreground">
         {txns.length === 0 && (
-          <tr><td colSpan={8} className="p-6 text-center text-slate-500 italic">No records found.</td></tr>
+          <tr><td colSpan={8} className="p-6 text-center text-muted-foreground italic">No records found.</td></tr>
         )}
         {txns.map((t, i) => {
           const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
@@ -541,35 +541,35 @@ export default function LedgerList() {
           <tr
             key={t.id || i}
             onClick={() => handleNavigateToTransaction(t)}
-            className="hover:bg-indigo-500/10 cursor-pointer transition group"
+            className="hover:bg-secondary/40 cursor-pointer transition group"
             title={`Click to open and modify ${t.vType?.toUpperCase()} ${t.vNo}`}
           >
-            <td className="px-4 py-2.5 group-hover:text-slate-300">
+            <td className="px-4 py-2.5 group-hover:text-foreground">
               <div className="flex flex-col gap-0.5">
-                <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
-                  <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                  <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
                 </span>
-                <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
-                  <Clock size={9} className="text-slate-500 shrink-0" />{dt.time}
+                <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                  <Clock size={9} className="shrink-0" />{dt.time}
                 </span>
               </div>
             </td>
             <td className="px-4 py-2.5">
-              <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[t.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>
+              <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[t.vType?.toLowerCase()] || 'bg-secondary text-muted-foreground border-border')}>
                 {t.vType}
               </span>
             </td>
-            <td className="px-4 py-2.5 font-mono text-indigo-400 group-hover:text-indigo-300 font-medium text-[11px]">
+            <td className="px-4 py-2.5 font-mono text-indigo-600 dark:text-indigo-400 group-hover:underline font-medium text-[11px]">
               <span className="inline-flex items-center gap-1 underline underline-offset-2">
                 {t.vNo}
                 <ExternalLink size={11} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
               </span>
             </td>
-            <td className="px-4 py-2.5 text-slate-300 max-w-xs truncate group-hover:text-white">{t.narration || '-'}</td>
-            <td className="px-4 py-2.5 text-right font-mono text-emerald-400 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '-'}</td>
-            <td className="px-4 py-2.5 text-right font-mono text-rose-400 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '-'}</td>
-            <td className="px-4 py-2.5 text-right font-mono font-semibold text-white text-[11px]">
-              {formatCurrency(t.runningBalance)} <span className="text-[9px] text-slate-400">{t.balanceType}</span>
+            <td className="px-4 py-2.5 text-muted-foreground max-w-xs truncate group-hover:text-foreground">{t.narration || '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono text-rose-600 dark:text-rose-400 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '-'}</td>
+            <td className="px-4 py-2.5 text-right font-mono font-semibold text-foreground text-[11px]">
+              {formatCurrency(t.runningBalance)} <span className="text-[9px] text-muted-foreground">{t.balanceType}</span>
             </td>
             <td className="px-3 py-2.5 text-center">
               <button
@@ -656,21 +656,21 @@ export default function LedgerList() {
       {activeTab === 'masters' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
-              <Search className="text-slate-400 shrink-0" size={16} />
-              <input type="text" placeholder="Search ledgers..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full placeholder:text-slate-500" />
+            <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
+              <Search className="text-muted-foreground shrink-0" size={16} />
+              <input type="text" placeholder="Search ledgers..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-foreground text-xs sm:text-sm w-full placeholder:text-muted-foreground/60" />
             </div>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 hover:border-slate-700">
+              <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none bg-card border border-border rounded-lg px-3 py-1.5 hover:bg-secondary/50">
                 <input
                   type="checkbox"
                   checked={hideZeroBalances}
                   onChange={(e) => setHideZeroBalances(e.target.checked)}
-                  className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                  className="rounded border-border text-indigo-600 focus:ring-indigo-500 bg-background"
                 />
                 <span>Hide Zero Balance (₹0)</span>
               </label>
-              <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none max-w-[220px]">
+              <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground outline-none max-w-[220px]">
                 <option value="ALL">All Groups (74 Groups)</option>
                 <optgroup label="Assets">
                   {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -687,10 +687,10 @@ export default function LedgerList() {
               </select>
             </div>
           </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+          <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
             <table className="min-w-[1050px] w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <tr className="bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="p-3.5">Ledger Name</th>
                   <th className="p-3.5">Account Group</th>
                   <th className="p-3.5 text-center">Connected Txns</th>
@@ -702,16 +702,16 @@ export default function LedgerList() {
                     <div className="flex items-center gap-1">
                       <Calendar size={11} className="text-indigo-400" />
                       Last Activity
-                      <span className="text-[9px] text-slate-500 font-normal">(Newer→Older)</span>
+                      <span className="text-[9px] text-muted-foreground font-normal">(Newer→Older)</span>
                     </div>
                   </th>
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 text-sm">
+              <tbody className="divide-y divide-border text-sm">
                 {filteredLedgers.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-xs text-slate-500">
+                    <td colSpan={9} className="p-8 text-center text-xs text-muted-foreground">
                       No ledgers found.
                     </td>
                   </tr>
@@ -719,68 +719,68 @@ export default function LedgerList() {
                   filteredLedgers.map((l) => {
                     const dt = getTxnDateTime(l.lastActivityDate, l.lastActivityTime, l.id)
                     return (
-                    <tr key={l.id} className="hover:bg-slate-900/40 text-slate-300 transition group">
-                      <td className="p-3.5 font-medium text-white">
+                    <tr key={l.id} className="hover:bg-secondary/40 text-foreground transition group">
+                      <td className="p-3.5 font-medium text-foreground">
                         <button
                           onClick={() => openPartyStatement(l.name)}
-                          className="hover:text-indigo-400 hover:underline transition text-left flex items-center gap-1.5"
+                          className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition text-left flex items-center gap-1.5"
                           title="Click to view all connected transactions"
                         >
                           <span>{l.name}</span>
                         </button>
                       </td>
-                      <td className="p-3.5 text-slate-400 text-xs">{l.group}</td>
+                      <td className="p-3.5 text-muted-foreground text-xs">{l.group}</td>
                       <td className="p-3.5 text-center">
                         <span
                           className={cn(
                             'px-2 py-0.5 rounded-full text-[10px] font-semibold',
                             (l.txnCount || 0) > 0
-                              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                              : 'text-slate-500'
+                              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                              : 'text-muted-foreground'
                           )}
                         >
                           {l.txnCount || 0} txn{(l.txnCount || 0) !== 1 ? 's' : ''}
                         </span>
                       </td>
-                      <td className="p-3.5 text-right font-mono text-xs text-emerald-400">
+                      <td className="p-3.5 text-right font-mono text-xs text-emerald-600 dark:text-emerald-400">
                         {(l.totalDr || 0) > 0 ? formatCurrency(l.totalDr || 0) : '-'}
                       </td>
-                      <td className="p-3.5 text-right font-mono text-xs text-rose-400">
+                      <td className="p-3.5 text-right font-mono text-xs text-rose-600 dark:text-rose-400">
                         {(l.totalCr || 0) > 0 ? formatCurrency(l.totalCr || 0) : '-'}
                       </td>
-                      <td className={cn('p-3.5 text-right font-mono font-semibold', l.type === 'Dr' ? 'text-emerald-400' : 'text-amber-400')}>
+                      <td className={cn('p-3.5 text-right font-mono font-semibold', l.type === 'Dr' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
                         ₹{l.balance.toLocaleString()}
                       </td>
                       <td className="p-3.5 text-center text-xs">
-                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold', l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400')}>
+                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold', l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400')}>
                           {l.type}
                         </span>
                       </td>
                       <td className="p-3.5">
                         {l.lastActivityDate ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
-                              <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                            <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                              <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
                             </span>
-                            <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
+                            <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
                               <Clock size={9} className="shrink-0" />{dt.time}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-600 text-[10px]">No activity</span>
+                          <span className="text-muted-foreground text-[10px]">No activity</span>
                         )}
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex justify-end items-center gap-2">
                           <button
                             onClick={() => openPartyStatement(l.name)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition cursor-pointer"
                             title="View Statement &amp; Transactions"
                           >
                             <FileText size={12} /> Statement
                           </button>
-                          <button onClick={() => editLedger(l)} className="p-1 text-slate-400 hover:text-white transition" title="Edit"><Edit2 size={12}/></button>
-                          <button onClick={() => removeLedger(l)} className="p-1 text-slate-400 hover:text-rose-400 transition" title="Delete"><Trash2 size={12}/></button>
+                          <button onClick={() => editLedger(l)} className="p-1 text-muted-foreground hover:text-foreground transition cursor-pointer" title="Edit"><Edit2 size={12}/></button>
+                          <button onClick={() => removeLedger(l)} className="p-1 text-muted-foreground hover:text-rose-500 transition cursor-pointer" title="Delete"><Trash2 size={12}/></button>
                         </div>
                       </td>
                     </tr>
@@ -795,11 +795,11 @@ export default function LedgerList() {
       {activeTab === 'statement' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
-                <label className="text-[10px] text-slate-400 uppercase font-semibold">Select Party / Ledger</label>
-                <select value={selectedLedger} onChange={(e) => setSelectedLedger(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-bold outline-none text-sm mt-1 focus:border-indigo-500">
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">Select Party / Ledger</label>
+                <select value={selectedLedger} onChange={(e) => setSelectedLedger(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2 text-foreground font-bold outline-none text-sm mt-1 focus:border-indigo-500">
                   <optgroup label="Customer Ledgers (Sundry Debtors)">
                     {ledgers.filter(l => l.group === 'Sundry Debtors').map(l => <option key={l.id} value={l.name}>{l.name} (Dr ₹{l.balance.toLocaleString('en-IN')})</option>)}
                   </optgroup>
@@ -812,18 +812,18 @@ export default function LedgerList() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-slate-400 uppercase font-semibold">From Date</label>
-                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white outline-none text-sm mt-1 focus:border-indigo-500" />
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">From Date</label>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2 text-foreground outline-none text-sm mt-1 focus:border-indigo-500" />
               </div>
               <div>
-                <label className="text-[10px] text-slate-400 uppercase font-semibold">To Date</label>
-                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white outline-none text-sm mt-1 focus:border-indigo-500" />
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">To Date</label>
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2 text-foreground outline-none text-sm mt-1 focus:border-indigo-500" />
               </div>
             </div>
             {/* Type filter + search */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400">Filter:</span>
+                <span className="text-xs text-muted-foreground">Filter:</span>
                 {[
                   { key: 'all', label: 'All' },
                   { key: 'sale', label: 'Sale' },
@@ -838,10 +838,10 @@ export default function LedgerList() {
                     key={key}
                     onClick={() => setTypeFilter(key)}
                     className={cn(
-                      'px-2.5 py-1 rounded text-[10px] font-medium transition border',
+                      'px-2.5 py-1 rounded text-[10px] font-medium transition border cursor-pointer',
                       typeFilter === key
                         ? 'bg-indigo-600 text-white border-indigo-500'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        : 'bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:bg-secondary'
                     )}
                   >
                     {label}
@@ -849,16 +849,16 @@ export default function LedgerList() {
                 ))}
               </div>
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input type="text" placeholder="Search voucher / narration..." value={statementSearch} onChange={e => setStatementSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs outline-none focus:border-indigo-500 w-56" />
+                  className="pl-8 pr-3 py-1.5 bg-background border border-border rounded-lg text-foreground text-xs outline-none focus:border-indigo-500 w-56 placeholder:text-muted-foreground/60" />
               </div>
             </div>
           </div>
 
           {/* Sort Controls Bar */}
-          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl no-print">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-secondary/30 border border-border rounded-xl no-print">
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold flex items-center gap-1">
               <ArrowUpDown size={11} /> Sort:
             </span>
             {([
@@ -879,10 +879,10 @@ export default function LedgerList() {
                   }
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold border transition',
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold border transition cursor-pointer',
                   statementSortKey === key
                     ? 'bg-indigo-600 text-white border-indigo-500'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    : 'bg-background border-border text-muted-foreground hover:text-foreground'
                 )}
               >
                 {label}
@@ -904,62 +904,62 @@ export default function LedgerList() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
                 <span>Total Debit</span>
-                <TrendingUp size={14} className="text-emerald-400" />
+                <TrendingUp size={14} className="text-emerald-500" />
               </div>
-              <div className="text-lg font-bold text-emerald-400 font-mono mt-1">{formatCurrency(totalStatementDr)}</div>
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{formatCurrency(totalStatementDr)}</div>
             </div>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
                 <span>Total Credit</span>
-                <TrendingDown size={14} className="text-rose-400" />
+                <TrendingDown size={14} className="text-rose-500" />
               </div>
-              <div className="text-lg font-bold text-rose-400 font-mono mt-1">{formatCurrency(totalStatementCr)}</div>
+              <div className="text-lg font-bold text-rose-600 dark:text-rose-400 font-mono mt-1">{formatCurrency(totalStatementCr)}</div>
             </div>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
                 <span>Net Movement</span>
-                <Scale size={14} className={netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400'} />
+                <Scale size={14} className={netStatementChange >= 0 ? 'text-emerald-500' : 'text-amber-500'} />
               </div>
-              <div className={cn('text-lg font-bold font-mono mt-1', netStatementChange >= 0 ? 'text-emerald-400' : 'text-amber-400')}>{formatCurrency(Math.abs(netStatementChange))} {netStatementChange >= 0 ? 'Dr' : 'Cr'}</div>
+              <div className={cn('text-lg font-bold font-mono mt-1', netStatementChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>{formatCurrency(Math.abs(netStatementChange))} {netStatementChange >= 0 ? 'Dr' : 'Cr'}</div>
             </div>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
                 <span>Closing Balance</span>
-                <Wallet size={14} className={closingBalType === 'Dr' ? 'text-indigo-400' : 'text-amber-400'} />
+                <Wallet size={14} className={closingBalType === 'Dr' ? 'text-indigo-500' : 'text-amber-500'} />
               </div>
-              <div className={cn('text-lg font-bold font-mono mt-1', closingBalType === 'Dr' ? 'text-white' : 'text-amber-400')}>{formatCurrency(closingBalance)} {closingBalType}</div>
+              <div className={cn('text-lg font-bold font-mono mt-1', closingBalType === 'Dr' ? 'text-foreground' : 'text-amber-600 dark:text-amber-400')}>{formatCurrency(closingBalance)} {closingBalType}</div>
             </div>
           </div>
 
           {/* Document count summary strip */}
-          <div className="flex flex-wrap gap-2 items-center px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-xs">
-            <span className="text-slate-400 font-semibold">Documents for</span>
-            <span className="text-indigo-400 font-bold">{selectedLedger}</span>
-            <span className="text-slate-600">—</span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-medium">
+          <div className="flex flex-wrap gap-2 items-center px-4 py-3 bg-card border border-border rounded-xl text-xs shadow-xs">
+            <span className="text-muted-foreground font-semibold">Documents for</span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-bold">{selectedLedger}</span>
+            <span className="text-muted-foreground/60">—</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">
               <Receipt size={13} />
               <span>Invoices: {filteredStatementTxns.filter(t => t.vType === 'sale').length}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 font-medium">
               <ShoppingBag size={13} />
               <span>Bills: {filteredStatementTxns.filter(t => t.vType === 'purchase').length}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-500/10 border border-slate-600/30 text-slate-300 font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border text-foreground font-medium">
               <Truck size={13} />
               <span>Challans: {filteredStatementTxns.filter(t => t.vType === 'challan').length}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium">
               <CreditCard size={13} />
               <span>Receipts/Pmts: {filteredStatementTxns.filter(t => ['receipt','payment'].includes(t.vType)).length}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-medium">
               <FileCheck size={13} />
               <span>Vouchers: {filteredStatementTxns.filter(t => ['journal','contra','debit_note','credit_note'].includes(t.vType)).length}</span>
             </span>
-            <span className="ml-auto text-slate-500">Total: <strong className="text-white">{filteredStatementTxns.length}</strong></span>
+            <span className="ml-auto text-muted-foreground">Total: <strong className="text-foreground">{filteredStatementTxns.length}</strong></span>
           </div>
 
           {/* Interactive Navigation Hint */}
@@ -1035,23 +1035,23 @@ export default function LedgerList() {
           </div>
 
           {/* Full Chronological Ledger View */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
-            <div className="flex items-center justify-between p-3.5 bg-slate-900/80 border-b border-slate-800">
-              <div className="text-xs font-semibold text-white flex items-center gap-2">
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+            <div className="flex items-center justify-between p-3.5 bg-secondary/30 border-b border-border">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-2">
                 <div className="p-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                   <BookOpen size={14} className="text-indigo-400" />
                 </div>
                 <span>Full Chronological Ledger —</span>
-                <span className="text-indigo-400 font-bold">{selectedLedger}</span>
-                <span className="text-slate-500">·</span>
-                <span className="text-slate-400">{filteredStatementTxns.length} entries</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-bold">{selectedLedger}</span>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="text-muted-foreground">{filteredStatementTxns.length} entries</span>
               </div>
-              <div className="text-xs text-slate-500">Period: {fromDate || 'Start'} → {toDate || 'Present'}</div>
+              <div className="text-xs text-muted-foreground">Period: {fromDate || 'Start'} → {toDate || 'Present'}</div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[750px]">
                 <thead>
-                  <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                  <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                     <th className="text-left px-4 py-3 font-medium w-36">Date &amp; Time</th>
                     <th className="text-left px-4 py-3 font-medium w-28">Voucher Type</th>
                     <th className="text-left px-4 py-3 font-medium w-36">Voucher / Ref No</th>
@@ -1062,39 +1062,39 @@ export default function LedgerList() {
                     <th className="text-center px-3 py-3 font-medium w-20">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 text-slate-300">
+                <tbody className="divide-y divide-border text-foreground">
                   {filteredStatementTxns.map((txn, idx) => {
                     const dt = getTxnDateTime(txn.date, txn.time, txn.id || txn.vNo)
                     return (
                     <tr
                       key={txn.id || idx}
                       onClick={() => handleNavigateToTransaction(txn)}
-                      className="hover:bg-indigo-500/10 cursor-pointer transition group"
+                      className="hover:bg-secondary/40 cursor-pointer transition group"
                       title={`Click to open and modify ${txn.vType?.toUpperCase()} ${txn.vNo}`}
                     >
-                      <td className="px-4 py-3 group-hover:text-slate-300">
+                      <td className="px-4 py-3 group-hover:text-foreground">
                         <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1 font-mono text-slate-300 text-[11px]">
-                            <Calendar size={10} className="text-indigo-400 shrink-0" />{dt.date}
+                          <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                            <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
                           </span>
-                          <span className="inline-flex items-center gap-1 font-mono text-slate-500 text-[10px]">
-                            <Clock size={9} className="text-slate-500 shrink-0" />{dt.time}
+                          <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                            <Clock size={9} className="shrink-0" />{dt.time}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-slate-800 text-slate-400 border-slate-700')}>{txn.vType}</span>
+                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-secondary text-muted-foreground border-border')}>{txn.vType}</span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-indigo-400 group-hover:text-indigo-300 font-medium">
+                      <td className="px-4 py-3 font-mono text-indigo-600 dark:text-indigo-400 group-hover:underline font-medium">
                         <span className="inline-flex items-center gap-1 underline underline-offset-2">
                           {txn.vNo}
                           <ExternalLink size={12} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-300 max-w-sm truncate group-hover:text-white">{txn.narration || '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-400 font-medium">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono text-rose-400 font-medium">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-white">{formatCurrency(txn.runningBalance)} <span className="text-[10px] text-slate-400">{txn.balanceType}</span></td>
+                      <td className="px-4 py-3 text-muted-foreground max-w-sm truncate group-hover:text-foreground">{txn.narration || '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400 font-medium">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono font-semibold text-foreground">{formatCurrency(txn.runningBalance)} <span className="text-[10px] text-muted-foreground">{txn.balanceType}</span></td>
                       <td className="px-3 py-3 text-center">
                         <button
                           type="button"
@@ -1102,7 +1102,7 @@ export default function LedgerList() {
                             e.stopPropagation()
                             handleNavigateToTransaction(txn)
                           }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-medium transition"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-600/15 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-medium transition cursor-pointer"
                           title={`Open & modify ${txn.vNo}`}
                         >
                           <span>Edit</span>
@@ -1112,15 +1112,15 @@ export default function LedgerList() {
                     </tr>
                   )})}
                   {filteredStatementTxns.length === 0 && (
-                    <tr><td colSpan={8} className="p-10 text-center text-slate-500">No transactions found for {selectedLedger} in the selected period.</td></tr>
+                    <tr><td colSpan={8} className="p-10 text-center text-muted-foreground">No transactions found for {selectedLedger} in the selected period.</td></tr>
                   )}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-slate-900/90 border-t border-slate-700 text-white font-bold text-xs">
+                  <tr className="bg-secondary/40 border-t border-border text-foreground font-bold text-xs">
                     <td colSpan={4} className="px-4 py-3 uppercase">Total Movement</td>
-                    <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(totalStatementDr)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-rose-400">{formatCurrency(totalStatementCr)}</td>
-                    <td colSpan={2} className="px-4 py-3 text-right font-mono text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totalStatementDr)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">{formatCurrency(totalStatementCr)}</td>
+                    <td colSpan={2} className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -1131,17 +1131,17 @@ export default function LedgerList() {
 
       {showModal &&
         createPortal(
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
-            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-              <h3 className="text-base sm:text-lg font-bold text-white">Create New Ledger</h3>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999]">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-foreground">
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Create New Ledger</h3>
               <form onSubmit={handleAdd} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger Name *</label>
-                  <input type="text" required autoFocus value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500" />
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Ledger Name *</label>
+                  <input type="text" required autoFocus value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5 text-foreground text-sm outline-none focus:border-indigo-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account Group *</label>
-                  <select value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Account Group *</label>
+                  <select value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5 text-foreground text-sm outline-none focus:border-indigo-500">
                     <optgroup label="Assets (Cash, Bank, Debtors, Current & Fixed Assets)">
                       {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
                     </optgroup>
@@ -1156,9 +1156,9 @@ export default function LedgerList() {
                     </optgroup>
                   </select>
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Save</button>
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-xs cursor-pointer">Save</button>
                 </div>
               </form>
             </div>
@@ -1168,27 +1168,27 @@ export default function LedgerList() {
 
       {editModalLedger &&
         createPortal(
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
-            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-              <h3 className="text-base sm:text-lg font-bold text-white">Edit Ledger Account</h3>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999]">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-foreground">
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Edit Ledger Account</h3>
               <form onSubmit={confirmEdit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ledger / Account Name *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Ledger / Account Name *</label>
                   <input
                     type="text"
                     required
                     autoFocus
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                    className="w-full bg-background border border-border rounded-lg p-2.5 text-foreground text-sm outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account Group *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Account Group *</label>
                   <select
                     value={editGroup}
                     onChange={(e) => setEditGroup(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500"
+                    className="w-full bg-background border border-border rounded-lg p-2.5 text-foreground text-sm outline-none focus:border-indigo-500"
                   >
                     <optgroup label="Assets (Cash, Bank, Debtors, Current & Fixed Assets)">
                       {groupedAccountOptions.Asset.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -1205,13 +1205,13 @@ export default function LedgerList() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Opening Balance (₹)</label>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Opening Balance (₹)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={editBalance}
                     onChange={(e) => setEditBalance(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+                    className="w-full bg-background border border-border rounded-lg p-2.5 text-foreground text-sm outline-none focus:border-indigo-500 font-mono"
                   />
                 </div>
 
@@ -1220,16 +1220,16 @@ export default function LedgerList() {
                     <Link
                       to={`/masters/parties?search=${encodeURIComponent(editModalLedger.name)}`}
                       onClick={() => setEditModalLedger(null)}
-                      className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
+                      className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition cursor-pointer"
                     >
                       <ExternalLink size={13} /> Edit Full Customer/Supplier Master (GST, DL, Address, Credit)
                     </Link>
                   </div>
                 )}
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                  <button type="button" onClick={() => setEditModalLedger(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md">Update Ledger</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-border">
+                  <button type="button" onClick={() => setEditModalLedger(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-xs cursor-pointer">Update Ledger</button>
                 </div>
               </form>
             </div>
@@ -1239,21 +1239,21 @@ export default function LedgerList() {
 
       {deleteConfirmLedger &&
         createPortal(
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9999]">
-            <div className="bg-slate-900 border border-rose-900/50 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-              <h3 className="text-base sm:text-lg font-bold text-rose-400">Confirm Deletion</h3>
-              <p className="text-sm text-slate-300">
-                Are you sure you want to delete <strong className="text-white">{deleteConfirmLedger.name}</strong>?
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999]">
+            <div className="bg-card border border-rose-500/30 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 text-foreground">
+              <h3 className="text-base sm:text-lg font-bold text-rose-500">Confirm Deletion</h3>
+              <p className="text-sm text-foreground">
+                Are you sure you want to delete <strong className="text-foreground">{deleteConfirmLedger.name}</strong>?
               </p>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-muted-foreground">
                 Ledgers linked to existing posted transactions cannot be deleted.
               </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-border">
                 <button
                   type="button"
                   disabled={deleting}
                   onClick={() => setDeleteConfirmLedger(null)}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1261,7 +1261,7 @@ export default function LedgerList() {
                   type="button"
                   disabled={deleting}
                   onClick={confirmDelete}
-                  className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-md disabled:opacity-50"
+                  className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {deleting ? 'Deleting...' : 'Delete Ledger'}
                 </button>

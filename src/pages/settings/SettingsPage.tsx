@@ -70,117 +70,117 @@ export default function SettingsPage() {
     <div className="p-6 space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
-          <p className="text-sm text-slate-400 mt-1">Company profile, statutory licences, financial year, and users</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Company profile, statutory licences, financial year, and users</p>
         </div>
-        <button disabled={saving} onClick={() => void handleSave()} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-md transition disabled:cursor-not-allowed disabled:opacity-60">
+        <button disabled={saving} onClick={() => void handleSave()} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold shadow-xs transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
           <Save size={16} /> {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
         </button>
       </div>
 
       {/* Company Info */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/30">
           <Building2 size={16} className="text-indigo-400" />
-          <h3 className="text-sm font-semibold text-white">Company Profile &amp; Statutory Licences</h3>
+          <h3 className="text-sm font-semibold text-foreground">Company Profile &amp; Statutory Licences</h3>
         </div>
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Company / Legal Name</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Company / Legal Name</label>
               <input
                 type="text"
                 value={form.companyName}
                 onChange={(e) => handleFieldChange('companyName', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-semibold"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500 font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">GSTIN</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">GSTIN</label>
               <input
                 type="text"
                 value={form.gstin}
                 onChange={(e) => handleFieldChange('gstin', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono tracking-wider"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500 font-mono tracking-wider"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">I.T. PAN No.</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">I.T. PAN No.</label>
               <input
                 type="text"
                 value={form.pan}
                 onChange={(e) => handleFieldChange('pan', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500 font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">D.L. No. (Drug Licence)</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">D.L. No. (Drug Licence)</label>
               <input
                 type="text"
                 value={form.dlNo}
                 onChange={(e) => handleFieldChange('dlNo', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500 font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Official Email</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Official Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => handleFieldChange('email', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Registered Address</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Registered Address</label>
             <input
               type="text"
               value={form.address}
               onChange={(e) => handleFieldChange('address', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+              className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">City / Station</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">City / Station</label>
               <input
                 type="text"
                 value={form.city}
                 onChange={(e) => handleFieldChange('city', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Pin Code</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Pin Code</label>
               <input
                 type="text"
                 value={form.pincode}
                 onChange={(e) => handleFieldChange('pincode', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500 font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">State</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">State</label>
               <input
                 type="text"
                 value={form.state}
                 onChange={(e) => handleFieldChange('state', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Country</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Country</label>
               <input
                 type="text"
                 value={form.country}
                 onChange={(e) => handleFieldChange('country', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -188,63 +188,63 @@ export default function SettingsPage() {
       </div>
 
       {/* Bank Details & Contact */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/30">
           <Landmark size={16} className="text-sky-400" />
-          <h3 className="text-sm font-semibold text-white">Bank Details &amp; Contact</h3>
+          <h3 className="text-sm font-semibold text-foreground">Bank Details &amp; Contact</h3>
         </div>
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Phone Number</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Phone Number</label>
               <input
                 type="text"
                 value={form.phone}
                 onChange={(e) => handleFieldChange('phone', e.target.value)}
                 placeholder="e.g. 03712-260654"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 font-mono placeholder:text-muted-foreground/60"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Bank Name</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Bank Name</label>
               <input
                 type="text"
                 value={form.bankName}
                 onChange={(e) => handleFieldChange('bankName', e.target.value)}
                 placeholder="e.g. PUNJAB NATIONAL BANK"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Account No.</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Account No.</label>
               <input
                 type="text"
                 value={form.accountNo}
                 onChange={(e) => handleFieldChange('accountNo', e.target.value)}
                 placeholder="e.g. 1125250029704"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono tracking-wider"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 font-mono tracking-wider placeholder:text-muted-foreground/60"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">IFSC Code</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">IFSC Code</label>
               <input
                 type="text"
                 value={form.ifsc}
                 onChange={(e) => handleFieldChange('ifsc', e.target.value)}
                 placeholder="e.g. PUNB0112520"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500 font-mono tracking-wider"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 font-mono tracking-wider placeholder:text-muted-foreground/60"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Jurisdiction (City)</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Jurisdiction (City)</label>
               <input
                 type="text"
                 value={form.jurisdiction}
                 onChange={(e) => handleFieldChange('jurisdiction', e.target.value)}
                 placeholder="e.g. BISWANATH"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-sky-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
@@ -252,29 +252,29 @@ export default function SettingsPage() {
       </div>
 
       {/* Financial Year */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/30">
           <Calendar size={16} className="text-emerald-400" />
-          <h3 className="text-sm font-semibold text-white">Financial Year</h3>
+          <h3 className="text-sm font-semibold text-foreground">Financial Year</h3>
         </div>
         <div className="p-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Opening Date</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Opening Date</label>
               <input
                 type="date"
                 value={form.fyStart}
                 onChange={(e) => handleFieldChange('fyStart', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Closing Date</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Closing Date</label>
               <input
                 type="date"
                 value={form.fyEnd}
                 onChange={(e) => handleFieldChange('fyEnd', e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -282,40 +282,40 @@ export default function SettingsPage() {
       </div>
 
       {/* Users & Security */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-secondary/30">
           <div className="flex items-center gap-2">
           <Users size={16} className="text-amber-400" />
-          <h3 className="text-sm font-semibold text-white">Users & Permissions</h3>
+          <h3 className="text-sm font-semibold text-foreground">Users & Permissions</h3>
           </div>
-          {currentUser?.role==='admin'&&<button type="button" onClick={()=>setShowAddUser((value)=>!value)} className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"><Plus size={14}/>{showAddUser?'Cancel':'Add user'}</button>}
+          {currentUser?.role==='admin'&&<button type="button" onClick={()=>setShowAddUser((value)=>!value)} className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 cursor-pointer"><Plus size={14}/>{showAddUser?'Cancel':'Add user'}</button>}
         </div>
         <div className="p-4">
-          {currentUser?.role!=='admin'&&<div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-300">Only administrators can add, remove or change user permissions.</div>}
-          {showAddUser&&currentUser?.role==='admin'&&<form onSubmit={addUser} className="mb-4 grid gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 md:grid-cols-2">
-            <label className="text-xs font-semibold uppercase text-slate-400">Full name<input required minLength={2} autoFocus value={invite.name} onChange={(event)=>setInvite({...invite,name:event.target.value})} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm font-normal normal-case text-white"/></label>
-            <label className="text-xs font-semibold uppercase text-slate-400">Email<input required type="email" value={invite.email} onChange={(event)=>setInvite({...invite,email:event.target.value})} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm font-normal normal-case text-white"/></label>
-            <label className="text-xs font-semibold uppercase text-slate-400">Role<select value={invite.role} onChange={(event)=>setInvite({...invite,role:event.target.value as ManagedUser['role']})} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm font-normal normal-case text-white"><option value="operator">Operator</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
-            <div className="flex items-end"><button disabled={userBusy==='new'} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 p-2.5 text-sm font-semibold text-white disabled:opacity-50"><UserPlus size={15}/>{userBusy==='new'?'Sending invitation…':'Send invitation'}</button></div>
+          {currentUser?.role!=='admin'&&<div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">Only administrators can add, remove or change user permissions.</div>}
+          {showAddUser&&currentUser?.role==='admin'&&<form onSubmit={addUser} className="mb-4 grid gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 md:grid-cols-2">
+            <label className="text-xs font-semibold uppercase text-muted-foreground">Full name<input required minLength={2} autoFocus value={invite.name} onChange={(event)=>setInvite({...invite,name:event.target.value})} className="mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-sm font-normal normal-case text-foreground"/></label>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">Email<input required type="email" value={invite.email} onChange={(event)=>setInvite({...invite,email:event.target.value})} className="mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-sm font-normal normal-case text-foreground"/></label>
+            <label className="text-xs font-semibold uppercase text-muted-foreground">Role<select value={invite.role} onChange={(event)=>setInvite({...invite,role:event.target.value as ManagedUser['role']})} className="mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-sm font-normal normal-case text-foreground"><option value="operator">Operator</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+            <div className="flex items-end"><button disabled={userBusy==='new'} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 p-2.5 text-sm font-semibold text-white disabled:opacity-50 cursor-pointer"><UserPlus size={15}/>{userBusy==='new'?'Sending invitation…':'Send invitation'}</button></div>
           </form>}
           <div className="space-y-2">
-            {usersLoading&&<div className="py-8 text-center text-sm text-slate-400">Loading users…</div>}
-            {!usersLoading&&currentUser?.role==='admin'&&users.length===0&&<div className="py-8 text-center text-sm text-slate-400">No ERP users were found.</div>}
+            {usersLoading&&<div className="py-8 text-center text-sm text-muted-foreground">Loading users…</div>}
+            {!usersLoading&&currentUser?.role==='admin'&&users.length===0&&<div className="py-8 text-center text-sm text-muted-foreground">No ERP users were found.</div>}
             {users.map((user) => (
-              <div key={user.id} className="flex flex-col gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/50 sm:flex-row sm:items-center sm:justify-between">
+              <div key={user.id} className="flex flex-col gap-3 rounded-lg px-3 py-3 hover:bg-secondary/40 sm:flex-row sm:items-center sm:justify-between transition">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
                     {(user.name||user.email).charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-white">{user.name}{user.id===currentUser?.id&&<span className="ml-2 text-[10px] text-blue-400">You</span>}</div>
-                    <div className="text-xs text-slate-400">{user.email}</div>
+                    <div className="text-sm font-medium text-foreground">{user.name}{user.id===currentUser?.id&&<span className="ml-2 text-[10px] text-blue-500 font-semibold">You</span>}</div>
+                    <div className="text-xs text-muted-foreground">{user.email}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select aria-label={`Role for ${user.email}`} disabled={userBusy===user.id||user.id===currentUser?.id} value={user.role} onChange={(event)=>void patchUser(user.id,{role:event.target.value})} className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs capitalize text-white disabled:opacity-50"><option value="operator">Operator</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
-                  <button type="button" disabled={userBusy===user.id||user.id===currentUser?.id} onClick={()=>void patchUser(user.id,{active:user.status==='disabled'})} className={`rounded border px-2 py-1 text-xs font-semibold capitalize disabled:opacity-50 ${user.status==='disabled'?'border-slate-600 bg-slate-700/30 text-slate-300':'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'}`}>{user.status}</button>
-                  <button type="button" aria-label={`Remove ${user.email}`} title="Remove user" disabled={userBusy===user.id||user.id===currentUser?.id} onClick={()=>void removeUser(user)} className="rounded-lg p-2 text-slate-400 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30"><Trash2 size={15}/></button>
+                  <select aria-label={`Role for ${user.email}`} disabled={userBusy===user.id||user.id===currentUser?.id} value={user.role} onChange={(event)=>void patchUser(user.id,{role:event.target.value})} className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs capitalize text-foreground disabled:opacity-50"><option value="operator">Operator</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+                  <button type="button" disabled={userBusy===user.id||user.id===currentUser?.id} onClick={()=>void patchUser(user.id,{active:user.status==='disabled'})} className={`rounded border px-2 py-1 text-xs font-semibold capitalize disabled:opacity-50 cursor-pointer ${user.status==='disabled'?'border-border bg-secondary text-muted-foreground':'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>{user.status}</button>
+                  <button type="button" aria-label={`Remove ${user.email}`} title="Remove user" disabled={userBusy===user.id||user.id===currentUser?.id} onClick={()=>void removeUser(user)} className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 disabled:opacity-30 cursor-pointer"><Trash2 size={15}/></button>
                 </div>
               </div>
             ))}

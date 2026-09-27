@@ -1265,7 +1265,7 @@ export default function PartyList() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-border bg-slate-950/40 px-3 overflow-x-auto gap-1 py-1.5 text-xs font-semibold">
+            <div className="flex border-b border-border bg-secondary/40 px-3 overflow-x-auto gap-1 py-1.5 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setActiveTab('general')}

@@ -32,12 +32,12 @@ export default class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 max-w-xl mx-auto my-12 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl text-center space-y-4">
-          <div className="inline-flex p-3 bg-rose-500/10 text-rose-400 rounded-full border border-rose-500/20">
+        <div className="p-8 max-w-xl mx-auto my-12 bg-card border border-border rounded-2xl shadow-2xl text-center space-y-4">
+          <div className="inline-flex p-3 bg-rose-500/10 text-rose-500 rounded-full border border-rose-500/20">
             <AlertTriangle size={32} />
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Something went wrong</h2>
-          <p className="text-sm text-slate-400 max-w-md mx-auto">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">Something went wrong</h2>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {this.state.error?.message || 'An unexpected rendering error occurred.'}
           </p>
           <div className="pt-2">

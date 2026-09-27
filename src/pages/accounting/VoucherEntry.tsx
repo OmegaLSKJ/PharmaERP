@@ -690,15 +690,15 @@ export default function VoucherEntry() {
     <div className="w-full">
       <div className="no-print p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
         {/* ── Page Header ────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-4 rounded-2xl border border-border shadow-xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <Landmark size={22} />
             </span>
             Voucher Entry
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             One-click direct Cash &amp; Bank entries &bull; Receipts, Payments, Contra &amp; Journals
           </p>
         </div>
@@ -708,12 +708,12 @@ export default function VoucherEntry() {
           <button
             type="button"
             onClick={() => handleOpenPrint()}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border transition cursor-pointer"
             title="Print Preview (Alt+P)"
           >
             <Printer size={14} className="text-indigo-400" />
             <span>Print Voucher</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-black/30 rounded border border-slate-700">
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground bg-muted rounded border border-border">
               Alt+P
             </kbd>
           </button>
@@ -731,7 +731,7 @@ export default function VoucherEntry() {
               setVNo(generateVoucherNo())
               showToast('Form cleared')
             }}
-            className="h-9 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition cursor-pointer"
+            className="h-9 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border transition cursor-pointer"
           >
             Clear Form
           </button>
@@ -740,19 +740,19 @@ export default function VoucherEntry() {
 
       {/* ── Active Edit Mode Banner ──────────────────────────────────── */}
       {editingVoucherId && (
-        <div className="no-print flex items-center justify-between px-4 py-3 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-200 text-xs shadow-sm">
+        <div className="no-print flex items-center justify-between px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-800 dark:text-amber-200 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
-            <span className="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 font-bold tracking-wider text-[10px] uppercase border border-amber-500/40">
+            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold tracking-wider text-[10px] uppercase border border-amber-500/40">
               Editing Mode
             </span>
             <span>
-              Voucher <strong className="font-mono text-white text-sm">{vNo}</strong> &bull; {vType} &bull; Date: {vDate}
+              Voucher <strong className="font-mono text-foreground text-sm">{vNo}</strong> &bull; {vType} &bull; Date: {vDate}
             </span>
           </div>
           <button
             type="button"
             onClick={cancelEdit}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-xl text-xs font-semibold border border-border transition cursor-pointer"
           >
             <X size={13} />
             <span>Cancel Edit (New Voucher)</span>
@@ -761,7 +761,7 @@ export default function VoucherEntry() {
       )}
 
       {/* ── Voucher Type Selector & Mode Tabs ───────────────────────── */}
-      <div className="no-print bg-slate-900/70 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3">
+      <div className="no-print bg-card border border-border rounded-2xl p-3 sm:p-4 space-y-3 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Voucher Types */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
@@ -771,11 +771,11 @@ export default function VoucherEntry() {
               className={cn(
                 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition border cursor-pointer',
                 vType === 'Receipt'
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-950'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                  : 'bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60'
               )}
             >
-              <TrendingDown size={16} className={vType === 'Receipt' ? 'text-emerald-400' : 'text-slate-500'} />
+              <TrendingDown size={16} className={vType === 'Receipt' ? 'text-emerald-500' : 'text-muted-foreground'} />
               <span>Receipt (Cash In)</span>
             </button>
 
@@ -785,11 +785,11 @@ export default function VoucherEntry() {
               className={cn(
                 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition border cursor-pointer',
                 vType === 'Payment'
-                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-sm shadow-rose-950'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-xs'
+                  : 'bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60'
               )}
             >
-              <TrendingUp size={16} className={vType === 'Payment' ? 'text-rose-400' : 'text-slate-500'} />
+              <TrendingUp size={16} className={vType === 'Payment' ? 'text-rose-500' : 'text-muted-foreground'} />
               <span>Payment (Cash Out)</span>
             </button>
 
@@ -799,11 +799,11 @@ export default function VoucherEntry() {
               className={cn(
                 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition border cursor-pointer',
                 vType === 'Contra'
-                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 shadow-sm shadow-blue-950'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  ? 'bg-blue-500/15 border-blue-500/40 text-blue-700 dark:text-blue-300 shadow-xs'
+                  : 'bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60'
               )}
             >
-              <ArrowRightLeft size={16} className={vType === 'Contra' ? 'text-blue-400' : 'text-slate-500'} />
+              <ArrowRightLeft size={16} className={vType === 'Contra' ? 'text-blue-500' : 'text-muted-foreground'} />
               <span>Contra (Transfer)</span>
             </button>
 
@@ -813,25 +813,25 @@ export default function VoucherEntry() {
               className={cn(
                 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition border cursor-pointer',
                 vType === 'Journal'
-                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 shadow-sm shadow-purple-950'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'bg-muted/40 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60'
               )}
             >
-              <FileText size={16} className={vType === 'Journal' ? 'text-purple-400' : 'text-slate-500'} />
+              <FileText size={16} className={vType === 'Journal' ? 'text-purple-500' : 'text-muted-foreground'} />
               <span>Journal (General)</span>
             </button>
           </div>
 
           {/* Mode Tabs */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0 self-start sm:self-center">
+          <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border shrink-0 self-start sm:self-center">
             <button
               type="button"
               onClick={() => setActiveTab('quick')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer',
                 activeTab === 'quick'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Zap size={13} />
@@ -848,8 +848,8 @@ export default function VoucherEntry() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer',
                 activeTab === 'multiline'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Layers size={13} />
@@ -859,9 +859,9 @@ export default function VoucherEntry() {
         </div>
 
         {/* Common Metadata Row: Voucher No, Date, Phys No, Ref */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-border">
           <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Voucher No.
             </label>
             <div className="relative">
@@ -869,46 +869,46 @@ export default function VoucherEntry() {
                 type="text"
                 value={vNo}
                 onChange={(e) => setVNo(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-indigo-300 font-mono font-medium outline-none focus:border-indigo-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-1.5 text-xs text-indigo-600 dark:text-indigo-300 font-mono font-medium outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Voucher Date
             </label>
             <input
               type="date"
               value={vDate}
               onChange={(e) => setVDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
+              className="w-full bg-background border border-border rounded-xl px-3 py-1.5 text-xs text-foreground outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Physical / Manual Vch No. <span className="text-slate-500 lowercase">(optional)</span>
+            <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Physical / Manual Vch No. <span className="text-muted-foreground/70 lowercase">(optional)</span>
             </label>
             <input
               type="text"
               placeholder="e.g. PV-101 / Book #4"
               value={physicalVchNo}
               onChange={(e) => setPhysicalVchNo(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 placeholder:text-slate-600"
+              className="w-full bg-background border border-border rounded-xl px-3 py-1.5 text-xs text-foreground outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Cheque / UTR / Ref No. <span className="text-slate-500 lowercase">(optional)</span>
+            <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Cheque / UTR / Ref No. <span className="text-muted-foreground/70 lowercase">(optional)</span>
             </label>
             <input
               type="text"
               placeholder="e.g. CHQ-99120 / NEFT..."
               value={chequeRef}
               onChange={(e) => setChequeRef(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 placeholder:text-slate-600"
+              className="w-full bg-background border border-border rounded-xl px-3 py-1.5 text-xs text-foreground outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
             />
           </div>
         </div>
@@ -917,13 +917,13 @@ export default function VoucherEntry() {
       {/* ── TAB 1: QUICK 1-CLICK ENTRY PANEL ───────────────────────── */}
       {activeTab === 'quick' && (
         <div className="no-print space-y-4">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/20 border border-indigo-500/20 rounded-2xl p-5 shadow-lg shadow-indigo-950/20 space-y-5">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
+                <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
                   <Zap size={16} />
                 </span>
-                <span className="text-sm font-bold text-white tracking-tight">
+                <span className="text-sm font-bold text-foreground tracking-tight">
                   {vType === 'Receipt' && 'Cash / Bank Receipt Entry'}
                   {vType === 'Payment' && 'Cash / Bank Payment Entry'}
                   {vType === 'Contra' && 'Bank & Cash Transfer (Contra)'}
@@ -933,13 +933,13 @@ export default function VoucherEntry() {
 
               {selectedPartyObj && (
                 <div className="hidden sm:flex items-center gap-2 text-xs">
-                  <span className="text-slate-400">Party Balance:</span>
+                  <span className="text-muted-foreground">Party Balance:</span>
                   <span
                     className={cn(
                       'font-mono font-semibold px-2 py-0.5 rounded-lg border',
                       (selectedPartyObj.balance || 0) >= 0
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                     )}
                   >
                     {formatCurrency(Math.abs(selectedPartyObj.balance || 0))}{' '}
@@ -954,10 +954,10 @@ export default function VoucherEntry() {
               {/* Party Selection (For Receipt, Payment, Journal) */}
               {vType !== 'Contra' ? (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5 flex items-center justify-between">
                     <span>Party / Company / Customer</span>
                     {selectedPartyObj && (
-                      <span className="text-[10px] text-indigo-400 sm:hidden">
+                      <span className="text-[10px] text-indigo-500 sm:hidden">
                         Bal: {formatCurrency(Math.abs(selectedPartyObj.balance || 0))}
                       </span>
                     )}
@@ -966,7 +966,7 @@ export default function VoucherEntry() {
                     <select
                       value={selectedParty}
                       onChange={(e) => setSelectedParty(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 transition font-medium"
+                      className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm outline-none focus:border-indigo-500 transition font-medium"
                     >
                       <option value="">Select Party / Ledger...</option>
                       {customerList.length > 0 && (
@@ -1002,13 +1002,13 @@ export default function VoucherEntry() {
               ) : (
                 /* Source Account for Contra */
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
                     Transfer From (Source Account)
                   </label>
                   <select
                     value={selectedCashBank}
                     onChange={(e) => setSelectedCashBank(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 transition font-medium"
+                    className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm outline-none focus:border-indigo-500 transition font-medium"
                   >
                     <optgroup label="💵 Cash Accounts">
                       {cashAccounts.map((c) => (
@@ -1030,7 +1030,7 @@ export default function VoucherEntry() {
 
               {/* Cash / Bank Account Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
                   {vType === 'Contra'
                     ? 'Transfer To (Destination Account)'
                     : vType === 'Receipt'
@@ -1040,7 +1040,7 @@ export default function VoucherEntry() {
                 <select
                   value={vType === 'Contra' ? contraTarget : selectedCashBank}
                   onChange={(e) => (vType === 'Contra' ? setContraTarget(e.target.value) : setSelectedCashBank(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-indigo-500 transition font-medium"
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-foreground text-sm outline-none focus:border-indigo-500 transition font-medium"
                 >
                   {vType === 'Contra' ? (
                     <>
@@ -1082,11 +1082,11 @@ export default function VoucherEntry() {
 
               {/* Amount Input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
                   Amount (₹)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
                     ₹
                   </span>
                   <input
@@ -1103,7 +1103,7 @@ export default function VoucherEntry() {
                         handleSaveVoucher()
                       }
                     }}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-mono text-base font-bold outline-none focus:border-indigo-500 transition placeholder:text-slate-600"
+                    className="w-full bg-background border border-border rounded-xl pl-8 pr-3 py-2.5 text-foreground font-mono text-base font-bold outline-none focus:border-indigo-500 transition placeholder:text-muted-foreground/60"
                   />
                 </div>
               </div>
@@ -1111,7 +1111,7 @@ export default function VoucherEntry() {
 
             {/* Amount Quick Presets */}
             <div className="flex items-center gap-1.5 flex-wrap pt-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider mr-1">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mr-1">
                 Quick Preset:
               </span>
               {AMOUNT_PRESETS.map((p) => (
@@ -1123,7 +1123,7 @@ export default function VoucherEntry() {
                     'px-2.5 py-1 rounded-lg text-xs font-mono font-medium border transition cursor-pointer',
                     amount === p
                       ? 'bg-indigo-600 text-white border-indigo-500'
-                      : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'
+                      : 'bg-secondary/60 hover:bg-secondary text-foreground border-border'
                   )}
                 >
                   +{p.toLocaleString('en-IN')}
@@ -1133,7 +1133,7 @@ export default function VoucherEntry() {
                 <button
                   type="button"
                   onClick={() => setAmount(Math.abs(selectedPartyObj.balance || 0))}
-                  className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition cursor-pointer"
                 >
                   Full Due ({formatCurrency(Math.abs(selectedPartyObj.balance || 0))})
                 </button>
@@ -1142,7 +1142,7 @@ export default function VoucherEntry() {
 
             {/* Narration Field */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 Narration / Description
               </label>
               <input
@@ -1150,7 +1150,7 @@ export default function VoucherEntry() {
                 value={userNarration}
                 onChange={(e) => setUserNarration(e.target.value)}
                 placeholder={defaultNarration}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
               />
             </div>
 
@@ -1163,16 +1163,16 @@ export default function VoucherEntry() {
                 onClick={handleSaveVoucher}
                 disabled={saving || !Number(amount) || (vType !== 'Contra' && !selectedParty)}
                 className={cn(
-                  'w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-sm tracking-wide transition shadow-lg cursor-pointer',
+                  'w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-sm tracking-wide transition shadow-md cursor-pointer',
                   Number(amount) > 0 && (vType === 'Contra' || selectedParty)
                     ? vType === 'Receipt'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/40'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
                       : vType === 'Payment'
-                        ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-950/40'
+                        ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white'
                         : vType === 'Contra'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-950/40'
-                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-950/40'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white'
+                    : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
                 )}
               >
                 <Save size={18} />
@@ -1190,8 +1190,8 @@ export default function VoucherEntry() {
                       : 'Enter Amount to Save Voucher'}
                 </span>
               </button>
-              <p className="text-center text-[11px] text-slate-400 mt-2">
-                Tip: Press <kbd className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">Enter</kbd> in
+              <p className="text-center text-[11px] text-muted-foreground mt-2">
+                Tip: Press <kbd className="font-mono bg-muted border border-border px-1.5 py-0.5 rounded text-foreground">Enter</kbd> in
                 the amount field to instantly save and post to ledger!
               </p>
             </div>
@@ -1202,12 +1202,12 @@ export default function VoucherEntry() {
       {/* ── TAB 2: MULTI-LINE JOURNAL GRID ─────────────────────────── */}
       {activeTab === 'multiline' && (
         <div className="no-print space-y-4">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
             {/* Multi-Line Action Toolbar */}
-            <div className="flex flex-wrap items-center justify-between p-3.5 border-b border-slate-800 gap-2 bg-slate-900/90">
+            <div className="flex flex-wrap items-center justify-between p-3.5 border-b border-border gap-2 bg-secondary/30">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-white">Voucher Debit &amp; Credit Lines</h3>
-                <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-mono">
+                <h3 className="text-sm font-semibold text-foreground">Voucher Debit &amp; Credit Lines</h3>
+                <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full font-mono border border-border">
                   {lines.length} lines
                 </span>
               </div>
@@ -1222,7 +1222,7 @@ export default function VoucherEntry() {
                       lineDiff > 0 && totalCredit < totalDebit ? lineDiff : 0
                     )
                   }
-                  className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-medium transition cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-medium transition cursor-pointer"
                 >
                   <Banknote size={13} /> + Cash Line
                 </button>
@@ -1235,7 +1235,7 @@ export default function VoucherEntry() {
                       lineDiff > 0 && totalCredit < totalDebit ? lineDiff : 0
                     )
                   }
-                  className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-medium transition cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 rounded-lg text-xs font-medium transition cursor-pointer"
                 >
                   <Landmark size={13} /> + Bank Line
                 </button>
@@ -1253,7 +1253,7 @@ export default function VoucherEntry() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[760px]">
                 <thead>
-                  <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                  <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                     <th className="text-left px-4 py-3 font-semibold w-10">#</th>
                     <th className="text-left px-4 py-3 font-semibold w-64">Ledger Account</th>
                     <th className="text-left px-3 py-3 font-semibold w-36">Physical Vch No.</th>
@@ -1263,15 +1263,15 @@ export default function VoucherEntry() {
                     <th className="w-10 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 text-slate-300">
+                <tbody className="divide-y divide-border text-foreground">
                   {lines.map((line, idx) => (
-                    <tr key={line.id} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-2.5 text-slate-500 font-mono">{idx + 1}</td>
+                    <tr key={line.id} className="hover:bg-secondary/40 transition">
+                      <td className="px-4 py-2.5 text-muted-foreground font-mono">{idx + 1}</td>
                       <td className="px-4 py-2.5">
                         <select
                           value={line.ledger}
                           onChange={(e) => updateLine(line.id, 'ledger', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs outline-none focus:border-indigo-500 font-medium"
+                          className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-xs outline-none focus:border-indigo-500 font-medium"
                         >
                           <option value="">Select Ledger Account...</option>
                           <optgroup label="💵 Cash Accounts">
@@ -1317,7 +1317,7 @@ export default function VoucherEntry() {
                           placeholder="e.g. PV-101"
                           value={line.physicalVchNo || ''}
                           onChange={(e) => updateLine(line.id, 'physicalVchNo', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-white font-mono text-xs outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-foreground font-mono text-xs outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
                         />
                       </td>
                       <td className="px-4 py-2.5 text-right">
@@ -1327,7 +1327,7 @@ export default function VoucherEntry() {
                           onChange={(e) =>
                             updateLine(line.id, 'debit', e.target.value === '' ? 0 : Number(e.target.value))
                           }
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500"
                           placeholder="0.00"
                         />
                       </td>
@@ -1338,7 +1338,7 @@ export default function VoucherEntry() {
                           onChange={(e) =>
                             updateLine(line.id, 'credit', e.target.value === '' ? 0 : Number(e.target.value))
                           }
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-right text-white font-mono outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500"
                           placeholder="0.00"
                         />
                       </td>
@@ -1347,7 +1347,7 @@ export default function VoucherEntry() {
                           type="text"
                           value={line.narration}
                           onChange={(e) => updateLine(line.id, 'narration', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-white outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-foreground outline-none focus:border-indigo-500"
                           placeholder="Line remarks..."
                         />
                       </td>
@@ -1355,7 +1355,7 @@ export default function VoucherEntry() {
                         <button
                           type="button"
                           onClick={() => removeLine(line.id)}
-                          className="text-slate-500 hover:text-rose-400 p-1 rounded transition cursor-pointer"
+                          className="text-muted-foreground hover:text-rose-500 p-1 rounded transition cursor-pointer"
                           title="Remove line"
                         >
                           <Trash2 size={14} />
@@ -1365,9 +1365,9 @@ export default function VoucherEntry() {
                   ))}
                   {lines.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">
-                        <p className="font-medium text-slate-300">No voucher lines added yet.</p>
-                        <p className="text-xs text-slate-500 mt-1">
+                      <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                        <p className="font-medium text-foreground">No voucher lines added yet.</p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           Click "+ Cash Line", "+ Bank Line", or "+ Add Line" to begin.
                         </p>
                       </td>
@@ -1378,40 +1378,40 @@ export default function VoucherEntry() {
             </div>
 
             {/* Footer Summary & Save */}
-            <div className="border-t border-slate-800 p-4 bg-slate-900/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="border-t border-border p-4 bg-secondary/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="w-full md:w-1/2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   General Narration
                 </label>
                 <input
                   type="text"
                   value={multiNarration}
                   onChange={(e) => setMultiNarration(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-xs outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground text-xs outline-none focus:border-indigo-500"
                   placeholder="e.g. Payment towards Invoice via RTGS..."
                 />
               </div>
 
               <div className="w-full md:w-auto flex flex-col sm:flex-row items-end sm:items-center gap-5 justify-end">
                 <div className="space-y-1 text-right text-xs">
-                  <div className="text-slate-400 flex items-center justify-end gap-3">
+                  <div className="text-muted-foreground flex items-center justify-end gap-3">
                     <span>Total Debit:</span>
-                    <span className="font-mono font-semibold text-white text-sm">{formatCurrency(totalDebit)}</span>
+                    <span className="font-mono font-semibold text-foreground text-sm">{formatCurrency(totalDebit)}</span>
                   </div>
-                  <div className="text-slate-400 flex items-center justify-end gap-3">
+                  <div className="text-muted-foreground flex items-center justify-end gap-3">
                     <span>Total Credit:</span>
-                    <span className="font-mono font-semibold text-white text-sm">{formatCurrency(totalCredit)}</span>
+                    <span className="font-mono font-semibold text-foreground text-sm">{formatCurrency(totalCredit)}</span>
                   </div>
                 </div>
 
                 <div className="text-right flex flex-col items-end gap-2">
                   {isMultiBalanced ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl font-semibold text-xs">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-xl font-semibold text-xs">
                       <CheckCircle2 size={16} /> Balanced ({formatCurrency(totalDebit)})
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl font-semibold text-xs">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl font-semibold text-xs">
                         <AlertCircle size={16} /> Difference: {formatCurrency(lineDiff)}
                       </div>
                       {lineDiff > 0 && (
@@ -1419,15 +1419,15 @@ export default function VoucherEntry() {
                           <button
                             type="button"
                             onClick={() => autoBalanceMultiLine('cash')}
-                            className="text-emerald-400 hover:underline cursor-pointer"
+                            className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                           >
                             Auto-Balance Cash
                           </button>
-                          <span className="text-slate-600">&bull;</span>
+                          <span className="text-muted-foreground/60">&bull;</span>
                           <button
                             type="button"
                             onClick={() => autoBalanceMultiLine('bank')}
-                            className="text-blue-400 hover:underline cursor-pointer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                           >
                             Auto-Balance Bank
                           </button>
@@ -1441,10 +1441,10 @@ export default function VoucherEntry() {
                     onClick={handleSaveVoucher}
                     disabled={saving || !isMultiBalanced}
                     className={cn(
-                      'flex items-center gap-2 h-10 px-5 rounded-xl text-xs font-semibold shadow-md transition text-white cursor-pointer',
+                      'flex items-center gap-2 h-10 px-5 rounded-xl text-xs font-semibold shadow-xs transition text-white cursor-pointer',
                       isMultiBalanced
                         ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'
-                        : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                        : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
                     )}
                   >
                     <Save size={15} /> {saving ? 'Posting…' : 'Post Voucher'}
@@ -1457,20 +1457,20 @@ export default function VoucherEntry() {
       )}
 
       {/* ── RECENT VOUCHERS LOG (Full Sync with Ledger) ───────────────── */}
-      <div className="no-print bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-sm">
+      <div className="no-print bg-card border border-border rounded-2xl p-4 space-y-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <History size={16} />
             </span>
             <div>
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+              <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
                 <span>Posted Accounting Vouchers</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
                   {allVouchers.length} Total
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 Click any voucher number or row to view, edit, or adjust entries recorded in the ledger
               </p>
             </div>
@@ -1481,7 +1481,7 @@ export default function VoucherEntry() {
               onClick={purgeZeroVouchers}
               disabled={purging}
               title="Delete all ₹0.00 vouchers"
-              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl transition cursor-pointer disabled:opacity-50"
+              className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl transition cursor-pointer disabled:opacity-50"
             >
               <Trash2 size={12} className={purging ? 'animate-pulse' : ''} />
               <span>{purging ? 'Clearing…' : 'Clear ₹0 Vouchers'}</span>
@@ -1489,7 +1489,7 @@ export default function VoucherEntry() {
             <button
               type="button"
               onClick={loadMasterData}
-              className="text-xs text-slate-300 hover:text-white flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition cursor-pointer"
+              className="text-xs text-foreground flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary hover:bg-secondary/80 border border-border rounded-xl transition cursor-pointer"
             >
               <RefreshCw size={12} className={loadingData ? 'animate-spin' : ''} />
               <span>Refresh</span>
@@ -1498,15 +1498,15 @@ export default function VoucherEntry() {
         </div>
 
         {/* Search & Type Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-border">
           <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search voucher no, party, narration, date…"
               value={voucherSearch}
               onChange={(e) => setVoucherSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950/70 text-white text-xs outline-none focus:border-indigo-500 transition"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-border bg-background text-foreground text-xs outline-none focus:border-indigo-500 transition placeholder:text-muted-foreground/60"
             />
           </div>
 
@@ -1520,7 +1520,7 @@ export default function VoucherEntry() {
                   'px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer',
                   voucherTypeFilter === tab
                     ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    : 'bg-secondary/50 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary'
                 )}
               >
                 {tab}
@@ -1572,7 +1572,7 @@ export default function VoucherEntry() {
 
           if (filtered.length === 0) {
             return (
-              <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-slate-800/80 text-slate-500 text-xs">
+              <div className="p-8 text-center bg-muted/30 rounded-xl border border-border text-muted-foreground text-xs">
                 {allVouchers.length === 0
                   ? 'No vouchers found. Post a voucher above or transactions will automatically reflect from ledger.'
                   : 'No vouchers match the selected filter or search term.'}
@@ -1582,10 +1582,10 @@ export default function VoucherEntry() {
 
           return (
             <div className="space-y-3">
-              <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-xs min-w-[700px]">
                   <thead>
-                    <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                    <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                       <th className="text-left px-3 py-2.5 font-semibold">Date</th>
                       <th className="text-left px-3 py-2.5 font-semibold">Voucher No.</th>
                       <th className="text-left px-3 py-2.5 font-semibold">Type</th>
@@ -1596,7 +1596,7 @@ export default function VoucherEntry() {
                       <th className="text-center px-3 py-2.5 font-semibold w-28">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  <tbody className="divide-y divide-border text-foreground">
                     {displayList.map((v) => {
                       const vNoStr = v.number || v.voucher_number || v.id
                       const isCurrentlyEditing = editingVoucherId === v.id || editingVoucherId === vNoStr
@@ -1615,17 +1615,17 @@ export default function VoucherEntry() {
                             'transition cursor-pointer group',
                             isCurrentlyEditing
                               ? 'bg-amber-500/10 border-l-2 border-amber-400'
-                              : 'hover:bg-slate-800/40'
+                              : 'hover:bg-secondary/40'
                           )}
                         >
-                          <td className="px-3 py-2.5 text-slate-400 font-mono whitespace-nowrap">
+                          <td className="px-3 py-2.5 text-muted-foreground font-mono whitespace-nowrap">
                             {v.date || v.voucher_date || '-'}
                           </td>
                           <td className="px-3 py-2.5 font-mono font-medium">
-                            <span className="text-indigo-300 group-hover:text-indigo-200 group-hover:underline flex items-center gap-1.5">
+                            <span className="text-indigo-600 dark:text-indigo-300 group-hover:underline flex items-center gap-1.5">
                               {vNoStr}
                               {isCurrentlyEditing && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
                                   EDITING
                                 </span>
                               )}
@@ -1635,26 +1635,26 @@ export default function VoucherEntry() {
                             <span
                               className={cn(
                                 'px-2 py-0.5 rounded text-[10px] font-semibold border',
-                                isRcpt && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                                isPmt && 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                                isCntra && 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                                !isRcpt && !isPmt && !isCntra && 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                isRcpt && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                                isPmt && 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                                isCntra && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                                !isRcpt && !isPmt && !isCntra && 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
                               )}
                             >
                               {v.type || v.voucher_type || 'JOURNAL'}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 font-medium text-white max-w-[200px] truncate">
+                          <td className="px-3 py-2.5 font-medium text-foreground max-w-[200px] truncate">
                             {partyName}
                           </td>
-                          <td className="px-3 py-2.5 text-slate-400 max-w-[220px] truncate">
+                          <td className="px-3 py-2.5 text-muted-foreground max-w-[220px] truncate">
                             {v.narration || '—'}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-100 whitespace-nowrap">
+                          <td className="px-3 py-2.5 text-right font-mono font-bold text-foreground whitespace-nowrap">
                             {formatCurrency(amountVal)}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                               Posted
                             </span>
                           </td>
@@ -1663,7 +1663,7 @@ export default function VoucherEntry() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenPrint(v)}
-                                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition cursor-pointer"
                                 title="Print this voucher"
                               >
                                 <Printer size={14} />
@@ -1671,7 +1671,7 @@ export default function VoucherEntry() {
                               <button
                                 type="button"
                                 onClick={() => editVoucher(v)}
-                                className="p-1 rounded text-amber-400 hover:bg-slate-800 transition cursor-pointer"
+                                className="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-secondary transition cursor-pointer"
                                 title="Edit voucher"
                               >
                                 <Edit3 size={14} />
@@ -1679,7 +1679,7 @@ export default function VoucherEntry() {
                               <button
                                 type="button"
                                 onClick={() => removeVoucher(v)}
-                                className="p-1 rounded text-rose-400 hover:bg-slate-800 transition cursor-pointer"
+                                className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-secondary transition cursor-pointer"
                                 title="Delete voucher"
                               >
                                 <Trash2 size={14} />
@@ -1698,7 +1698,7 @@ export default function VoucherEntry() {
                   <button
                     type="button"
                     onClick={() => setShowAllVouchers((prev) => !prev)}
-                    className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                    className="px-4 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer"
                   >
                     {showAllVouchers
                       ? 'Show Fewer Vouchers'
@@ -1714,15 +1714,15 @@ export default function VoucherEntry() {
       {/* ── Voucher Print Preview Modal ─────────────────────────────── */}
       {showPrintModal && printDataOverride && (
         <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 overflow-y-auto"
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto"
           onClick={() => setShowPrintModal(false)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Printer size={16} className="text-indigo-400" /> Voucher Print Preview
               </h3>
               <div className="flex items-center gap-2">
@@ -1736,7 +1736,7 @@ export default function VoucherEntry() {
                 <button
                   type="button"
                   onClick={() => setShowPrintModal(false)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-lg transition cursor-pointer"
                 >
                   <X size={18} />
                 </button>

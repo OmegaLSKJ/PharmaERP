@@ -122,17 +122,17 @@ export default function SelectedBook() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <BookOpen size={22} className="text-indigo-400" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <BookOpen size={22} className="text-indigo-500 dark:text-indigo-400" />
             Excel Book View
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Spreadsheet view for receipts, payments, sales, purchases, challans, and vouchers
           </p>
         </div>
         <button
           onClick={() => exportVisibleTables('selected-book', useUIStore.getState().company)}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs sm:text-sm font-medium transition border border-slate-700"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-medium transition border border-border shadow-xs cursor-pointer"
         >
           <Download size={16} /> Export Excel (CSV)
         </button>
@@ -145,10 +145,10 @@ export default function SelectedBook() {
             key={b.key}
             onClick={() => setSelectedType(b.key)}
             className={cn(
-              'px-3 py-2.5 rounded-xl border text-xs font-semibold transition text-center leading-tight',
+              'px-3 py-2.5 rounded-xl border text-xs font-semibold transition text-center leading-tight cursor-pointer',
               selectedType === b.key
-                ? b.color + ' ring-2 ring-offset-1 ring-offset-slate-950 ring-indigo-500 shadow-lg'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                ? b.color + ' ring-2 ring-offset-1 ring-offset-background ring-indigo-500 shadow-md'
+                : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/50 shadow-xs'
             )}
           >
             {b.label}
@@ -159,24 +159,24 @@ export default function SelectedBook() {
       {/* Filters row */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search ledger, voucher, narration…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:border-indigo-500"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-400 font-medium">From</label>
+          <label className="text-xs text-muted-foreground font-medium">From</label>
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-indigo-500" />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-400 font-medium">To</label>
+          <label className="text-xs text-muted-foreground font-medium">To</label>
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-indigo-500" />
         </div>
       </div>
 
@@ -187,25 +187,25 @@ export default function SelectedBook() {
           { label: 'Total Debit', value: formatCurrency(totalDr), mono: true },
           { label: 'Total Credit', value: formatCurrency(totalCr), mono: true },
         ].map((s) => (
-          <div key={s.label} className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
-            <div className="text-xs text-slate-400 font-medium mb-1">{s.label}</div>
-            <div className={cn('text-lg font-bold text-white', s.mono && 'font-mono')}>{s.value}</div>
+          <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3 shadow-xs">
+            <div className="text-xs text-muted-foreground font-medium mb-1">{s.label}</div>
+            <div className={cn('text-lg font-bold text-foreground', s.mono && 'font-mono')}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <h2 className={cn('text-sm font-bold px-3 py-1 rounded-lg border', currentBook.color)}>
             {currentBook.label}
           </h2>
-          <span className="text-xs text-slate-500">{filtered.length} records</span>
+          <span className="text-xs text-muted-foreground">{filtered.length} records</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse min-w-[750px]" id="selected-book">
           <thead className="sticky top-0 z-10">
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+            <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-medium">Date</th>
               <th className="text-left px-4 py-3 font-medium">Book</th>
               <th className="text-left px-4 py-3 font-medium">Voucher No</th>
@@ -216,18 +216,18 @@ export default function SelectedBook() {
               <th className="text-left px-4 py-3 font-medium">Narration</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                  No entries found for <span className="font-semibold text-slate-400">{currentBook.label}</span>
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                  No entries found for <span className="font-semibold text-foreground">{currentBook.label}</span>
                 </td>
               </tr>
             ) : (
               filtered.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-900/30">
-                  <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
-                  <td className="px-4 py-3"><span className={cn('rounded px-2 py-1 text-[10px] font-semibold', TYPE_BADGE[d.vType] || 'bg-slate-800 text-slate-300')}>{d.vType}</span></td>
+                <tr key={d.id} className="hover:bg-secondary/40">
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{d.date}</td>
+                  <td className="px-4 py-3"><span className={cn('rounded px-2 py-1 text-[10px] font-semibold', TYPE_BADGE[d.vType] || 'bg-secondary text-foreground')}>{d.vType}</span></td>
                   <td className="px-4 py-3 font-mono">
                     <a
                       href={
@@ -239,30 +239,30 @@ export default function SelectedBook() {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-indigo-400 hover:text-indigo-300 hover:underline"
+                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 hover:underline"
                       title="Open in new window"
                     >
                       {d.vNo}
                     </a>
                   </td>
-                  <td className="px-4 py-3 font-mono text-indigo-400 text-[11px]">{d.physicalVchNo || '—'}</td>
-                  <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-400">
+                  <td className="px-4 py-3 font-mono text-indigo-600 dark:text-indigo-400 text-[11px]">{d.physicalVchNo || '—'}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{d.ledger}</td>
+                  <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium">
                     {d.debit > 0 ? formatCurrency(d.debit) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-rose-400">
+                  <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400 font-medium">
                     {d.credit > 0 ? formatCurrency(d.credit) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 max-w-xs truncate">{d.narration}</td>
+                  <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{d.narration}</td>
                 </tr>
               ))
             )}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-900/80 border-t border-slate-700 text-white font-bold text-xs">
+            <tr className="bg-secondary/50 border-t border-border text-foreground font-bold text-xs">
               <td colSpan={5} className="px-4 py-3">Total ({filtered.length} entries)</td>
-              <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatCurrency(totalDr)}</td>
-              <td className="px-4 py-3 text-right font-mono text-rose-400">{formatCurrency(totalCr)}</td>
+              <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totalDr)}</td>
+              <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">{formatCurrency(totalCr)}</td>
               <td />
             </tr>
           </tfoot>

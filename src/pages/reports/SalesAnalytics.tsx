@@ -64,7 +64,7 @@ export default function SalesAnalytics() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 h-9 px-3.5 bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-900 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition border border-neutral-700 hover:border-neutral-500 cursor-pointer"
+            className="flex items-center gap-2 h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer"
           >
             <FileText size={15} /> Export PDF
           </button>

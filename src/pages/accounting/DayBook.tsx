@@ -82,30 +82,30 @@ export default function DayBook() {
       <PrintHeader title="Day Book" />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Day Book</h1>
-          <p className="text-sm text-slate-400 mt-1">{filtered.length} entries | March 2026</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Day Book</h1>
+          <p className="text-sm text-muted-foreground mt-1">{filtered.length} entries | March 2026</p>
         </div>
-        <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition border border-slate-700">
+        <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
           <Download size={16} /> Export
         </button>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Search ledger, voucher, narration..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input type="text" placeholder="Search ledger, voucher, narration..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:border-indigo-500" />
         </div>
         {types.map(t => (
-          <button key={t} onClick={() => setTypeFilter(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition', typeFilter === t ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>
+          <button key={t} onClick={() => setTypeFilter(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition cursor-pointer', typeFilter === t ? 'bg-indigo-600 text-white shadow-xs' : 'bg-card border border-border text-muted-foreground hover:text-foreground shadow-xs')}>
             {t}
           </button>
         ))}
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+            <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
               <th className="text-left px-4 py-3 font-medium">Date</th>
               <th className="text-left px-4 py-3 font-medium">Type</th>
               <th className="text-left px-4 py-3 font-medium">Voucher No</th>
@@ -115,10 +115,10 @@ export default function DayBook() {
               <th className="text-left px-4 py-3 font-medium">Narration</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {filtered.map(d => (
-              <tr key={d.id} className="hover:bg-slate-900/30">
-                <td className="px-4 py-3 font-mono text-slate-400">{d.date}</td>
+              <tr key={d.id} className="hover:bg-secondary/40">
+                <td className="px-4 py-3 font-mono text-muted-foreground">{d.date}</td>
                 <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', TYPE_STYLE[d.vType])}>{d.vType}</span></td>
                 <td className="px-4 py-3">
                   <div>
@@ -133,25 +133,25 @@ export default function DayBook() {
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Open in new window"
-                      className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline"
+                      className="font-mono text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 hover:underline"
                     >
                       {d.vNo}
                     </a>
                   </div>
-                  {d.physicalVchNo && <div className="text-[10px] text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
+                  {d.physicalVchNo && <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">Phys: {d.physicalVchNo}</div>}
                 </td>
-                <td className="px-4 py-3 font-medium text-white">{d.ledger}</td>
-                <td className="px-4 py-3 text-right font-mono">{d.debit > 0 ? formatCurrency(d.debit) : '-'}</td>
-                <td className="px-4 py-3 text-right font-mono">{d.credit > 0 ? formatCurrency(d.credit) : '-'}</td>
-                <td className="px-4 py-3 text-slate-400 max-w-xs truncate">{d.narration}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{d.ledger}</td>
+                <td className="px-4 py-3 text-right font-mono font-medium">{d.debit > 0 ? formatCurrency(d.debit) : '-'}</td>
+                <td className="px-4 py-3 text-right font-mono font-medium">{d.credit > 0 ? formatCurrency(d.credit) : '-'}</td>
+                <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{d.narration}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-900/80 border-t border-slate-700 text-white font-bold text-xs">
+            <tr className="bg-secondary/50 border-t border-border text-foreground font-bold text-xs">
               <td colSpan={4} className="px-4 py-3">Total</td>
-              <td className="px-4 py-3 text-right font-mono">{formatCurrency(totalDr)}</td>
-              <td className="px-4 py-3 text-right font-mono">{formatCurrency(totalCr)}</td>
+              <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totalDr)}</td>
+              <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">{formatCurrency(totalCr)}</td>
               <td></td>
             </tr>
           </tfoot>

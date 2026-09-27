@@ -93,19 +93,19 @@ export default function Orders() {
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Search orders..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-white text-sm outline-none focus:border-indigo-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input type="text" placeholder="Search orders..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:border-indigo-500" />
         </div>
         {['all', 'Sale', 'Purchase'].map(t => (
-          <button key={t} onClick={() => setTypeFilter(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition', typeFilter === t ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{t === 'all' ? 'All' : t}</button>
+          <button key={t} onClick={() => setTypeFilter(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer', typeFilter === t ? 'bg-indigo-600 text-white shadow-xs' : 'bg-card border border-border text-muted-foreground hover:text-foreground shadow-xs')}>{t === 'all' ? 'All' : t}</button>
         ))}
         {['all', 'pending', 'confirmed', 'dispatched', 'delivered'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition', statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white')}>{s === 'delivered' ? 'Delivered / Complete' : s}</button>
+          <button key={s} onClick={() => setStatusFilter(s)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition cursor-pointer', statusFilter === s ? 'bg-indigo-600 text-white shadow-xs' : 'bg-card border border-border text-muted-foreground hover:text-foreground shadow-xs')}>{s === 'delivered' ? 'Delivered / Complete' : s}</button>
         ))}
       </div>
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
         <table className="min-w-[700px] w-full text-xs">
-          <thead><tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+          <thead><tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
             <th className="text-left px-4 py-3 font-medium">Order No</th>
             <th className="text-left px-4 py-3 font-medium">Date</th>
             <th className="text-left px-4 py-3 font-medium">Type</th>
@@ -116,33 +116,33 @@ export default function Orders() {
             <th className="text-left px-4 py-3 font-medium">Status</th>
             <th className="text-center px-4 py-3 font-medium w-28">Actions</th>
           </tr></thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody className="divide-y divide-border text-foreground">
             {filtered.map(o => (
-              <tr key={o.id} className="hover:bg-slate-900/30">
-                <td className="px-4 py-3 font-mono text-white">{o.orderNo}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{o.date}</td>
-                <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', o.type === 'Sale' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400')}>{o.type}</span></td>
-                <td className="px-4 py-3 font-medium text-white">{o.party}</td>
+              <tr key={o.id} className="hover:bg-secondary/40">
+                <td className="px-4 py-3 font-mono text-foreground font-medium">{o.orderNo}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground">{o.date}</td>
+                <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', o.type === 'Sale' ? 'bg-blue-500/10 text-blue-500 dark:text-blue-400' : 'bg-purple-500/10 text-purple-500 dark:text-purple-400')}>{o.type}</span></td>
+                <td className="px-4 py-3 font-medium text-foreground">{o.party}</td>
                 <td className="px-4 py-3 text-right">{o.items}</td>
-                <td className="px-4 py-3 text-right font-medium text-emerald-400">{formatCurrency(o.total)}</td>
-                <td className="px-4 py-3 font-mono text-slate-400">{o.deliveryDate}</td>
+                <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">{formatCurrency(o.total)}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground">{o.deliveryDate}</td>
                 <td className="px-4 py-3">
                   <select
                     aria-label={`Change status of ${o.orderNo}`}
                     value={o.status === 'completed' ? 'delivered' : o.status}
                     onChange={(e) => void updateOrderStatus(o.id, e.target.value)}
                     className={cn(
-                      'px-2 py-1 rounded text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer transition',
-                      STATUS_STYLE[o.status] || 'text-slate-300 border-slate-700'
+                      'px-2 py-1 rounded text-xs font-semibold capitalize border bg-background outline-none cursor-pointer transition',
+                      STATUS_STYLE[o.status] || 'text-foreground border-border'
                     )}
                   >
-                    <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                    <option value="confirmed" className="bg-slate-900 text-blue-400">Confirmed</option>
-                    <option value="dispatched" className="bg-slate-900 text-purple-400">Dispatched</option>
-                    <option value="delivered" className="bg-slate-900 text-emerald-400">
+                    <option value="pending" className="bg-background text-amber-500 dark:text-amber-400">Pending</option>
+                    <option value="confirmed" className="bg-background text-blue-500 dark:text-blue-400">Confirmed</option>
+                    <option value="dispatched" className="bg-background text-purple-500 dark:text-purple-400">Dispatched</option>
+                    <option value="delivered" className="bg-background text-emerald-500 dark:text-emerald-400">
                       {o.type === 'Purchase' ? 'Received / Complete' : 'Delivered / Complete'}
                     </option>
-                    <option value="cancelled" className="bg-slate-900 text-rose-400">Cancelled</option>
+                    <option value="cancelled" className="bg-background text-rose-500 dark:text-rose-400">Cancelled</option>
                   </select>
                 </td>
                 <td className="px-4 py-3 text-center">
@@ -151,7 +151,7 @@ export default function Orders() {
                       <button
                         type="button"
                         onClick={() => void updateOrderStatus(o.id, 'delivered')}
-                        className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/90 text-emerald-400 hover:text-emerald-300 border border-emerald-800/60 transition cursor-pointer"
+                        className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition cursor-pointer"
                         title={o.type === 'Purchase' ? 'Mark as Received (Goods Received)' : 'Mark as Complete (Delivered)'}
                       >
                         <CheckCircle2 size={14} />
@@ -160,7 +160,7 @@ export default function Orders() {
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(o)}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                      className="p-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition cursor-pointer"
                       title="View & Print Order"
                     >
                       <Eye size={14} />
@@ -171,7 +171,7 @@ export default function Orders() {
                         setSelectedOrder(o)
                         setTimeout(() => window.print(), 100)
                       }}
-                      className="p-1.5 rounded-lg bg-black hover:bg-neutral-900 text-white transition border border-black shadow-xs cursor-pointer"
+                      className="p-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition border border-border shadow-xs cursor-pointer"
                       title="Direct Print (Ctrl+P)"
                     >
                       <Printer size={14} />
@@ -189,29 +189,29 @@ export default function Orders() {
       {/* Order Print Preview Modal */}
       {selectedOrder && (
         <div
-          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setSelectedOrder(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border text-foreground w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex-1 min-w-0 pr-8 sm:pr-0 relative">
-                <h2 className="text-sm sm:text-base font-bold text-white truncate">
+                <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
                   {selectedOrder.type === 'Purchase' ? 'Purchase Order Preview' : 'Sales Order Preview'}
                 </h2>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-                  <span>Order No: <span className="text-white font-mono">{selectedOrder.orderNo}</span></span>
-                  <span className="hidden sm:inline text-slate-600">•</span>
-                  <span>Date: <span className="text-white">{selectedOrder.date}</span></span>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2">
+                  <span>Order No: <span className="text-foreground font-mono">{selectedOrder.orderNo}</span></span>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <span>Date: <span className="text-foreground">{selectedOrder.date}</span></span>
                 </p>
                 {/* Mobile top-right close X */}
                 <button
                   type="button"
                   onClick={() => setSelectedOrder(null)}
-                  className="sm:hidden absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="sm:hidden absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />
@@ -223,22 +223,22 @@ export default function Orders() {
                   value={selectedOrder.status === 'completed' ? 'delivered' : selectedOrder.status}
                   onChange={(e) => void updateOrderStatus(selectedOrder.id, e.target.value)}
                   className={cn(
-                    'px-2.5 py-1.5 rounded-lg text-xs font-semibold capitalize border bg-slate-950 outline-none cursor-pointer transition',
-                    STATUS_STYLE[selectedOrder.status] || 'text-slate-300 border-slate-700'
+                    'px-2.5 py-1.5 rounded-lg text-xs font-semibold capitalize border bg-background outline-none cursor-pointer transition',
+                    STATUS_STYLE[selectedOrder.status] || 'text-foreground border-border'
                   )}
                 >
-                  <option value="pending" className="bg-slate-900 text-amber-400">Pending</option>
-                  <option value="confirmed" className="bg-slate-900 text-blue-400">Confirmed</option>
-                  <option value="dispatched" className="bg-slate-900 text-purple-400">Dispatched</option>
-                  <option value="delivered" className="bg-slate-900 text-emerald-400">Delivered / Complete</option>
-                  <option value="cancelled" className="bg-slate-900 text-rose-400">Cancelled</option>
+                  <option value="pending" className="bg-background text-amber-500 dark:text-amber-400">Pending</option>
+                  <option value="confirmed" className="bg-background text-blue-500 dark:text-blue-400">Confirmed</option>
+                  <option value="dispatched" className="bg-background text-purple-500 dark:text-purple-400">Dispatched</option>
+                  <option value="delivered" className="bg-background text-emerald-500 dark:text-emerald-400">Delivered / Complete</option>
+                  <option value="cancelled" className="bg-background text-rose-500 dark:text-rose-400">Cancelled</option>
                 </select>
 
                 {selectedOrder.status !== 'delivered' && selectedOrder.status !== 'completed' && (
                   <button
                     type="button"
                     onClick={() => void updateOrderStatus(selectedOrder.id, 'delivered')}
-                    className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/90 border border-emerald-800/60 transition active:scale-[0.98] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition active:scale-[0.98] cursor-pointer"
                   >
                     <CheckCircle2 size={14} />
                     <span>Complete</span>
@@ -248,18 +248,18 @@ export default function Orders() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-white bg-gradient-to-b from-zinc-900 to-black hover:from-zinc-800 hover:to-neutral-950 border border-neutral-700 hover:border-neutral-500 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  <Printer size={14} className="text-zinc-300 group-hover:text-white transition-colors" />
+                  <Printer size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
                   <span>Print Order</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-400 bg-white/10 rounded border border-white/10">
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-background rounded border border-border">
                     Ctrl+P
                   </kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedOrder(null)}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X size={16} />

@@ -210,16 +210,16 @@ export default function ChallanEntry() {
       <PrintHeader title="Delivery Challan" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Delivery Challan</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5 flex items-center gap-2">
-            <Truck size={14} className="text-cyan-400" /> Goods dispatch without invoice
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Delivery Challan</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+            <Truck size={14} className="text-cyan-500 dark:text-cyan-400" /> Goods dispatch without invoice
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
           <button
             type="button"
             onClick={() => openTransactionWindow(window.location.pathname)}
-            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-900 hover:bg-slate-800 rounded-lg text-xs sm:text-sm text-slate-300 font-semibold no-print transition border border-slate-700 shadow-sm active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-secondary hover:bg-secondary/80 rounded-lg text-xs sm:text-sm text-foreground font-semibold no-print transition border border-border shadow-xs active:scale-[0.98] cursor-pointer"
             title="Open another instance in a separate window"
           >
             <ExternalLink size={14} />
@@ -227,10 +227,10 @@ export default function ChallanEntry() {
           </button>
           <button
             onClick={() => setShowPrintModal(true)}
-            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 sm:px-4 bg-black hover:bg-neutral-900 rounded-lg text-xs sm:text-sm text-white font-semibold no-print transition border border-black shadow-sm active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 sm:px-4 bg-secondary hover:bg-secondary/80 rounded-lg text-xs sm:text-sm text-foreground font-semibold no-print transition border border-border shadow-xs active:scale-[0.98] cursor-pointer"
             title="Print Delivery Challan"
           >
-            <Printer size={15} className="text-white" /> <span>Print Challan</span>
+            <Printer size={15} className="text-muted-foreground" /> <span>Print Challan</span>
           </button>
           <button
             onClick={saveChallan}
@@ -242,17 +242,17 @@ export default function ChallanEntry() {
         </div>
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shadow-xs">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Party / Consignee *</label>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Party / Consignee *</label>
           <Typeahead options={partyOptions} value={party} onChange={setParty} placeholder="Search party..." />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Transport Mode</label>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Transport Mode</label>
           <select
             value={transport}
             onChange={(e) => setTransport(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-cyan-500 transition"
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm outline-none focus:border-cyan-500 transition"
           >
             <option>Surface</option>
             <option>DTDC</option>
@@ -261,19 +261,19 @@ export default function ChallanEntry() {
           </select>
         </div>
         <div className="flex gap-2">
-          <div className="bg-slate-950 border border-slate-800 rounded-lg p-2 flex-1 text-center">
-            <div className="text-[10px] text-slate-400 uppercase">Items</div>
-            <div className="text-base sm:text-lg font-bold text-white">{lines.length}</div>
+          <div className="bg-secondary/40 border border-border rounded-lg p-2 flex-1 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase font-medium">Items</div>
+            <div className="text-base sm:text-lg font-bold text-foreground">{lines.length}</div>
           </div>
-          <div className="bg-slate-950 border border-slate-800 rounded-lg p-2 flex-1 text-center">
-            <div className="text-[10px] text-slate-400 uppercase">Total Qty</div>
-            <div className="text-base sm:text-lg font-bold text-cyan-400">{totalQty}</div>
+          <div className="bg-secondary/40 border border-border rounded-lg p-2 flex-1 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase font-medium">Total Qty</div>
+            <div className="text-base sm:text-lg font-bold text-cyan-600 dark:text-cyan-400">{totalQty}</div>
           </div>
         </div>
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 sm:p-4 space-y-3 shadow-sm">
-        <label className="block text-xs font-semibold text-cyan-400 uppercase tracking-wider">Quick Search & Add Items</label>
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shadow-xs">
+        <label className="block text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Quick Search & Add Items</label>
         <Typeahead
           options={itemOptions}
           value=""
@@ -288,8 +288,8 @@ export default function ChallanEntry() {
       </div>
 
       {lines.length > 0 && (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm p-3 sm:p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Dispatched Items ({lines.length})</h3>
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs p-3 sm:p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Dispatched Items ({lines.length})</h3>
 
           {/* Mobile Card View */}
           <div className="space-y-2.5 block md:hidden">
@@ -300,23 +300,23 @@ export default function ChallanEntry() {
                   key={l.id}
                   onClick={() => setActiveIndex(idx)}
                   className={cn(
-                    'bg-slate-950 border rounded-xl p-3 flex items-center justify-between gap-3 cursor-pointer transition',
-                    isActive ? 'border-cyan-500 ring-1 ring-cyan-500/50' : 'border-slate-800'
+                    'bg-card border rounded-xl p-3 flex items-center justify-between gap-3 cursor-pointer transition',
+                    isActive ? 'border-cyan-500 ring-1 ring-cyan-500/50' : 'border-border'
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">{l.name}</div>
-                    <div className="text-xs font-mono text-cyan-400 mt-0.5">Batch: {l.batch}</div>
+                    <div className="text-sm font-semibold text-foreground truncate">{l.name}</div>
+                    <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400 mt-0.5">Batch: {l.batch}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+                    <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           updateQty(l.id, l.qty - 1)
                         }}
-                        className="px-2 py-1.5 text-slate-400 hover:text-white"
+                        className="px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         <Minus size={12} />
                       </button>
@@ -329,7 +329,7 @@ export default function ChallanEntry() {
                           e.target.select()
                           setActiveIndex(idx)
                         }}
-                        className="w-12 text-center bg-transparent text-xs font-mono text-white outline-none py-1"
+                        className="w-12 text-center bg-transparent text-xs font-mono text-foreground outline-none py-1"
                         inputMode="numeric"
                       />
                       <button
@@ -338,7 +338,7 @@ export default function ChallanEntry() {
                           e.stopPropagation()
                           updateQty(l.id, l.qty + 1)
                         }}
-                        className="px-2 py-1.5 text-slate-400 hover:text-white"
+                        className="px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         <Plus size={12} />
                       </button>
@@ -349,7 +349,7 @@ export default function ChallanEntry() {
                         e.stopPropagation()
                         removeLine(l.id)
                       }}
-                      className="p-1.5 text-slate-500 hover:text-rose-400"
+                      className="p-1.5 text-muted-foreground hover:text-rose-500 cursor-pointer"
                       aria-label="Remove item"
                     >
                       <Trash2 size={14} />
@@ -364,14 +364,14 @@ export default function ChallanEntry() {
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                   <th className="text-left px-4 py-3 font-medium">Item</th>
                   <th className="text-left px-4 py-3 font-medium">Batch</th>
                   <th className="text-right px-4 py-3 font-medium">Qty</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 text-slate-300">
+              <tbody className="divide-y divide-border text-foreground">
                 {lines.map((l, idx) => {
                   const isActive = idx === activeIndex
                   return (
@@ -380,14 +380,14 @@ export default function ChallanEntry() {
                       onClick={() => setActiveIndex(idx)}
                       className={cn(
                         'transition cursor-pointer',
-                        isActive ? 'bg-cyan-950/40 ring-1 ring-inset ring-cyan-500/40 border-l-4 border-l-cyan-500' : 'hover:bg-slate-800/30'
+                        isActive ? 'bg-cyan-500/10 ring-1 ring-inset ring-cyan-500/40 border-l-4 border-l-cyan-500' : 'hover:bg-secondary/40'
                       )}
                     >
-                      <td className="px-4 py-3 font-medium text-white">
+                      <td className="px-4 py-3 font-medium text-foreground">
                         {l.name}
-                        {l.packing && <span className="block text-[11px] text-slate-500 font-normal">{l.packing}</span>}
+                        {l.packing && <span className="block text-[11px] text-muted-foreground font-normal">{l.packing}</span>}
                       </td>
-                      <td className="px-4 py-3 font-mono text-cyan-400">{l.batch}</td>
+                      <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium">{l.batch}</td>
                       <td className="px-4 py-3 text-right">
                         <input
                           type="number"
@@ -398,7 +398,7 @@ export default function ChallanEntry() {
                             e.target.select()
                             setActiveIndex(idx)
                           }}
-                          className="w-20 bg-slate-950 border border-slate-800 rounded p-1 text-right text-white font-mono"
+                          className="w-20 bg-background border border-border rounded p-1 text-right text-foreground font-mono"
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -408,7 +408,7 @@ export default function ChallanEntry() {
                             e.stopPropagation()
                             removeLine(l.id)
                           }}
-                          className="text-slate-500 hover:text-rose-400 p-1"
+                          className="text-muted-foreground hover:text-rose-500 p-1 cursor-pointer"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -456,27 +456,27 @@ export default function ChallanEntry() {
         </div>
       )}
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-        <div className="px-4 py-3 border-b border-slate-800"><h2 className="text-sm font-semibold text-white">Saved Challans</h2></div>
+      <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
+        <div className="px-4 py-3 border-b border-border"><h2 className="text-sm font-semibold text-foreground">Saved Challans</h2></div>
         <table className="min-w-[620px] w-full text-xs">
-          <thead className="text-slate-400 bg-slate-900/80"><tr><th className="text-left px-4 py-3">Number</th><th className="text-left px-4 py-3">Party</th><th className="text-left px-4 py-3">Date</th><th className="text-left px-4 py-3">Transport</th><th className="text-right px-4 py-3">Actions</th></tr></thead>
-          <tbody className="divide-y divide-slate-800">
+          <thead className="text-muted-foreground bg-secondary/50 border-b border-border"><tr><th className="text-left px-4 py-3">Number</th><th className="text-left px-4 py-3">Party</th><th className="text-left px-4 py-3">Date</th><th className="text-left px-4 py-3">Transport</th><th className="text-right px-4 py-3">Actions</th></tr></thead>
+          <tbody className="divide-y divide-border">
             {savedChallans.map((challan) => (
-              <tr key={challan.dbId} className="text-slate-300 hover:bg-slate-800/40">
-                <td className="px-4 py-3 font-mono text-cyan-400">{challan.id}</td><td className="px-4 py-3">{challan.party}</td><td className="px-4 py-3">{challan.date}</td><td className="px-4 py-3">{challan.transport}</td>
-                <td className="px-4 py-3"><div className="flex justify-end gap-1"><button onClick={() => editChallan(challan)} className="p-1.5 text-amber-400 hover:bg-slate-800 rounded" aria-label={`Edit ${challan.id}`}><Edit3 size={14}/></button><button onClick={() => removeChallan(challan)} className="p-1.5 text-rose-400 hover:bg-slate-800 rounded" aria-label={`Delete ${challan.id}`}><Trash2 size={14}/></button></div></td>
+              <tr key={challan.dbId} className="text-foreground hover:bg-secondary/40">
+                <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium">{challan.id}</td><td className="px-4 py-3">{challan.party}</td><td className="px-4 py-3 font-mono text-muted-foreground">{challan.date}</td><td className="px-4 py-3 text-muted-foreground">{challan.transport}</td>
+                <td className="px-4 py-3"><div className="flex justify-end gap-1"><button onClick={() => editChallan(challan)} className="p-1.5 text-amber-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Edit ${challan.id}`}><Edit3 size={14}/></button><button onClick={() => removeChallan(challan)} className="p-1.5 text-rose-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Delete ${challan.id}`}><Trash2 size={14}/></button></div></td>
               </tr>
             ))}
-            {!savedChallans.length && <tr><td colSpan={5} className="p-6 text-center text-slate-500">No challans saved yet.</td></tr>}
+            {!savedChallans.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No challans saved yet.</td></tr>}
           </tbody>
         </table>
       </div>
 
       {/* Sticky Bottom Action Bar for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-400">Total Qty ({lines.length} items)</div>
-          <div className="font-mono font-bold text-cyan-400 text-base">{totalQty} units</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Qty ({lines.length} items)</div>
+          <div className="font-mono font-bold text-cyan-600 dark:text-cyan-400 text-base">{totalQty} units</div>
         </div>
         <button
           type="button"
@@ -492,30 +492,30 @@ export default function ChallanEntry() {
       {/* Print Preview Modal */}
       {showPrintModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 no-print overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 no-print overflow-y-auto"
           onClick={() => setShowPrintModal(false)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-card border border-border text-foreground w-full max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h2 className="text-base font-bold text-white">Delivery Challan Bill Preview</h2>
-                <p className="text-xs text-slate-400">
+                <h2 className="text-base font-bold text-foreground">Delivery Challan Bill Preview</h2>
+                <p className="text-xs text-muted-foreground">
                   Official goods dispatch note ready for print or PDF
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-neutral-900 text-white rounded-lg text-xs font-bold shadow transition border border-black cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-bold shadow-xs transition border border-border cursor-pointer"
                 >
-                  <Printer size={14} className="text-white" /> Print Challan
+                  <Printer size={14} className="text-muted-foreground" /> Print Challan
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"
                 >
                   <X size={16} />
                 </button>
