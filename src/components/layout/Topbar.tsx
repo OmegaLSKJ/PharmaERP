@@ -50,7 +50,7 @@ export default function Topbar() {
   return (
     <header
       data-no-print
-      className="no-print print:hidden print:!hidden glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs"
+      className="no-print print:hidden print:!hidden glass-surface h-14 shrink-0 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30 border-x-0 border-t-0 bg-background/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-border shadow-xs"
     >
       {/* Left: Mobile Hamburger & Brand Name */}
       <div className="flex items-center gap-2">
@@ -58,7 +58,7 @@ export default function Topbar() {
           type="button"
           aria-label="Open navigation menu"
           onClick={() => setMobileSidebarOpen(true)}
-          className="p-2 -ml-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 active:bg-slate-800 md:hidden transition"
+          className="p-2 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary active:bg-secondary/80 md:hidden transition"
         >
           <Menu size={20} />
         </button>
@@ -81,11 +81,13 @@ export default function Topbar() {
         <button
           type="button"
           onClick={toggleCommandPalette}
-          className="glass-action group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800/80 text-sm transition-all w-full shadow-xs hover:border-slate-700"
+          className="group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted/90 dark:bg-slate-900/60 dark:hover:bg-slate-900/90 border border-border dark:border-slate-800/80 text-sm transition-all w-full shadow-xs cursor-pointer"
         >
-          <Search size={14} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
-          <span className="flex-1 text-left text-xs text-slate-400 group-hover:text-slate-200">Search pages, items, parties...</span>
-          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-slate-800 bg-slate-950 text-[10px] font-mono text-slate-400">
+          <Search size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+          <span className="flex-1 text-left text-xs text-muted-foreground group-hover:text-foreground transition-colors font-medium">
+            Search pages, items, parties...
+          </span>
+          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border bg-background dark:bg-slate-950 text-[10px] font-mono text-foreground font-semibold shadow-xs">
             <Command size={10} />K
           </kbd>
         </button>
@@ -175,13 +177,13 @@ export default function Topbar() {
           </button>
 
           {notificationsOpen && (
-            <div className="absolute right-0 top-12 z-50 w-[calc(100vw-24px)] max-w-xs sm:w-80 rounded-2xl p-2 bg-slate-900 border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/80">
-                <span className="text-xs font-semibold text-white">Action Centre</span>
+            <div className="absolute right-0 top-12 z-50 w-[calc(100vw-24px)] max-w-xs sm:w-80 rounded-2xl p-2 bg-popover text-popover-foreground border border-border shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                <span className="text-xs font-semibold text-foreground">Action Centre</span>
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen(false)}
-                  className="text-[11px] text-slate-400 hover:text-white"
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
                 >
                   Close
                 </button>
@@ -195,10 +197,10 @@ export default function Topbar() {
                       navigate(notice.path)
                       setNotificationsOpen(false)
                     }}
-                    className="w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-800/80"
+                    className="w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-accent text-foreground"
                   >
-                    <span className="block text-xs font-semibold text-slate-200">{notice.title}</span>
-                    <span className="mt-0.5 block text-[11px] text-slate-400">{notice.detail}</span>
+                    <span className="block text-xs font-semibold text-foreground">{notice.title}</span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">{notice.detail}</span>
                   </button>
                 ))}
               </div>
@@ -232,11 +234,11 @@ export default function Topbar() {
 
           {/* User Dropdown Menu */}
           {userMenuOpen && (
-            <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl p-2 bg-slate-900 border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2.5 border-b border-slate-800/80">
-                <div className="text-sm font-semibold text-white">{user?.name || 'User'}</div>
-                <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                  <Shield size={12} className="text-blue-400" />
+            <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl p-2 bg-popover text-popover-foreground border border-border shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-2.5 border-b border-border">
+                <div className="text-sm font-semibold text-foreground">{user?.name || 'User'}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                  <Shield size={12} className="text-blue-500" />
                   <span className="capitalize">{user?.role || 'Admin'}</span>
                 </div>
               </div>
@@ -244,15 +246,15 @@ export default function Topbar() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition"
                 >
                   <LogOut size={14} />
                   <span>Log out</span>
                 </button>
               </div>
-              <div className="pt-2 pb-1 px-3 border-t border-slate-800/80 text-center sm:hidden">
-                <span className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-medium">Developed by</span>
-                <span className="block text-[11px] font-semibold text-slate-200">TAO Solutions Pvt Ltd</span>
+              <div className="pt-2 pb-1 px-3 border-t border-border text-center sm:hidden">
+                <span className="block text-[8.5px] uppercase tracking-wider text-muted-foreground font-medium">Developed by</span>
+                <span className="block text-[11px] font-semibold text-foreground">TAO Solutions Pvt Ltd</span>
               </div>
             </div>
           )}
