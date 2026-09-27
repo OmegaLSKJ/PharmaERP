@@ -75,8 +75,12 @@ export default function ItemList() {
       if (forceRefresh) setRefreshing(true)
       else setLoading(true)
       const data = await getErp<Item[]>('items', undefined, { forceRefresh })
+      if (!Array.isArray(data)) {
+        throw new Error('The item catalogue response is not a list.')
+      }
       setItems(data)
     } catch (error) {
+      setItems([])
       showToast(error instanceof Error ? error.message : 'Could not load items.')
     } finally {
       setLoading(false)
