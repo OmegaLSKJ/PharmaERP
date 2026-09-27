@@ -206,6 +206,32 @@
     color: hsl(var(--muted-foreground)) !important;
   }
 
+  /* Keep reused dark workspace controls readable in the light theme. The scope
+     deliberately excludes navigation and page overlays, whose contrast is part
+     of their interaction design. */
+  :root:not(.dark) main[aria-label="ERP workspace"] [class*="bg-slate-900/"] {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  :root:not(.dark) main[aria-label="ERP workspace"] input[class*="bg-slate-"],
+  :root:not(.dark) main[aria-label="ERP workspace"] select[class*="bg-slate-"],
+  :root:not(.dark) main[aria-label="ERP workspace"] textarea[class*="bg-slate-"] {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  :root:not(.dark) main[aria-label="ERP workspace"] [class*="border-slate-"] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  :root:not(.dark) main[aria-label="ERP workspace"] [class*="hover:bg-slate-"]:hover {
+    background-color: hsl(var(--secondary)) !important;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
   /* Color contrast enhancers for values and alert labels in light mode */
   :root:not(.dark) .text-emerald-400 {
     color: #16a34a !important; /* emerald-600 */
