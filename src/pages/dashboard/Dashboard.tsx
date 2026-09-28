@@ -187,23 +187,25 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-400" />Purchases</span>
             </div>
           </div>
-          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
+          <div className="w-full" style={{ minHeight: 260, height: 'clamp(260px, 35vw, 420px)' }}>
             {salesData.length === 0 ? (
               <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border px-6 text-center text-sm text-muted-foreground">
                 No posted sales or purchase invoices are available for a monthly comparison yet.
               </div>
             ) : (
-              <div className="h-full">
+              <div className="h-full flex flex-col">
                 {salesData.length < 3 && <p className="mb-2 text-xs text-muted-foreground">Showing {salesData.length} recorded month{salesData.length === 1 ? '' : 's'} — bars avoid implying a trend where data is sparse.</p>}
-                <ResponsiveContainer width="100%" height={salesData.length < 3 ? '92%' : '100%'}>
-                  <BarChart data={salesData} margin={{ top: 8, right: 8, left: 4, bottom: 0 }} barGap={4}>
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatChartMonth} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={52} tickFormatter={formatChartValue} />
-                    <Tooltip content={<SalesPurchaseTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.45)' }} />
-                    <Bar dataKey="sale" name="Sales" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} maxBarSize={42} />
-                    <Bar dataKey="purchase" name="Purchases" fill="hsl(215, 16%, 47%)" radius={[4, 4, 0, 0]} maxBarSize={42} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="flex-1 min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }} barGap={6} barCategoryGap="28%">
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatChartMonth} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={formatChartValue} />
+                      <Tooltip content={<SalesPurchaseTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.45)' }} />
+                      <Bar dataKey="sale" name="Sales" fill="hsl(221, 83%, 53%)" radius={[5, 5, 0, 0]} maxBarSize={56} />
+                      <Bar dataKey="purchase" name="Purchases" fill="hsl(215, 16%, 47%)" radius={[5, 5, 0, 0]} maxBarSize={56} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
           </div>
