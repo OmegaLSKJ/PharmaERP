@@ -1570,42 +1570,55 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     )
   }
   if (resource === 'dashboard') {
-    const activeItems = mockStore.items.filter((x: any) => x.status === 'active').length
-    const salesVal = mockStore.sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0) + 482000
-    const purchasesVal = mockStore.purchases.reduce((sum: number, p: any) => sum + (p.total || 0), 0) + 320000
-    const pendingInvoices = mockStore.sales.filter((s: any) => s.status === 'pending' || s.status === 'draft').length + 2
+    const activeItems = (mockStore.items || []).filter((x: any) => x.status === 'active' || x.status === undefined).length
+    const nonCancelledSales = (mockStore.sales || []).filter((s: any) => s.status !== 'cancelled')
+    const nonCancelledPurchases = (mockStore.purchases || []).filter((p: any) => p.status !== 'cancelled')
+    const salesVal = nonCancelledSales.reduce((sum: number, s: any) => sum + Number(s.total ?? s.grandTotal ?? s.grand_total ?? 0), 0)
+    const purchasesVal = nonCancelledPurchases.reduce((sum: number, p: any) => sum + Number(p.total ?? p.grandTotal ?? p.grand_total ?? 0), 0)
+    const pendingInvoices = (mockStore.sales || []).filter((s: any) => s.status === 'pending' || s.status === 'draft').length
 
-    const salesData = [
-      { month: '2026-01', sale: 32000, purchase: 25000 },
-      { month: '2026-02', sale: 45000, purchase: 28000 },
-      { month: '2026-03', sale: 60000, purchase: 35000 },
-      { month: '2026-04', sale: 55000, purchase: 30000 },
-      { month: '2026-05', sale: 72000, purchase: 42000 },
-      { month: '2026-06', sale: 90000, purchase: 50000 },
-      { month: '2026-07', sale: 85000, purchase: 48000 },
-      { month: '2026-08', sale: salesVal, purchase: purchasesVal }
-    ]
+    const monthly = new Map<string, { month: string; sale: number; purchase: number }>()
+    const addMonth = (value: any, kind: 'sale' | 'purchase') => {
+      const rawDate = String(value.date || value.invoice_date || '')
+      const key = rawDate.length >= 7 ? rawDate.slice(0, 7) : new Date().toISOString().slice(0, 7)
+      const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }
+      row[kind] += Number(value.total ?? value.grandTotal ?? value.grand_total ?? 0)
+      monthly.set(key, row)
+    }
+    nonCancelledSales.forEach((row: any) => addMonth(row, 'sale'))
+    nonCancelledPurchases.forEach((row: any) => addMonth(row, 'purchase'))
+    const salesData = [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12)
+
+    const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
+    nonCancelledSales.flatMap((s: any) => s.lines || []).forEach((line: any) => {
+      const name = line.name || line.item || 'Unknown'
+      const current = itemTotals.get(name) ?? { name, qty: 0, amount: 0 }
+      current.qty += Number(line.qty || line.quantity || 0)
+      current.amount += Number(line.amount || line.line_total || line.total || 0)
+      itemTotals.set(name, current)
+    })
+    const topItems = [...itemTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 6)
+
+    const recentInvoices = nonCancelledSales.slice(0, 8).map((s: any) => ({
+      id: s.number || s.id || s.invoiceNo,
+      party: s.party || s.customer || '',
+      amount: Number(s.total ?? s.grandTotal ?? 0),
+      date: s.date || '',
+      status: s.status || 'posted'
+    }))
+
+    const expiryAlerts = (mockStore.items || [])
+      .flatMap((i: any) => (i.batches || []).map((b: any) => ({ item: i.name, batch: b.batch || b.batchNumber, expiry: b.expiry || b.expiryOn || '', qty: Number(b.stock || b.quantity || 0) })))
+      .filter((b: any) => b.expiry)
+      .sort((a: any, b: any) => String(a.expiry).localeCompare(String(b.expiry)))
+      .slice(0, 8)
 
     return {
       kpis: { sales: salesVal, purchases: purchasesVal, activeItems, pendingInvoices },
       salesData,
-      topItems: [
-        { name: 'Paracetamol 650mg', qty: 1200, amount: 24000 },
-        { name: 'Amoxicillin 500mg', qty: 800, amount: 48000 }
-      ],
-      recentInvoices: (() => {
-        const fromSales = mockStore.sales.map((s: any) => ({ id: s.number || s.id, party: s.party, amount: s.total, date: s.date, status: s.status }))
-        const extras = [
-          { id: 'SI-2026-0001', party: 'Apollo Pharmacy', amount: 12500, date: '2026-08-25', status: 'paid' },
-          { id: 'SI-2026-0003', party: 'MedPlus Chemist', amount: 8450, date: '2026-08-25', status: 'pending' }
-        ]
-        const seen = new Set(fromSales.map((s: any) => s.id))
-        return [...fromSales, ...extras.filter((e) => !seen.has(e.id))]
-      })(),
-      expiryAlerts: [
-        { item: 'Amoxicillin 500mg', batch: 'AMX-8821', expiry: '2026-09-15', qty: 45 },
-        { item: 'Paracetamol 650mg', batch: 'PCT-0192', expiry: '2026-09-30', qty: 120 }
-      ]
+      topItems,
+      recentInvoices,
+      expiryAlerts
     }
   }
   if (resource === 'report-financial') return mockStore.accounts.map((a: any) => ({ ledger: a.name, group: a.group, debit: a.type === 'Dr' ? a.balance : 0, credit: a.type === 'Cr' ? a.balance : 0, balance: a.type === 'Cr' ? -a.balance : a.balance }))

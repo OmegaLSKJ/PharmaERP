@@ -26,6 +26,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { Button } from '../../components/ui/Button'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, patchErp, postErp, deleteErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 export interface Party {
@@ -116,8 +117,11 @@ export default function PartyList() {
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>(initialType)
-  const [parties, setParties] = useState<Party[]>([])
-  const [loading, setLoading] = useState(true)
+  const [parties, setParties] = useState<Party[]>(() => {
+    const cached = getCached<Party[]>('parties')
+    return Array.isArray(cached) ? cached : []
+  })
+  const [loading, setLoading] = useState(() => !getCached('parties'))
   const [showCreate, setShowCreate] = useState(false)
   const [editingPartyId, setEditingPartyId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'general' | 'address' | 'licenses' | 'gst' | 'credit'>('general')
@@ -204,7 +208,9 @@ export default function PartyList() {
   })
 
   const loadParties = (forceRefresh = false) => {
-    setLoading(true)
+    if (forceRefresh || !getCached('parties')) {
+      setLoading(true)
+    }
     Promise.all([
       getErp<Party[]>('parties', undefined, { forceRefresh }),
       getErp<any[]>('sales', undefined, { forceRefresh }).catch(() => []),
@@ -364,7 +370,7 @@ export default function PartyList() {
   }
 
   useEffect(() => {
-    loadParties(true)
+    loadParties(false)
   }, [])
 
   useErpAutoRefresh(['parties'], () => loadParties(true))

@@ -9,7 +9,7 @@ import { useUIStore } from '../../store/uiStore'
 import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { useKeyboardFormNavigation } from '../../hooks/useKeyboardFormNavigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function AppLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -19,6 +19,7 @@ export default function AppLayout() {
   const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
   useKeyboardShortcuts()
   useKeyboardFormNavigation()
 
@@ -36,7 +37,10 @@ export default function AppLayout() {
 
   useEffect(() => {
     setMobileSidebarOpen(false)
-  }, [location.pathname, setMobileSidebarOpen])
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0
+    }
+  }, [location.pathname, location.search, setMobileSidebarOpen])
 
   useEffect(() => {
     const handleResize = () => {
@@ -68,7 +72,7 @@ export default function AppLayout() {
         <div className="no-print print:hidden shrink-0" data-no-print>
           <Topbar />
         </div>
-        <main className="flex-1 overflow-x-auto md:overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
+        <main ref={mainRef} className="flex-1 overflow-x-auto md:overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 relative z-[1]" aria-label="ERP workspace">
           <ErrorBoundary>
             <div key={location.pathname} className="page-enter min-h-full">
               <Outlet />

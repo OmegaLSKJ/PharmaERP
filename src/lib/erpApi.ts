@@ -25,6 +25,27 @@ function buildApiUrl(path: string): string {
   return `http://127.0.0.1:3000${path}`
 }
 
+function cascadeRelatedEvents(resource: string, id?: string): void {
+  const cascadedMap: Record<string, string[]> = {
+    series: ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns'],
+    sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'pendings'],
+    purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'pendings'],
+    items: ['dashboard', 'stock', 'report-stock', 'item-batches'],
+    'item-batches': ['items', 'dashboard', 'stock', 'report-stock'],
+    vouchers: ['dashboard', 'ledgers', 'day-book', 'report-financial'],
+    orders: ['dashboard', 'pendings', 'sales'],
+    challans: ['dashboard', 'stock', 'pendings'],
+    parties: ['dashboard', 'ledgers', 'sales', 'purchases'],
+  }
+  const related = cascadedMap[resource]
+  if (related) {
+    related.forEach((res) => {
+      window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id } }))
+      window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
+    })
+  }
+}
+
 // Global multi-window and multi-tab synchronization
 if (typeof window !== 'undefined') {
   try {
@@ -36,13 +57,7 @@ if (typeof window !== 'undefined') {
         void invalidateCache(detail.resource).then(() => {
           window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
           window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
-          if (detail.resource === 'series') {
-            const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
-            cascaded.forEach((res) => {
-              window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
-              window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
-            })
-          }
+          cascadeRelatedEvents(detail.resource, detail.id)
         })
       }
     }
@@ -57,13 +72,7 @@ if (typeof window !== 'undefined') {
           void invalidateCache(detail.resource).then(() => {
             window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
             window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
-            if (detail.resource === 'series') {
-              const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
-              cascaded.forEach((res) => {
-                window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
-                window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
-              })
-            }
+            cascadeRelatedEvents(detail.resource, detail.id)
           })
         }
       } catch {}
@@ -76,13 +85,7 @@ function announceResourceMutation(detail: { resource: string; action: 'create' |
   resetInFlightRequests()
   window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail }))
   window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: detail.resource } }))
-  if (detail.resource === 'series') {
-    const cascaded = ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns']
-    cascaded.forEach((res) => {
-      window.dispatchEvent(new CustomEvent('erp-resource-mutated', { detail: { resource: res, action: 'update', id: detail.id } }))
-      window.dispatchEvent(new CustomEvent('erp-cache-revalidated', { detail: { resource: res } }))
-    })
-  }
+  cascadeRelatedEvents(detail.resource, detail.id)
   try {
     const channel = new BroadcastChannel('erp-resource-mutations')
     channel.postMessage(detail)

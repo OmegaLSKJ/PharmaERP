@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import { exportVisibleTables } from '../../lib/download'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -45,10 +46,13 @@ interface Item {
 export default function ItemList() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
-  const [items, setItems] = useState<Item[]>([])
+  const [items, setItems] = useState<Item[]>(() => {
+    const cached = getCached<Item[]>('items')
+    return Array.isArray(cached) ? cached : []
+  })
   const [activeId, setActiveId] = useState<string | null>(null)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getCached('items'))
   const [refreshing, setRefreshing] = useState(false)
 
   // Continuous Page Chunking Controls
@@ -73,14 +77,14 @@ export default function ItemList() {
   const loadItems = useCallback(async (forceRefresh = false) => {
     try {
       if (forceRefresh) setRefreshing(true)
-      else setLoading(true)
+      else if (!getCached('items')) setLoading(true)
       const data = await getErp<Item[]>('items', undefined, { forceRefresh })
       if (!Array.isArray(data)) {
         throw new Error('The item catalogue response is not a list.')
       }
       setItems(data)
     } catch (error) {
-      setItems([])
+      if (!getCached('items')) setItems([])
       showToast(error instanceof Error ? error.message : 'Could not load items.')
     } finally {
       setLoading(false)

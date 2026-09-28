@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -78,49 +79,60 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs'
 }
 
+function mapSaleRow(row: any): SaleInv {
+  return {
+    id: String(row.dbId || row.id || row.number || ''),
+    invoiceNo: String(row.invoiceNo || row.number || row.id || 'INV-UNNAMED'),
+    date: String(row.date || row.invoice_date || ''),
+    customer: String(row.party || row.customer || row.party_name || 'Cash Customer'),
+    items: Number(row.items || row.lines?.length || 1),
+    total: Number(row.total ?? row.grandTotal ?? row.grand_total ?? 0),
+    status: String(row.status || 'posted').toLowerCase(),
+    lines: row.lines || [],
+    patientName: row.patientName || row.patient_name || '',
+    prescriberName: row.prescriberName || row.prescriber_name || '',
+    prescriptionReference: row.prescriptionReference || row.prescription_reference || '',
+    paymentMode: row.paymentMode || row.payment_mode || 'Credit',
+    dueDate: row.dueDate || row.due_date || '',
+    orderNo: row.orderNo || row.order_no || '',
+    partyAddress: row.partyAddress || row.address || '',
+    partyCity: row.partyCity || row.city || '',
+    partyState: row.partyState || row.state || 'Assam',
+    partyPincode: row.partyPincode || row.pincode || row.pin || '',
+    partyPhone: row.partyPhone || row.phone || row.mobile || '',
+    partyGstin: row.partyGstin || row.gstin || '',
+    partyDlNo: row.partyDlNo || row.dlNo || row.dlNumber || '',
+    partyPan: row.partyPan || row.pan || '',
+  }
+}
+
 export default function SaleRegister() {
-  const [sales, setSales] = useState<SaleInv[]>([])
-  const [parties, setParties] = useState<any[]>([])
+  const [sales, setSales] = useState<SaleInv[]>(() => {
+    const cached = getCached<any[]>('sales')
+    return Array.isArray(cached) ? cached.map(mapSaleRow) : []
+  })
+  const [parties, setParties] = useState<any[]>(() => {
+    const cached = getCached<any[]>('parties')
+    return Array.isArray(cached) ? cached : []
+  })
   const [selected, setSelected] = useState<SaleInv | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getCached('sales'))
   const addToast = useUIStore((s) => s.addToast)
   const navigate = useNavigate()
 
   const loadSales = useCallback((force = false) => {
+    if (force && !getCached('sales')) {
+      setLoading(true)
+    }
     Promise.all([
       getErp<any[]>('sales', undefined, force ? { forceRefresh: true } : undefined),
       getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined).catch(() => [])
     ])
       .then(([rows, partyRows]) => {
         setParties(partyRows || [])
-        setSales(
-          (rows || []).map((row) => ({
-            id: String(row.dbId || row.id || row.number || ''),
-            invoiceNo: String(row.invoiceNo || row.number || row.id || 'INV-UNNAMED'),
-            date: String(row.date || row.invoice_date || ''),
-            customer: String(row.party || row.customer || row.party_name || 'Cash Customer'),
-            items: Number(row.items || row.lines?.length || 1),
-            total: Number(row.total ?? row.grandTotal ?? row.grand_total ?? 0),
-            status: String(row.status || 'posted').toLowerCase(),
-            lines: row.lines || [],
-            patientName: row.patientName || row.patient_name || '',
-            prescriberName: row.prescriberName || row.prescriber_name || '',
-            prescriptionReference: row.prescriptionReference || row.prescription_reference || '',
-            paymentMode: row.paymentMode || row.payment_mode || 'Credit',
-            dueDate: row.dueDate || row.due_date || '',
-            orderNo: row.orderNo || row.order_no || '',
-            partyAddress: row.partyAddress || row.address || '',
-            partyCity: row.partyCity || row.city || '',
-            partyState: row.partyState || row.state || 'Assam',
-            partyPincode: row.partyPincode || row.pincode || row.pin || '',
-            partyPhone: row.partyPhone || row.phone || row.mobile || '',
-            partyGstin: row.partyGstin || row.gstin || '',
-            partyDlNo: row.partyDlNo || row.dlNo || row.dlNumber || '',
-            partyPan: row.partyPan || row.pan || ''
-          }))
-        )
+        setSales((rows || []).map(mapSaleRow))
       })
       .catch((e) => addToast(e.message, 'error'))
       .finally(() => setLoading(false))

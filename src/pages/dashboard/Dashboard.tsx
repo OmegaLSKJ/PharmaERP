@@ -5,6 +5,7 @@ import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 import { useEffect, useState, useCallback } from 'react'
 import { getErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
@@ -18,10 +19,14 @@ type DashboardData = {
 const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
 
 function normalizeDashboard(value: unknown): DashboardData {
-  const source = value && typeof value === 'object' ? value as Partial<DashboardData> : {}
-  const sourceKpis: Partial<DashboardData['kpis']> = source.kpis && typeof source.kpis === 'object'
-    ? source.kpis
-    : {}
+  if (!value || typeof value !== 'object') {
+    return { ...emptyDashboard }
+  }
+  const unwrapped = ('data' in value && value.data && typeof value.data === 'object' && !Array.isArray(value.data))
+    ? (value as { data: unknown }).data
+    : value
+  const source = unwrapped && typeof unwrapped === 'object' ? (unwrapped as Partial<DashboardData>) : {}
+  const sourceKpis: Partial<DashboardData['kpis']> = source.kpis && typeof source.kpis === 'object' ? source.kpis : {}
   const numberOrZero = (number: unknown) => Number.isFinite(Number(number)) ? Number(number) : 0
 
   return {
@@ -99,15 +104,30 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardData>(emptyDashboard)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<DashboardData>(() => {
+    try {
+      const cached = getCached<unknown>('dashboard')
+      return cached ? normalizeDashboard(cached) : emptyDashboard
+    } catch {
+      return emptyDashboard
+    }
+  })
+  const [loading, setLoading] = useState(() => !getCached('dashboard'))
   const syncStatus = usePreloaderStore((s) => s.status)
   const syncPercent = usePreloaderStore((s) => s.percent)
 
   const loadData = useCallback(async (force = false) => {
     try {
+      if (force && !getCached('dashboard')) {
+        setLoading(true)
+      }
       const res = await getErp<unknown>('dashboard', undefined, { forceRefresh: force })
-      setData(normalizeDashboard(res))
+      if (res !== undefined && res !== null) {
+        setData(normalizeDashboard(res))
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Failed to load dashboard data:', err)
+      setData((prev) => (prev && prev.kpis ? prev : emptyDashboard))
     } finally {
       setLoading(false)
     }
@@ -119,7 +139,12 @@ export default function Dashboard() {
   }, [loadData])
 
   useErpAutoRefresh(['dashboard', 'sales', 'purchases', 'items'], () => loadData(true))
-  const { kpis, salesData, topItems, recentInvoices, expiryAlerts } = data
+  const currentData = (data && typeof data === 'object') ? data : emptyDashboard
+  const kpis = (currentData.kpis && typeof currentData.kpis === 'object') ? currentData.kpis : emptyDashboard.kpis
+  const salesData = Array.isArray(currentData.salesData) ? currentData.salesData : []
+  const topItems = Array.isArray(currentData.topItems) ? currentData.topItems : []
+  const recentInvoices = Array.isArray(currentData.recentInvoices) ? currentData.recentInvoices : []
+  const expiryAlerts = Array.isArray(currentData.expiryAlerts) ? currentData.expiryAlerts : []
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -167,10 +192,10 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard to="/transactions/sale" title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales)} change="Live" icon={IndianRupee} trend="up" />
-        <KpiCard to="/transactions/purchase" title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases)} change="Live" icon={Truck} trend="up" />
-        <KpiCard to="/masters/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems)} change="Live" icon={Package} trend="up" />
-        <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
+        <KpiCard to="/transactions/sale" title="Total Sales" value={loading ? 'Loading…' : formatCurrency(kpis.sales ?? 0)} change="Live" icon={IndianRupee} trend="up" />
+        <KpiCard to="/transactions/purchase" title="Total Purchases" value={loading ? 'Loading…' : formatCurrency(kpis.purchases ?? 0)} change="Live" icon={Truck} trend="up" />
+        <KpiCard to="/masters/items" title="Active Items" value={loading ? '…' : String(kpis.activeItems ?? 0)} change="Live" icon={Package} trend="up" />
+        <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices ?? 0)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 
       {/* Charts Row — full width on all screens */}
@@ -215,7 +240,7 @@ export default function Dashboard() {
         <div className="data-surface">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-sm font-semibold">Recent Invoices</h3>
-            <a href="/transactions/sale" className="text-xs text-primary hover:underline">View All</a>
+            <Link to="/transactions/sale" className="text-xs text-primary hover:underline">View All</Link>
           </div>
           <div className="divide-y divide-border">
             {!loading && recentInvoices.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No sales have been posted yet.</div>}
@@ -248,7 +273,7 @@ export default function Dashboard() {
               <AlertTriangle size={14} className="text-amber-500" />
               Expiry Alerts
             </h3>
-            <a href="/inventory/expiry" className="text-xs text-primary hover:underline">View All</a>
+            <Link to="/inventory/expiry" className="text-xs text-primary hover:underline">View All</Link>
           </div>
           <div className="divide-y divide-border">
             {!loading && expiryAlerts.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No batches with expiry dates are in stock.</div>}

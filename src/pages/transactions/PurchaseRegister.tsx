@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
 import { getGstRateForHsn, getAllHsnCodes } from '../../lib/hsnUtils'
@@ -49,16 +50,42 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-semibold shadow-2xs',
 }
 
+function mapPurchaseRow(row: any): PurchaseInv {
+  return {
+    id: row.dbId || row.id,
+    challanNo: row.id || row.number || 'P000045',
+    invoiceNo: row.supplierInvoice || row.invoiceNo || row.id,
+    date: row.date,
+    supplier: row.party,
+    items: row.items || row.lines?.length || 1,
+    total: row.total,
+    status: row.status === 'posted' ? 'received' : (row.status === 'draft' ? 'pending' : (row.status || 'received')),
+    lines: row.lines || [],
+  }
+}
+
 export default function PurchaseRegister() {
   const navigate = useNavigate()
-  const [purchases, setPurchases] = useState<PurchaseInv[]>([])
+  const [purchases, setPurchases] = useState<PurchaseInv[]>(() => {
+    const cached = getCached<any[]>('purchases')
+    return Array.isArray(cached) ? cached.map(mapPurchaseRow) : []
+  })
   const [selected, setSelected] = useState<PurchaseInv | null>(null)
   const [editing, setEditing] = useState<PurchaseInv | null>(null)
   const [editLines, setEditLines] = useState<EditableLine[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'pending' | 'partial' | 'cancelled'>('all')
-  const [partiesMap, setPartiesMap] = useState<Record<string, any>>({})
+  const [partiesMap, setPartiesMap] = useState<Record<string, any>>(() => {
+    const cachedParties = getCached<any[]>('parties')
+    const pMap: Record<string, any> = {}
+    if (Array.isArray(cachedParties)) {
+      cachedParties.forEach((p) => {
+        if (p.name) pMap[p.name.toLowerCase()] = p
+      })
+    }
+    return pMap
+  })
   const addToast = useUIStore((s) => s.addToast)
 
   const loadPurchases = useCallback((force = false) => {
@@ -75,19 +102,7 @@ export default function PurchaseRegister() {
         }
         setPartiesMap(pMap)
 
-        setPurchases(
-          rows.map((row) => ({
-            id: row.dbId || row.id,
-            challanNo: row.id || row.number || 'P000045',
-            invoiceNo: row.supplierInvoice || row.invoiceNo || row.id,
-            date: row.date,
-            supplier: row.party,
-            items: row.items || row.lines?.length || 1,
-            total: row.total,
-            status: row.status === 'posted' ? 'received' : (row.status === 'draft' ? 'pending' : (row.status || 'received')),
-            lines: row.lines || [],
-          }))
-        )
+        setPurchases(rows.map(mapPurchaseRow))
       })
       .catch((e) => addToast(e.message, 'error'))
   }, [addToast])

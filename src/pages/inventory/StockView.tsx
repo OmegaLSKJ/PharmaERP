@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Search, Download, Filter } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -25,8 +26,36 @@ interface StockItem {
   category?: string
 }
 
+function buildStockList(items: any[]): StockItem[] {
+  return (items || []).flatMap((item) =>
+    (item.batches ?? []).flatMap((batch: any) => {
+      const locations = Object.entries(batch.stockByLocation ?? {})
+      const quantities = locations.length ? locations : [['Unassigned', batch.stock ?? 0]]
+      return quantities.map(([location, quantity]) => ({
+        id: batch.id || `${item.id}-${batch.batch}`,
+        name: item.name,
+        packing: item.packing || '',
+        manufacturer: item.manufacturer || item.company || '',
+        salt: item.salt || item.composition || '',
+        hsn: item.hsn || '',
+        batch: batch.batch,
+        expiry: batch.expiry ?? '',
+        mrp: batch.mrp || item.mrp || 0,
+        saleRate: item.saleRate || 0,
+        purchaseRate: item.purchaseRate || 0,
+        stock: Number(quantity),
+        location,
+        category: item.category || '',
+      }))
+    })
+  )
+}
+
 export default function StockView() {
-  const [stockData, setStockData] = useState<StockItem[]>([])
+  const [stockData, setStockData] = useState<StockItem[]>(() => {
+    const cachedItems = getCached<any[]>('items')
+    return Array.isArray(cachedItems) ? buildStockList(cachedItems) : []
+  })
   const [activeIndex, setActiveIndex] = useState<number>(0)
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('all')
@@ -35,28 +64,7 @@ export default function StockView() {
   const loadStock = useCallback((force = false) => {
     getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
       .then((items) => {
-        const list = items.flatMap((item) =>
-          (item.batches ?? []).flatMap((batch: any) => {
-            const locations = Object.entries(batch.stockByLocation ?? {})
-            const quantities = locations.length ? locations : [['Unassigned', batch.stock ?? 0]]
-            return quantities.map(([location, quantity]) => ({
-            id: batch.id || `${item.id}-${batch.batch}`,
-            name: item.name,
-            packing: item.packing || '',
-            manufacturer: item.manufacturer || item.company || '',
-            salt: item.salt || item.composition || '',
-            hsn: item.hsn || '',
-            batch: batch.batch,
-            expiry: batch.expiry ?? '',
-            mrp: batch.mrp || item.mrp || 0,
-            saleRate: item.saleRate || 0,
-            purchaseRate: item.purchaseRate || 0,
-            stock: Number(quantity),
-            location,
-            category: item.category || '',
-            }))
-          })
-        )
+        const list = buildStockList(items)
         setStockData(list)
         if (list.length > 0) setActiveIndex(0)
       })
