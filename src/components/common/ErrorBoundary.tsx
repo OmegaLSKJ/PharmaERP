@@ -26,6 +26,24 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     this.setState({ hasError: false, error: null })
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.indexedDB) {
+          try {
+            window.indexedDB.deleteDatabase('pharma_erp_cache')
+          } catch {}
+        }
+        if (window.caches) {
+          window.caches.keys().then((keys) => {
+            keys.forEach((k) => window.caches.delete(k))
+          }).catch(() => {})
+        }
+        const url = new URL(window.location.href)
+        url.searchParams.set('_t', Date.now().toString())
+        window.location.href = url.toString()
+        return
+      }
+    } catch {}
     window.location.reload()
   }
 
@@ -40,7 +58,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {this.state.error?.message || 'An unexpected rendering error occurred.'}
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col items-center gap-2">
             <button
               onClick={this.handleReset}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-md"
@@ -48,6 +66,9 @@ export default class ErrorBoundary extends Component<Props, State> {
               <RefreshCw size={16} />
               Reload Page
             </button>
+            <p className="text-xs text-muted-foreground/75">
+              Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px]">Ctrl + Shift + R</kbd> (or <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px]">⌘ + Shift + R</kbd>) to hard refresh if this persists.
+            </p>
           </div>
         </div>
       )
