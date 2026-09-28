@@ -6,20 +6,33 @@ import { getErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
 import { useUIStore } from '../../store/uiStore'
 
+type PurchaseReport = {
+  monthlyPurchases: Array<{ month: string; value: number }>
+  topSuppliers: Array<{ name: string; purchases: number; growth: number }>
+  activeSuppliers: number
+}
+
+const emptyPurchaseReport: PurchaseReport = { monthlyPurchases: [], topSuppliers: [], activeSuppliers: 0 }
+
+function normalizePurchaseReport(value: unknown): PurchaseReport {
+  const source = value && typeof value === 'object' ? value as Partial<PurchaseReport> : {}
+  return {
+    monthlyPurchases: Array.isArray(source.monthlyPurchases) ? source.monthlyPurchases : [],
+    topSuppliers: Array.isArray(source.topSuppliers) ? source.topSuppliers : [],
+    activeSuppliers: Number.isFinite(Number(source.activeSuppliers)) ? Number(source.activeSuppliers) : 0,
+  }
+}
+
 export default function PurchaseAnalytics() {
   const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
   const [startDate, setStartDate] = useState('2026-04-01')
   const [endDate, setEndDate] = useState('2027-03-31')
   const [preset, setPreset] = useState('FY')
 
-  const [report, setReport] = useState<{
-    monthlyPurchases: Array<{ month: string; value: number }>
-    topSuppliers: Array<{ name: string; purchases: number; growth: number }>
-    activeSuppliers: number
-  }>({ monthlyPurchases: [], topSuppliers: [], activeSuppliers: 0 })
+  const [report, setReport] = useState<PurchaseReport>(emptyPurchaseReport)
 
   useEffect(() => {
-    getErp<typeof report>('report-purchases').then(setReport)
+    getErp<unknown>('report-purchases').then((data) => setReport(normalizePurchaseReport(data))).catch(() => setReport(emptyPurchaseReport))
   }, [])
 
   const { monthlyPurchases, topSuppliers, activeSuppliers } = report

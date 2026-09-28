@@ -15,16 +15,29 @@ type SalesReport = {
   units: number
 }
 
+const emptySalesReport: SalesReport = { monthlySales: [], categories: [], topParties: [], topItems: [], units: 0 }
+
+function normalizeSalesReport(value: unknown): SalesReport {
+  const source = value && typeof value === 'object' ? value as Partial<SalesReport> : {}
+  return {
+    monthlySales: Array.isArray(source.monthlySales) ? source.monthlySales : [],
+    categories: Array.isArray(source.categories) ? source.categories : [],
+    topParties: Array.isArray(source.topParties) ? source.topParties : [],
+    topItems: Array.isArray(source.topItems) ? source.topItems : [],
+    units: Number.isFinite(Number(source.units)) ? Number(source.units) : 0,
+  }
+}
+
 export default function SalesAnalytics() {
   const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
   const [startDate, setStartDate] = useState('2026-04-01')
   const [endDate, setEndDate] = useState('2027-03-31')
   const [preset, setPreset] = useState('FY')
 
-  const [report, setReport] = useState<SalesReport>({ monthlySales: [], categories: [], topParties: [], topItems: [], units: 0 })
+  const [report, setReport] = useState<SalesReport>(emptySalesReport)
   
   useEffect(() => {
-    getErp<SalesReport>('report-sales').then(setReport)
+    getErp<unknown>('report-sales').then((data) => setReport(normalizeSalesReport(data))).catch(() => setReport(emptySalesReport))
   }, [])
 
   const { monthlySales, topParties, topItems, units } = report
