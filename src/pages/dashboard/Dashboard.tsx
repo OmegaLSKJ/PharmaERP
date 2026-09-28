@@ -17,6 +17,27 @@ type DashboardData = {
 }
 const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
 
+function normalizeDashboard(value: unknown): DashboardData {
+  const source = value && typeof value === 'object' ? value as Partial<DashboardData> : {}
+  const sourceKpis: Partial<DashboardData['kpis']> = source.kpis && typeof source.kpis === 'object'
+    ? source.kpis
+    : {}
+  const numberOrZero = (number: unknown) => Number.isFinite(Number(number)) ? Number(number) : 0
+
+  return {
+    kpis: {
+      sales: numberOrZero(sourceKpis.sales),
+      purchases: numberOrZero(sourceKpis.purchases),
+      activeItems: numberOrZero(sourceKpis.activeItems),
+      pendingInvoices: numberOrZero(sourceKpis.pendingInvoices),
+    },
+    salesData: Array.isArray(source.salesData) ? source.salesData : [],
+    topItems: Array.isArray(source.topItems) ? source.topItems : [],
+    recentInvoices: Array.isArray(source.recentInvoices) ? source.recentInvoices : [],
+    expiryAlerts: Array.isArray(source.expiryAlerts) ? source.expiryAlerts : [],
+  }
+}
+
 function KpiCard({ title, value, change, icon: Icon, trend, className, to }: {
   title: string; value: string; change: string; icon: React.ElementType; trend: 'up' | 'down'; className?: string; to: string
 }) {
@@ -61,8 +82,8 @@ export default function Dashboard() {
 
   const loadData = useCallback(async (force = false) => {
     try {
-      const res = await getErp<DashboardData>('dashboard', undefined, { forceRefresh: force })
-      setData(res)
+      const res = await getErp<unknown>('dashboard', undefined, { forceRefresh: force })
+      setData(normalizeDashboard(res))
     } finally {
       setLoading(false)
     }
