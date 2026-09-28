@@ -6,6 +6,7 @@ import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import { calculateInvoice } from '../../lib/invoiceCalculations'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -36,7 +37,7 @@ interface LineItem {
   category?: string
   costPrice?: number
 }
-type CustomerOption = { label: string; value: string }
+type CustomerOption = { label: string; value: string; sub?: string; right?: string }
 type ItemOption = {
   id?: string
   itemId?: string
@@ -57,10 +58,145 @@ type ItemOption = {
   expiry?: string
 }
 
+function buildCustomerOptionsFromParties(parties: any[]): CustomerOption[] {
+  let localSaved: any[] = []
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('pharma_erp_custom_parties') : null
+    if (raw) localSaved = JSON.parse(raw)
+  } catch {}
+  const safeParties = Array.isArray(parties) ? parties : []
+  const partyMap = new Map<string, any>()
+  for (const p of [...safeParties, ...(Array.isArray(localSaved) ? localSaved : [])]) {
+    if (!p) continue
+    const key = (p.name || '').trim().toLowerCase()
+    if (key && !partyMap.has(key)) partyMap.set(key, p)
+  }
+  const allParties = Array.from(partyMap.values())
+  const sortedParties = [...allParties].sort((a, b) => {
+    const aIsCustomer = a.type === 'customer' || a.type === 'both' ? 1 : 0
+    const bIsCustomer = b.type === 'customer' || b.type === 'both' ? 1 : 0
+    if (aIsCustomer !== bIsCustomer) return bIsCustomer - aIsCustomer
+    return (a.name || '').localeCompare(b.name || '')
+  })
+  return sortedParties
+    .filter((p) => p && p.name && p.name.trim())
+    .map((p) => {
+      const cleanName = String(p.name || '').replace(/\s+/g, ' ').trim()
+      const partyTypeLabel = (p.type || p.party_type || 'PARTY').toUpperCase()
+      const locationPart = p.city || p.station || ''
+      return {
+        label: cleanName,
+        value: cleanName,
+        sub: locationPart ? `${locationPart} • ${partyTypeLabel}` : partyTypeLabel,
+        right: p.phone || p.mobile || undefined,
+      }
+    })
+}
+
+function buildItemOptionsFromProducts(products: any[]): ItemOption[] {
+  const safeProducts = Array.isArray(products) ? products : []
+  return safeProducts.flatMap((p) =>
+    (Array.isArray(p?.batches) ? p.batches : []).filter((b: any) => b && b.stock > 0).map((b: any) => {
+      const batchMrp = Number(b.mrp || p.mrp || 0)
+      const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? p.saleRate ?? 0)
+      const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+
+      return {
+        id: p.id,
+        itemId: p.id,
+        code: p.code,
+        category: p.category,
+        costPrice: Number(b.costPrice ?? b.cost_price ?? p.costPrice ?? p.purchaseRate ?? 0),
+        label: p.name,
+        batch: b.batch,
+        stock: b.stock,
+        rate: autoRate,
+        gst: p.gstRate !== undefined && p.gstRate !== null && Number(p.gstRate) > 0 ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
+        mrp: batchMrp,
+        purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? p.purchaseRate ?? 0),
+        packing: p.packing || '',
+        manufacturer: p.manufacturer || p.company || '',
+        salt: p.salt || p.composition || '',
+        hsn: p.hsn || '',
+        expiry: b.expiry || '',
+      }
+    })
+  )
+}
+
+function findInvoiceInCachedSales(editInvoiceId?: string): any {
+  if (!editInvoiceId) return null
+  const salesList = getCached<any[]>('sales')
+  if (!Array.isArray(salesList)) return null
+  const decodedId = decodeURIComponent(editInvoiceId).trim().toLowerCase()
+  return salesList.find((s) => {
+    if (!s) return false
+    const sid = String(s.id || '').trim().toLowerCase()
+    const sinv = String(s.invoiceNo || s.number || '').trim().toLowerCase()
+    const sdb = String(s.dbId || '').trim().toLowerCase()
+    return sid === decodedId || sinv === decodedId || sdb === decodedId
+  }) || null
+}
+
+function mapInvoiceLines(lines: any[], products: any[]): LineItem[] {
+  if (!Array.isArray(lines) || lines.length === 0) return []
+  const safeProducts = Array.isArray(products) ? products : []
+  return lines.map((l: any, idx: number) => {
+    if (!l) return null
+    const q = Number(l.qty ?? l.quantity ?? 0)
+    const d = Number(l.disc || l.discount || l.discount_percent || 0)
+    const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
+
+    const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
+    const matchedProd = safeProducts.find((p: any) =>
+      p && ((l.code && p.code === l.code) ||
+      (p.name && p.name.trim().toLowerCase() === cleanItemName))
+    )
+    const matchedBatch = (Array.isArray(matchedProd?.batches) ? matchedProd.batches : []).find((b: any) =>
+      b && String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
+    )
+    const liveStock = typeof matchedBatch?.stock === 'number'
+      ? matchedBatch.stock
+      : (typeof l.stock === 'number' ? l.stock : (typeof matchedProd?.stock === 'number' ? matchedProd.stock : 0))
+    const liveMrp = Number(l.mrp || matchedBatch?.mrp || matchedProd?.mrp || 0)
+    const liveSaleRate = Number(l.saleRate || matchedBatch?.salePrice || matchedBatch?.saleRate || matchedBatch?.rate || matchedProd?.saleRate || 0)
+    const livePurchaseRate = Number(l.purchaseRate || matchedBatch?.purchasePrice || matchedBatch?.purchaseRate || matchedProd?.purchaseRate || 0)
+    const liveCostPrice = Number(l.costPrice || matchedBatch?.costPrice || matchedProd?.costPrice || livePurchaseRate)
+    const rawRate = Number(l.rate || 0)
+    const r = rawRate > 0 ? rawRate : (liveSaleRate > 0 ? liveSaleRate : liveMrp)
+    const amt = calculateInvoice([{ qty: q, rate: r, discount: d, gstRate: g }]).lines[0]?.total ?? (q * r)
+
+    return {
+      id: String(l.id || `line-${Date.now()}-${idx}`),
+      itemId: l.itemId || matchedProd?.id,
+      code: l.code || matchedProd?.code || '',
+      name: String(l.name || l.itemName || l.product || 'Item'),
+      batch: String(l.batch || l.batch_number || 'DEFAULT'),
+      batchId: l.batchId || matchedBatch?.id,
+      stock: liveStock,
+      qty: q,
+      free: Number(l.free || l.freeQty || l.free_quantity || 0),
+      rate: r,
+      disc: d,
+      gst: g || (matchedProd?.gstRate ? Number(matchedProd.gstRate) : 0),
+      amount: amt,
+      mrp: liveMrp,
+      purchaseRate: livePurchaseRate,
+      costPrice: liveCostPrice,
+      packing: l.packing || matchedProd?.packing || '',
+      manufacturer: l.manufacturer || matchedProd?.manufacturer || matchedProd?.company || '',
+      salt: l.salt || matchedProd?.salt || matchedProd?.composition || '',
+      hsn: l.hsn || matchedProd?.hsn || '',
+      expiry: l.expiry || matchedBatch?.expiry || '',
+    }
+  }).filter(Boolean) as LineItem[]
+}
+
 export default function SaleEntry() {
   const { id: editInvoiceId } = useParams<{ id?: string }>()
   const navigate = useNavigate()
-  const [existingInvoice, setExistingInvoice] = useState<any>(null)
+  const initialInvoice = findInvoiceInCachedSales(editInvoiceId)
+  const [existingInvoice, setExistingInvoice] = useState<any>(() => initialInvoice)
   const isEditMode = Boolean(editInvoiceId)
 
   useEffect(() => {
@@ -70,20 +206,43 @@ export default function SaleEntry() {
     document.title = invTitle
   }, [isEditMode, existingInvoice, editInvoiceId])
 
-  const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([])
-  const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
-  const [items, setItems] = useState<LineItem[]>([])
+  const [partiesList, setPartiesList] = useState<any[]>(() => {
+    const cached = getCached<any[]>('parties')
+    return Array.isArray(cached) ? cached : []
+  })
+  const [productsList, setProductsList] = useState<any[]>(() => {
+    const cached = getCached<any[]>('items')
+    return Array.isArray(cached) ? cached : []
+  })
+  const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>(() => {
+    const cached = getCached<any[]>('parties')
+    return Array.isArray(cached) ? buildCustomerOptionsFromParties(cached) : []
+  })
+  const [itemOptions, setItemOptions] = useState<ItemOption[]>(() => {
+    const cached = getCached<any[]>('items')
+    return Array.isArray(cached) ? buildItemOptionsFromProducts(cached) : []
+  })
+  const [items, setItems] = useState<LineItem[]>(() => {
+    if (initialInvoice && Array.isArray(initialInvoice.lines) && initialInvoice.lines.length > 0) {
+      const cachedProducts = getCached<any[]>('items') || []
+      return mapInvoiceLines(initialInvoice.lines, cachedProducts)
+    }
+    return []
+  })
   const [activeIndex, setActiveIndex] = useState<number>(0)
-  const [customer, setCustomer] = useState('')
+  const [customer, setCustomer] = useState(() => {
+    if (initialInvoice) {
+      return String(initialInvoice.party || initialInvoice.customer || '').replace(/\s+/g, ' ').trim()
+    }
+    return ''
+  })
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [saving, setSaving] = useState(false)
-  const [patientName, setPatientName] = useState('')
-  const [prescriberName, setPrescriberName] = useState('')
-  const [prescriptionReference, setPrescriptionReference] = useState('')
+  const [patientName, setPatientName] = useState(() => initialInvoice?.patientName || '')
+  const [prescriberName, setPrescriberName] = useState(() => initialInvoice?.prescriberName || '')
+  const [prescriptionReference, setPrescriptionReference] = useState(() => initialInvoice?.prescriptionReference || '')
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [partiesList, setPartiesList] = useState<any[]>([])
-  const [productsList, setProductsList] = useState<any[]>([])
   const [showPrintModal, setShowPrintModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
   const recordedGrandTotal = Math.max(
@@ -203,56 +362,8 @@ export default function SaleEntry() {
             }
           })
         )
-        const sortedParties = [...allParties].sort((a, b) => {
-          const aIsCustomer = a.type === 'customer' || a.type === 'both' ? 1 : 0
-          const bIsCustomer = b.type === 'customer' || b.type === 'both' ? 1 : 0
-          if (aIsCustomer !== bIsCustomer) return bIsCustomer - aIsCustomer
-          return (a.name || '').localeCompare(b.name || '')
-        })
-        setCustomerOptions(
-          sortedParties
-            .filter((p) => p && p.name && p.name.trim())
-            .map((p) => {
-              const cleanName = String(p.name || '').replace(/\s+/g, ' ').trim()
-              const partyTypeLabel = (p.type || p.party_type || 'PARTY').toUpperCase()
-              const locationPart = p.city || p.station || ''
-              return {
-                label: cleanName,
-                value: cleanName,
-                sub: locationPart ? `${locationPart} • ${partyTypeLabel}` : partyTypeLabel,
-                right: p.phone || p.mobile || undefined,
-              }
-            })
-        )
-        setItemOptions(
-          safeProducts.flatMap((p) =>
-            (Array.isArray(p?.batches) ? p.batches : []).filter((b: any) => b && b.stock > 0).map((b: any) => {
-              const batchMrp = Number(b.mrp || p.mrp || 0)
-              const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? p.saleRate ?? 0)
-              const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
-
-              return {
-                id: p.id,
-                itemId: p.id,
-                code: p.code,
-                category: p.category,
-                costPrice: Number(b.costPrice ?? b.cost_price ?? p.costPrice ?? p.purchaseRate ?? 0),
-                label: p.name,
-                batch: b.batch,
-                stock: b.stock,
-                rate: autoRate,
-                gst: p.gstRate !== undefined && p.gstRate !== null && Number(p.gstRate) > 0 ? Number(p.gstRate) : getGstRateForHsn(p.hsn),
-                mrp: batchMrp,
-                purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? p.purchaseRate ?? 0),
-                packing: p.packing || '',
-                manufacturer: p.manufacturer || p.company || '',
-                salt: p.salt || p.composition || '',
-                hsn: p.hsn || '',
-                expiry: b.expiry || '',
-              }
-            })
-          )
-        )
+        setCustomerOptions(buildCustomerOptionsFromParties(allParties))
+        setItemOptions(buildItemOptionsFromProducts(safeProducts))
       })
       .catch((error) => showToast(error.message))
   }, [showToast])
@@ -266,10 +377,10 @@ export default function SaleEntry() {
     const refreshCatalog = (event?: Event) => {
       const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
       if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches' || mutation.resource === 'parties') {
-        loadCatalog(true)
+        loadCatalog(false)
       }
     }
-    const refreshOnFocus = () => loadCatalog(true)
+    const refreshOnFocus = () => loadCatalog(false)
     const refreshWhenVisible = () => {
       if (document.visibilityState === 'visible') refreshOnFocus()
     }
@@ -388,58 +499,9 @@ export default function SaleEntry() {
           setPatientName(found.patientName || '')
           setPrescriberName(found.prescriberName || '')
           setPrescriptionReference(found.prescriptionReference || '')
+          const safeProducts = (productsList && productsList.length > 0) ? productsList : (getCached<any[]>('items') || [])
           if (Array.isArray(found.lines) && found.lines.length > 0) {
-            const mappedLines = found.lines.map((l: any, idx: number) => {
-              if (!l) return null
-              const q = Number(l.qty ?? l.quantity ?? 0)
-              const d = Number(l.disc || l.discount || l.discount_percent || 0)
-              const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
-
-              const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
-              const safeProducts = Array.isArray(productsList) ? productsList : []
-              const matchedProd = safeProducts.find((p: any) =>
-                p && ((l.code && p.code === l.code) ||
-                (p.name && p.name.trim().toLowerCase() === cleanItemName))
-              )
-              const matchedBatch = (Array.isArray(matchedProd?.batches) ? matchedProd.batches : []).find((b: any) =>
-                b && String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
-              )
-              const liveStock = typeof matchedBatch?.stock === 'number'
-                ? matchedBatch.stock
-                : (typeof l.stock === 'number' ? l.stock : (typeof matchedProd?.stock === 'number' ? matchedProd.stock : 0))
-              const liveMrp = Number(l.mrp || matchedBatch?.mrp || matchedProd?.mrp || 0)
-              const liveSaleRate = Number(l.saleRate || matchedBatch?.salePrice || matchedBatch?.saleRate || matchedBatch?.rate || matchedProd?.saleRate || 0)
-              const livePurchaseRate = Number(l.purchaseRate || matchedBatch?.purchasePrice || matchedBatch?.purchaseRate || matchedProd?.purchaseRate || 0)
-              const liveCostPrice = Number(l.costPrice || matchedBatch?.costPrice || matchedProd?.costPrice || livePurchaseRate)
-              const rawRate = Number(l.rate || 0)
-              const r = rawRate > 0 ? rawRate : (liveSaleRate > 0 ? liveSaleRate : liveMrp)
-              const amt = calculateInvoice([{ qty: q, rate: r, discount: d, gstRate: g }]).lines[0]?.total ?? (q * r)
-
-              return {
-                id: String(l.id || `line-${Date.now()}-${idx}`),
-                itemId: l.itemId || matchedProd?.id,
-                code: l.code || matchedProd?.code || '',
-                name: String(l.name || l.itemName || l.product || 'Item'),
-                batch: String(l.batch || l.batch_number || 'DEFAULT'),
-                batchId: l.batchId || matchedBatch?.id,
-                stock: liveStock,
-                qty: q,
-                free: Number(l.free || l.freeQty || l.free_quantity || 0),
-                rate: r,
-                disc: d,
-                gst: g || (matchedProd?.gstRate ? Number(matchedProd.gstRate) : 0),
-                amount: amt,
-                mrp: liveMrp,
-                purchaseRate: livePurchaseRate,
-                costPrice: liveCostPrice,
-                packing: l.packing || matchedProd?.packing || '',
-                manufacturer: l.manufacturer || matchedProd?.manufacturer || matchedProd?.company || '',
-                salt: l.salt || matchedProd?.salt || matchedProd?.composition || '',
-                hsn: l.hsn || matchedProd?.hsn || '',
-                expiry: l.expiry || matchedBatch?.expiry || '',
-              }
-            }).filter(Boolean) as LineItem[]
-            setItems(mappedLines)
+            setItems(mapInvoiceLines(found.lines, safeProducts))
           } else {
             // Invoice has no explicit line items recorded in the database
             setItems([])
@@ -447,7 +509,7 @@ export default function SaleEntry() {
         }
       })
       .catch((err) => showToast(err?.message || 'Failed to load invoice.'))
-  }, [editInvoiceId, showToast])
+  }, [editInvoiceId, productsList, showToast])
 
   useEffect(() => {
     if (showItemSearch) {

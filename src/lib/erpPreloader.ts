@@ -1,50 +1,19 @@
 import { create } from 'zustand'
 import { getErp, initCache } from './erpApi'
+import { useUIStore, CompanyProfile } from '../store/uiStore'
 
 export const PRELOAD_RESOURCES = [
-  // High Priority: Dashboard & Core Masters
   'dashboard',
   'items',
   'item-batches',
   'parties',
   'sales',
   'purchases',
-  // Secondary Masters
-  'manufacturers',
-  'salts',
-  'hsn',
-  'warehouses',
-  'series',
-  'accounts',
-  'communication-blocks',
-  'item-mappings',
-  // Transactions
-  'orders',
-  'challans',
-  'sale-returns',
-  'purchase-returns',
-  'replacements',
-  'counter-sales',
-  'breakages',
-  'price-differences',
-  'pendings',
-  // Accounting & Inventory
-  'ledgers',
-  'vouchers',
-  'day-book',
   'stock',
-  'reservations',
-  'inventory-adjustment-records',
-  'inventory-adjustment-lines',
-  // Compliance
-  'drug-licenses',
-  'product-recalls',
-  'controlled-drug-register',
-  // Reports
-  'report-sales',
-  'report-purchases',
-  'report-financial',
-  'report-stock',
+  'series',
+  'ledgers',
+  'hsn',
+  'organization-profile',
 ] as const
 
 export type PreloadResource = (typeof PRELOAD_RESOURCES)[number]
@@ -111,8 +80,8 @@ export const usePreloaderStore = create<PreloaderState>((set, get) => ({
         errors: [],
       })
 
-      // Concurrency limit: 4 simultaneous requests to balance speed and avoid rate limits
-      const concurrency = 4
+      // Concurrency limit: 2 simultaneous requests to keep browser sockets open for user actions
+      const concurrency = 2
       const queue = [...PRELOAD_RESOURCES]
 
       const workers = Array.from({ length: concurrency }, async () => {
@@ -123,7 +92,10 @@ export const usePreloaderStore = create<PreloaderState>((set, get) => ({
           set({ currentResource: resource })
 
           try {
-            await getErp(resource, undefined, { forceRefresh: Boolean(options?.force) })
+            const res = await getErp(resource, undefined, { forceRefresh: Boolean(options?.force) })
+            if (resource === 'organization-profile' && res && typeof res === 'object' && !Array.isArray(res) && Object.keys(res).length > 0) {
+              useUIStore.getState().setCompanyProfile(res as Partial<CompanyProfile>)
+            }
           } catch (err) {
             console.warn(`[erpPreloader] Failed preloading resource ${resource}:`, err)
             errors.push(resource)
@@ -133,6 +105,8 @@ export const usePreloaderStore = create<PreloaderState>((set, get) => ({
               completed,
               percent: Math.round((completed / total) * 100),
             })
+            // Tiny pacing delay so background preload yields CPU & network to active views
+            await new Promise((r) => setTimeout(r, 40))
           }
         }
       })

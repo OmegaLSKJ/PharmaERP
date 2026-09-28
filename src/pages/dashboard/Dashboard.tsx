@@ -225,7 +225,7 @@ export default function Dashboard() {
     loadData()
   }, [loadData])
 
-  useErpAutoRefresh(['dashboard', 'sales', 'purchases', 'items'], () => loadData(true))
+  useErpAutoRefresh(['dashboard', 'sales', 'purchases', 'items'], () => loadData(false))
   const currentData = (data && typeof data === 'object') ? data : emptyDashboard
   const kpis = (currentData.kpis && typeof currentData.kpis === 'object') ? currentData.kpis : emptyDashboard.kpis
   const rawSalesData = Array.isArray(currentData.salesData) ? currentData.salesData : []

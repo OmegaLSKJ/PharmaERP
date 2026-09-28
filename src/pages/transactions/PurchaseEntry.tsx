@@ -195,10 +195,10 @@ export default function PurchaseEntry() {
     const refreshCatalog = (event?: Event) => {
       const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
       if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches' || mutation.resource === 'parties') {
-        loadSuppliersAndItems(true)
+        loadSuppliersAndItems(false)
       }
     }
-    const refreshOnFocus = () => loadSuppliersAndItems(true)
+    const refreshOnFocus = () => loadSuppliersAndItems(false)
     const refreshWhenVisible = () => {
       if (document.visibilityState === 'visible') refreshOnFocus()
     }

@@ -79,7 +79,7 @@ export default function TaxInvoicePrint({ data }: { data: TaxInvoicePrintData })
   const invNo = formatBillWithActiveSeries(rawInvNo, 'Sale Invoice', seriesList)
   const invDate = data.invoiceDate || new Date().toISOString().split('T')[0]
   const payMode = data.paymentMode || 'Credit'
-  const jurisdiction = company.jurisdiction || company.city || 'Guwahati'
+  const jurisdiction = company.jurisdiction || company.city || 'BISWANATH'
 
   // Format date display (DD-MM-YYYY)
   function formatDate(dStr?: string): string {

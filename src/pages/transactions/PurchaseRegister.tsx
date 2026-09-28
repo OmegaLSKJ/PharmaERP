@@ -111,7 +111,7 @@ export default function PurchaseRegister() {
     loadPurchases()
   }, [loadPurchases])
 
-  useErpAutoRefresh(['purchases', 'parties', 'series'], () => loadPurchases(true))
+  useErpAutoRefresh(['purchases', 'parties', 'series'], () => loadPurchases(false))
 
   const statusCounts = {
     all: purchases.length,

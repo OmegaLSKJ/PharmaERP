@@ -101,22 +101,24 @@ export function useGlobalLiveSync(isAuthenticated: boolean) {
     isSyncingRef.current = true
     try {
       const now = Date.now()
-      // Filter resources: revalidate if forced, stale, or not revalidated in last 12 seconds
+      // Filter resources: revalidate if forced, stale, or not revalidated in last 30 seconds
       const targetResources = resources.filter((res) => {
         if (force) return true
         const lastSync = lastSyncTimestampRef.current[res] || 0
-        return now - lastSync > 12_000 || isStale(res)
+        return now - lastSync > 30_000 || isStale(res, 30_000)
       })
 
-      // Sync with concurrency limit of 3
+      // Sync with gentle concurrency limit of 2 to keep network queue completely clear
       const queue = [...targetResources]
-      const workers = Array.from({ length: 3 }, async () => {
+      const workers = Array.from({ length: 2 }, async () => {
         while (queue.length > 0) {
           const res = queue.shift()
           if (!res) break
           try {
-            await getErp(res, undefined, { forceRefresh: true })
+            await getErp(res)
             lastSyncTimestampRef.current[res] = Date.now()
+            // Micro pause between requests to prioritize user clicks and transactions
+            await new Promise((resolve) => setTimeout(resolve, 60))
           } catch {
             // Background sync errors are non-blocking and silent
           }
@@ -141,7 +143,7 @@ export function useGlobalLiveSync(isAuthenticated: boolean) {
     void syncResources(activeResources)
   }, [location.pathname, location.search, isAuthenticated])
 
-  // 3. Periodic background heartbeat sync (every 20 seconds)
+  // 3. Periodic background heartbeat sync (every 30 seconds)
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -150,7 +152,7 @@ export function useGlobalLiveSync(isAuthenticated: boolean) {
         const activeResources = getActiveResources()
         void syncResources(activeResources)
       }
-    }, 20_000)
+    }, 30_000)
 
     return () => window.clearInterval(intervalId)
   }, [location.pathname, isAuthenticated])
@@ -162,7 +164,7 @@ export function useGlobalLiveSync(isAuthenticated: boolean) {
     const handleResume = () => {
       if (document.visibilityState === 'visible' && navigator.onLine) {
         const activeResources = getActiveResources()
-        void syncResources(activeResources, true)
+        void syncResources(activeResources, false)
       }
     }
 

@@ -328,7 +328,28 @@ async function getNextSeriesNumberDb(docType: string, client: any, organizationI
 }
 
 // OPTION B: In-memory mock database state for local offline development
-const mockStore: Record<string, any[]> = {
+export const DEFAULT_ORG_PROFILE = {
+  companyName: 'BORGANG DRUG DISTRIBUTORS',
+  address: 'BORGANG, BISWANATH, ASSAM',
+  pincode: '784167',
+  city: 'BORGANG',
+  state: '18-ASSAM',
+  country: 'INDIA',
+  gstin: '18AKWPP4417G1ZN',
+  pan: 'AKWPP4417G',
+  dlNo: 'DNG/622/623',
+  phone: '+91 6000763703',
+  email: 'borgangdrugdistributors@gmail.com',
+  fyStart: '2026-04-01',
+  fyEnd: '2027-03-31',
+  bankName: 'PUNJAB NATIONAL BANK',
+  accountNo: '1125250029704',
+  ifsc: 'PUNB0112520',
+  jurisdiction: 'BISWANATH',
+}
+
+const mockStore: Record<string, any> = {
+  'organization-profile': { ...DEFAULT_ORG_PROFILE },
   parties: [
     { id: 'p1', code: 'PTY-001', name: 'Apollo Pharmacy', type: 'both', phone: '9876543210', email: 'apollo@pharmacy.com', city: 'Mumbai', gstin: '27AAAAA1111A1Z1', balance: 12500, creditLimit: 50000, lastSale: '2026-08-25', status: 'active' },
     { id: 'p2', code: 'PTY-002', name: 'MedPlus Chemist', type: 'both', phone: '9876543211', email: 'medplus@chemist.com', city: 'Delhi', gstin: '07BBBBB2222B2Z2', balance: 8450, creditLimit: 40000, lastSale: '2026-08-25', status: 'active' },
@@ -888,6 +909,9 @@ try {
       const existingIds = new Set(parsed.challans.map((c: any) => c.id))
       mockStore.challans = [...parsed.challans, ...(mockStore.challans || []).filter((c: any) => !existingIds.has(c.id))]
     }
+    if (parsed.organizationProfile) {
+      mockStore['organization-profile'] = { ...DEFAULT_ORG_PROFILE, ...parsed.organizationProfile }
+    }
   }
 } catch (e) {
   // Silent catch — first run or corrupted file
@@ -1057,6 +1081,7 @@ function persistTransactions() {
       sales: mockStore.sales ?? [],
       purchases: mockStore.purchases ?? [],
       challans: mockStore.challans ?? [],
+      organizationProfile: mockStore['organization-profile'] ?? DEFAULT_ORG_PROFILE,
     }
     const rootPath = path.resolve(process.cwd(), 'apps/web/lib/mock-transactions.json')
     const localPath = path.resolve(process.cwd(), 'lib/mock-transactions.json')
@@ -1557,6 +1582,9 @@ async function fetchAll<T = any>(fn: (from: number, to: number) => PromiseLike<{
 }
 
 function listMock(resource: string, partyName?: string, options?: { manufacturer?: string; manufacturerId?: string }) {
+  if (resource === 'organization-profile') {
+    return mockStore['organization-profile'] || DEFAULT_ORG_PROFILE
+  }
   if (resource === 'items' && (options?.manufacturerId || options?.manufacturer)) {
     const mfgId = options.manufacturerId
     const mfgName = options.manufacturer?.trim().toLowerCase()
@@ -2818,6 +2846,13 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (useMockStore()) {
     const id = `MOCK-${Date.now()}`
     const record = { ...body, id, code: body.code || `C-${Date.now()}`, status: 'active', balance: 0, created_at: date() }
+
+    if (resource === 'organization-profile') {
+      const merged = { ...(mockStore['organization-profile'] || DEFAULT_ORG_PROFILE), ...body }
+      mockStore['organization-profile'] = merged
+      persistTransactions()
+      return merged
+    }
 
     if (resource === 'purge-zero-transactions') {
       let removedCount = 0

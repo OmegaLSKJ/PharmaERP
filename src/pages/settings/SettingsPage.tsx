@@ -201,7 +201,7 @@ export default function SettingsPage() {
                 type="text"
                 value={form.phone}
                 onChange={(e) => handleFieldChange('phone', e.target.value)}
-                placeholder="e.g. 03712-260654"
+                placeholder="e.g. +91 6000763703"
                 className="w-full bg-background border border-border rounded-lg p-2 text-foreground text-sm outline-none focus:border-sky-500 font-mono placeholder:text-muted-foreground/60"
               />
             </div>

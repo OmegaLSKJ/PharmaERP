@@ -348,9 +348,9 @@ export function isCached(key: string): boolean {
 }
 
 /**
- * Checks if a cached entry is older than maxAgeMs (default 10 seconds for real-time reactivity)
+ * Checks if a cached entry is older than maxAgeMs (default 30 seconds for optimal speed and freshness)
  */
-export function isStale(key: string, maxAgeMs = 10_000): boolean {
+export function isStale(key: string, maxAgeMs = 30_000): boolean {
   const entry = memoryCache.get(key)
   if (!entry) return true
   return Date.now() - entry.timestamp > maxAgeMs

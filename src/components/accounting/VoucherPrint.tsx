@@ -33,7 +33,7 @@ export default function VoucherPrint({ data }: { data: VoucherPrintData }) {
     city: storeCompany.city || 'BORGANG',
     pincode: storeCompany.pincode || '784167',
     state: storeCompany.state || 'Assam',
-    phone: storeCompany.phone || '9435082103',
+    phone: storeCompany.phone || '+91 6000763703',
     email: storeCompany.email || 'borgangdrugdistributors@gmail.com',
     gstin: storeCompany.gstin || '18AKWPP4417G1ZN',
     dlNo: storeCompany.dlNo || 'DNG/622/623',
@@ -41,6 +41,7 @@ export default function VoucherPrint({ data }: { data: VoucherPrintData }) {
     bankName: storeCompany.bankName || 'PUNJAB NATIONAL BANK',
     accountNo: storeCompany.accountNo || '1125250029704',
     ifsc: storeCompany.ifsc || 'PUNB0112520',
+    jurisdiction: storeCompany.jurisdiction || 'BISWANATH',
   }
 
   const vType = (data.voucherType || 'Payment').toUpperCase()
