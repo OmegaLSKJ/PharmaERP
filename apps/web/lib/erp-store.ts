@@ -1578,6 +1578,15 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     const pendingInvoices = (mockStore.sales || []).filter((s: any) => s.status === 'pending' || s.status === 'draft').length
 
     const monthly = new Map<string, { month: string; sale: number; purchase: number }>()
+    const baselineMonths = [
+      { month: '2026-04', sale: 285000, purchase: 210000 },
+      { month: '2026-05', sale: 340000, purchase: 255000 },
+      { month: '2026-06', sale: 410000, purchase: 305000 },
+      { month: '2026-07', sale: 395000, purchase: 290000 },
+      { month: '2026-08', sale: 445000, purchase: 325000 },
+      { month: '2026-09', sale: 482000, purchase: 350000 },
+    ]
+    baselineMonths.forEach((b) => monthly.set(b.month, { ...b }))
     const addMonth = (value: any, kind: 'sale' | 'purchase') => {
       const rawDate = String(value.date || value.invoice_date || '')
       const key = rawDate.length >= 7 ? rawDate.slice(0, 7) : new Date().toISOString().slice(0, 7)
@@ -1995,11 +2004,20 @@ export async function list(resource: string, partyName?: string, options?: { man
     const monthly = new Map<string, { month: string; sale: number; purchase: number }>()
     const addMonth = (value: any, kind: 'sale' | 'purchase') => { const key = String(value.invoice_date).slice(0, 7); const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }; row[kind] += Number(value.grand_total); monthly.set(key, row) }
     ;(sales ?? []).forEach((row: any) => addMonth(row, 'sale')); (purchases ?? []).forEach((row: any) => addMonth(row, 'purchase'))
+    const now = new Date()
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth() - i, 1))
+      const k = d.toISOString().slice(0, 7)
+      if (!monthly.has(k)) {
+        monthly.set(k, { month: k, sale: 0, purchase: 0 })
+      }
+    }
+    const salesData = [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12)
     const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
     ;(sales ?? []).flatMap((row: any) => row.sales_invoice_lines ?? []).forEach((line: any) => { const name = line.items?.name ?? 'Unknown'; const current = itemTotals.get(name) ?? { name, qty: 0, amount: 0 }; current.qty += Number(line.quantity); current.amount += Number(line.line_total); itemTotals.set(name, current) })
     return {
       kpis: { sales: (sales ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), purchases: (purchases ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), activeItems: activeItemsCount ?? 0, pendingInvoices: (sales ?? []).filter((x: any) => x.status === 'draft').length },
-      salesData: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
+      salesData,
       topItems: [...itemTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 6),
       recentInvoices: (sales ?? []).slice(0, 8).map((x: any) => ({ id: x.invoice_number, party: x.parties?.legal_name ?? '', amount: Number(x.grand_total), date: x.invoice_date, status: x.status })),
       expiryAlerts: (stock ?? []).filter((x: any) => x.expiry_on).sort((a: any, b: any) => String(a.expiry_on).localeCompare(String(b.expiry_on))).slice(0, 8).map((x: any) => ({ item: x.item_name, batch: x.batch_number, expiry: x.expiry_on, qty: Number(x.quantity) })),
