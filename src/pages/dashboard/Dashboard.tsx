@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Package, AlertTriangle, IndianRupee, ShoppingCart, Truck, Plus, ClipboardList, Zap, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 import { useEffect, useState, useCallback } from 'react'
@@ -36,6 +36,30 @@ function normalizeDashboard(value: unknown): DashboardData {
     recentInvoices: Array.isArray(source.recentInvoices) ? source.recentInvoices : [],
     expiryAlerts: Array.isArray(source.expiryAlerts) ? source.expiryAlerts : [],
   }
+}
+
+function formatChartMonth(value: string) {
+  const date = new Date(`${value}-01T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('en-IN', { month: 'short', year: '2-digit' }).format(date)
+}
+
+function formatChartValue(value: number) {
+  const absolute = Math.abs(value)
+  if (absolute >= 100000) return `₹${(value / 100000).toFixed(absolute >= 1000000 ? 0 : 1)}L`
+  if (absolute >= 1000) return `₹${(value / 1000).toFixed(0)}k`
+  return `₹${Math.round(value)}`
+}
+
+function SalesPurchaseTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const values = Object.fromEntries(payload.map((entry: any) => [entry.dataKey, Number(entry.value || 0)])) as Record<string, number>
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-lg">
+      <p className="mb-1 text-xs font-medium text-muted-foreground">{formatChartMonth(String(label))}</p>
+      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">Sales · {formatCurrency(values.sale || 0)}</p>
+      <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-300">Purchases · {formatCurrency(values.purchase || 0)}</p>
+    </div>
+  )
 }
 
 function KpiCard({ title, value, change, icon: Icon, trend, className, to }: {
@@ -153,29 +177,35 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Sales Trend */}
         <div className="lg:col-span-2 data-surface p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold">Sales vs Purchases</h3>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold">Monthly Sales vs Purchases</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">Posted invoices and purchases by calendar month</p>
+            </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" />Sales</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-muted-foreground/30" />Purchases</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-400" />Purchases</span>
             </div>
           </div>
           <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesData}>
-                <defs>
-                  <linearGradient id="saleGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 100000).toFixed(0)}L`} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Area type="monotone" dataKey="sale" stroke="hsl(221, 83%, 53%)" fill="url(#saleGrad)" strokeWidth={2} />
-                <Area type="monotone" dataKey="purchase" stroke="hsl(215, 20%, 65%)" fill="transparent" strokeWidth={1.5} strokeDasharray="4 4" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {salesData.length === 0 ? (
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border px-6 text-center text-sm text-muted-foreground">
+                No posted sales or purchase invoices are available for a monthly comparison yet.
+              </div>
+            ) : (
+              <div className="h-full">
+                {salesData.length < 3 && <p className="mb-2 text-xs text-muted-foreground">Showing {salesData.length} recorded month{salesData.length === 1 ? '' : 's'} — bars avoid implying a trend where data is sparse.</p>}
+                <ResponsiveContainer width="100%" height={salesData.length < 3 ? '92%' : '100%'}>
+                  <BarChart data={salesData} margin={{ top: 8, right: 8, left: 4, bottom: 0 }} barGap={4}>
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatChartMonth} />
+                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={52} tickFormatter={formatChartValue} />
+                    <Tooltip content={<SalesPurchaseTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.45)' }} />
+                    <Bar dataKey="sale" name="Sales" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} maxBarSize={42} />
+                    <Bar dataKey="purchase" name="Purchases" fill="hsl(215, 16%, 47%)" radius={[4, 4, 0, 0]} maxBarSize={42} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
