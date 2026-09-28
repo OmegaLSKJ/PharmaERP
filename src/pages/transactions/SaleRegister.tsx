@@ -183,7 +183,9 @@ export default function SaleRegister() {
 
   const getPrintDataForSelected = (s: SaleInv): TaxInvoicePrintData => {
     const custClean = (s.customer || '').trim().toLowerCase()
-    const party = parties.find((p) => {
+    const safeParties = Array.isArray(parties) ? parties : []
+    const party = safeParties.find((p) => {
+      if (!p) return false
       const pName = (p.name || '').trim().toLowerCase()
       return pName === custClean || (p.id && (p.id === s.customer || p.id === (s as any).partyId))
     }) || {}

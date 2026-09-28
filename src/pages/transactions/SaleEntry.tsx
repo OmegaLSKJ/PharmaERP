@@ -153,23 +153,27 @@ export default function SaleEntry() {
           const raw = localStorage.getItem('pharma_erp_custom_parties')
           if (raw) localSaved = JSON.parse(raw)
         } catch {}
+        const safeParties = Array.isArray(parties) ? parties : []
+        const safeProducts = Array.isArray(products) ? products : []
         const partyMap = new Map<string, any>()
-        for (const p of [...(parties || []), ...(localSaved || [])]) {
+        for (const p of [...safeParties, ...(Array.isArray(localSaved) ? localSaved : [])]) {
+          if (!p) continue
           const key = (p.name || '').trim().toLowerCase()
           if (key && !partyMap.has(key)) partyMap.set(key, p)
         }
         const allParties = Array.from(partyMap.values())
         setPartiesList(allParties)
-        setProductsList(products)
+        setProductsList(safeProducts)
         setItems((currentItems) =>
-          currentItems.map((cur) => {
+          (Array.isArray(currentItems) ? currentItems : []).map((cur) => {
+            if (!cur) return cur
             const cleanName = String(cur.name || '').trim().toLowerCase()
-            const matched = products.find((p: any) =>
-              (cur.code && p.code === cur.code) ||
-              (p.name && p.name.trim().toLowerCase() === cleanName)
+            const matched = safeProducts.find((p: any) =>
+              p && ((cur.code && p.code === cur.code) ||
+              (p.name && p.name.trim().toLowerCase() === cleanName))
             )
-            const matchedBatch = matched?.batches?.find((b: any) =>
-              String(b.batch).trim().toLowerCase() === String(cur.batch || '').trim().toLowerCase()
+            const matchedBatch = (Array.isArray(matched?.batches) ? matched.batches : []).find((b: any) =>
+              b && String(b.batch).trim().toLowerCase() === String(cur.batch || '').trim().toLowerCase()
             )
             if (!matched && !matchedBatch) return cur
             const batchMrp = Number(matchedBatch?.mrp || matched?.mrp || cur.mrp || 0)
@@ -207,7 +211,7 @@ export default function SaleEntry() {
         })
         setCustomerOptions(
           sortedParties
-            .filter((p) => p.name && p.name.trim())
+            .filter((p) => p && p.name && p.name.trim())
             .map((p) => {
               const cleanName = String(p.name || '').replace(/\s+/g, ' ').trim()
               const partyTypeLabel = (p.type || p.party_type || 'PARTY').toUpperCase()
@@ -221,8 +225,8 @@ export default function SaleEntry() {
             })
         )
         setItemOptions(
-          products.flatMap((p) =>
-            (p.batches ?? []).filter((b: any) => b.stock > 0).map((b: any) => {
+          safeProducts.flatMap((p) =>
+            (Array.isArray(p?.batches) ? p.batches : []).filter((b: any) => b && b.stock > 0).map((b: any) => {
               const batchMrp = Number(b.mrp || p.mrp || 0)
               const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? p.saleRate ?? 0)
               const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
@@ -288,7 +292,11 @@ export default function SaleEntry() {
 
   const getPrintData = (): TaxInvoicePrintData => {
     const custClean = (customer || '').trim().toLowerCase()
-    const partyInfo = partiesList.find((p) => {
+    const safeParties = Array.isArray(partiesList) ? partiesList : []
+    const safeProducts = Array.isArray(productsList) ? productsList : []
+    const safeItems = Array.isArray(items) ? items : []
+    const partyInfo = safeParties.find((p) => {
+      if (!p) return false
       const pName = (p.name || '').trim().toLowerCase()
       return pName === custClean || (p.id && p.id === customer)
     }) || {}
@@ -330,8 +338,8 @@ export default function SaleEntry() {
         pan: buyerPan,
         stateCode: stateCode,
       },
-      items: items.map((i) => {
-        const prod = productsList.find((p) => p.name === i.name)
+      items: safeItems.map((i) => {
+        const prod = safeProducts.find((p) => p && p.name === i.name)
         const qty = Number(i.qty || 0)
         const rate = Number(i.rate || 0)
         const discount = Number(i.disc || 0)
@@ -342,7 +350,7 @@ export default function SaleEntry() {
           mfr: prod?.manufacturer || i.manufacturer || '',
           hsn: prod?.hsn || i.hsn || '3004',
           batch: i.batch,
-          expiry: prod?.batches?.find((b: any) => b.batch === i.batch)?.expiry || i.expiry || '',
+          expiry: (Array.isArray(prod?.batches) ? prod.batches : []).find((b: any) => b && b.batch === i.batch)?.expiry || i.expiry || '',
           qty: i.qty,
           freeQty: i.free || 0,
           mrp: i.mrp || prod?.mrp || (i.rate > 0 ? i.rate * 1.2 : 0),
@@ -365,8 +373,10 @@ export default function SaleEntry() {
     if (!editInvoiceId) return
     getErp<any[]>('sales')
       .then((allSales) => {
+        const salesList = Array.isArray(allSales) ? allSales : []
         const decodedId = decodeURIComponent(editInvoiceId).trim().toLowerCase()
-        const found = allSales.find((s) => {
+        const found = salesList.find((s) => {
+          if (!s) return false
           const sid = String(s.id || '').trim().toLowerCase()
           const sinv = String(s.invoiceNo || s.number || '').trim().toLowerCase()
           const sdb = String(s.dbId || '').trim().toLowerCase()
@@ -378,19 +388,21 @@ export default function SaleEntry() {
           setPatientName(found.patientName || '')
           setPrescriberName(found.prescriberName || '')
           setPrescriptionReference(found.prescriptionReference || '')
-          if (found.lines && found.lines.length > 0) {
+          if (Array.isArray(found.lines) && found.lines.length > 0) {
             const mappedLines = found.lines.map((l: any, idx: number) => {
+              if (!l) return null
               const q = Number(l.qty ?? l.quantity ?? 0)
               const d = Number(l.disc || l.discount || l.discount_percent || 0)
               const g = Number(l.gst || l.gstRate || l.gst_rate || 0)
 
               const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
-              const matchedProd = productsList.find((p: any) =>
-                (l.code && p.code === l.code) ||
-                (p.name && p.name.trim().toLowerCase() === cleanItemName)
+              const safeProducts = Array.isArray(productsList) ? productsList : []
+              const matchedProd = safeProducts.find((p: any) =>
+                p && ((l.code && p.code === l.code) ||
+                (p.name && p.name.trim().toLowerCase() === cleanItemName))
               )
-              const matchedBatch = matchedProd?.batches?.find((b: any) =>
-                String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
+              const matchedBatch = (Array.isArray(matchedProd?.batches) ? matchedProd.batches : []).find((b: any) =>
+                b && String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
               )
               const liveStock = typeof matchedBatch?.stock === 'number'
                 ? matchedBatch.stock
@@ -426,7 +438,7 @@ export default function SaleEntry() {
                 hsn: l.hsn || matchedProd?.hsn || '',
                 expiry: l.expiry || matchedBatch?.expiry || '',
               }
-            })
+            }).filter(Boolean) as LineItem[]
             setItems(mappedLines)
           } else {
             // Invoice has no explicit line items recorded in the database
@@ -434,7 +446,7 @@ export default function SaleEntry() {
           }
         }
       })
-      .catch((err) => showToast(err.message))
+      .catch((err) => showToast(err?.message || 'Failed to load invoice.'))
   }, [editInvoiceId, showToast])
 
   useEffect(() => {
@@ -534,7 +546,8 @@ export default function SaleEntry() {
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
       const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
       const custClean = (customer || '').trim().toLowerCase()
-      const partyInfo = partiesList.find((p) => (p.name || '').trim().toLowerCase() === custClean) || {}
+      const safeParties = Array.isArray(partiesList) ? partiesList : []
+      const partyInfo = safeParties.find((p) => p && (p.name || '').trim().toLowerCase() === custClean) || {}
 
       const partyPayload = {
         party: customer,
@@ -647,7 +660,8 @@ export default function SaleEntry() {
   }))
 
   const activeItem = items[activeIndex] || (items.length > 0 ? items[items.length - 1] : null)
-  const currentParty = partiesList.find((p) => (p.name || '').trim().toLowerCase() === customer.trim().toLowerCase())
+  const safeParties = Array.isArray(partiesList) ? partiesList : []
+  const currentParty = safeParties.find((p) => p && (p.name || '').trim().toLowerCase() === customer.trim().toLowerCase())
   const customerBalance = currentParty ? Number(currentParty.balance || currentParty.outstanding || 0) : 0
   const totalMrpValue = items.reduce((sum, i) => sum + (Number(i.mrp) || Number(i.rate) || 0) * (Number(i.qty) || 0), 0)
 
@@ -795,8 +809,9 @@ export default function SaleEntry() {
             options={quickTypeaheadOptions}
             value=""
             onSelect={(selectedOption) => {
-              const selectedItem = itemOptions.find(
-                (it) => it.label === selectedOption.label && `Batch: ${it.batch} | Stock: ${it.stock}` === selectedOption.sub
+              const safeItems = Array.isArray(itemOptions) ? itemOptions : []
+              const selectedItem = safeItems.find(
+                (it) => it && it.label === selectedOption.label && `Batch: ${it.batch} | Stock: ${it.stock}` === selectedOption.sub
               )
               if (selectedItem) addRow(selectedItem)
             }}
