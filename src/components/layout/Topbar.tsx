@@ -77,23 +77,23 @@ export default function Topbar() {
       </div>
 
       {/* Desktop / Tablet Command Search Bar */}
-      <div className="hidden sm:flex flex-1 max-w-xs md:max-w-md">
+      <div className="hidden sm:flex flex-1 min-w-0 max-w-xs md:max-w-md overflow-hidden">
         <button
           type="button"
           onClick={toggleCommandPalette}
-          className="group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted/90 dark:bg-slate-900/60 dark:hover:bg-slate-900/90 border border-border dark:border-slate-800/80 text-sm transition-all w-full shadow-xs cursor-pointer"
+          className="group flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted/90 dark:bg-slate-900/60 dark:hover:bg-slate-900/90 border border-border dark:border-slate-800/80 text-sm transition-all w-full shadow-xs cursor-pointer overflow-hidden"
         >
           <Search size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-          <span className="flex-1 text-left text-xs text-muted-foreground group-hover:text-foreground transition-colors font-medium">
+          <span className="flex-1 text-left text-xs text-muted-foreground group-hover:text-foreground transition-colors font-medium truncate whitespace-nowrap">
             Search pages, items, parties...
           </span>
-          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border bg-background dark:bg-slate-950 text-[10px] font-mono text-foreground font-semibold shadow-xs">
+          <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border bg-background dark:bg-slate-950 text-[10px] font-mono text-foreground font-semibold shadow-xs shrink-0">
             <Command size={10} />K
           </kbd>
         </button>
       </div>
 
-      <div className="flex-1" />
+
 
       {/* Right Controls */}
       <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
