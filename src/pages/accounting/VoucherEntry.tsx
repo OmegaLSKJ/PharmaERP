@@ -1251,23 +1251,23 @@ export default function VoucherEntry() {
 
             {/* Lines Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[760px]">
+              <table className="w-full text-xs min-w-[840px]">
                 <thead>
                   <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-semibold w-10">#</th>
-                    <th className="text-left px-4 py-3 font-semibold w-64">Ledger Account</th>
-                    <th className="text-left px-3 py-3 font-semibold w-36">Physical Vch No.</th>
-                    <th className="text-right px-4 py-3 font-semibold w-32">Debit (Dr ₹)</th>
-                    <th className="text-right px-4 py-3 font-semibold w-32">Credit (Cr ₹)</th>
-                    <th className="text-left px-4 py-3 font-semibold">Line Narration</th>
-                    <th className="w-10 text-center"></th>
+                    <th className="text-left px-4 py-3 font-semibold w-12 min-w-[40px]">#</th>
+                    <th className="text-left px-4 py-3 font-semibold w-64 min-w-[220px]">Ledger Account</th>
+                    <th className="text-left px-3 py-3 font-semibold w-36 min-w-[130px]">Physical Vch No.</th>
+                    <th className="text-right px-4 py-3 font-semibold w-36 min-w-[130px]">Debit (Dr ₹)</th>
+                    <th className="text-right px-4 py-3 font-semibold w-36 min-w-[130px]">Credit (Cr ₹)</th>
+                    <th className="text-left px-4 py-3 font-semibold min-w-[160px]">Line Narration</th>
+                    <th className="w-10 min-w-[40px] text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-foreground">
                   {lines.map((line, idx) => (
                     <tr key={line.id} className="hover:bg-secondary/40 transition">
-                      <td className="px-4 py-2.5 text-muted-foreground font-mono">{idx + 1}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5 text-muted-foreground font-mono min-w-[40px]">{idx + 1}</td>
+                      <td className="px-4 py-2.5 min-w-[220px]">
                         <select
                           value={line.ledger}
                           onChange={(e) => updateLine(line.id, 'ledger', e.target.value)}
@@ -1311,7 +1311,7 @@ export default function VoucherEntry() {
                           </optgroup>
                         </select>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 min-w-[130px]">
                         <input
                           type="text"
                           placeholder="e.g. PV-101"
@@ -1320,25 +1320,25 @@ export default function VoucherEntry() {
                           className="w-full bg-background border border-border rounded-lg p-1.5 text-foreground font-mono text-xs outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
                         />
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-right min-w-[130px]">
                         <input
                           type="number"
                           value={line.debit || ''}
                           onChange={(e) =>
                             updateLine(line.id, 'debit', e.target.value === '' ? 0 : Number(e.target.value))
                           }
-                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0.00"
                         />
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-right min-w-[130px]">
                         <input
                           type="number"
                           value={line.credit || ''}
                           onChange={(e) =>
                             updateLine(line.id, 'credit', e.target.value === '' ? 0 : Number(e.target.value))
                           }
-                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500"
+                          className="w-full bg-background border border-border rounded-lg p-1.5 text-right text-foreground font-mono outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0.00"
                         />
                       </td>
@@ -1583,17 +1583,17 @@ export default function VoucherEntry() {
           return (
             <div className="space-y-3">
               <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full text-xs min-w-[700px]">
+                <table className="w-full text-xs min-w-[880px]">
                   <thead>
                     <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
-                      <th className="text-left px-3 py-2.5 font-semibold">Date</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">Voucher No.</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">Type</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">Party / Account</th>
-                      <th className="text-left px-3 py-2.5 font-semibold max-w-[220px]">Narration</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Amount (₹)</th>
-                      <th className="text-center px-3 py-2.5 font-semibold">Status</th>
-                      <th className="text-center px-3 py-2.5 font-semibold w-28">Actions</th>
+                      <th className="text-left px-3 py-2.5 font-semibold min-w-[100px]">Date</th>
+                      <th className="text-left px-3 py-2.5 font-semibold min-w-[130px]">Voucher No.</th>
+                      <th className="text-left px-3 py-2.5 font-semibold min-w-[85px]">Type</th>
+                      <th className="text-left px-3 py-2.5 font-semibold min-w-[200px]">Party / Account</th>
+                      <th className="text-left px-3 py-2.5 font-semibold min-w-[180px]">Narration</th>
+                      <th className="text-right px-3 py-2.5 font-semibold min-w-[110px]">Amount (₹)</th>
+                      <th className="text-center px-3 py-2.5 font-semibold min-w-[80px]">Status</th>
+                      <th className="text-center px-3 py-2.5 font-semibold w-28 min-w-[90px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-foreground">

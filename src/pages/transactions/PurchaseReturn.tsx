@@ -198,7 +198,7 @@ export default function PurchaseReturn() {
 
         {/* Desktop Table View */}
         <div className="hidden md:block bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[880px]">
             <thead>
               <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                 <th className="text-left px-4 py-3 font-medium">Return No</th>

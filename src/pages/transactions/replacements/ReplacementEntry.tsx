@@ -64,16 +64,28 @@ export default function ReplacementEntry() {
       </div>
       {lines.length > 0 && (<div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs min-w-[550px]">
+          <table className="w-full text-xs min-w-[680px]">
             <thead><tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
-              <th className="text-left px-4 py-3 font-medium">Item</th><th className="text-left px-4 py-3 font-medium">Batch</th><th className="text-right px-4 py-3 font-medium">Qty</th><th className="text-right px-4 py-3 font-medium">Rate</th><th className="text-right px-4 py-3 font-medium">Value</th>
+              <th className="text-left px-4 py-3 font-medium min-w-[220px]">Item</th>
+              <th className="text-left px-4 py-3 font-medium min-w-[120px]">Batch</th>
+              <th className="text-right px-4 py-3 font-medium min-w-[80px]">Qty</th>
+              <th className="text-right px-4 py-3 font-medium min-w-[90px]">Rate</th>
+              <th className="text-right px-4 py-3 font-medium min-w-[100px]">Value</th>
             </tr></thead>
             <tbody className="divide-y divide-border text-foreground">
               {lines.map(l => (<tr key={l.id} className="hover:bg-secondary/40">
-                <td className="px-4 py-3 font-medium text-foreground">{l.name}</td><td className="px-4 py-3 font-mono text-muted-foreground">{l.batch}</td>
-                <td className="px-4 py-3 text-right"><input type="number" value={l.qty} onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))} className="w-16 bg-background border border-border rounded p-1 text-right text-foreground outline-none" /></td>
-                <td className="px-4 py-3 text-right font-mono">{formatCurrency(l.rate)}</td>
-                <td className="px-4 py-3 text-right font-mono text-cyan-600 dark:text-cyan-400 font-semibold">{formatCurrency(l.qty * l.rate)}</td>
+                <td className="px-4 py-3 font-medium text-foreground min-w-[220px]">{l.name}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground min-w-[120px]">{l.batch}</td>
+                <td className="px-4 py-3 text-right min-w-[80px]">
+                  <input
+                    type="number"
+                    value={l.qty}
+                    onChange={(e) => updateLine(l.id, 'qty', Number(e.target.value))}
+                    className="w-20 bg-background border border-border rounded p-1 text-right text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </td>
+                <td className="px-4 py-3 text-right font-mono min-w-[90px]">{formatCurrency(l.rate)}</td>
+                <td className="px-4 py-3 text-right font-mono text-cyan-600 dark:text-cyan-400 font-semibold min-w-[100px] whitespace-nowrap">{formatCurrency(l.qty * l.rate)}</td>
               </tr>))}
             </tbody>
           </table>

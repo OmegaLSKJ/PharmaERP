@@ -42,15 +42,15 @@ export default function DeliveryManagement() {
       </div>
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs min-w-[600px]">
+          <table className="w-full text-xs min-w-[720px]">
             <thead>
               <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase text-[11px]">
-                <th className="text-left p-3">Challan</th>
-                <th className="text-left p-3">Customer</th>
-                <th className="text-right p-3">Items</th>
-                <th className="text-right p-3">Total</th>
-                <th className="text-left p-3">Transport</th>
-                <th className="text-left p-3">Status</th>
+                <th className="text-left p-3 min-w-[120px]">Challan</th>
+                <th className="text-left p-3 min-w-[180px]">Customer</th>
+                <th className="text-right p-3 min-w-[70px]">Items</th>
+                <th className="text-right p-3 min-w-[110px]">Total</th>
+                <th className="text-left p-3 min-w-[130px]">Transport</th>
+                <th className="text-left p-3 min-w-[90px]">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-foreground">
@@ -60,12 +60,12 @@ export default function DeliveryManagement() {
                 </tr>
               ) : visible.map((row) => (
                 <tr key={row.id} className="hover:bg-secondary/40">
-                  <td className="p-3 font-mono text-foreground font-medium">{row.order}</td>
-                  <td className="p-3">{row.customer}</td>
-                  <td className="p-3 text-right">{row.items}</td>
-                  <td className="p-3 text-right font-mono font-medium">{formatCurrency(row.total)}</td>
-                  <td className="p-3 text-muted-foreground">{row.transport}</td>
-                  <td className={cn('p-3 capitalize font-semibold', colors[row.status] || 'text-foreground')}>{row.status}</td>
+                  <td className="p-3 font-mono text-foreground font-medium min-w-[120px]">{row.order}</td>
+                  <td className="p-3 min-w-[180px]">{row.customer}</td>
+                  <td className="p-3 text-right min-w-[70px]">{row.items}</td>
+                  <td className="p-3 text-right font-mono font-medium min-w-[110px] whitespace-nowrap">{formatCurrency(row.total)}</td>
+                  <td className="p-3 text-muted-foreground min-w-[130px]">{row.transport}</td>
+                  <td className={cn('p-3 capitalize font-semibold min-w-[90px]', colors[row.status] || 'text-foreground')}>{row.status}</td>
                 </tr>
               ))}
               {!loading && !visible.length && (

@@ -104,29 +104,29 @@ export default function Orders() {
         ))}
       </div>
       <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
-        <table className="min-w-[700px] w-full text-xs">
+        <table className="min-w-[860px] w-full text-xs">
           <thead><tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
-            <th className="text-left px-4 py-3 font-medium">Order No</th>
-            <th className="text-left px-4 py-3 font-medium">Date</th>
-            <th className="text-left px-4 py-3 font-medium">Type</th>
-            <th className="text-left px-4 py-3 font-medium">Party</th>
-            <th className="text-right px-4 py-3 font-medium">Items</th>
-            <th className="text-right px-4 py-3 font-medium">Total</th>
-            <th className="text-left px-4 py-3 font-medium">Delivery</th>
-            <th className="text-left px-4 py-3 font-medium">Status</th>
-            <th className="text-center px-4 py-3 font-medium w-28">Actions</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[120px]">Order No</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[100px]">Date</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[80px]">Type</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[180px]">Party</th>
+            <th className="text-right px-4 py-3 font-medium min-w-[70px]">Items</th>
+            <th className="text-right px-4 py-3 font-medium min-w-[100px]">Total</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[110px]">Delivery</th>
+            <th className="text-left px-4 py-3 font-medium min-w-[130px]">Status</th>
+            <th className="text-center px-4 py-3 font-medium w-28 min-w-[100px]">Actions</th>
           </tr></thead>
           <tbody className="divide-y divide-border text-foreground">
             {filtered.map(o => (
               <tr key={o.id} className="hover:bg-secondary/40">
-                <td className="px-4 py-3 font-mono text-foreground font-medium">{o.orderNo}</td>
-                <td className="px-4 py-3 font-mono text-muted-foreground">{o.date}</td>
-                <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', o.type === 'Sale' ? 'bg-blue-500/10 text-blue-500 dark:text-blue-400' : 'bg-purple-500/10 text-purple-500 dark:text-purple-400')}>{o.type}</span></td>
-                <td className="px-4 py-3 font-medium text-foreground">{o.party}</td>
-                <td className="px-4 py-3 text-right">{o.items}</td>
-                <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">{formatCurrency(o.total)}</td>
-                <td className="px-4 py-3 font-mono text-muted-foreground">{o.deliveryDate}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 font-mono text-foreground font-medium min-w-[120px]">{o.orderNo}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground min-w-[100px]">{o.date}</td>
+                <td className="px-4 py-3 min-w-[80px]"><span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold', o.type === 'Sale' ? 'bg-blue-500/10 text-blue-500 dark:text-blue-400' : 'bg-purple-500/10 text-purple-500 dark:text-purple-400')}>{o.type}</span></td>
+                <td className="px-4 py-3 font-medium text-foreground min-w-[180px]">{o.party}</td>
+                <td className="px-4 py-3 text-right min-w-[70px]">{o.items}</td>
+                <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400 min-w-[100px] whitespace-nowrap">{formatCurrency(o.total)}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground min-w-[110px]">{o.deliveryDate}</td>
+                <td className="px-4 py-3 min-w-[130px]">
                   <select
                     aria-label={`Change status of ${o.orderNo}`}
                     value={o.status === 'completed' ? 'delivered' : o.status}
@@ -145,7 +145,7 @@ export default function Orders() {
                     <option value="cancelled" className="bg-background text-rose-500 dark:text-rose-400">Cancelled</option>
                   </select>
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-3 text-center min-w-[100px]">
                   <div className="flex items-center justify-center gap-1.5">
                     {o.status !== 'delivered' && o.status !== 'completed' && (
                       <button

@@ -362,13 +362,13 @@ export default function ChallanEntry() {
 
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs min-w-[680px]">
               <thead>
                 <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-medium">Item</th>
-                  <th className="text-left px-4 py-3 font-medium">Batch</th>
-                  <th className="text-right px-4 py-3 font-medium">Qty</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-4 py-3 font-medium min-w-[240px]">Item</th>
+                  <th className="text-left px-4 py-3 font-medium w-36 min-w-[130px]">Batch</th>
+                  <th className="text-right px-4 py-3 font-medium w-28 min-w-[100px]">Qty</th>
+                  <th className="px-4 py-3 w-16 min-w-[60px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-foreground">
@@ -383,12 +383,12 @@ export default function ChallanEntry() {
                         isActive ? 'bg-cyan-500/10 ring-1 ring-inset ring-cyan-500/40 border-l-4 border-l-cyan-500' : 'hover:bg-secondary/40'
                       )}
                     >
-                      <td className="px-4 py-3 font-medium text-foreground">
+                      <td className="px-4 py-3 font-medium text-foreground min-w-[240px]">
                         {l.name}
                         {l.packing && <span className="block text-[11px] text-muted-foreground font-normal">{l.packing}</span>}
                       </td>
-                      <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium">{l.batch}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium min-w-[130px]">{l.batch}</td>
+                      <td className="px-4 py-3 text-right min-w-[100px]">
                         <input
                           type="number"
                           min="1"
@@ -398,7 +398,7 @@ export default function ChallanEntry() {
                             e.target.select()
                             setActiveIndex(idx)
                           }}
-                          className="w-20 bg-background border border-border rounded p-1 text-right text-foreground font-mono"
+                          className="w-full min-w-[80px] bg-background border border-border rounded px-2.5 py-1.5 text-right text-foreground font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -458,13 +458,24 @@ export default function ChallanEntry() {
 
       <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
         <div className="px-4 py-3 border-b border-border"><h2 className="text-sm font-semibold text-foreground">Saved Challans</h2></div>
-        <table className="min-w-[620px] w-full text-xs">
-          <thead className="text-muted-foreground bg-secondary/50 border-b border-border"><tr><th className="text-left px-4 py-3">Number</th><th className="text-left px-4 py-3">Party</th><th className="text-left px-4 py-3">Date</th><th className="text-left px-4 py-3">Transport</th><th className="text-right px-4 py-3">Actions</th></tr></thead>
+        <table className="min-w-[680px] w-full text-xs">
+          <thead className="text-muted-foreground bg-secondary/50 border-b border-border">
+            <tr>
+              <th className="text-left px-4 py-3 min-w-[120px]">Number</th>
+              <th className="text-left px-4 py-3 min-w-[200px]">Party</th>
+              <th className="text-left px-4 py-3 min-w-[110px]">Date</th>
+              <th className="text-left px-4 py-3 min-w-[130px]">Transport</th>
+              <th className="text-right px-4 py-3 min-w-[90px]">Actions</th>
+            </tr>
+          </thead>
           <tbody className="divide-y divide-border">
             {savedChallans.map((challan) => (
               <tr key={challan.dbId} className="text-foreground hover:bg-secondary/40">
-                <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium">{challan.id}</td><td className="px-4 py-3">{challan.party}</td><td className="px-4 py-3 font-mono text-muted-foreground">{challan.date}</td><td className="px-4 py-3 text-muted-foreground">{challan.transport}</td>
-                <td className="px-4 py-3"><div className="flex justify-end gap-1"><button onClick={() => editChallan(challan)} className="p-1.5 text-amber-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Edit ${challan.id}`}><Edit3 size={14}/></button><button onClick={() => removeChallan(challan)} className="p-1.5 text-rose-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Delete ${challan.id}`}><Trash2 size={14}/></button></div></td>
+                <td className="px-4 py-3 font-mono text-cyan-600 dark:text-cyan-400 font-medium min-w-[120px]">{challan.id}</td>
+                <td className="px-4 py-3 min-w-[200px]">{challan.party}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground min-w-[110px]">{challan.date}</td>
+                <td className="px-4 py-3 text-muted-foreground min-w-[130px]">{challan.transport}</td>
+                <td className="px-4 py-3 min-w-[90px]"><div className="flex justify-end gap-1"><button onClick={() => editChallan(challan)} className="p-1.5 text-amber-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Edit ${challan.id}`}><Edit3 size={14}/></button><button onClick={() => removeChallan(challan)} className="p-1.5 text-rose-500 hover:bg-secondary rounded cursor-pointer" aria-label={`Delete ${challan.id}`}><Trash2 size={14}/></button></div></td>
               </tr>
             ))}
             {!savedChallans.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No challans saved yet.</td></tr>}

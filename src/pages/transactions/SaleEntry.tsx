@@ -63,7 +63,7 @@ function buildCustomerOptionsFromParties(parties: any[]): CustomerOption[] {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('pharma_erp_custom_parties') : null
     if (raw) localSaved = JSON.parse(raw)
-  } catch {}
+  } catch { }
   const safeParties = Array.isArray(parties) ? parties : []
   const partyMap = new Map<string, any>()
   for (const p of [...safeParties, ...(Array.isArray(localSaved) ? localSaved : [])]) {
@@ -150,7 +150,7 @@ function mapInvoiceLines(lines: any[], products: any[]): LineItem[] {
     const cleanItemName = String(l.name || l.itemName || l.product || '').trim().toLowerCase()
     const matchedProd = safeProducts.find((p: any) =>
       p && ((l.code && p.code === l.code) ||
-      (p.name && p.name.trim().toLowerCase() === cleanItemName))
+        (p.name && p.name.trim().toLowerCase() === cleanItemName))
     )
     const matchedBatch = (Array.isArray(matchedProd?.batches) ? matchedProd.batches : []).find((b: any) =>
       b && String(b.batch).trim().toLowerCase() === String(l.batch || l.batch_number || '').trim().toLowerCase()
@@ -249,57 +249,57 @@ export default function SaleEntry() {
     0,
     Number(
       existingInvoice?.total ??
-        existingInvoice?.grandTotal ??
-        existingInvoice?.grand_total ??
-        existingInvoice?.net_amount ??
-        existingInvoice?.amount ??
-        0
+      existingInvoice?.grandTotal ??
+      existingInvoice?.grand_total ??
+      existingInvoice?.net_amount ??
+      existingInvoice?.amount ??
+      0
     )
   )
   const rawSubtotal = Number(
     existingInvoice?.subtotal ??
-      existingInvoice?.total ??
-      existingInvoice?.grandTotal ??
-      existingInvoice?.grand_total ??
-      0
+    existingInvoice?.total ??
+    existingInvoice?.grandTotal ??
+    existingInvoice?.grand_total ??
+    0
   )
   const recordedSubtotal = rawSubtotal > 0 ? rawSubtotal : recordedGrandTotal
   const recordedDiscount = Number(
     existingInvoice?.discountTotal ??
-      existingInvoice?.discount_total ??
-      existingInvoice?.discount ??
-      0
+    existingInvoice?.discount_total ??
+    existingInvoice?.discount ??
+    0
   )
   const recordedTax = Number(
     existingInvoice?.taxTotal ??
-      existingInvoice?.tax_total ??
-      existingInvoice?.tax ??
-      0
+    existingInvoice?.tax_total ??
+    existingInvoice?.tax ??
+    0
   )
   const recordedRounding = Number(
     existingInvoice?.roundingAdjustment ??
-      existingInvoice?.rounding_adjustment ??
-      existingInvoice?.rounding ??
-      0
+    existingInvoice?.rounding_adjustment ??
+    existingInvoice?.rounding ??
+    0
   )
 
   const totals = items.length
     ? calculateInvoice(
-        items.map((item) => ({
-          qty: Math.max(0, item.qty),
-          rate: Math.max(0, item.rate),
-          discount: item.disc,
-          gstRate: item.gst,
-        }))
-      )
+      items.map((item) => ({
+        qty: Math.max(0, item.qty),
+        rate: Math.max(0, item.rate),
+        discount: item.disc,
+        gstRate: item.gst,
+      }))
+    )
     : {
-        subtotal: recordedSubtotal,
-        discountTotal: recordedDiscount,
-        taxTotal: recordedTax,
-        roundingAdjustment: recordedRounding,
-        grandTotal: recordedGrandTotal,
-        lines: [],
-      }
+      subtotal: recordedSubtotal,
+      discountTotal: recordedDiscount,
+      taxTotal: recordedTax,
+      roundingAdjustment: recordedRounding,
+      grandTotal: recordedGrandTotal,
+      lines: [],
+    }
 
   const loadCatalog = useCallback((force = false) => {
     Promise.all([
@@ -311,7 +311,7 @@ export default function SaleEntry() {
         try {
           const raw = localStorage.getItem('pharma_erp_custom_parties')
           if (raw) localSaved = JSON.parse(raw)
-        } catch {}
+        } catch { }
         const safeParties = Array.isArray(parties) ? parties : []
         const safeProducts = Array.isArray(products) ? products : []
         const partyMap = new Map<string, any>()
@@ -329,7 +329,7 @@ export default function SaleEntry() {
             const cleanName = String(cur.name || '').trim().toLowerCase()
             const matched = safeProducts.find((p: any) =>
               p && ((cur.code && p.code === cur.code) ||
-              (p.name && p.name.trim().toLowerCase() === cleanName))
+                (p.name && p.name.trim().toLowerCase() === cleanName))
             )
             const matchedBatch = (Array.isArray(matched?.batches) ? matched.batches : []).find((b: any) =>
               b && String(b.batch).trim().toLowerCase() === String(cur.batch || '').trim().toLowerCase()
@@ -732,453 +732,453 @@ export default function SaleEntry() {
       {/* Screen Form (Hidden when printing) */}
       <div className="no-print space-y-4">
         {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex items-center gap-3">
-          {isEditMode && (
-            <button
-              onClick={() => navigate('/transactions/sale')}
-              className="p-2 bg-card border border-border hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer"
-              title="Back to Sale Register"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
-              {isEditMode ? (
-                <>
-                  <span>Edit Sale Invoice:</span>
-                  <span className="font-mono text-indigo-500 dark:text-indigo-400">{existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId}</span>
-                </>
-              ) : (
-                'Sale Invoice (Alt+N)'
-              )}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {isEditMode
-                ? 'Update items, quantities, rates, customer, and prescription metadata'
-                : 'Wholesale & retail billing with batch tracking'}
-            </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3">
             {isEditMode && (
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80 rounded-lg">
-                  <span className="text-xs text-emerald-800 dark:text-slate-300 font-medium">Invoice Total:</span>
-                  <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+              <button
+                onClick={() => navigate('/transactions/sale')}
+                className="p-2 bg-card border border-border hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition cursor-pointer"
+                title="Back to Sale Register"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
+                {isEditMode ? (
+                  <>
+                    <span>Edit Sale Invoice:</span>
+                    <span className="font-mono text-indigo-500 dark:text-indigo-400">{existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId}</span>
+                  </>
+                ) : (
+                  'Sale Invoice (Alt+N)'
+                )}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isEditMode
+                  ? 'Update items, quantities, rates, customer, and prescription metadata'
+                  : 'Wholesale & retail billing with batch tracking'}
+              </p>
+              {isEditMode && (
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80 rounded-lg">
+                    <span className="text-xs text-emerald-800 dark:text-slate-300 font-medium">Invoice Total:</span>
+                    <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+                  </div>
+                  {customer && (
+                    <span className="text-xs text-foreground bg-secondary border border-border px-2.5 py-1 rounded-lg font-medium">
+                      Party: <span className="font-semibold">{customer}</span>
+                    </span>
+                  )}
+                  {items.length === 0 && (
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <Info size={13} />
+                      <span>No item lines in DB (Header Total: {formatCurrency(totals.grandTotal)})</span>
+                    </span>
+                  )}
                 </div>
-                {customer && (
-                  <span className="text-xs text-foreground bg-secondary border border-border px-2.5 py-1 rounded-lg font-medium">
-                    Party: <span className="font-semibold">{customer}</span>
-                  </span>
-                )}
-                {items.length === 0 && (
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                    <Info size={13} />
-                    <span>No item lines in DB (Header Total: {formatCurrency(totals.grandTotal)})</span>
-                  </span>
-                )}
-              </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
+            {/* Pop Out to New Window */}
+            <button
+              type="button"
+              onClick={() => openTransactionWindow(window.location.pathname)}
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs transition cursor-pointer"
+              title="Open another instance in a separate window"
+            >
+              <ExternalLink size={14} />
+              <span className="hidden sm:inline">New Window</span>
+            </button>
+
+            {/* Professional Print Bill Button */}
+            <button
+              type="button"
+              onClick={() => setShowPrintModal(true)}
+              className="group relative inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
+              title="Print Preview & Tax Invoice Bill (Alt+P)"
+            >
+              <Printer size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+              <span className="tracking-tight font-semibold">Print Bill</span>
+              <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-muted rounded border border-border group-hover:text-foreground transition-colors">
+                Alt+P
+              </kbd>
+            </button>
+
+            {/* Primary Save / Update Invoice Button */}
+            <button
+              type="button"
+              onClick={saveInvoice}
+              disabled={saving || !customer || !items.length}
+              className="group relative inline-flex items-center justify-center gap-2 h-10 px-4 sm:px-4.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 rounded-lg text-xs sm:text-sm text-white font-semibold shadow-md shadow-blue-900/30 hover:shadow-blue-900/50 active:scale-[0.98] border border-blue-500/60 transition-all duration-150 cursor-pointer"
+            >
+              <Save size={15} className="text-blue-100 group-hover:text-white transition-colors" />
+              <span className="tracking-tight">{saving ? 'Saving…' : isEditMode ? 'Update Invoice' : 'Save Invoice'}</span>
+              <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-blue-200 bg-black/20 rounded border border-blue-300/20 group-hover:border-blue-300/40 transition-colors">
+                Alt+S
+              </kbd>
+            </button>
+          </div>
+        </div>
+
+        {/* Customer Selection */}
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Customer / Party *</label>
+            {customer && (
+              <Link
+                to={`/masters/parties?search=${encodeURIComponent(customer)}`}
+                target="_blank"
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
+              >
+                <Edit2 size={11} /> Edit Customer Details
+              </Link>
             )}
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
-          {/* Pop Out to New Window */}
-          <button
-            type="button"
-            onClick={() => openTransactionWindow(window.location.pathname)}
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs transition cursor-pointer"
-            title="Open another instance in a separate window"
-          >
-            <ExternalLink size={14} />
-            <span className="hidden sm:inline">New Window</span>
-          </button>
-
-          {/* Professional Print Bill Button */}
-          <button
-            type="button"
-            onClick={() => setShowPrintModal(true)}
-            className="group relative inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold text-foreground bg-card hover:bg-secondary border border-border shadow-xs hover:shadow-md active:scale-[0.98] transition-all duration-150 cursor-pointer"
-            title="Print Preview & Tax Invoice Bill (Alt+P)"
-          >
-            <Printer size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="tracking-tight font-semibold">Print Bill</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground bg-muted rounded border border-border group-hover:text-foreground transition-colors">
-              Alt+P
-            </kbd>
-          </button>
-
-          {/* Primary Save / Update Invoice Button */}
-          <button
-            type="button"
-            onClick={saveInvoice}
-            disabled={saving || !customer || !items.length}
-            className="group relative inline-flex items-center justify-center gap-2 h-10 px-4 sm:px-4.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 rounded-lg text-xs sm:text-sm text-white font-semibold shadow-md shadow-blue-900/30 hover:shadow-blue-900/50 active:scale-[0.98] border border-blue-500/60 transition-all duration-150 cursor-pointer"
-          >
-            <Save size={15} className="text-blue-100 group-hover:text-white transition-colors" />
-            <span className="tracking-tight">{saving ? 'Saving…' : isEditMode ? 'Update Invoice' : 'Save Invoice'}</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-blue-200 bg-black/20 rounded border border-blue-300/20 group-hover:border-blue-300/40 transition-colors">
-              Alt+S
-            </kbd>
-          </button>
-        </div>
-      </div>
-
-      {/* Customer Selection */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Customer / Party *</label>
-          {customer && (
-            <Link
-              to={`/masters/parties?search=${encodeURIComponent(customer)}`}
-              target="_blank"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
-            >
-              <Edit2 size={11} /> Edit Customer Details
-            </Link>
-          )}
-        </div>
-        <Typeahead
-          options={customerOptions}
-          value={customer}
-          onChange={setCustomer}
-          placeholder="Search customer, supplier, or party..."
-          autoFocus
-        />
-      </div>
-
-
-      {/* Items Section */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <ShoppingBag size={18} className="text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Invoice Items ({items.length})</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowItemSearch(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <Plus size={14} /> Add Item (F2)
-          </button>
-        </div>
-
-        {/* Auto-given Mobile / Quick Item Selector */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-primary flex items-center gap-1">
-            <Plus size={13} /> Quick Add Medicine
-          </label>
           <Typeahead
-            options={quickTypeaheadOptions}
-            value=""
-            onSelect={(selectedOption) => {
-              const safeItems = Array.isArray(itemOptions) ? itemOptions : []
-              const selectedItem = safeItems.find(
-                (it) => it && it.label === selectedOption.label && `Batch: ${it.batch} | Stock: ${it.stock}` === selectedOption.sub
-              )
-              if (selectedItem) addRow(selectedItem)
-            }}
-            placeholder="Search medicine or pick from stock..."
+            options={customerOptions}
+            value={customer}
+            onChange={setCustomer}
+            placeholder="Search customer, supplier, or party..."
+            autoFocus
           />
         </div>
 
-        {/* Empty State */}
-        {items.length === 0 ? (
-          <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-3 bg-muted/20">
-            <div className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mx-auto">
-              <Pill size={20} />
+
+        {/* Items Section */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag size={18} className="text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">Invoice Items ({items.length})</h2>
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0)
-                  ? 'This posted invoice has no item lines recorded in the database'
-                  : 'No items added to invoice yet'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && totals.grandTotal > 0
-                  ? `Recorded bill total is ${formatCurrency(totals.grandTotal)}. Search and add medicine items below if you wish to record detailed line items.`
-                  : 'Select from the Quick Add bar above or tap the button below'}
-              </p>
-            </div>
-            {isEditMode && totals.grandTotal > 0 && (
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-xs">
-                <span>Recorded Bill Total:</span>
-                <span className="font-mono text-base font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
-              </div>
-            )}
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowItemSearch(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-semibold transition cursor-pointer"
-              >
-                <Plus size={14} /> Browse All Available Items
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowItemSearch(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm border border-blue-500/50 active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <Plus size={14} /> Add Item (F2)
+            </button>
           </div>
-        ) : (
-          <>
-            {/* Mobile View: Touch-friendly item cards */}
-            <div className="space-y-3 block md:hidden">
-              {items.map((item, idx) => {
-                const isActive = idx === activeIndex
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setActiveIndex(idx)}
-                    className={cn(
-                      'bg-card border rounded-xl p-3.5 space-y-3 cursor-pointer transition',
-                      isActive
-                        ? 'border-indigo-500 ring-1 ring-indigo-500/50'
-                        : 'border-border hover:border-border/80'
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{item.name}</div>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          {item.manufacturer && (
-                            <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
-                              {item.manufacturer}
-                            </span>
-                          )}
-                          <span className="text-[11px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
-                            Batch: {item.batch}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">Stock: {item.stock}</span>
-                          {item.hsn && (
-                            <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
-                              HSN: {item.hsn} ({item.gst}% GST)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeRow(item.id)
-                        }}
-                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                      {/* Qty */}
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Qty</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max={item.stock}
-                          value={item.qty}
-                          onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
-                          onFocus={(e) => {
-                            e.target.select()
-                            setActiveIndex(idx)
-                          }}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
-                          inputMode="numeric"
-                        />
-                      </div>
-
-                      {/* Free Qty */}
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Free Qty</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.free}
-                          onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
-                          onFocus={(e) => {
-                            e.target.select()
-                            setActiveIndex(idx)
-                          }}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
-                          inputMode="numeric"
-                        />
-                      </div>
-
-                      {/* Rate */}
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Rate (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.rate === 0 ? '' : item.rate}
-                          placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
-                          onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
-                          onFocus={() => setActiveIndex(idx)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
-                          inputMode="decimal"
-                        />
-                      </div>
-
-                      {/* Discount */}
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Disc %</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.disc}
-                          onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
-                          onFocus={() => setActiveIndex(idx)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
-                          inputMode="numeric"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
-                      <span className="text-muted-foreground font-medium">Item Total:</span>
-                      <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
-                    </div>
-                  </div>
+          {/* Auto-given Mobile / Quick Item Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-primary flex items-center gap-1">
+              <Plus size={13} /> Quick Add Medicine
+            </label>
+            <Typeahead
+              options={quickTypeaheadOptions}
+              value=""
+              onSelect={(selectedOption) => {
+                const safeItems = Array.isArray(itemOptions) ? itemOptions : []
+                const selectedItem = safeItems.find(
+                  (it) => it && it.label === selectedOption.label && `Batch: ${it.batch} | Stock: ${it.stock}` === selectedOption.sub
                 )
-              })}
-            </div>
+                if (selectedItem) addRow(selectedItem)
+              }}
+              placeholder="Search medicine or pick from stock..."
+            />
+          </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-              <table className="w-full text-xs text-slate-700 dark:text-slate-300">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 uppercase text-slate-500 dark:text-slate-400">
-                    <th className="p-3 text-left">Item</th>
-                    <th className="p-3 text-left">Batch</th>
-                    <th className="p-3 text-right">Stock</th>
-                    <th className="p-3 text-right">Qty</th>
-                    <th className="p-3 text-right">Free</th>
-                    <th className="p-3 text-right">Rate</th>
-                    <th className="p-3 text-right">Disc%</th>
-                    <th className="p-3 text-right">Amount</th>
-                    <th className="p-3 text-center w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                  {items.map((item, i) => {
-                    const isActive = i === activeIndex
-                    return (
-                      <tr
-                        key={item.id}
-                        onClick={() => setActiveIndex(i)}
-                        className={cn(
-                          'transition cursor-pointer',
-                          isActive
-                            ? 'bg-indigo-50 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-400/60 dark:ring-indigo-500/40 border-l-4 border-l-indigo-500'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
-                        )}
-                      >
-                        <td className="p-3 font-medium text-foreground dark:text-white">
-                          {item.name}
-                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          {/* Empty State */}
+          {items.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-3 bg-muted/20">
+              <div className="w-10 h-10 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mx-auto">
+                <Pill size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0)
+                    ? 'This posted invoice has no item lines recorded in the database'
+                    : 'No items added to invoice yet'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isEditMode && existingInvoice && (!existingInvoice.lines || existingInvoice.lines.length === 0) && totals.grandTotal > 0
+                    ? `Recorded bill total is ${formatCurrency(totals.grandTotal)}. Search and add medicine items below if you wish to record detailed line items.`
+                    : 'Select from the Quick Add bar above or tap the button below'}
+                </p>
+              </div>
+              {isEditMode && totals.grandTotal > 0 && (
+                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-xs">
+                  <span>Recorded Bill Total:</span>
+                  <span className="font-mono text-base font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(totals.grandTotal)}</span>
+                </div>
+              )}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowItemSearch(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-semibold transition cursor-pointer"
+                >
+                  <Plus size={14} /> Browse All Available Items
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Mobile View: Touch-friendly item cards */}
+              <div className="space-y-3 block md:hidden">
+                {items.map((item, idx) => {
+                  const isActive = idx === activeIndex
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setActiveIndex(idx)}
+                      className={cn(
+                        'bg-card border rounded-xl p-3.5 space-y-3 cursor-pointer transition',
+                        isActive
+                          ? 'border-indigo-500 ring-1 ring-indigo-500/50'
+                          : 'border-border hover:border-border/80'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{item.name}</div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {item.manufacturer && (
                               <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
                                 {item.manufacturer}
                               </span>
                             )}
-                            {item.packing && (
-                              <span className="text-[11px] text-slate-400 font-normal">{item.packing}</span>
-                            )}
+                            <span className="text-[11px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
+                              Batch: {item.batch}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">Stock: {item.stock}</span>
                             {item.hsn && (
-                              <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
                                 HSN: {item.hsn} ({item.gst}% GST)
                               </span>
                             )}
                           </div>
-                        </td>
-                        <td className="p-3 font-mono text-amber-600 dark:text-amber-400 font-semibold">{item.batch}</td>
-                        <td className="p-3 text-right font-mono text-slate-500 dark:text-slate-400">{item.stock}</td>
-                        <td className="p-2 text-right">
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeRow(item.id)
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                        {/* Qty */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Qty</label>
                           <input
-                            id={`row-${i}-qty`}
+                            type="number"
                             min="0"
                             max={item.stock}
-                            type="number"
                             value={item.qty}
                             onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
                             onFocus={(e) => {
                               e.target.select()
-                              setActiveIndex(i)
+                              setActiveIndex(idx)
                             }}
-                            placeholder="0"
-                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                            onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
+                            className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
+                            inputMode="numeric"
                           />
-                        </td>
-                        <td className="p-2 text-right">
+                        </div>
+
+                        {/* Free Qty */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Free Qty</label>
                           <input
-                            id={`row-${i}-free`}
-                            min="0"
                             type="number"
+                            min="0"
                             value={item.free}
                             onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
                             onFocus={(e) => {
                               e.target.select()
-                              setActiveIndex(i)
+                              setActiveIndex(idx)
                             }}
-                            placeholder="0"
-                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                            onKeyDown={(e) => handleKeyDown(e, i, 'free')}
+                            className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
+                            inputMode="numeric"
                           />
-                        </td>
-                        <td className="p-2 text-right">
+                        </div>
+
+                        {/* Rate */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Rate (₹)</label>
                           <input
-                            id={`row-${i}-rate`}
-                            min="0"
                             type="number"
+                            min="0"
                             step="0.01"
                             value={item.rate === 0 ? '' : item.rate}
-                            onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
-                            onFocus={() => setActiveIndex(i)}
                             placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
-                            className="w-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                            onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
+                            onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                            onFocus={() => setActiveIndex(idx)}
+                            className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
+                            inputMode="decimal"
                           />
-                        </td>
-                        <td className="p-2 text-right">
+                        </div>
+
+                        {/* Discount */}
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Disc %</label>
                           <input
-                            id={`row-${i}-disc`}
+                            type="number"
                             min="0"
                             max="100"
-                            type="number"
-                            value={item.disc === 0 ? '' : item.disc}
-                            onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
-                            onFocus={() => setActiveIndex(i)}
-                            placeholder="0"
-                            className="w-20 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs"
-                            onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
+                            value={item.disc}
+                            onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value))}
+                            onFocus={() => setActiveIndex(idx)}
+                            className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
+                            inputMode="numeric"
                           />
-                        </td>
-                        <td className="p-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400">{formatCurrency(item.amount)}</td>
-                        <td className="p-3 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeRow(item.id)
-                            }}
-                            className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
-                            title="Remove item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
 
-            {/* Marg ERP Style Active Product Description & Inspection Panel */}
-            <ActiveProductDetailPanel
-              activeProduct={
-                activeItem
-                  ? {
+                      <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
+                        <span className="text-muted-foreground font-medium">Item Total:</span>
+                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">{formatCurrency(item.amount)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-xs text-slate-700 dark:text-slate-300 min-w-[960px]">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 uppercase text-slate-500 dark:text-slate-400">
+                      <th className="p-3 text-left min-w-[220px]">Item</th>
+                      <th className="p-3 text-left w-32 min-w-[110px]">Batch</th>
+                      <th className="p-3 text-right w-20 min-w-[70px]">Stock</th>
+                      <th className="p-3 text-right w-24 min-w-[85px]">Qty</th>
+                      <th className="p-3 text-right w-24 min-w-[85px]">Free</th>
+                      <th className="p-3 text-right w-28 min-w-[100px]">Rate</th>
+                      <th className="p-3 text-right w-24 min-w-[85px]">Disc%</th>
+                      <th className="p-3 text-right w-32 min-w-[110px]">Amount</th>
+                      <th className="p-3 text-center w-12 min-w-[48px]"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                    {items.map((item, i) => {
+                      const isActive = i === activeIndex
+                      return (
+                        <tr
+                          key={item.id}
+                          onClick={() => setActiveIndex(i)}
+                          className={cn(
+                            'transition cursor-pointer',
+                            isActive
+                              ? 'bg-indigo-50 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-400/60 dark:ring-indigo-500/40 border-l-4 border-l-indigo-500'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                          )}
+                        >
+                          <td className="p-3 font-medium text-foreground dark:text-white min-w-[220px]">
+                            {item.name}
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              {item.manufacturer && (
+                                <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
+                                  {item.manufacturer}
+                                </span>
+                              )}
+                              {item.packing && (
+                                <span className="text-[11px] text-slate-400 font-normal">{item.packing}</span>
+                              )}
+                              {item.hsn && (
+                                <span className="text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-1.5 py-0.5 rounded">
+                                  HSN: {item.hsn} ({item.gst}% GST)
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono text-amber-600 dark:text-amber-400 font-semibold min-w-[110px]">{item.batch}</td>
+                          <td className="p-3 text-right font-mono text-slate-500 dark:text-slate-400 min-w-[70px]">{item.stock}</td>
+                          <td className="p-2 text-right min-w-[85px]">
+                            <input
+                              id={`row-${i}-qty`}
+                              min="0"
+                              max={item.stock}
+                              type="number"
+                              value={item.qty}
+                              onChange={(e) => updateLine(item.id, 'qty', Number(e.target.value) || 0)}
+                              onFocus={(e) => {
+                                e.target.select()
+                                setActiveIndex(i)
+                              }}
+                              placeholder="0"
+                              className="w-full min-w-[75px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1.5 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              onKeyDown={(e) => handleKeyDown(e, i, 'qty')}
+                            />
+                          </td>
+                          <td className="p-2 text-right min-w-[85px]">
+                            <input
+                              id={`row-${i}-free`}
+                              min="0"
+                              type="number"
+                              value={item.free}
+                              onChange={(e) => updateLine(item.id, 'free', Number(e.target.value) || 0)}
+                              onFocus={(e) => {
+                                e.target.select()
+                                setActiveIndex(i)
+                              }}
+                              placeholder="0"
+                              className="w-full min-w-[75px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1.5 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              onKeyDown={(e) => handleKeyDown(e, i, 'free')}
+                            />
+                          </td>
+                          <td className="p-2 text-right min-w-[100px]">
+                            <input
+                              id={`row-${i}-rate`}
+                              min="0"
+                              type="number"
+                              step="0.01"
+                              value={item.rate === 0 ? '' : item.rate}
+                              onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                              onFocus={() => setActiveIndex(i)}
+                              placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
+                              className="w-full min-w-[95px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1.5 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
+                            />
+                          </td>
+                          <td className="p-2 text-right min-w-[85px]">
+                            <input
+                              id={`row-${i}-disc`}
+                              min="0"
+                              max="100"
+                              type="number"
+                              value={item.disc === 0 ? '' : item.disc}
+                              onChange={(e) => updateLine(item.id, 'disc', Number(e.target.value) || 0)}
+                              onFocus={() => setActiveIndex(i)}
+                              placeholder="0"
+                              className="w-full min-w-[75px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1.5 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              onKeyDown={(e) => handleKeyDown(e, i, 'disc')}
+                            />
+                          </td>
+                          <td className="p-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap min-w-[110px]">{formatCurrency(item.amount)}</td>
+                          <td className="p-3 text-center min-w-[48px]">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeRow(item.id)
+                              }}
+                              className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
+                              title="Remove item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Marg ERP Style Active Product Description & Inspection Panel */}
+              <ActiveProductDetailPanel
+                activeProduct={
+                  activeItem
+                    ? {
                       id: activeItem.itemId || activeItem.id,
                       code: activeItem.code,
                       name: activeItem.name,
@@ -1198,191 +1198,191 @@ export default function SaleEntry() {
                       refNo: existingInvoice?.invoiceNo || existingInvoice?.number,
                       date: existingInvoice?.date || new Date().toISOString().split('T')[0],
                     }
-                  : null
-              }
-              onDetailLoaded={(detail) => {
-                if (!activeItem) return
-                const detailSaleRate = Number(detail.saleRate || 0)
-                const detailMrp = Number(detail.mrp || 0)
-                const autoRate = detailSaleRate > 0 ? detailSaleRate : detailMrp
-                setItems((rows) =>
-                  rows.map((row) => {
-                    if (row.id !== activeItem.id) return row
-                    const updatedMrp = detailMrp > 0 ? detailMrp : (row.mrp || 0)
-                    const updatedPurchaseRate = Number(detail.purchaseRate || row.purchaseRate || 0)
-                    const updatedCostPrice = Number(detail.costPrice || row.costPrice || updatedPurchaseRate)
-                    const needsRate = (Number(row.rate) || 0) <= 0 && autoRate > 0
-                    const updatedRate = needsRate ? autoRate : row.rate
-                    const updatedAmount = needsRate
-                      ? (calculateInvoice([{ qty: Math.max(row.qty, 0), rate: updatedRate, discount: row.disc, gstRate: row.gst }]).lines[0]?.total ?? (row.qty * updatedRate))
-                      : row.amount
-                    return {
-                      ...row,
-                      rate: updatedRate,
-                      amount: updatedAmount,
-                      mrp: updatedMrp,
-                      purchaseRate: updatedPurchaseRate,
-                      costPrice: updatedCostPrice,
-                    }
-                  })
-                )
-              }}
-              billSummary={{
-                title: 'Bill Values & Ledger',
-                partyLabel: 'Customer',
-                partyName: customer,
-                partyBalance: customerBalance,
-                mrpValue: totalMrpValue,
-                valueOfGoods: totals.subtotal,
-                discount: totals.discountTotal,
-                gstTotal: totals.taxTotal,
-                grandTotal: totals.grandTotal,
-              }}
-              totalRows={items.length}
-              activeIndex={activeIndex}
-              emptyMessage="Select or focus on any item row to inspect live batch, warehouse stock, rates, composition and margins."
-            />
-          </>
-        )}
-      </div>
+                    : null
+                }
+                onDetailLoaded={(detail) => {
+                  if (!activeItem) return
+                  const detailSaleRate = Number(detail.saleRate || 0)
+                  const detailMrp = Number(detail.mrp || 0)
+                  const autoRate = detailSaleRate > 0 ? detailSaleRate : detailMrp
+                  setItems((rows) =>
+                    rows.map((row) => {
+                      if (row.id !== activeItem.id) return row
+                      const updatedMrp = detailMrp > 0 ? detailMrp : (row.mrp || 0)
+                      const updatedPurchaseRate = Number(detail.purchaseRate || row.purchaseRate || 0)
+                      const updatedCostPrice = Number(detail.costPrice || row.costPrice || updatedPurchaseRate)
+                      const needsRate = (Number(row.rate) || 0) <= 0 && autoRate > 0
+                      const updatedRate = needsRate ? autoRate : row.rate
+                      const updatedAmount = needsRate
+                        ? (calculateInvoice([{ qty: Math.max(row.qty, 0), rate: updatedRate, discount: row.disc, gstRate: row.gst }]).lines[0]?.total ?? (row.qty * updatedRate))
+                        : row.amount
+                      return {
+                        ...row,
+                        rate: updatedRate,
+                        amount: updatedAmount,
+                        mrp: updatedMrp,
+                        purchaseRate: updatedPurchaseRate,
+                        costPrice: updatedCostPrice,
+                      }
+                    })
+                  )
+                }}
+                billSummary={{
+                  title: 'Bill Values & Ledger',
+                  partyLabel: 'Customer',
+                  partyName: customer,
+                  partyBalance: customerBalance,
+                  mrpValue: totalMrpValue,
+                  valueOfGoods: totals.subtotal,
+                  discount: totals.discountTotal,
+                  gstTotal: totals.taxTotal,
+                  grandTotal: totals.grandTotal,
+                }}
+                totalRows={items.length}
+                activeIndex={activeIndex}
+                emptyMessage="Select or focus on any item row to inspect live batch, warehouse stock, rates, composition and margins."
+              />
+            </>
+          )}
+        </div>
 
-      {/* Invoice Totals */}
-      <div className="w-full sm:max-w-md sm:ml-auto grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-border dark:border-slate-800 bg-card dark:bg-slate-900 p-4 text-sm shadow-sm text-black dark:text-white">
-        <span className="text-black dark:text-slate-400 font-semibold">Subtotal</span>
-        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.subtotal)}</span>
-        <span className="text-black dark:text-slate-400 font-semibold">Discount</span>
-        <span className="text-right font-mono font-bold text-rose-600 dark:text-rose-400">-{formatCurrency(totals.discountTotal)}</span>
-        <span className="text-black dark:text-slate-400 font-semibold">GST</span>
-        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.taxTotal)}</span>
-        <span className="text-black dark:text-slate-400 font-semibold">Rounding</span>
-        <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.roundingAdjustment)}</span>
-        <div className="col-span-2 border-t border-border dark:border-slate-800 my-1"></div>
-        <span className="font-bold text-black dark:text-white text-base">Grand Total</span>
-        <span className="text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</span>
-        {isEditMode && items.length === 0 && totals.grandTotal > 0 && (
-          <div className="col-span-2 text-[11px] text-amber-600 dark:text-amber-400/90 text-right font-medium pt-1">
-            * Amount preserved from posted invoice record (no item lines in DB)
-          </div>
-        )}
-      </div>
+        {/* Invoice Totals */}
+        <div className="w-full sm:max-w-md sm:ml-auto grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-xl border border-border dark:border-slate-800 bg-card dark:bg-slate-900 p-4 text-sm shadow-sm text-black dark:text-white">
+          <span className="text-black dark:text-slate-400 font-semibold">Subtotal</span>
+          <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.subtotal)}</span>
+          <span className="text-black dark:text-slate-400 font-semibold">Discount</span>
+          <span className="text-right font-mono font-bold text-rose-600 dark:text-rose-400">-{formatCurrency(totals.discountTotal)}</span>
+          <span className="text-black dark:text-slate-400 font-semibold">GST</span>
+          <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.taxTotal)}</span>
+          <span className="text-black dark:text-slate-400 font-semibold">Rounding</span>
+          <span className="text-right font-mono font-bold text-black dark:text-white">{formatCurrency(totals.roundingAdjustment)}</span>
+          <div className="col-span-2 border-t border-border dark:border-slate-800 my-1"></div>
+          <span className="font-bold text-black dark:text-white text-base">Grand Total</span>
+          <span className="text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</span>
+          {isEditMode && items.length === 0 && totals.grandTotal > 0 && (
+            <div className="col-span-2 text-[11px] text-amber-600 dark:text-amber-400/90 text-right font-medium pt-1">
+              * Amount preserved from posted invoice record (no item lines in DB)
+            </div>
+          )}
+        </div>
 
-      {/* Search & Add Item Modal */}
-      {showItemSearch && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-          onClick={() => setShowItemSearch(false)}
-        >
+        {/* Search & Add Item Modal */}
+        {showItemSearch && (
           <div
-            className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+            onClick={() => setShowItemSearch(false)}
           >
-            <div className="p-4 border-b border-border bg-secondary/20 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Pill size={18} className="text-primary" />
-                <h3 className="text-base font-semibold text-foreground">Select Item / Medicine</h3>
+            <div
+              className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-border bg-secondary/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Pill size={18} className="text-primary" />
+                  <h3 className="text-base font-semibold text-foreground">Select Item / Medicine</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowItemSearch(false)}
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary hover:bg-secondary/80 transition cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowItemSearch(false)}
-                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary hover:bg-secondary/80 transition cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
 
-            <div className="p-3 border-b border-border bg-muted/40">
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={itemSearchQuery}
-                  onChange={(e) => setItemSearchQuery(e.target.value)}
-                  placeholder="Type to filter medicines or batch..."
-                  className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition"
-                />
+              <div className="p-3 border-b border-border bg-muted/40">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={itemSearchQuery}
+                    onChange={(e) => setItemSearchQuery(e.target.value)}
+                    placeholder="Type to filter medicines or batch..."
+                    className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="p-2 overflow-y-auto flex-1 divide-y divide-border/40">
-              {filteredItems.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">No available items found matching "{itemSearchQuery}"</div>
-              ) : (
-                filteredItems.map((item) => (
-                  <button
-                    key={`${item.label}-${item.batch}`}
-                    type="button"
-                    onClick={() => addRow(item)}
-                    className="w-full p-3 text-left rounded-xl hover:bg-secondary/70 transition flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <div className="text-sm font-semibold text-foreground group-hover:text-primary transition">{item.label}</div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        {item.manufacturer && (
-                          <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
-                            {item.manufacturer}
+              <div className="p-2 overflow-y-auto flex-1 divide-y divide-border/40">
+                {filteredItems.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground text-sm">No available items found matching "{itemSearchQuery}"</div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <button
+                      key={`${item.label}-${item.batch}`}
+                      type="button"
+                      onClick={() => addRow(item)}
+                      className="w-full p-3 text-left rounded-xl hover:bg-secondary/70 transition flex items-center justify-between group cursor-pointer"
+                    >
+                      <div>
+                        <div className="text-sm font-semibold text-foreground group-hover:text-primary transition">{item.label}</div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          {item.manufacturer && (
+                            <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
+                              {item.manufacturer}
+                            </span>
+                          )}
+                          {item.packing && <span>{item.packing}</span>}
+                          {item.salt && <span className="italic text-muted-foreground">{item.salt}</span>}
+                          <span className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">
+                            Batch: {item.batch}
                           </span>
-                        )}
-                        {item.packing && <span>{item.packing}</span>}
-                        {item.salt && <span className="italic text-muted-foreground">{item.salt}</span>}
-                        <span className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">
-                          Batch: {item.batch}
-                        </span>
-                        <span>Stock: {item.stock}</span>
+                          <span>Stock: {item.stock}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(item.rate)}</div>
-                      <span className="text-[10px] text-muted-foreground uppercase">GST: {item.gst}%</span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                      <div className="text-right">
+                        <div className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(item.rate)}</div>
+                        <span className="text-[10px] text-muted-foreground uppercase">GST: {item.gst}%</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
 
-            <div className="p-3 bg-secondary/30 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
-              <span>{filteredItems.length} items available</span>
-              <button
-                type="button"
-                onClick={() => setShowItemSearch(false)}
-                className="px-3 py-1 bg-secondary hover:bg-secondary/80 rounded-lg text-foreground font-medium cursor-pointer"
-              >
-                Close
-              </button>
+              <div className="p-3 bg-secondary/30 border-t border-border text-xs text-muted-foreground flex justify-between items-center">
+                <span>{filteredItems.length} items available</span>
+                <button
+                  type="button"
+                  onClick={() => setShowItemSearch(false)}
+                  className="px-3 py-1 bg-secondary hover:bg-secondary/80 rounded-lg text-foreground font-medium cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sticky Bottom Action Bar for Mobile Screen */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total ({items.length} items)</div>
-          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</div>
+        {/* Sticky Bottom Action Bar for Mobile Screen */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 shadow-2xl">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total ({items.length} items)</div>
+            <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(totals.grandTotal)}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowItemSearch(true)}
+              className="flex items-center gap-1 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border cursor-pointer"
+            >
+              <Plus size={14} /> Add Item
+            </button>
+            <button
+              type="button"
+              onClick={saveInvoice}
+              disabled={saving || !customer || !items.length}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md transition cursor-pointer"
+            >
+              <Save size={14} /> {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowItemSearch(true)}
-            className="flex items-center gap-1 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition border border-border cursor-pointer"
-          >
-            <Plus size={14} /> Add Item
-          </button>
-          <button
-            type="button"
-            onClick={saveInvoice}
-            disabled={saving || !customer || !items.length}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-md transition cursor-pointer"
-          >
-            <Save size={14} /> {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
 
-      {/* Desktop Keyboard Shortcuts Hint */}
-      <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 text-[10px] text-center uppercase tracking-widest text-muted-foreground z-30">
-        F2: Item Search | Enter: Next Field/Row | Alt+S: Save | Esc: Cancel
-      </div>
+        {/* Desktop Keyboard Shortcuts Hint */}
+        <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 text-[10px] text-center uppercase tracking-widest text-muted-foreground z-30">
+          F2: Item Search | Enter: Next Field/Row | Alt+S: Save | Esc: Cancel
+        </div>
       </div>
 
       {/* Print Preview Modal */}
