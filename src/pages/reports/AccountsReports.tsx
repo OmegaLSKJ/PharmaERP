@@ -44,11 +44,11 @@ export default function AccountsReports() {
       const [accountRows, voucherRows, saleRows, purchaseRows, seriesRows] = await Promise.all([
         getErp<Account[]>('accounts'), getErp<Voucher[]>('vouchers'), getErp<Invoice[]>('sales'), getErp<Invoice[]>('purchases'), getErp<Series[]>('series'),
       ])
-      setAccounts(accountRows || [])
-      setVouchers(voucherRows || [])
-      setSales(saleRows || [])
-      setPurchases(purchaseRows || [])
-      setSeries(seriesRows || [])
+      setAccounts(Array.isArray(accountRows) ? accountRows : [])
+      setVouchers(Array.isArray(voucherRows) ? voucherRows : [])
+      setSales(Array.isArray(saleRows) ? saleRows : [])
+      setPurchases(Array.isArray(purchaseRows) ? purchaseRows : [])
+      setSeries(Array.isArray(seriesRows) ? seriesRows : [])
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Could not load account reports.', 'error')
     } finally {
