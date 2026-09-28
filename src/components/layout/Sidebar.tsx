@@ -146,7 +146,7 @@ export default function Sidebar() {
 
   return (
     <aside className={cn(
-      'no-print h-screen flex flex-col shrink-0 z-20 md:z-20 max-md:z-50 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px] max-md:max-w-[85vw] shadow-2xl md:shadow-none',
+      'no-print h-screen [height:100dvh] flex flex-col shrink-0 z-20 md:z-20 max-md:z-50 transition-[width,transform] duration-200 ease-out sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-[280px] max-md:max-w-[85vw] shadow-2xl md:shadow-none',
       'bg-[hsl(var(--sidebar))] border-r border-border/80 text-[hsl(var(--sidebar-foreground))]',
       collapsed ? 'w-[60px]' : 'w-[240px]',
       mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
@@ -289,7 +289,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Sidebar Footer Controls */}
-      <div className="border-t border-border/80 p-2 space-y-0.5 shrink-0">
+      <div className="border-t border-border/80 p-2 space-y-0.5 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <NavLink to="/settings" title={collapsed ? 'Settings' : undefined}
           aria-label={collapsed ? 'Settings' : undefined}
           className={({ isActive }) => cn(
