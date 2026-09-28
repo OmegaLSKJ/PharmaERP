@@ -62,7 +62,7 @@ export default function CommandPalette() {
   if (!commandPaletteOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 px-3 sm:px-4" onClick={toggleCommandPalette}>
+    <div className="fixed top-14 inset-x-0 bottom-0 z-50 flex items-start justify-center pt-2 sm:pt-[15vh] px-3 sm:px-4" onClick={toggleCommandPalette}>
       <div className="absolute inset-0 bg-black/50" />
       <div className="glass-surface relative w-full max-w-[92vw] sm:max-w-md rounded-xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
