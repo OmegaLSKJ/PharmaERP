@@ -173,10 +173,8 @@ export default function Dashboard() {
         <KpiCard to="/transactions/sale" title="Pending Invoices" value={loading ? '…' : String(kpis.pendingInvoices)} change="Live" icon={ShoppingCart} trend="down" />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Sales Trend */}
-        <div className="lg:col-span-2 data-surface p-4">
+      {/* Charts Row — full width on all screens */}
+      <div className="data-surface p-4">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div>
               <h3 className="text-sm font-semibold">Monthly Sales vs Purchases</h3>
@@ -210,25 +208,10 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* Top Selling Items */}
-        <div className="data-surface p-4">
-          <h3 className="text-sm font-semibold mb-4">Top Selling Items</h3>
-          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topItems} layout="vertical" margin={{ left: 0 }}>
-                <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={100} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Bar dataKey="amount" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
       </div>
 
       {/* Tables Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Invoices */}
         <div className="data-surface">
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -291,6 +274,27 @@ export default function Dashboard() {
               )
             })}
           </div>
+        </div>
+
+        {/* Top Selling Items */}
+        <div className="data-surface p-4">
+          <h3 className="text-sm font-semibold mb-4">Top Selling Items</h3>
+          {topItems.length === 0 ? (
+            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground text-center px-4">
+              No sales data available yet.
+            </div>
+          ) : (
+            <div style={{ minHeight: 220, height: 'clamp(220px, 25vw, 360px)' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topItems} layout="vertical" margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={110} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Bar dataKey="amount" fill="hsl(221, 83%, 53%)" radius={[0, 5, 5, 0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
     </div>
