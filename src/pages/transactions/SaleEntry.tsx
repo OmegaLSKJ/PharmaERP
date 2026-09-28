@@ -257,12 +257,11 @@ export default function SaleEntry() {
     loadCatalog(false)
   }, [loadCatalog])
 
-  // Immediately receive item changes from this or another ERP window. The
-  // interval also catches changes made directly in Supabase.
+  // Immediately receive item, party, and batch changes from backend live sync
   useEffect(() => {
     const refreshCatalog = (event?: Event) => {
       const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
-      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches') {
+      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches' || mutation.resource === 'parties') {
         loadCatalog(true)
       }
     }
@@ -273,16 +272,16 @@ export default function SaleEntry() {
     const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('erp-resource-mutations') : null
 
     window.addEventListener('erp-resource-mutated', refreshCatalog)
+    window.addEventListener('erp-cache-revalidated', refreshCatalog)
     window.addEventListener('focus', refreshOnFocus)
     document.addEventListener('visibilitychange', refreshWhenVisible)
     if (channel) channel.onmessage = refreshCatalog
-    const intervalId = window.setInterval(() => loadCatalog(true), 15000)
 
     return () => {
       window.removeEventListener('erp-resource-mutated', refreshCatalog)
+      window.removeEventListener('erp-cache-revalidated', refreshCatalog)
       window.removeEventListener('focus', refreshOnFocus)
       document.removeEventListener('visibilitychange', refreshWhenVisible)
-      window.clearInterval(intervalId)
       channel?.close()
     }
   }, [loadCatalog])

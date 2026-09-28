@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Package, AlertTriangle, IndianRupee, ShoppingCart, Truck, Plus, ClipboardList, Zap, RefreshCw, BarChart2, LineChart as LineChartIcon, Calendar } from 'lucide-react'
+import { TrendingUp, TrendingDown, Package, AlertTriangle, IndianRupee, ShoppingCart, Truck, Plus, ClipboardList, BarChart2, LineChart as LineChartIcon, Calendar } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area, CartesianGrid } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
@@ -6,7 +6,6 @@ import { cn } from '../../lib/utils'
 import { useEffect, useState, useCallback } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
-import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 type DashboardData = {
@@ -204,8 +203,6 @@ export default function Dashboard() {
     }
   })
   const [loading, setLoading] = useState(() => !getCached('dashboard'))
-  const syncStatus = usePreloaderStore((s) => s.status)
-  const syncPercent = usePreloaderStore((s) => s.percent)
 
   const loadData = useCallback(async (force = false) => {
     try {
@@ -225,7 +222,6 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    void usePreloaderStore.getState().startPreload()
     loadData()
   }, [loadData])
 
@@ -248,21 +244,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Operations overview</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-            <p className="text-xs sm:text-sm text-muted-foreground">FY 2025-26 · March 2026 · Live operational view</p>
-            <span className="text-muted-foreground/40 hidden sm:inline">·</span>
-            {syncStatus === 'syncing' ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-medium">
-                <RefreshCw size={11} className="animate-spin" />
-                <span>Caching ERP data ({syncPercent}%)</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">
-                <Zap size={11} className="fill-emerald-400/20" />
-                <span>Instant Browser Cache Active</span>
-              </span>
-            )}
-          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 · March 2026 · Live operational view</p>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
           <a

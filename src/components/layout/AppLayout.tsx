@@ -6,9 +6,9 @@ import Toast from '../ui/Toast'
 import ErrorBoundary from '../common/ErrorBoundary'
 import { useAuthStore } from '../../store/authStore'
 import { useUIStore } from '../../store/uiStore'
-import { usePreloaderStore } from '../../lib/erpPreloader'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { useKeyboardFormNavigation } from '../../hooks/useKeyboardFormNavigation'
+import { useGlobalLiveSync } from '../../hooks/useGlobalLiveSync'
 import { useEffect, useRef } from 'react'
 
 export default function AppLayout() {
@@ -22,14 +22,9 @@ export default function AppLayout() {
   const mainRef = useRef<HTMLElement>(null)
   useKeyboardShortcuts()
   useKeyboardFormNavigation()
+  useGlobalLiveSync(isAuthenticated)
 
   useEffect(() => { void hydrate() }, [hydrate])
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      void usePreloaderStore.getState().startPreload()
-    }
-  }, [isAuthenticated])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')

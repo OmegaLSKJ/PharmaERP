@@ -194,7 +194,7 @@ export default function PurchaseEntry() {
   useEffect(() => {
     const refreshCatalog = (event?: Event) => {
       const mutation = (event as CustomEvent<{ resource?: string }> | undefined)?.detail
-      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches') {
+      if (!mutation || mutation.resource === 'items' || mutation.resource === 'item-batches' || mutation.resource === 'parties') {
         loadSuppliersAndItems(true)
       }
     }
@@ -205,16 +205,16 @@ export default function PurchaseEntry() {
     const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('erp-resource-mutations') : null
 
     window.addEventListener('erp-resource-mutated', refreshCatalog)
+    window.addEventListener('erp-cache-revalidated', refreshCatalog)
     window.addEventListener('focus', refreshOnFocus)
     document.addEventListener('visibilitychange', refreshWhenVisible)
     if (channel) channel.onmessage = refreshCatalog
-    const intervalId = window.setInterval(() => loadSuppliersAndItems(true), 15000)
 
     return () => {
       window.removeEventListener('erp-resource-mutated', refreshCatalog)
+      window.removeEventListener('erp-cache-revalidated', refreshCatalog)
       window.removeEventListener('focus', refreshOnFocus)
       document.removeEventListener('visibilitychange', refreshWhenVisible)
-      window.clearInterval(intervalId)
       channel?.close()
     }
   }, [loadSuppliersAndItems])
