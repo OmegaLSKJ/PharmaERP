@@ -107,6 +107,7 @@ export default function PurchaseEntry() {
   const [orderStatus, setOrderStatus] = useState<string>('received')
   const [items, setItems] = useState<LineItem[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [showSupplierSearch, setShowSupplierSearch] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -1275,13 +1276,26 @@ export default function PurchaseEntry() {
                         <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs whitespace-nowrap">
                           {formatCurrency(item.amount)}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center whitespace-nowrap">
                           <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveIndex(idx)
+                              setDetailModalOpen(true)
+                            }}
+                            className="mr-1 text-slate-400 hover:text-indigo-600 transition-colors p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                            title="Inspect item & batch details in pop-up"
+                          >
+                            <Info size={15} />
+                          </button>
+                          <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation()
                               removeItem(item.id)
                             }}
-                            className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-500/10 rounded-lg"
+                            className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-500/10 rounded-lg cursor-pointer"
                             title="Remove row"
                           >
                             <Trash2 size={15} />
@@ -1298,6 +1312,8 @@ export default function PurchaseEntry() {
 
         {/* Active Product Description & Totals Summary Panel (Marg ERP Style) */}
         <ActiveProductDetailPanel
+          open={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
           activeProduct={
             activeItem
               ? {

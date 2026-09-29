@@ -14,7 +14,8 @@ import {
   Sliders,
   X,
   CheckCircle,
-  Truck
+  Truck,
+  Info
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -43,6 +44,7 @@ export default function NegativeStock() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [itemsList, setItemsList] = useState<any[]>([])
   const [showAdjustModal, setShowAdjustModal] = useState(false)
   const [targetRow, setTargetRow] = useState<NegativeStockRow | null>(null)
@@ -380,7 +382,10 @@ export default function NegativeStock() {
               {filtered.map((d, idx) => (
                 <tr
                   key={d.id}
-                  onClick={() => setActiveIndex(idx)}
+                  onClick={() => {
+                    setActiveIndex(idx)
+                    setDetailModalOpen(true)
+                  }}
                   className={cn(
                     'transition-colors cursor-pointer',
                     idx === activeIndex
@@ -411,6 +416,18 @@ export default function NegativeStock() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveIndex(idx)
+                          setDetailModalOpen(true)
+                        }}
+                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
+                        title="Inspect Shortfall Batch Details (Popup)"
+                      >
+                        <Info size={13} />
+                      </button>
+                      <button
                         onClick={() => openTransactionWindow('/transactions/purchase/new')}
                         className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
                         title="Inward Missing Stock via Purchase Entry (opens in new window)"
@@ -433,9 +450,11 @@ export default function NegativeStock() {
         </div>
       )}
 
-      {/* Marg ERP Style Inspection Panel for Negative Stock */}
+      {/* Marg ERP Style Pop-up Inspection Panel for Negative Stock */}
       {filtered.length > 0 && (
         <ActiveProductDetailPanel
+          open={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
           activeProduct={
             activeRow
               ? {

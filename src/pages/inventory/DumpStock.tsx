@@ -14,7 +14,8 @@ import {
   X,
   CheckCircle,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -48,6 +49,7 @@ export default function DumpStock() {
   const [tab, setTab] = useState<'all' | 'expired' | 'dead' | 'breakage'>('all')
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
@@ -485,7 +487,10 @@ export default function DumpStock() {
               {filtered.map((d, idx) => (
                 <tr
                   key={d.id}
-                  onClick={() => setActiveIndex(idx)}
+                  onClick={() => {
+                    setActiveIndex(idx)
+                    setDetailModalOpen(true)
+                  }}
                   className={cn(
                     'transition-colors cursor-pointer',
                     idx === activeIndex
@@ -538,6 +543,18 @@ export default function DumpStock() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveIndex(idx)
+                          setDetailModalOpen(true)
+                        }}
+                        className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
+                        title="Inspect Dump Batch Details (Popup)"
+                      >
+                        <Info size={13} />
+                      </button>
+                      <button
                         onClick={() => openTransactionWindow('/transactions/purchase-return')}
                         className="p-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-lg text-xs font-semibold transition cursor-pointer"
                         title="Return to Supplier via Debit Note (opens in new window)"
@@ -566,9 +583,11 @@ export default function DumpStock() {
         </div>
       )}
 
-      {/* Marg ERP Style Inspection Panel for Dump Stock */}
+      {/* Marg ERP Style Pop-up Inspection Panel for Dump Stock */}
       {filtered.length > 0 && (
         <ActiveProductDetailPanel
+          open={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
           activeProduct={
             activeDumpItem
               ? {

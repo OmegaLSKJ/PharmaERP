@@ -20,6 +20,7 @@ import {
   X,
   Layers,
   RefreshCw,
+  Info,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import Typeahead from '../../components/ui/Typeahead'
@@ -60,7 +61,7 @@ export default function CounterSale() {
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
-  const [showDetailPanel, setShowDetailPanel] = useState(true)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [completedSale, setCompletedSale] = useState<{
     invoiceNo: string
     date: string
@@ -262,15 +263,14 @@ export default function CounterSale() {
 
   const updateQty = (name: string, batch: string, newQty: number) => {
     setCart((prev) =>
-      prev
-        .map((item) => {
-          if (item.name === name && item.batch === batch) {
-            const valid = Math.max(0, Math.min(newQty, item.stock))
-            return { ...item, qty: valid }
-          }
-          return item
-        })
-        .filter((item) => item.qty > 0)
+      prev.map((item) => {
+        if (item.name === name && item.batch === batch) {
+          const maxStock = item.stock > 0 ? item.stock : 999999
+          const valid = Math.max(0, Math.min(newQty, maxStock))
+          return { ...item, qty: valid }
+        }
+        return item
+      })
     )
   }
 
@@ -298,13 +298,18 @@ export default function CounterSale() {
       showToast('Cart is empty. Please add items first.')
       return
     }
+    const billableLines = cart.filter((line) => line.qty > 0)
+    if (billableLines.length === 0) {
+      showToast('All items in the cart have 0 quantity. Please set a quantity before checkout.')
+      return
+    }
     setSaving(true)
     try {
       const invoice = await postErp<{ id: string }>('sales', {
         party: 'Walk-in Retail Customer',
         total,
         paymentMode: pay,
-        lines: cart.map((line) => ({
+        lines: billableLines.map((line) => ({
           ...line,
           freeQty: 0,
           discount: 0,
@@ -315,7 +320,7 @@ export default function CounterSale() {
       const saleData = {
         invoiceNo: invoice?.id || `CS-${Date.now().toString().slice(-6)}`,
         date: new Date().toISOString().split('T')[0],
-        lines: [...cart],
+        lines: [...billableLines],
         total,
         paymentMode: pay,
       }
@@ -406,16 +411,16 @@ export default function CounterSale() {
 
             <button
               type="button"
-              onClick={() => setShowDetailPanel((v) => !v)}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border transition shadow-xs cursor-pointer active:scale-[0.98]',
-                showDetailPanel
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm hover:bg-blue-700'
-                  : 'bg-white dark:bg-slate-800 border-zinc-300 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-black dark:text-white hover:border-zinc-400'
-              )}
+              onClick={() => {
+                if (!activeItem && cart.length > 0) setActiveItem(cart[cart.length - 1])
+                else if (!activeItem && available.length > 0) setActiveItem(available[0])
+                setDetailModalOpen(true)
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 transition shadow-xs cursor-pointer active:scale-[0.98]"
+              title="Inspect medicine batch, rates, composition & margins in pop-up window"
             >
-              <Layers size={14} className={showDetailPanel ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'} />
-              <span>{showDetailPanel ? 'Margin & Salt Inspector (ON)' : 'Inspect Margin & Salt'}</span>
+              <Layers size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Inspect Margin & Salt (Popup)</span>
             </button>
 
             {completedSale && (
@@ -561,7 +566,10 @@ export default function CounterSale() {
                       return (
                         <div
                           key={`${item.name}-${item.batch}`}
-                          onClick={() => add(item)}
+                          onClick={() => {
+                            setActiveItem(item)
+                            add(item)
+                          }}
                           className={cn(
                             'group relative bg-white dark:bg-slate-900 border rounded-2xl p-3.5 flex flex-col justify-between transition-all duration-150 cursor-pointer shadow-xs hover:shadow-md select-none',
                             isSelected
@@ -575,11 +583,25 @@ export default function CounterSale() {
                               <h3 className="text-sm font-bold text-black dark:text-white line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {item.name}
                               </h3>
-                              {inCartQty !== undefined && inCartQty > 0 && (
-                                <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-600 text-white shadow-xs">
-                                  ×{inCartQty}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setActiveItem(item)
+                                    setDetailModalOpen(true)
+                                  }}
+                                  className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                                  title="Inspect product batch & margin"
+                                >
+                                  <Info size={13} />
+                                </button>
+                                {inCartQty !== undefined && inCartQty > 0 && (
+                                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-600 text-white shadow-xs">
+                                    ×{inCartQty}
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                           {/* Packing & Manufacturer / Composition */}
@@ -654,41 +676,39 @@ export default function CounterSale() {
               )}
             </div>
 
-            {/* Optional Marg ERP Active Product Description & Margin Panel */}
-            {showDetailPanel && (
-              <div className="mt-4">
-                <ActiveProductDetailPanel
-                  activeProduct={
-                    activeItem
-                      ? {
-                          name: activeItem.name,
-                          packing: activeItem.packing,
-                          manufacturer: activeItem.manufacturer,
-                          salt: activeItem.salt,
-                          hsn: activeItem.hsn,
-                          gstRate: activeItem.gst,
-                          batch: activeItem.batch,
-                          expiry: activeItem.expiry,
-                          stock: activeItem.stock,
-                          saleRate: activeItem.rate,
-                          mrp: activeItem.mrp,
-                          purchaseRate: activeItem.purchaseRate,
-                          refNo: 'POS-COUNTER',
-                          date: new Date().toISOString().split('T')[0],
-                        }
-                      : null
-                  }
-                  billSummary={{
-                    title: 'Counter Total',
-                    partyLabel: 'Customer',
-                    partyName: 'Walk-in Retail Customer',
-                    valueOfGoods: total,
-                    grandTotal: total,
-                  }}
-                  emptyMessage="Select or tap any medicine card to inspect live batch, warehouse stock, rates, composition and margins."
-                />
-              </div>
-            )}
+            {/* Pop-up Window for Product Description & Margin Panel */}
+            <ActiveProductDetailPanel
+              open={detailModalOpen}
+              onClose={() => setDetailModalOpen(false)}
+              activeProduct={
+                activeItem
+                  ? {
+                      name: activeItem.name,
+                      packing: activeItem.packing,
+                      manufacturer: activeItem.manufacturer,
+                      salt: activeItem.salt,
+                      hsn: activeItem.hsn,
+                      gstRate: activeItem.gst,
+                      batch: activeItem.batch,
+                      expiry: activeItem.expiry,
+                      stock: activeItem.stock,
+                      saleRate: activeItem.rate,
+                      mrp: activeItem.mrp,
+                      purchaseRate: activeItem.purchaseRate,
+                      refNo: 'POS-COUNTER',
+                      date: new Date().toISOString().split('T')[0],
+                    }
+                  : null
+              }
+              billSummary={{
+                title: 'Counter Total',
+                partyLabel: 'Customer',
+                partyName: 'Walk-in Retail Customer',
+                valueOfGoods: total,
+                grandTotal: total,
+              }}
+              emptyMessage="Select or tap any medicine card to inspect live batch, warehouse stock, rates, composition and margins."
+            />
           </div>
 
           {/* Right Column: High-Performance Retail Cart / Checkout Register (4 or 5 cols) */}
@@ -763,6 +783,11 @@ export default function CounterSale() {
                               {item.packing && (
                                 <span className="text-[10px] text-slate-400">{item.packing}</span>
                               )}
+                              {item.qty === 0 && (
+                                <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800/70">
+                                  Qty: 0
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -772,7 +797,7 @@ export default function CounterSale() {
                               e.stopPropagation()
                               removeItem(item.name, item.batch)
                             }}
-                            className="p-1 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            className="p-1 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
                             title="Remove from cart"
                           >
                             <X size={14} />
@@ -789,7 +814,8 @@ export default function CounterSale() {
                                 e.stopPropagation()
                                 updateQty(item.name, item.batch, item.qty - 1)
                               }}
-                              className="w-7 h-7 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold flex items-center justify-center transition shadow-2xs cursor-pointer"
+                              disabled={item.qty <= 0}
+                              className="w-7 h-7 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-800 dark:text-slate-200 font-bold flex items-center justify-center transition shadow-2xs cursor-pointer"
                               title="Decrease quantity"
                             >
                               <Minus size={13} />
@@ -797,15 +823,22 @@ export default function CounterSale() {
 
                             <input
                               type="number"
-                              min={1}
-                              max={item.stock}
+                              min={0}
+                              max={item.stock > 0 ? item.stock : undefined}
                               value={item.qty}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value, 10)
-                                if (!isNaN(val)) updateQty(item.name, item.batch, val)
+                                const raw = e.target.value
+                                if (raw === '') {
+                                  updateQty(item.name, item.batch, 0)
+                                } else {
+                                  const val = parseInt(raw, 10)
+                                  if (!isNaN(val)) updateQty(item.name, item.batch, Math.max(0, val))
+                                }
                               }}
+                              onFocus={(e) => e.target.select()}
                               onClick={(e) => e.stopPropagation()}
-                              className="w-9 text-center bg-transparent font-mono font-bold text-xs text-black dark:text-white outline-none"
+                              className="w-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-mono font-bold text-xs text-black dark:text-white outline-none focus:ring-1 focus:ring-blue-500 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              title="Click or tap to edit quantity"
                             />
 
                             <button
@@ -814,7 +847,7 @@ export default function CounterSale() {
                                 e.stopPropagation()
                                 updateQty(item.name, item.batch, item.qty + 1)
                               }}
-                              disabled={item.qty >= item.stock}
+                              disabled={item.stock > 0 && item.qty >= item.stock}
                               className="w-7 h-7 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-800 dark:text-slate-200 font-bold flex items-center justify-center transition shadow-2xs cursor-pointer"
                               title="Increase quantity"
                             >

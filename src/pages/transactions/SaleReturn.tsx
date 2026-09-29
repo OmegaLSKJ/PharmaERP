@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, Eye, RotateCcw, Printer, X } from 'lucide-react'
+import { Search, Plus, Eye, RotateCcw, Printer, X, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -38,6 +38,7 @@ export default function SaleReturn() {
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
 
   const load = () =>
@@ -232,7 +233,10 @@ export default function SaleReturn() {
               return (
                 <tr
                   key={s.id}
-                  onClick={() => setActiveIndex(idx)}
+                  onClick={() => {
+                    setActiveIndex(idx)
+                    setDetailModalOpen(true)
+                  }}
                   className={cn(
                     'transition cursor-pointer',
                     isActive ? 'bg-primary/10 ring-1 ring-inset ring-primary/40 border-l-4 border-l-primary' : 'hover:bg-secondary/40'
@@ -273,6 +277,19 @@ export default function SaleReturn() {
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
+                        aria-label={`Inspect ${s.returnNo}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveIndex(idx)
+                          setDetailModalOpen(true)
+                        }}
+                        className="p-1.5 hover:text-indigo-400 text-slate-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                        title="Inspect Return & Bill Values in Pop-up"
+                      >
+                        <Info size={14} />
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Print ${s.returnNo}`}
                         onClick={(e) => {
                           e.stopPropagation()
@@ -305,8 +322,10 @@ export default function SaleReturn() {
         </table>
       </div>
 
-      {/* Marg ERP Style Inspection Panel for Credit Notes / Returns */}
+      {/* Marg ERP Style Pop-up Inspection Panel for Credit Notes / Returns */}
       <ActiveProductDetailPanel
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
         activeProduct={
           activeReturn
             ? {

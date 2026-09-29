@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink } from 'lucide-react'
+import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -49,6 +49,7 @@ export default function ChallanEntry() {
   const [party, setParty] = useState('')
   const [lines, setLines] = useState<Line[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [transport, setTransport] = useState('Surface')
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
@@ -377,7 +378,10 @@ export default function ChallanEntry() {
                   return (
                     <tr
                       key={l.id}
-                      onClick={() => setActiveIndex(idx)}
+                      onClick={() => {
+                        setActiveIndex(idx)
+                        setDetailModalOpen(true)
+                      }}
                       className={cn(
                         'transition cursor-pointer',
                         isActive ? 'bg-cyan-500/10 ring-1 ring-inset ring-cyan-500/40 border-l-4 border-l-cyan-500' : 'hover:bg-secondary/40'
@@ -401,7 +405,20 @@ export default function ChallanEntry() {
                           className="w-full min-w-[80px] bg-background border border-border rounded px-2.5 py-1.5 text-right text-foreground font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          aria-label={`Inspect ${l.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveIndex(idx)
+                            setDetailModalOpen(true)
+                          }}
+                          className="mr-1 text-slate-400 hover:text-indigo-600 p-1 cursor-pointer transition"
+                          title="Inspect Product & Batch"
+                        >
+                          <Info size={14} />
+                        </button>
                         <button
                           aria-label={`Remove ${l.name}`}
                           onClick={(e) => {
@@ -420,8 +437,10 @@ export default function ChallanEntry() {
             </table>
           </div>
 
-          {/* Marg ERP Style Active Product Description & Inspection Panel */}
+          {/* Marg ERP Style Pop-up Product Description & Inspection Panel */}
           <ActiveProductDetailPanel
+            open={detailModalOpen}
+            onClose={() => setDetailModalOpen(false)}
             activeProduct={
               activeLine
                 ? {

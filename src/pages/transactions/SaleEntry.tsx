@@ -238,6 +238,7 @@ export default function SaleEntry() {
   })
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [itemSearchQuery, setItemSearchQuery] = useState('')
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [patientName, setPatientName] = useState(() => initialInvoice?.patientName || '')
   const [prescriberName, setPrescriberName] = useState(() => initialInvoice?.prescriberName || '')
@@ -703,7 +704,14 @@ export default function SaleEntry() {
         event.preventDefault()
         setShowItemSearch(true)
       }
-      if (event.key === 'Escape') setShowItemSearch(false)
+      if (event.key === 'F3' || (event.altKey && event.key.toLowerCase() === 'i')) {
+        event.preventDefault()
+        setDetailModalOpen((v) => !v)
+      }
+      if (event.key === 'Escape') {
+        setShowItemSearch(false)
+        setDetailModalOpen(false)
+      }
     }
     window.addEventListener('keydown', shortcut)
     return () => window.removeEventListener('keydown', shortcut)
@@ -1154,14 +1162,26 @@ export default function SaleEntry() {
                             />
                           </td>
                           <td className="p-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap min-w-[110px]">{formatCurrency(item.amount)}</td>
-                          <td className="p-3 text-center min-w-[48px]">
+                          <td className="p-3 text-center min-w-[70px] whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActiveIndex(i)
+                                setDetailModalOpen(true)
+                              }}
+                              className="p-1 mr-1 text-slate-400 hover:text-indigo-600 rounded transition cursor-pointer"
+                              title="Inspect Product & Batch Details (F3 / Alt+I)"
+                            >
+                              <Info size={14} />
+                            </button>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeRow(item.id)
                               }}
-                              className="p-1 text-slate-500 hover:text-rose-400 rounded transition"
+                              className="p-1 text-slate-500 hover:text-rose-400 rounded transition cursor-pointer"
                               title="Remove item"
                             >
                               <Trash2 size={14} />
@@ -1174,8 +1194,10 @@ export default function SaleEntry() {
                 </table>
               </div>
 
-              {/* Marg ERP Style Active Product Description & Inspection Panel */}
+              {/* Marg ERP Style Pop-up Product Description & Inspection Panel */}
               <ActiveProductDetailPanel
+                open={detailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
                 activeProduct={
                   activeItem
                     ? {

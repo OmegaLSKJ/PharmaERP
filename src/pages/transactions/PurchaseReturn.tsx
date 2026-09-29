@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, Printer, Eye, X } from 'lucide-react'
+import { Search, Plus, Printer, Eye, X, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -36,6 +36,7 @@ export default function PurchaseReturn() {
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
 
   const load = () =>
@@ -218,7 +219,10 @@ export default function PurchaseReturn() {
                 return (
                   <tr
                     key={s.id}
-                    onClick={() => setActiveIndex(idx)}
+                    onClick={() => {
+                      setActiveIndex(idx)
+                      setDetailModalOpen(true)
+                    }}
                     className={cn(
                       'transition cursor-pointer',
                       isActive ? 'bg-indigo-500/10 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-secondary/40'
@@ -238,6 +242,18 @@ export default function PurchaseReturn() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveIndex(idx)
+                            setDetailModalOpen(true)
+                          }}
+                          className="p-1.5 hover:text-indigo-400 text-slate-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                          title="Inspect Return & Bill Values in Pop-up"
+                        >
+                          <Info size={14} />
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -270,8 +286,10 @@ export default function PurchaseReturn() {
           </table>
         </div>
 
-        {/* Marg ERP Style Inspection Panel for Debit Notes / Returns */}
+        {/* Marg ERP Style Pop-up Inspection Panel for Debit Notes / Returns */}
         <ActiveProductDetailPanel
+          open={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
           activeProduct={
             activeReturn
               ? {

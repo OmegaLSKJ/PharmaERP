@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Download, Filter } from 'lucide-react'
+import { Search, Download, Filter, Info } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
@@ -59,6 +59,7 @@ export default function StockView() {
   const [activeIndex, setActiveIndex] = useState<number>(0)
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('all')
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
 
   const loadStock = useCallback((force = false) => {
@@ -93,14 +94,25 @@ export default function StockView() {
   return (
     <div className="p-6 space-y-4">
       <PrintHeader title="Batch Stock View" />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Stock View</h1>
-          <p className="text-sm text-muted-foreground mt-1">Batch-wise inventory &bull; {filtered.length} entries</p>
+          <p className="text-sm text-muted-foreground mt-1">Batch-wise inventory &bull; {filtered.length} entries &bull; Click any row to inspect details</p>
         </div>
-        <button onClick={() => exportVisibleTables('batch-stock', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
-          <Download size={16} /> Export
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDetailModalOpen(true)}
+            disabled={!activeStockItem}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Inspect selected batch details in pop-up window"
+          >
+            <Info size={16} /> Batch Details
+          </button>
+          <button onClick={() => exportVisibleTables('batch-stock', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
+            <Download size={16} /> Export
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -190,6 +202,7 @@ export default function StockView() {
                 <th className="text-right px-4 py-3 font-medium">Stock Qty</th>
                 <th className="text-right px-4 py-3 font-medium">Value</th>
                 <th className="text-left px-4 py-3 font-medium">Location</th>
+                <th className="text-right px-4 py-3 font-medium">Inspect</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-foreground">
@@ -199,7 +212,10 @@ export default function StockView() {
                 return (
                   <tr
                     key={item.id}
-                    onClick={() => setActiveIndex(idx)}
+                    onClick={() => {
+                      setActiveIndex(idx)
+                      setDetailModalOpen(true)
+                    }}
                     className={cn(
                       'cursor-pointer transition-colors',
                       isActive ? 'bg-indigo-500/10 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500' : 'hover:bg-secondary/40'
@@ -218,6 +234,20 @@ export default function StockView() {
                     <td className="px-4 py-3 text-right font-medium">{item.stock}</td>
                     <td className="px-4 py-3 text-right font-medium text-emerald-400">{formatCurrency(item.purchaseRate * item.stock)}</td>
                     <td className="px-4 py-3 text-slate-400">{item.location}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveIndex(idx)
+                          setDetailModalOpen(true)
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition shadow-2xs"
+                        title="Open pop-up details"
+                      >
+                        Inspect
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
@@ -226,8 +256,10 @@ export default function StockView() {
         </div>
       </div>
 
-      {/* Marg ERP Style Live Product Description & Batch Detail Panel */}
+      {/* Marg ERP Style Live Product Description & Batch Detail Popup Window */}
       <ActiveProductDetailPanel
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
         activeProduct={
           activeStockItem
             ? {

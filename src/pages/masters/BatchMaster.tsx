@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Edit2, Plus, Save, Trash2, X } from 'lucide-react'
+import { Edit2, Eye, Plus, Save, Trash2, X } from 'lucide-react'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
@@ -20,6 +20,7 @@ export default function BatchMaster() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState<number>(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const showToast = useUIStore((state) => state.showToast)
   const load = () => Promise.all([getErp<Item[]>('items'), getErp<Batch[]>('item-batches')]).then(([itemRows, batchRows]) => { setItems(itemRows); setBatches(batchRows) }).catch((error) => showToast(error instanceof Error ? error.message : 'Could not load batches.'))
@@ -60,12 +61,14 @@ export default function BatchMaster() {
     <div className="flex max-w-md items-center gap-2 rounded-lg border border-input bg-background px-3 py-2"><input className="w-full bg-transparent text-sm outline-none" placeholder="Search item, batch, supplier or rack…" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
     <div className="overflow-x-auto rounded-xl border border-border"><table className="min-w-[1500px] w-full text-left text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr><th className="p-3">Item / batch</th><th className="p-3">Stock</th><th className="p-3">MFG / expiry</th><th className="p-3">Cost / purchase / sale / MRP</th><th className="p-3">Schemes</th><th className="p-3">Supplier invoice</th><th className="p-3">Rack</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>{filtered.map((batch, idx) => {
       const isActive = idx === activeIndex
-      return <tr key={batch.id} onClick={() => setActiveIndex(idx)} className={cn("border-t border-border cursor-pointer transition-colors", isActive ? "bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500" : "hover:bg-muted/30")}><td className="p-3"><div className="font-medium">{batch.itemName}</div><div className="font-mono text-xs text-muted-foreground">{batch.itemCode} · {batch.batchNumber}</div></td><td className="p-3 font-mono">{batch.stock}</td><td className="p-3 text-xs">{batch.manufacturedOn || '—'}<br />{batch.expiryOn || '—'}</td><td className="p-3 text-xs leading-6">{money(batch.costPrice)} / {money(batch.purchasePrice)} / {money(batch.salePrice)} / {money(batch.mrp)}</td><td className="p-3 text-xs">Sales {batch.salesSchemeDeal}+{batch.salesSchemeFree}<br />Purchase {batch.purchaseSchemeDeal}+{batch.purchaseSchemeFree}</td><td className="p-3 text-xs">{batch.supplier || '—'}<br />{batch.supplierInvoiceNumber || '—'} {batch.supplierInvoiceDate ? `· ${batch.supplierInvoiceDate}` : ''}</td><td className="p-3">{batch.rackNumber || '—'}</td><td className="p-3 text-right"><button aria-label={`Edit ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); edit(batch) }} className="mr-2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"><Edit2 size={16} /></button><button aria-label={`Delete ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); remove(batch) }} className="rounded p-1 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={16} /></button></td></tr>
+      return <tr key={batch.id} onClick={() => { setActiveIndex(idx); setDetailModalOpen(true); }} className={cn("border-t border-border cursor-pointer transition-colors", isActive ? "bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/40 border-l-4 border-l-indigo-500" : "hover:bg-muted/30")}><td className="p-3"><div className="font-medium">{batch.itemName}</div><div className="font-mono text-xs text-muted-foreground">{batch.itemCode} · {batch.batchNumber}</div></td><td className="p-3 font-mono">{batch.stock}</td><td className="p-3 text-xs">{batch.manufacturedOn || '—'}<br />{batch.expiryOn || '—'}</td><td className="p-3 text-xs leading-6">{money(batch.costPrice)} / {money(batch.purchasePrice)} / {money(batch.salePrice)} / {money(batch.mrp)}</td><td className="p-3 text-xs">Sales {batch.salesSchemeDeal}+{batch.salesSchemeFree}<br />Purchase {batch.purchaseSchemeDeal}+{batch.purchaseSchemeFree}</td><td className="p-3 text-xs">{batch.supplier || '—'}<br />{batch.supplierInvoiceNumber || '—'} {batch.supplierInvoiceDate ? `· ${batch.supplierInvoiceDate}` : ''}</td><td className="p-3">{batch.rackNumber || '—'}</td><td className="p-3 text-right"><button type="button" aria-label={`Inspect ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); setActiveIndex(idx); setDetailModalOpen(true); }} className="mr-2 rounded p-1 text-indigo-400 hover:bg-muted hover:text-indigo-300" title="Inspect Batch Details (Popup)"><Eye size={16} /></button><button aria-label={`Edit ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); edit(batch) }} className="mr-2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"><Edit2 size={16} /></button><button aria-label={`Delete ${batch.batchNumber}`} onClick={(e) => { e.stopPropagation(); remove(batch) }} className="rounded p-1 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={16} /></button></td></tr>
     })}</tbody></table></div>
 
-    {/* Marg ERP Style Inspection Panel for Batch Master */}
+    {/* Marg ERP Style Pop-up Inspection Panel for Batch Master */}
     {filtered.length > 0 && (
       <ActiveProductDetailPanel
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
         activeProduct={
           activeBatch
             ? {
