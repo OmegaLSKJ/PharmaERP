@@ -907,6 +907,31 @@ async function backfillMissingDbItemHsn(
   }
 }
 
+async function backfillMissingDbItemRates(
+  client: any,
+  organizationId: string,
+  itemsToUpdate: Array<{ id: string; mrp: number; sale_rate: number; purchase_rate: number }>
+) {
+  if (!itemsToUpdate || itemsToUpdate.length === 0) return
+  try {
+    for (const item of itemsToUpdate) {
+      const updateData: any = {}
+      if (item.mrp > 0) updateData.mrp = item.mrp
+      if (item.sale_rate > 0) updateData.sale_rate = item.sale_rate
+      if (item.purchase_rate > 0) updateData.purchase_rate = item.purchase_rate
+      if (Object.keys(updateData).length > 0) {
+        await client
+          .from('items')
+          .update(updateData)
+          .eq('id', item.id)
+          .eq('organization_id', organizationId)
+      }
+    }
+  } catch (err) {
+    console.warn('backfillMissingDbItemRates warning:', err)
+  }
+}
+
 
 // Load persisted transaction data (ledgers, vouchers, sales, purchases, challans)
 try {
@@ -1584,11 +1609,70 @@ async function syncItemBatchesAndStock(
 }
 
 async function stock(client: ReturnType<typeof db>, organizationId: string, line: Line) {
-  const { data: i } = await client.from('items').select('id').eq('organization_id', organizationId).eq('name', line.name).maybeSingle()
-  const itemId = i?.id ?? (await client.from('items').insert({ organization_id: organizationId, code: `ITM-${Date.now()}`, name: line.name, mrp: +line.rate, sale_rate: +line.rate }).select('id').single()).data?.id
-  const batchNumber = line.batch || 'UNSPECIFIED'
-  const { data: b } = await client.from('item_batches').select('id').eq('item_id', itemId!).eq('batch_number', batchNumber).maybeSingle()
-  const batchId = b?.id ?? (await client.from('item_batches').insert({ item_id: itemId!, batch_number: batchNumber, expiry_on: normalizeExpiryDate(line.expiry), mrp: +(line.mrp ?? line.rate) }).select('id').single()).data?.id
+  const lineRate = Number(line.rate ?? 0)
+  const lineMrp = Number(line.mrp ?? 0)
+  const lineSaleRate = Number((line as any).saleRate ?? 0)
+  const lineCode = (line as any).itemCode || (line as any).code
+
+  let itemQuery = client.from('items').select('id,mrp,sale_rate,purchase_rate').eq('organization_id', organizationId)
+  if (lineCode) {
+    itemQuery = itemQuery.eq('code', lineCode)
+  } else {
+    itemQuery = itemQuery.ilike('name', (line.name || '').trim())
+  }
+  const { data: i } = await itemQuery.maybeSingle()
+
+  let itemId = i?.id
+  if (!itemId) {
+    const { data: newItem } = await client.from('items').insert({
+      organization_id: organizationId,
+      code: lineCode || `ITM-${Date.now()}`,
+      name: line.name,
+      mrp: lineMrp > 0 ? lineMrp : lineRate,
+      sale_rate: lineSaleRate > 0 ? lineSaleRate : lineRate,
+      purchase_rate: lineRate
+    }).select('id').single()
+    itemId = newItem?.id
+  } else {
+    const itemUpdate: any = {}
+    if (lineMrp > 0 && (!i?.mrp || Number(i?.mrp) === 0)) itemUpdate.mrp = lineMrp
+    if (lineSaleRate > 0 && (!i?.sale_rate || Number(i?.sale_rate) === 0)) itemUpdate.sale_rate = lineSaleRate
+    if (lineRate > 0 && (!i?.purchase_rate || Number(i?.purchase_rate) === 0)) itemUpdate.purchase_rate = lineRate
+    if (Object.keys(itemUpdate).length > 0) {
+      await client.from('items').update(itemUpdate).eq('id', itemId).eq('organization_id', organizationId)
+    }
+  }
+
+  const batchNumber = (line.batch || 'UNSPECIFIED').trim()
+  const { data: b } = await client.from('item_batches').select('id,mrp,purchase_price,sale_price,expiry_on').eq('item_id', itemId!).eq('batch_number', batchNumber).maybeSingle()
+  let batchId = b?.id
+  const batchExpiry = normalizeExpiryDate(line.expiry)
+  const batchMrp = lineMrp > 0 ? lineMrp : lineRate
+  const batchPurchasePrice = lineRate
+  const batchSalePrice = lineSaleRate > 0 ? lineSaleRate : (lineMrp > 0 ? lineMrp : lineRate)
+
+  if (!batchId) {
+    const { data: newBatch } = await client.from('item_batches').insert({
+      item_id: itemId!,
+      batch_number: batchNumber,
+      expiry_on: batchExpiry,
+      mrp: batchMrp,
+      cost_price: batchPurchasePrice,
+      purchase_price: batchPurchasePrice,
+      sale_price: batchSalePrice
+    }).select('id').single()
+    batchId = newBatch?.id
+  } else {
+    const batchUpdate: any = {}
+    if (batchMrp > 0) batchUpdate.mrp = batchMrp
+    if (batchPurchasePrice > 0) batchUpdate.purchase_price = batchPurchasePrice
+    if (batchSalePrice > 0) batchUpdate.sale_price = batchSalePrice
+    if (batchExpiry) batchUpdate.expiry_on = batchExpiry
+    if (Object.keys(batchUpdate).length > 0) {
+      await client.from('item_batches').update(batchUpdate).eq('id', batchId)
+    }
+  }
+
   const warehouseId = await getOrCreateDefaultWarehouse(client, organizationId)
   if (!itemId || !batchId || !warehouseId) throw new Error('Unable to create inventory data.')
   return { itemId, batchId, warehouseId }
@@ -2289,6 +2373,7 @@ export async function list(resource: string, partyName?: string, options?: { man
     }
     const data = await fetchAll<any>((from, to) => query.order('name').range(from, to))
     const unmappedToBackfill: Array<{ id: string; code?: string; name: string }> = []
+    const ratesToBackfill: Array<{ id: string; mrp: number; sale_rate: number; purchase_rate: number }> = []
     let dbItems = (data ?? []).map((i: any) => {
       let hsn = i.hsn_codes?.code ?? ''
       let gstRate = Number(i.hsn_codes?.gst_rate ?? 0)
@@ -2298,6 +2383,23 @@ export async function list(resource: string, partyName?: string, options?: { man
         gstRate = resolved.gstRate
         unmappedToBackfill.push({ id: i.id, code: i.code, name: i.name })
       }
+      const rawBatches = Array.isArray(i.item_batches) ? i.item_batches : []
+      const activeBatch = rawBatches.find((b: any) => Number(b.mrp ?? 0) > 0 || Number(b.purchase_price ?? 0) > 0 || Number(b.sale_price ?? 0) > 0) || rawBatches[0]
+      const resolvedMrp = Number(i.mrp) > 0 ? Number(i.mrp) : Number(activeBatch?.mrp ?? 0)
+      const resolvedSaleRate = Number(i.sale_rate) > 0 ? Number(i.sale_rate) : Number(activeBatch?.sale_price ?? 0)
+      const resolvedPurchaseRate = Number(i.purchase_rate) > 0 ? Number(i.purchase_rate) : Number(activeBatch?.purchase_price ?? activeBatch?.cost_price ?? 0)
+
+      if (((!i.mrp || Number(i.mrp) === 0) && resolvedMrp > 0) ||
+          ((!i.purchase_rate || Number(i.purchase_rate) === 0) && resolvedPurchaseRate > 0) ||
+          ((!i.sale_rate || Number(i.sale_rate) === 0) && resolvedSaleRate > 0)) {
+        ratesToBackfill.push({
+          id: i.id,
+          mrp: resolvedMrp,
+          sale_rate: resolvedSaleRate,
+          purchase_rate: resolvedPurchaseRate
+        })
+      }
+
       return {
         id: i.id,
         code: i.code,
@@ -2310,9 +2412,9 @@ export async function list(resource: string, partyName?: string, options?: { man
         salt: i.salts?.name ?? '',
         hsn,
         gstRate,
-        mrp: Number(i.mrp),
-        saleRate: Number(i.sale_rate),
-        purchaseRate: Number(i.purchase_rate),
+        mrp: resolvedMrp,
+        saleRate: resolvedSaleRate,
+        purchaseRate: resolvedPurchaseRate,
         scheduleClass: i.schedule_class,
         prescriptionRequired: i.prescription_required,
         coldChain: i.cold_chain,
@@ -2357,6 +2459,11 @@ export async function list(resource: string, partyName?: string, options?: { man
     if (unmappedToBackfill.length > 0) {
       // Trigger non-blocking asynchronous backfill to Supabase
       backfillMissingDbItemHsn(client, organizationId, unmappedToBackfill).catch(() => {})
+    }
+
+    if (ratesToBackfill.length > 0) {
+      // Trigger non-blocking asynchronous backfill of rates to Supabase
+      backfillMissingDbItemRates(client, organizationId, ratesToBackfill).catch(() => {})
     }
 
     if (!isFiltered) {
@@ -3885,6 +3992,38 @@ export async function create(resource: string, body: any, actor: MutationActor =
         p_request_id: actor.requestId ?? null
       })
       if (error) throw error
+
+      for (const line of (body.lines || [])) {
+        try {
+          const { itemId, batchId } = await stock(client, organizationId, line)
+          if (batchId) {
+            const bUp: any = {}
+            if (line.mrp && Number(line.mrp) > 0) bUp.mrp = Number(line.mrp)
+            if (line.saleRate && Number(line.saleRate) > 0) bUp.sale_price = Number(line.saleRate)
+            if (line.rate && Number(line.rate) > 0) bUp.purchase_price = Number(line.rate)
+            if (line.expiry) bUp.expiry_on = normalizeExpiryDate(line.expiry)
+            if (Object.keys(bUp).length > 0) {
+              await client.from('item_batches').update(bUp).eq('id', batchId)
+            }
+          }
+          if (itemId) {
+            const iUp: any = {}
+            if (line.mrp && Number(line.mrp) > 0) iUp.mrp = Number(line.mrp)
+            if (line.saleRate && Number(line.saleRate) > 0) iUp.sale_rate = Number(line.saleRate)
+            if (line.rate && Number(line.rate) > 0) iUp.purchase_rate = Number(line.rate)
+            if (Object.keys(iUp).length > 0) {
+              await client.from('items').update(iUp).eq('id', itemId).eq('organization_id', organizationId)
+            }
+          }
+        } catch (e) {
+          console.warn('Sync purchase line warning:', e)
+        }
+      }
+
+      serverResourceCache.delete(`items_${organizationId}`)
+      serverResourceCache.delete(`stock_${organizationId}`)
+      serverResourceCache.delete(`purchases_${organizationId}`)
+
       return data
     } catch (rpcError: any) {
       console.warn('erp_post_invoice purchases fallback to table insert:', rpcError)
@@ -3915,6 +4054,27 @@ export async function create(resource: string, body: any, actor: MutationActor =
           const free = Number(line.free || line.freeQty || 0)
           const rate = Number(line.rate || 0)
           const lineTotal = Number(line.amount || (qty * rate))
+
+          if (batchId) {
+            const bUp: any = {}
+            if (line.mrp && Number(line.mrp) > 0) bUp.mrp = Number(line.mrp)
+            if (line.saleRate && Number(line.saleRate) > 0) bUp.sale_price = Number(line.saleRate)
+            if (rate > 0) bUp.purchase_price = rate
+            if (line.expiry) bUp.expiry_on = normalizeExpiryDate(line.expiry)
+            if (Object.keys(bUp).length > 0) {
+              await client.from('item_batches').update(bUp).eq('id', batchId)
+            }
+          }
+          if (itemId) {
+            const iUp: any = {}
+            if (line.mrp && Number(line.mrp) > 0) iUp.mrp = Number(line.mrp)
+            if (line.saleRate && Number(line.saleRate) > 0) iUp.sale_rate = Number(line.saleRate)
+            if (rate > 0) iUp.purchase_rate = rate
+            if (Object.keys(iUp).length > 0) {
+              await client.from('items').update(iUp).eq('id', itemId).eq('organization_id', organizationId)
+            }
+          }
+
           await client.from('purchase_invoice_lines').insert({
             invoice_id: inv.id,
             item_id: itemId,
@@ -3942,6 +4102,10 @@ export async function create(resource: string, body: any, actor: MutationActor =
       } catch (lineErr) {
         console.warn('Fallback line insertion non-fatal warning:', lineErr)
       }
+
+      serverResourceCache.delete(`items_${organizationId}`)
+      serverResourceCache.delete(`stock_${organizationId}`)
+      serverResourceCache.delete(`purchases_${organizationId}`)
 
       return { ...body, id: inv.invoice_number, dbId: inv.id }
     }
@@ -4255,6 +4419,27 @@ export async function update(resource: string, id: string, body: any, actor: Mut
           }
           persistTransactions()
         }
+        if (resource === 'purchases' && Array.isArray(body.lines)) {
+          for (const line of body.lines) {
+            const itm = (mockStore.items || []).find((x: any) => x.id === line.id || x.name === line.name || x.code === line.code || x.code === line.itemCode)
+            if (itm) {
+              if (line.mrp && Number(line.mrp) > 0) itm.mrp = Number(line.mrp)
+              if (line.saleRate && Number(line.saleRate) > 0) itm.saleRate = Number(line.saleRate)
+              if (line.rate && Number(line.rate) > 0) itm.purchaseRate = Number(line.rate)
+              const batchNum = line.batch || 'UNSPECIFIED'
+              if (Array.isArray(itm.batches)) {
+                const b = itm.batches.find((b: any) => b.batch === batchNum || b.batchNumber === batchNum)
+                if (b) {
+                  if (line.mrp && Number(line.mrp) > 0) b.mrp = Number(line.mrp)
+                  if (line.saleRate && Number(line.saleRate) > 0) b.salePrice = Number(line.saleRate)
+                  if (line.rate && Number(line.rate) > 0) b.purchasePrice = Number(line.rate)
+                  if (line.expiry) b.expiry = line.expiry
+                }
+              }
+              persistCustomItem(itm)
+            }
+          }
+        }
         if (resource === 'sales' || resource === 'purchases' || resource === 'challans' || resource === 'orders') {
           persistTransactions()
         }
@@ -4360,12 +4545,22 @@ export async function update(resource: string, id: string, body: any, actor: Mut
 
         if (batchId) {
           const batchUpdate: any = {}
-          if (line.mrp) batchUpdate.mrp = Number(line.mrp)
-          if (line.saleRate) batchUpdate.sale_price = Number(line.saleRate)
-          if (rate) batchUpdate.purchase_price = rate
+          if (line.mrp && Number(line.mrp) > 0) batchUpdate.mrp = Number(line.mrp)
+          if (line.saleRate && Number(line.saleRate) > 0) batchUpdate.sale_price = Number(line.saleRate)
+          if (rate > 0) batchUpdate.purchase_price = rate
           if (line.expiry) batchUpdate.expiry_on = normalizeExpiryDate(line.expiry)
           if (Object.keys(batchUpdate).length > 0) {
             await client.from('item_batches').update(batchUpdate).eq('id', batchId)
+          }
+        }
+
+        if (itemId) {
+          const itemUpdate: any = {}
+          if (line.mrp && Number(line.mrp) > 0) itemUpdate.mrp = Number(line.mrp)
+          if (line.saleRate && Number(line.saleRate) > 0) itemUpdate.sale_rate = Number(line.saleRate)
+          if (rate > 0) itemUpdate.purchase_rate = Number(rate)
+          if (Object.keys(itemUpdate).length > 0) {
+            await client.from('items').update(itemUpdate).eq('id', itemId).eq('organization_id', organizationId)
           }
         }
 
@@ -4459,6 +4654,10 @@ export async function update(resource: string, id: string, body: any, actor: Mut
         metadata: { reason: body.reason || 'Purchase updated by user' },
       })
     } catch {}
+
+    serverResourceCache.delete(`items_${organizationId}`)
+    serverResourceCache.delete(`stock_${organizationId}`)
+    serverResourceCache.delete(`purchases_${organizationId}`)
 
     return {
       ...body,

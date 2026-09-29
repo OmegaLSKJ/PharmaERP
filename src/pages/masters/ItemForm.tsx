@@ -59,6 +59,11 @@ export default function ItemForm() {
             ? Number(item.gstRate)
             : getGstRateForHsn(item.hsn)
 
+          const activeBatch = batchList.find((b: any) => Number(b.mrp || 0) > 0 || Number(b.purchasePrice || b.purchaseRate || 0) > 0 || Number(b.salePrice || b.saleRate || 0) > 0) || batchList[0]
+          const resolvedMrp = Number(item.mrp || 0) > 0 ? Number(item.mrp) : Number(activeBatch?.mrp || 0)
+          const resolvedPurchaseRate = Number(item.purchaseRate || 0) > 0 ? Number(item.purchaseRate) : Number(activeBatch?.purchasePrice ?? activeBatch?.purchaseRate ?? activeBatch?.costPrice ?? 0)
+          const resolvedSaleRate = Number(item.saleRate || 0) > 0 ? Number(item.saleRate) : Number(activeBatch?.salePrice ?? activeBatch?.saleRate ?? activeBatch?.rate ?? 0)
+
           setForm({
             code: item.code ?? '',
             name: item.name,
@@ -69,9 +74,9 @@ export default function ItemForm() {
             hsn: item.hsn ?? '',
             gstRate: resolvedGst,
             stock: initialStock,
-            mrp: Number(item.mrp || 0),
-            saleRate: Number(item.saleRate || 0),
-            purchaseRate: Number(item.purchaseRate || 0),
+            mrp: resolvedMrp,
+            saleRate: resolvedSaleRate,
+            purchaseRate: resolvedPurchaseRate,
             status: item.status === 'banned' ? 'banned' : 'active',
             scheduleClass: item.scheduleClass ?? 'OTC',
             prescriptionRequired: Boolean(item.prescriptionRequired),
@@ -185,6 +190,11 @@ export default function ItemForm() {
       finalBatches[0] = { ...finalBatches[0], stock: totalStock }
     }
 
+    const activeBatchForRates = finalBatches.find((b: any) => Number(b.mrp || 0) > 0 || Number(b.purchasePrice || b.purchaseRate || 0) > 0 || Number(b.salePrice || b.saleRate || 0) > 0) || finalBatches[0]
+    const effectiveMrp = Number(form.mrp || 0) > 0 ? Number(form.mrp) : Number(activeBatchForRates?.mrp || 0)
+    const effectivePurchaseRate = Number(form.purchaseRate || 0) > 0 ? Number(form.purchaseRate) : Number(activeBatchForRates?.purchasePrice ?? activeBatchForRates?.purchaseRate ?? activeBatchForRates?.costPrice ?? 0)
+    const effectiveSaleRate = Number(form.saleRate || 0) > 0 ? Number(form.saleRate) : Number(activeBatchForRates?.salePrice ?? activeBatchForRates?.saleRate ?? activeBatchForRates?.rate ?? 0)
+
     const payload = {
       ...form,
       name: form.name.trim(),
@@ -196,9 +206,9 @@ export default function ItemForm() {
       hsn: form.hsn.trim(),
       gstRate: Number(form.gstRate ?? getGstRateForHsn(form.hsn)),
       stock: totalStock,
-      mrp: Number(form.mrp || 0),
-      saleRate: Number(form.saleRate || 0),
-      purchaseRate: Number(form.purchaseRate || 0),
+      mrp: effectiveMrp,
+      saleRate: effectiveSaleRate,
+      purchaseRate: effectivePurchaseRate,
       batches: finalBatches,
       batchCount: finalBatches.length
     }
