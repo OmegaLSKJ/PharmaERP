@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 
@@ -146,6 +147,15 @@ export default function ActiveProductDetailPanel({
   }, [])
 
   useEffect(() => {
+    if (!detailOpen || typeof document === 'undefined') return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [detailOpen])
+
+  useEffect(() => {
     if (!activeProduct || !activeProduct.name) {
       setLiveDetail(null)
       setLiveError('')
@@ -195,10 +205,11 @@ export default function ActiveProductDetailPanel({
 
   const renderModal = () => {
     if (!detailOpen) return null
+    if (typeof document === 'undefined') return null
 
-    return (
+    return createPortal(
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-3 sm:p-5 backdrop-blur-sm animate-in fade-in duration-150"
+        className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/75 p-3 sm:p-5 backdrop-blur-sm animate-in fade-in duration-150"
         role="presentation"
         onMouseDown={() => setDetailOpen(false)}
       >
@@ -358,7 +369,8 @@ export default function ActiveProductDetailPanel({
             )}
           </div>
         </section>
-      </div>
+      </div>,
+      document.body
     )
   }
 
