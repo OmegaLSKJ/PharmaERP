@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, ReactNode } from 'react'
+import { useRef, useEffect, ReactNode, useCallback } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -6,8 +6,9 @@ import {
   ChevronsRight,
   MoveHorizontal
 } from 'lucide-react'
+import { cn } from '../../lib/utils'
 
-interface ColumnShortcut {
+export interface ColumnShortcut {
   label: string
   offsetPercent: number
 }
@@ -33,22 +34,54 @@ export default function TopTableScroller({
 }: TopTableScrollerProps) {
   const topScrollRef = useRef<HTMLDivElement>(null)
   const bottomScrollRef = useRef<HTMLDivElement>(null)
-  const [scrollWidth, setScrollWidth] = useState<number>(2000)
-  const [clientWidth, setClientWidth] = useState<number>(1000)
-  const [scrollLeft, setScrollLeft] = useState<number>(0)
-  const [isSyncing, setIsSyncing] = useState<boolean>(false)
+  const topDummyRef = useRef<HTMLDivElement>(null)
+  const percentRef = useRef<HTMLSpanElement>(null)
+  const isSyncingRef = useRef<boolean>(false)
 
-  // Measure content and container width dynamically
-  useEffect(() => {
+  const updatePercentIndicator = useCallback((scrollLeft: number) => {
     const bottomEl = bottomScrollRef.current
-    if (!bottomEl) return
+    if (!bottomEl || !percentRef.current) return
+    const maxScroll = Math.max(1, bottomEl.scrollWidth - bottomEl.clientWidth)
+    const pct = Math.min(100, Math.max(0, Math.round((scrollLeft / maxScroll) * 100)))
+    percentRef.current.textContent = `${pct}%`
+  }, [])
+
+  // Sync scroll positions without triggering React re-renders
+  useEffect(() => {
+    const topEl = topScrollRef.current
+    const bottomEl = bottomScrollRef.current
+    if (!topEl || !bottomEl) return
+
+    const handleTopScroll = () => {
+      if (isSyncingRef.current) return
+      isSyncingRef.current = true
+      bottomEl.scrollLeft = topEl.scrollLeft
+      updatePercentIndicator(topEl.scrollLeft)
+      // Release sync lock on next frame
+      requestAnimationFrame(() => {
+        isSyncingRef.current = false
+      })
+    }
+
+    const handleBottomScroll = () => {
+      if (isSyncingRef.current) return
+      isSyncingRef.current = true
+      topEl.scrollLeft = bottomEl.scrollLeft
+      updatePercentIndicator(bottomEl.scrollLeft)
+      // Release sync lock on next frame
+      requestAnimationFrame(() => {
+        isSyncingRef.current = false
+      })
+    }
+
+    topEl.addEventListener('scroll', handleTopScroll, { passive: true })
+    bottomEl.addEventListener('scroll', handleBottomScroll, { passive: true })
 
     const updateMeasurements = () => {
-      if (bottomEl) {
-        setScrollWidth(bottomEl.scrollWidth)
-        setClientWidth(bottomEl.clientWidth)
-        setScrollLeft(bottomEl.scrollLeft)
-      }
+      if (!bottomEl || !topDummyRef.current) return
+      const sw = bottomEl.scrollWidth
+      topDummyRef.current.style.width = `${Math.max(sw, 1000)}px`
+      updatePercentIndicator(bottomEl.scrollLeft)
     }
 
     updateMeasurements()
@@ -58,34 +91,15 @@ export default function TopTableScroller({
       observer.observe(bottomEl.firstElementChild)
     }
 
-    window.addEventListener('resize', updateMeasurements)
+    window.addEventListener('resize', updateMeasurements, { passive: true })
+
     return () => {
+      topEl.removeEventListener('scroll', handleTopScroll)
+      bottomEl.removeEventListener('scroll', handleBottomScroll)
       observer.disconnect()
       window.removeEventListener('resize', updateMeasurements)
     }
-  }, [])
-
-  // Sync Top Scrollbar -> Table Container
-  const handleTopScroll = () => {
-    if (isSyncing) return
-    setIsSyncing(true)
-    if (bottomScrollRef.current && topScrollRef.current) {
-      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft
-      setScrollLeft(topScrollRef.current.scrollLeft)
-    }
-    requestAnimationFrame(() => setIsSyncing(false))
-  }
-
-  // Sync Table Container -> Top Scrollbar
-  const handleBottomScroll = () => {
-    if (isSyncing) return
-    setIsSyncing(true)
-    if (topScrollRef.current && bottomScrollRef.current) {
-      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft
-      setScrollLeft(bottomScrollRef.current.scrollLeft)
-    }
-    requestAnimationFrame(() => setIsSyncing(false))
-  }
+  }, [updatePercentIndicator])
 
   // Step scroll
   const scrollBy = (offset: number) => {
@@ -97,26 +111,23 @@ export default function TopTableScroller({
   // Jump directly to percentage
   const scrollToPercent = (percent: number) => {
     if (bottomScrollRef.current) {
-      const maxScroll = Math.max(0, scrollWidth - clientWidth)
+      const maxScroll = Math.max(0, bottomScrollRef.current.scrollWidth - bottomScrollRef.current.clientWidth)
       const target = maxScroll * percent
       bottomScrollRef.current.scrollTo({ left: target, behavior: 'smooth' })
     }
   }
 
-  const maxScrollLeft = Math.max(1, scrollWidth - clientWidth)
-  const currentPercent = Math.min(100, Math.max(0, Math.round((scrollLeft / maxScrollLeft) * 100)))
-
   return (
     <div className="space-y-1 w-full">
-      {/* Subtle Fixed / Sticky Top Scroller Bar Matching the Theme */}
-      <div className="bg-card/90 border border-border/80 rounded-t-xl px-3 py-1.5 shadow-xs sticky top-0 z-20 backdrop-blur-md">
+      {/* Fixed / Sticky Top Scroller Bar */}
+      <div className="bg-card/95 border border-border/80 rounded-t-xl px-3 py-1.5 shadow-xs sticky top-0 z-20 backdrop-blur-md">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 font-medium text-muted-foreground text-[11px] select-none">
               <MoveHorizontal size={13} className="text-muted-foreground" /> Top Scroller:
             </span>
             <span className="font-mono text-muted-foreground text-[11px] hidden sm:inline">
-              <span className="font-medium text-foreground">{currentPercent}%</span>
+              <span ref={percentRef} className="font-medium text-foreground">0%</span>
             </span>
           </div>
 
@@ -127,7 +138,7 @@ export default function TopTableScroller({
                 key={sc.label}
                 type="button"
                 onClick={() => scrollToPercent(sc.offsetPercent)}
-                className="px-2 py-0.5 rounded bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition text-[11px] font-medium"
+                className="px-2 py-0.5 rounded bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition text-[11px] font-medium cursor-pointer active:scale-95"
               >
                 {sc.label}
               </button>
@@ -139,7 +150,7 @@ export default function TopTableScroller({
             <button
               type="button"
               onClick={() => scrollToPercent(0)}
-              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px]"
+              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px] cursor-pointer active:scale-95"
               title="Scroll to Start"
             >
               <ChevronsLeft size={13} /> Start
@@ -147,7 +158,7 @@ export default function TopTableScroller({
             <button
               type="button"
               onClick={() => scrollBy(-350)}
-              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px]"
+              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px] cursor-pointer active:scale-95"
               title="Scroll Left"
             >
               <ChevronLeft size={13} /> Left
@@ -155,7 +166,7 @@ export default function TopTableScroller({
             <button
               type="button"
               onClick={() => scrollBy(350)}
-              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px]"
+              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px] cursor-pointer active:scale-95"
               title="Scroll Right"
             >
               Right <ChevronRight size={13} />
@@ -163,7 +174,7 @@ export default function TopTableScroller({
             <button
               type="button"
               onClick={() => scrollToPercent(1)}
-              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px]"
+              className="p-1 rounded bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border transition flex items-center gap-0.5 text-[11px] cursor-pointer active:scale-95"
               title="Scroll to End"
             >
               End <ChevronsRight size={13} />
@@ -174,19 +185,21 @@ export default function TopTableScroller({
         {/* Native Scrollbar Track with Subtle Colors */}
         <div
           ref={topScrollRef}
-          onScroll={handleTopScroll}
           tabIndex={0}
           aria-label="Horizontal table scrollbar"
-          className="w-full overflow-x-scroll overflow-y-hidden h-3.5 mt-1 bg-muted/20 border border-border/40 rounded cursor-ew-resize opacity-70 hover:opacity-100 transition-opacity"
+          className="w-full overflow-x-scroll overflow-y-hidden h-3.5 mt-1 bg-muted/20 border border-border/40 rounded cursor-ew-resize opacity-80 hover:opacity-100 transition-opacity"
           style={{
             scrollbarWidth: 'thin',
-            scrollbarColor: 'hsl(var(--muted-foreground) / 0.4) transparent'
+            scrollbarColor: 'hsl(var(--muted-foreground) / 0.4) transparent',
+            willChange: 'scroll-position',
+            overscrollBehaviorX: 'contain'
           }}
         >
           {/* Dummy element matching underlying table width */}
           <div
+            ref={topDummyRef}
             style={{
-              width: `${Math.max(scrollWidth, 2000)}px`,
+              width: '2000px',
               height: '1px'
             }}
           />
@@ -196,8 +209,12 @@ export default function TopTableScroller({
       {/* Table Container */}
       <div
         ref={bottomScrollRef}
-        onScroll={handleBottomScroll}
-        className={className || 'bg-card border border-border rounded-b-xl overflow-x-auto shadow-xs'}
+        className={cn('bg-card border border-border rounded-b-xl overflow-x-auto shadow-xs', className)}
+        style={{
+          willChange: 'scroll-position',
+          overscrollBehaviorX: 'contain',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
         {children}
       </div>

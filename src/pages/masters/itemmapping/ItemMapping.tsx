@@ -70,8 +70,14 @@ export default function ItemMapping() {
   const showToast = useUIStore((s) => s.showToast)
 
   const loadMappings = useCallback((force = false) => {
-    if (force) setRefreshing(true)
-    else setLoading(true)
+    if (force) {
+      setRefreshing(true)
+    } else {
+      setMappings((current) => {
+        if (current.length === 0) setLoading(true)
+        return current
+      })
+    }
 
     return getErp<any[]>(
       'item-mappings',
@@ -181,8 +187,8 @@ export default function ItemMapping() {
     loadMappings(false)
   }, [loadMappings])
 
-  useErpAutoRefresh(['item-mappings', 'items', 'item-batches', 'stock', 'purchases', 'sales'], () => {
-    loadMappings(true)
+  useErpAutoRefresh(['item-mappings', 'items', 'item-batches'], () => {
+    loadMappings(false)
   })
 
   const filtered = useMemo(() => {
@@ -481,14 +487,30 @@ export default function ItemMapping() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-foreground">
-            {loading && (
-              <tr>
-                <td colSpan={17} className="p-8 text-center text-muted-foreground text-sm animate-pulse">
-                  Loading mappings…
-                </td>
-              </tr>
+            {loading && mappings.length === 0 && (
+              Array.from({ length: 10 }).map((_, idx) => (
+                <tr key={`skel-${idx}`} className="animate-pulse border-b border-border/50">
+                  <td className="px-4 py-3"><div className="h-3.5 bg-muted/60 rounded w-44 mb-1.5" /><div className="h-2.5 bg-muted/40 rounded w-20" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-24" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-16" /></td>
+                  <td className="px-4 py-3"><div className="h-3.5 bg-muted/60 rounded w-20 mb-1" /><div className="h-2.5 bg-muted/40 rounded w-12" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-10 ml-auto" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-14 ml-auto" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-14 ml-auto" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-14 ml-auto" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-14 ml-auto" /></td>
+                  <td className="px-4 py-3 text-right"><div className="h-3 bg-muted/60 rounded w-16 ml-auto" /></td>
+                  <td className="px-4 py-3 text-center"><div className="h-3 bg-muted/60 rounded w-10 mx-auto" /></td>
+                  <td className="px-4 py-3 text-center"><div className="h-3 bg-muted/60 rounded w-10 mx-auto" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-16" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-20 mb-1" /><div className="h-2 bg-muted/40 rounded w-16" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-28" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-muted/60 rounded w-16" /></td>
+                  <td className="px-4 py-3"></td>
+                </tr>
+              ))
             )}
-            {!loading &&
+            {(!loading || mappings.length > 0) &&
               displayedItems.map((m) => (
                 <tr key={m.id} className="hover:bg-muted/40 transition-colors">
                   <td className="px-4 py-2.5 font-medium text-foreground">
