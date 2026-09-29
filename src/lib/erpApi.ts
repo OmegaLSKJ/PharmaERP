@@ -9,7 +9,7 @@ import {
 } from './erpCache'
 import { registerHsnCodesFromDb } from './hsnUtils'
 
-export { initCache }
+export { initCache, invalidateCache }
 
 // Track in-flight promises to deduplicate concurrent network requests
 const inFlightRequests = new Map<string, Promise<any>>()

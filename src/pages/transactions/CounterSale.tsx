@@ -19,10 +19,11 @@ import {
   Package,
   X,
   Layers,
+  RefreshCw,
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import Typeahead from '../../components/ui/Typeahead'
-import { getErp, postErp } from '../../lib/erpApi'
+import { getErp, postErp, invalidateCache } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -57,6 +58,8 @@ export default function CounterSale() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [showDetailPanel, setShowDetailPanel] = useState(true)
   const [completedSale, setCompletedSale] = useState<{
     invoiceNo: string
@@ -81,52 +84,96 @@ export default function CounterSale() {
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
 
-  const loadItems = (force = false) => {
-    getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
-      .then((items) => {
-        const mapped: CounterItem[] = items.flatMap((item) =>
-          (item.batches ?? [])
-            .filter((b: any) => Number(b.stock ?? 0) > 0)
-            .map((b: any) => {
-              const batchMrp = Number(b.mrp || item.mrp || 0)
-              const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? item.saleRate ?? 0)
-              const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+  const loadItems = async (force = false) => {
+    if (force) {
+      setSyncing(true)
+      try {
+        await invalidateCache('items')
+        await invalidateCache('stock')
+        await invalidateCache('item-batches')
+      } catch {}
+    }
 
-              return {
-                id: item.id,
-                name: item.name,
-                rate: autoRate,
-                batch: String(b.batch || 'DEFAULT'),
-                stock: Number(b.stock || 0),
-                gst:
-                  item.gstRate !== undefined && item.gstRate !== null
-                    ? Number(item.gstRate)
-                    : getGstRateForHsn(item.hsn),
-                mrp: batchMrp,
-                purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? item.purchaseRate ?? 0),
-                packing: item.packing || '',
-                manufacturer: item.manufacturer || item.company || '',
-                salt: item.salt || item.composition || '',
-                hsn: item.hsn || '',
-                expiry: b.expiry || '',
-                category: item.category || 'General',
-              }
-            })
-        )
-        setAvailable(mapped)
-        if (mapped.length > 0 && !activeItem) {
-          setActiveItem(mapped[0])
+    try {
+      const items = await getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
+      const mapped: CounterItem[] = items.flatMap((item) =>
+        (item.batches ?? [])
+          .filter((b: any) => Number(b.stock ?? 0) > 0)
+          .map((b: any) => {
+            const batchMrp = Number(b.mrp || item.mrp || 0)
+            const batchSaleRate = Number(b.salePrice ?? b.saleRate ?? b.rate ?? item.saleRate ?? 0)
+            const autoRate = batchSaleRate > 0 ? batchSaleRate : batchMrp
+
+            return {
+              id: item.id,
+              name: item.name,
+              rate: autoRate,
+              batch: String(b.batch || 'DEFAULT'),
+              stock: Number(b.stock || 0),
+              gst:
+                item.gstRate !== undefined && item.gstRate !== null
+                  ? Number(item.gstRate)
+                  : getGstRateForHsn(item.hsn),
+              mrp: batchMrp,
+              purchaseRate: Number(b.purchasePrice ?? b.purchaseRate ?? item.purchaseRate ?? 0),
+              packing: item.packing || '',
+              manufacturer: item.manufacturer || item.company || '',
+              salt: item.salt || item.composition || '',
+              hsn: item.hsn || '',
+              expiry: b.expiry || '',
+              category: item.category || 'General',
+            }
+          })
+      )
+      setAvailable(mapped)
+      setLastSyncTime(new Date())
+
+      // Refresh activeItem if still exists or fallback to first
+      setActiveItem((current) => {
+        if (!current && mapped.length > 0) return mapped[0]
+        if (current) {
+          const freshActive = mapped.find(
+            (i) => i.name === current.name && i.batch === current.batch
+          )
+          return freshActive || (mapped.length > 0 ? mapped[0] : null)
         }
+        return null
       })
-      .catch((e) => showToast(e.message))
+
+      // Update cart items with live stock & rates
+      setCart((prevCart) =>
+        prevCart.map((cartItem) => {
+          const fresh = mapped.find((m) => m.name === cartItem.name && m.batch === cartItem.batch)
+          if (fresh) {
+            return {
+              ...cartItem,
+              stock: fresh.stock,
+              rate: fresh.rate > 0 ? fresh.rate : cartItem.rate,
+              qty: Math.min(cartItem.qty, fresh.stock),
+            }
+          }
+          return cartItem
+        })
+      )
+
+      if (force) {
+        showToast(`Live stock synchronized (${mapped.length.toLocaleString()} items in stock)`)
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Failed to sync live stock')
+    } finally {
+      if (force) {
+        setSyncing(false)
+      }
+    }
   }
 
   useEffect(() => {
-    loadItems(false)
+    void loadItems(false)
   }, [showToast])
 
   useErpAutoRefresh(['items', 'item-batches', 'stock', 'sales'], () => {
-    loadItems(true)
+    void loadItems(true)
   })
 
   // Keyboard shortcut listener
@@ -279,10 +326,16 @@ export default function CounterSale() {
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-black dark:text-white">
                   Counter Sale (POS)
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Live Billing
-                </span>
+                <button
+                  type="button"
+                  onClick={() => void loadItems(true)}
+                  disabled={syncing}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-400 dark:border-emerald-800/80 transition cursor-pointer"
+                  title="Click to sync live stock updates directly from database"
+                >
+                  <span className={cn('w-1.5 h-1.5 rounded-full bg-emerald-500', syncing ? 'animate-ping' : 'animate-pulse')}></span>
+                  <span>{syncing ? 'Syncing...' : 'Live Billing'}</span>
+                </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Walk-in Retail Customer • Instant Barcode / Quick Add • Batch & Expiry Controlled
@@ -291,6 +344,30 @@ export default function CounterSale() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => void loadItems(true)}
+              disabled={syncing}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border transition shadow-xs cursor-pointer active:scale-[0.98] disabled:opacity-60',
+                syncing
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-black dark:text-white border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
+              )}
+              title="Click to fetch live stock & batch updates"
+            >
+              <RefreshCw
+                size={14}
+                className={cn('text-emerald-600 dark:text-emerald-400', syncing && 'animate-spin')}
+              />
+              <span>{syncing ? 'Syncing Stock...' : 'Live Sync'}</span>
+              {lastSyncTime && !syncing && (
+                <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 hidden sm:inline">
+                  • {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => openTransactionWindow(window.location.pathname)}
@@ -399,18 +476,36 @@ export default function CounterSale() {
                     {cat}
                   </button>
                 ))}
-                <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap pl-2">
-                  Showing {filteredItems.length} products
-                </span>
+                <div className="ml-auto flex items-center gap-1.5 pl-2">
+                  <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                    Showing {filteredItems.length} products
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void loadItems(true)}
+                    disabled={syncing}
+                    title="Refresh live stock updates"
+                    className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
+                  >
+                    <RefreshCw size={12} className={cn(syncing && 'animate-spin text-emerald-500')} />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Medicine Items Grid */}
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Available Medicines ({filteredItems.length})
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Available Medicines ({filteredItems.length})
+                  </span>
+                  {lastSyncTime && (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono hidden sm:inline">
+                      • Updated {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] text-slate-400">Click any card to add to bill</span>
               </div>
 
