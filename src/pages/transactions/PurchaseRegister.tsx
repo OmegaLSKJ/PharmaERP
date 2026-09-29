@@ -1,14 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2 } from 'lucide-react'
+import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2, Pill } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
-import { getGstRateForHsn, getAllHsnCodes } from '../../lib/hsnUtils'
+import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+
+interface ItemOption {
+  id?: string
+  code?: string
+  name: string
+  packing: string
+  hsn: string
+  mrp: number
+  purchaseRate: number
+  saleRate: number
+  gstRate: number
+  stock: number
+  manufacturer: string
+  salt: string
+  category?: string
+  costPrice?: number
+}
 
 interface PurchaseInv {
   id: string
@@ -73,6 +90,11 @@ export default function PurchaseRegister() {
   const [selected, setSelected] = useState<PurchaseInv | null>(null)
   const [editing, setEditing] = useState<PurchaseInv | null>(null)
   const [editLines, setEditLines] = useState<EditableLine[]>([])
+  const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
+  const [showItemPicker, setShowItemPicker] = useState(false)
+  const [itemPickerTargetIndex, setItemPickerTargetIndex] = useState<number | null>(null)
+  const [itemSearchQuery, setItemSearchQuery] = useState('')
+  const itemSearchInputRef = useRef<HTMLInputElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'pending' | 'partial' | 'cancelled'>('all')
@@ -91,9 +113,11 @@ export default function PurchaseRegister() {
   const loadPurchases = useCallback((force = false) => {
     Promise.all([
       getErp<any[]>('purchases', undefined, force ? { forceRefresh: true } : undefined),
-      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined).catch(() => [])
+      getErp<any[]>('parties', undefined, force ? { forceRefresh: true } : undefined).catch(() => []),
+      getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined).catch(() => []),
+      getErp<any[]>('hsn').catch(() => []),
     ])
-      .then(([rows, parties]) => {
+      .then(([rows, parties, rawItems, hsnData]) => {
         const pMap: Record<string, any> = {}
         if (Array.isArray(parties)) {
           parties.forEach((p) => {
@@ -101,6 +125,41 @@ export default function PurchaseRegister() {
           })
         }
         setPartiesMap(pMap)
+
+        const rawHsn = Array.isArray(hsnData) ? hsnData : []
+        if (rawHsn.length > 0) {
+          registerHsnCodesFromDb(rawHsn)
+        }
+        const parsedHsn = getAllHsnCodes()
+
+        if (Array.isArray(rawItems)) {
+          setItemOptions(
+            rawItems.map((p: any) => {
+              const hsnCode = String(p.hsn ?? p.hsn_codes?.code ?? '').trim()
+              const matchedHsn = parsedHsn.find((h) => h.code === hsnCode)
+              const resolvedGstRate = matchedHsn
+                ? matchedHsn.gstRate
+                : (p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : getGstRateForHsn(hsnCode))
+
+              return {
+                id: p.id,
+                code: p.code,
+                name: p.name || 'Unnamed Product',
+                packing: p.packing ?? '',
+                hsn: hsnCode,
+                mrp: Number(p.mrp || 0),
+                purchaseRate: Number(p.purchaseRate || p.costPrice || 0),
+                saleRate: Number(p.saleRate || 0),
+                gstRate: resolvedGstRate,
+                stock: Number(p.stock ?? p.quantity ?? 0),
+                manufacturer: String(p.manufacturer ?? p.mfr ?? p.company ?? '').trim(),
+                salt: String(p.salt ?? p.composition ?? '').trim(),
+                category: p.category ?? 'General',
+                costPrice: Number(p.costPrice ?? p.cost_price ?? p.purchaseRate ?? 0),
+              }
+            })
+          )
+        }
 
         setPurchases(rows.map(mapPurchaseRow))
       })
@@ -111,7 +170,15 @@ export default function PurchaseRegister() {
     loadPurchases()
   }, [loadPurchases])
 
-  useErpAutoRefresh(['purchases', 'parties', 'series'], () => loadPurchases(false))
+  useErpAutoRefresh(['purchases', 'parties', 'series', 'items', 'item-batches'], () => loadPurchases(false))
+
+  useEffect(() => {
+    if (showItemPicker) {
+      setTimeout(() => {
+        itemSearchInputRef.current?.focus()
+      }, 50)
+    }
+  }, [showItemPicker])
 
   const statusCounts = {
     all: purchases.length,
@@ -258,6 +325,28 @@ export default function PurchaseRegister() {
         current.gstRate = getGstRateForHsn(val)
       }
 
+      if (field === 'name') {
+        const cleanName = String(val).trim().toLowerCase()
+        const matched = itemOptions.find((o) => o.name.toLowerCase() === cleanName)
+        if (matched) {
+          if (matched.packing) current.packing = matched.packing
+          if (matched.manufacturer) current.mfr = matched.manufacturer
+          if (matched.hsn) {
+            current.hsn = matched.hsn
+            current.gstRate = matched.gstRate || getGstRateForHsn(matched.hsn)
+          }
+          if (matched.purchaseRate && (!current.rate || current.rate === 0)) {
+            current.rate = matched.purchaseRate
+          }
+          if (matched.saleRate && (!current.saleRate || current.saleRate === 0)) {
+            current.saleRate = matched.saleRate
+          }
+          if (matched.mrp && (!current.mrp || current.mrp === 0)) {
+            current.mrp = matched.mrp
+          }
+        }
+      }
+
       // Auto recalculate amount when quantity, rate, discount, or gst changes
       const q = Number(field === 'qty' ? val : current.qty || 0)
       const r = Number(field === 'rate' ? val : current.rate || 0)
@@ -274,26 +363,130 @@ export default function PurchaseRegister() {
     })
   }
 
+  const openAddItemPicker = () => {
+    setItemPickerTargetIndex(null)
+    setItemSearchQuery('')
+    setShowItemPicker(true)
+  }
+
+  const openChangeItemPicker = (idx: number) => {
+    setItemPickerTargetIndex(idx)
+    setItemSearchQuery('')
+    setShowItemPicker(true)
+  }
+
+  const handleSelectItem = (item: ItemOption) => {
+    const gstRate = Number(item.gstRate !== undefined && item.gstRate !== null ? item.gstRate : getGstRateForHsn(item.hsn))
+    const pRate = Number(item.purchaseRate || item.costPrice || 0)
+    const sRate = Number(item.saleRate || (pRate > 0 ? Math.round(pRate * 1.2 * 100) / 100 : 0))
+    const mRate = Number(item.mrp || (pRate > 0 ? Math.round(pRate * 1.35 * 100) / 100 : 0))
+
+    if (itemPickerTargetIndex !== null && itemPickerTargetIndex >= 0 && itemPickerTargetIndex < editLines.length) {
+      // Update existing line
+      setEditLines((prev) => {
+        const updated = [...prev]
+        const existing = updated[itemPickerTargetIndex]
+        const qty = existing.qty > 0 ? existing.qty : 1
+        const rateToUse = pRate > 0 ? pRate : existing.rate
+        const disc = existing.discount || 0
+        const base = qty * rateToUse
+        const afterDisc = base - (base * disc) / 100
+        const totalAmt = afterDisc + (afterDisc * gstRate) / 100
+
+        updated[itemPickerTargetIndex] = {
+          ...existing,
+          name: item.name,
+          packing: item.packing || existing.packing || '10T',
+          mfr: item.manufacturer || existing.mfr || '',
+          hsn: item.hsn || existing.hsn || '3004',
+          rate: rateToUse,
+          saleRate: sRate || existing.saleRate,
+          mrp: mRate || existing.mrp,
+          gstRate,
+          amount: Math.round(totalAmt * 100) / 100,
+        }
+        return updated
+      })
+    } else {
+      // Add as new line
+      const qty = 1
+      const disc = 0
+      const base = qty * pRate
+      const afterDisc = base - (base * disc) / 100
+      const totalAmt = afterDisc + (afterDisc * gstRate) / 100
+
+      setEditLines((prev) => [
+        ...prev,
+        {
+          id: `line-${Date.now()}-${prev.length}`,
+          name: item.name,
+          packing: item.packing || '10T',
+          mfr: item.manufacturer || '',
+          hsn: item.hsn || '3004',
+          batch: '',
+          expiry: '',
+          qty: 1,
+          freeQty: 0,
+          rate: pRate,
+          saleRate: sRate,
+          mrp: mRate,
+          discount: 0,
+          gstRate,
+          amount: Math.round(totalAmt * 100) / 100,
+        },
+      ])
+    }
+
+    setShowItemPicker(false)
+    setItemSearchQuery('')
+    setItemPickerTargetIndex(null)
+  }
+
+  const handleAddCustomItem = (customName?: string) => {
+    const nameToUse = (customName || itemSearchQuery || 'NEW MEDICINE ITEM').trim()
+    if (itemPickerTargetIndex !== null && itemPickerTargetIndex >= 0 && itemPickerTargetIndex < editLines.length) {
+      updateLine(itemPickerTargetIndex, 'name', nameToUse)
+    } else {
+      setEditLines((prev) => [
+        ...prev,
+        {
+          id: `line-${Date.now()}-${prev.length}`,
+          name: nameToUse,
+          packing: '10T',
+          mfr: '',
+          hsn: '3004',
+          batch: '',
+          expiry: '',
+          qty: 1,
+          freeQty: 0,
+          rate: 0,
+          saleRate: 0,
+          mrp: 0,
+          discount: 0,
+          gstRate: 5,
+          amount: 0,
+        },
+      ])
+    }
+    setShowItemPicker(false)
+    setItemSearchQuery('')
+    setItemPickerTargetIndex(null)
+  }
+
+  const filteredModalItems = itemOptions.filter((item) => {
+    if (!itemSearchQuery.trim()) return true
+    const q = itemSearchQuery.toLowerCase()
+    return (
+      item.name.toLowerCase().includes(q) ||
+      (item.salt && item.salt.toLowerCase().includes(q)) ||
+      (item.manufacturer && item.manufacturer.toLowerCase().includes(q)) ||
+      (item.hsn && item.hsn.toLowerCase().includes(q)) ||
+      (item.code && item.code.toLowerCase().includes(q))
+    )
+  })
+
   const addLine = () => {
-    setEditLines((prev) => [
-      ...prev,
-      {
-        id: `line-${Date.now()}-${prev.length}`,
-        name: 'NEW MEDICINE ITEM',
-        packing: '10T',
-        hsn: '3004',
-        batch: 'BT' + String(Date.now()).slice(-4),
-        expiry: '12/28',
-        qty: 10,
-        freeQty: 0,
-        rate: 100,
-        discount: 0,
-        gstRate: 5,
-        saleRate: 120,
-        mrp: 135,
-        amount: 1050,
-      },
-    ])
+    openAddItemPicker()
   }
 
   const removeLine = (idx: number) => {
@@ -696,8 +889,9 @@ export default function PurchaseRegister() {
                 </h3>
                 <button
                   type="button"
-                  onClick={addLine}
-                  className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition font-medium shadow-2xs"
+                  onClick={openAddItemPicker}
+                  className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition font-medium shadow-2xs cursor-pointer"
+                  title="Search and choose item from catalog to add to challan"
                 >
                   <PlusCircle size={13} /> Add Line Item
                 </button>
@@ -712,11 +906,20 @@ export default function PurchaseRegister() {
                 ))}
               </datalist>
 
+              {/* Product Datalist for Quick Autocomplete */}
+              <datalist id="register-items-datalist">
+                {itemOptions.slice(0, 80).map((opt) => (
+                  <option key={opt.id || opt.name} value={opt.name}>
+                    {opt.manufacturer ? `${opt.manufacturer} · ` : ''}{opt.packing ? `${opt.packing} · ` : ''}Rate: ₹{opt.purchaseRate}
+                  </option>
+                ))}
+              </datalist>
+
               <div className="border border-border rounded-xl overflow-x-auto bg-card shadow-xs">
                 <table className="w-full text-xs min-w-[1240px]">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-mono font-semibold">
-                      <th className="text-left px-3.5 py-2.5 min-w-[210px]">Item Description</th>
+                      <th className="text-left px-3.5 py-2.5 min-w-[230px]">Item Description</th>
                       <th className="text-left px-2.5 py-2.5 w-36 min-w-[130px]">Batch</th>
                       <th className="text-center px-2 py-2.5 w-28 min-w-[110px]">Expiry</th>
                       <th className="text-right px-2 py-2.5 w-20 min-w-[75px]">Qty</th>
@@ -733,26 +936,48 @@ export default function PurchaseRegister() {
                   <tbody className="divide-y divide-border">
                     {editLines.map((line, idx) => (
                       <tr key={line.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="px-2.5 py-2 min-w-[210px]">
-                          <input
-                            type="text"
-                            value={line.name}
-                            onChange={(e) => updateLine(idx, 'name', e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
-                          />
-                          <div className="flex items-center gap-2 mt-1">
+                        <td className="px-2.5 py-2 min-w-[230px]">
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              list="register-items-datalist"
+                              value={line.name}
+                              placeholder="Search or type medicine name..."
+                              onChange={(e) => updateLine(idx, 'name', e.target.value)}
+                              className="w-full pl-2.5 pr-8 py-1.5 bg-background border border-input rounded-lg text-foreground font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => openChangeItemPicker(idx)}
+                              className="absolute right-1.5 p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded transition cursor-pointer"
+                              title="Pick or replace item from product master catalog"
+                            >
+                              <Search size={13} />
+                            </button>
+                          </div>
+                          <div className="flex items-center flex-wrap gap-1.5 mt-1">
                             <input
                               type="text"
                               list="register-hsn-list"
                               placeholder="HSN code"
                               value={line.hsn || ''}
                               onChange={(e) => updateLine(idx, 'hsn', e.target.value)}
-                              className="w-24 px-1.5 py-0.5 text-[10px] font-mono bg-muted/60 border border-input rounded text-foreground outline-none focus:border-primary"
+                              className="w-20 px-1.5 py-0.5 text-[10px] font-mono bg-muted/60 border border-input rounded text-foreground outline-none focus:border-primary"
                               title="HSN Code (auto-calculates GST%)"
                             />
                             {line.hsn && (
                               <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
                                 {getGstRateForHsn(line.hsn)}% GST
+                              </span>
+                            )}
+                            {line.packing && (
+                              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1 py-0.5 rounded border border-border/50 max-w-[80px] truncate" title={line.packing}>
+                                {line.packing}
+                              </span>
+                            )}
+                            {line.mfr && (
+                              <span className="text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/60 max-w-[100px] truncate font-medium" title={line.mfr}>
+                                {line.mfr}
                               </span>
                             )}
                           </div>
@@ -897,6 +1122,192 @@ export default function PurchaseRegister() {
                 >
                   <Save size={14} />
                   {isSaving ? 'Saving Changes...' : 'Save & Update Challan'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Selection Modal for Challan Modifier */}
+      {showItemPicker && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print animate-in fade-in duration-150"
+          onClick={() => {
+            setShowItemPicker(false)
+            setItemPickerTargetIndex(null)
+          }}
+        >
+          <div
+            className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-card-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-primary/10 text-primary rounded-xl">
+                  <Pill size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-foreground">
+                    {itemPickerTargetIndex !== null
+                      ? `Change Product for Row #${itemPickerTargetIndex + 1}`
+                      : 'Select Medicine / Item to Add'}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {itemPickerTargetIndex !== null
+                      ? 'Choose a replacement item from inventory catalog'
+                      : 'Click an item to insert into the goods receipt challan'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowItemPicker(false)
+                  setItemPickerTargetIndex(null)
+                }}
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Search Input Bar */}
+            <div className="p-3 border-b border-border bg-muted/20">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  ref={itemSearchInputRef}
+                  type="text"
+                  placeholder="Search products by brand name, salt/composition, manufacturer, or HSN code..."
+                  value={itemSearchQuery}
+                  onChange={(e) => setItemSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setShowItemPicker(false)
+                      setItemPickerTargetIndex(null)
+                    } else if (e.key === 'Enter') {
+                      if (filteredModalItems.length > 0) {
+                        handleSelectItem(filteredModalItems[0])
+                      } else if (itemSearchQuery.trim()) {
+                        handleAddCustomItem(itemSearchQuery)
+                      }
+                    }
+                  }}
+                  className="w-full bg-background border border-input rounded-xl pl-9 pr-9 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+                />
+                {itemSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setItemSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Product List */}
+            <div className="flex-1 overflow-y-auto p-2 divide-y divide-border/40 space-y-1">
+              {filteredModalItems.length > 0 ? (
+                filteredModalItems.map((item) => (
+                  <button
+                    key={item.id || item.code || item.name}
+                    type="button"
+                    onClick={() => handleSelectItem(item)}
+                    className="w-full p-2.5 sm:p-3 rounded-xl hover:bg-muted/70 transition-colors text-left group cursor-pointer flex items-center justify-between gap-3 border border-transparent hover:border-border"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                        {item.name}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+                        {item.manufacturer && (
+                          <span className="font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded shadow-2xs">
+                            {item.manufacturer}
+                          </span>
+                        )}
+                        {item.packing && (
+                          <span className="bg-muted px-1.5 py-0.5 rounded border border-border/60">
+                            {item.packing}
+                          </span>
+                        )}
+                        {item.salt && (
+                          <span className="italic text-muted-foreground max-w-[200px] truncate" title={item.salt}>
+                            {item.salt}
+                          </span>
+                        )}
+                        {item.hsn && (
+                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded border border-border/60 text-foreground">
+                            HSN: {item.hsn}
+                          </span>
+                        )}
+                        <span className="text-primary font-medium">GST: {item.gstRate}%</span>
+                        {typeof item.stock === 'number' && (
+                          <span className="text-muted-foreground">Stock: {item.stock}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">
+                        {formatCurrency(item.purchaseRate)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-1.5 mt-0.5">
+                        {item.saleRate > 0 && (
+                          <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                            Sale: ₹{item.saleRate}
+                          </span>
+                        )}
+                        <span>MRP: ₹{item.mrp}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <div className="text-muted-foreground text-xs">
+                    {itemSearchQuery
+                      ? `No products found matching "${itemSearchQuery}".`
+                      : 'No items loaded from the product catalog.'}
+                  </div>
+                  {itemSearchQuery.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddCustomItem(itemSearchQuery)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-semibold transition"
+                    >
+                      <PlusCircle size={14} /> Add "{itemSearchQuery.trim()}" as custom item
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-muted/30 border-t border-border flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground text-[11px]">
+                {filteredModalItems.length} products available
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAddCustomItem()}
+                  className="px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted border border-border rounded-lg transition"
+                  title="Add an empty line to enter custom or non-catalog item"
+                >
+                  + Add Custom / Blank Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowItemPicker(false)
+                    setItemPickerTargetIndex(null)
+                  }}
+                  className="px-3 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition cursor-pointer"
+                >
+                  Close
                 </button>
               </div>
             </div>

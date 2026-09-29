@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import Typeahead from '../../components/ui/Typeahead'
-import { getErp, postErp, invalidateCache } from '../../lib/erpApi'
+import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -87,15 +87,12 @@ export default function CounterSale() {
   const loadItems = async (force = false) => {
     if (force) {
       setSyncing(true)
-      try {
-        await invalidateCache('items')
-        await invalidateCache('stock')
-        await invalidateCache('item-batches')
-      } catch {}
     }
 
     try {
-      const items = await getErp<any[]>('items', undefined, force ? { forceRefresh: true } : undefined)
+      const items = await getErp<any[]>('items', force ? { force: 'true' } : undefined, force ? { forceRefresh: true } : undefined)
+      if (!Array.isArray(items)) return
+
       const mapped: CounterItem[] = items.flatMap((item) =>
         (item.batches ?? [])
           .filter((b: any) => Number(b.stock ?? 0) > 0)
@@ -160,7 +157,9 @@ export default function CounterSale() {
         showToast(`Live stock synchronized (${mapped.length.toLocaleString()} items in stock)`)
       }
     } catch (e: any) {
-      showToast(e.message || 'Failed to sync live stock')
+      if (force) {
+        showToast(e.message || 'Failed to sync live stock')
+      }
     } finally {
       if (force) {
         setSyncing(false)
@@ -173,7 +172,7 @@ export default function CounterSale() {
   }, [showToast])
 
   useErpAutoRefresh(['items', 'item-batches', 'stock', 'sales'], () => {
-    void loadItems(true)
+    void loadItems(false)
   })
 
   // Keyboard shortcut listener
@@ -217,6 +216,33 @@ export default function CounterSale() {
       )
     })
   }, [available, searchQuery, selectedCategory])
+
+  // Virtual batch limit to keep DOM lightning fast (< 1ms render)
+  const [displayCount, setDisplayCount] = useState(60)
+
+  useEffect(() => {
+    setDisplayCount(60)
+  }, [searchQuery, selectedCategory])
+
+  const visibleItems = useMemo(() => {
+    return filteredItems.slice(0, displayCount)
+  }, [filteredItems, displayCount])
+
+  const cartLookup = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const c of cart) {
+      map.set(`${c.name}-${c.batch}`, c.qty)
+    }
+    return map
+  }, [cart])
+
+  const typeaheadOptions = useMemo(() => {
+    return available.map((i) => ({
+      label: i.name,
+      sub: `${i.packing ? i.packing + ' • ' : ''}Batch: ${i.batch} | Stock: ${i.stock}`,
+      right: formatCurrency(i.rate),
+    }))
+  }, [available])
 
   const add = (i: CounterItem) => {
     setActiveItem(i)
@@ -440,11 +466,7 @@ export default function CounterSale() {
                 {/* Autocomplete Quick-Add Typeahead */}
                 <div className="w-full sm:w-64">
                   <Typeahead
-                    options={available.map((i) => ({
-                      label: i.name,
-                      sub: `${i.packing ? i.packing + ' • ' : ''}Batch: ${i.batch} | Stock: ${i.stock}`,
-                      right: formatCurrency(i.rate),
-                    }))}
+                    options={typeaheadOptions}
                     value=""
                     onSelect={(opt) => {
                       const matched = available.find(
@@ -530,34 +552,35 @@ export default function CounterSale() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                  {filteredItems.map((item) => {
-                    const isSelected = activeItem?.name === item.name && activeItem?.batch === item.batch
-                    const inCartItem = cart.find((c) => c.name === item.name && c.batch === item.batch)
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                    {visibleItems.map((item) => {
+                      const isSelected = activeItem?.name === item.name && activeItem?.batch === item.batch
+                      const inCartQty = cartLookup.get(`${item.name}-${item.batch}`)
 
-                    return (
-                      <div
-                        key={`${item.name}-${item.batch}`}
-                        onClick={() => add(item)}
-                        className={cn(
-                          'group relative bg-white dark:bg-slate-900 border rounded-2xl p-3.5 flex flex-col justify-between transition-all duration-150 cursor-pointer shadow-xs hover:shadow-md select-none',
-                          isSelected
-                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20'
-                            : 'border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500'
-                        )}
-                      >
-                        {/* Top: Item Title & Badges */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-start justify-between gap-1.5">
-                            <h3 className="text-sm font-bold text-black dark:text-white line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                              {item.name}
-                            </h3>
-                            {inCartItem && (
-                              <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-600 text-white shadow-xs">
-                                ×{inCartItem.qty}
-                              </span>
-                            )}
-                          </div>
+                      return (
+                        <div
+                          key={`${item.name}-${item.batch}`}
+                          onClick={() => add(item)}
+                          className={cn(
+                            'group relative bg-white dark:bg-slate-900 border rounded-2xl p-3.5 flex flex-col justify-between transition-all duration-150 cursor-pointer shadow-xs hover:shadow-md select-none',
+                            isSelected
+                              ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20'
+                              : 'border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500'
+                          )}
+                        >
+                          {/* Top: Item Title & Badges */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <h3 className="text-sm font-bold text-black dark:text-white line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {item.name}
+                              </h3>
+                              {inCartQty !== undefined && inCartQty > 0 && (
+                                <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-blue-600 text-white shadow-xs">
+                                  ×{inCartQty}
+                                </span>
+                              )}
+                            </div>
 
                           {/* Packing & Manufacturer / Composition */}
                           <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400 truncate">
@@ -614,6 +637,20 @@ export default function CounterSale() {
                     )
                   })}
                 </div>
+
+                {filteredItems.length > displayCount && (
+                  <div className="pt-2 pb-1 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setDisplayCount((prev) => prev + 60)}
+                      className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer transition active:scale-[0.98]"
+                    >
+                      <Plus size={14} />
+                      <span>Load More Products (Showing {displayCount} of {filteredItems.length})</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               )}
             </div>
 

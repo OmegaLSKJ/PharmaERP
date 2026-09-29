@@ -78,6 +78,33 @@ function extractDocSequence(
   return { sequence: 1, rawCore: str || '1' }
 }
 
+// High-speed Server-Side Memory Cache for heavy ERP resources (items, stock, etc.)
+const serverResourceCache = new Map<string, { data: any; expiry: number }>()
+
+export function invalidateServerCache(resource?: string): void {
+  if (!resource) {
+    serverResourceCache.clear()
+    return
+  }
+  const relatedMap: Record<string, string[]> = {
+    sales: ['items', 'stock', 'report-stock', 'report-sales', 'dashboard'],
+    purchases: ['items', 'stock', 'report-stock', 'report-purchases', 'dashboard'],
+    items: ['items', 'stock', 'report-stock', 'dashboard', 'item-batches'],
+    'item-batches': ['items', 'stock', 'report-stock', 'dashboard'],
+    stock: ['items', 'stock', 'report-stock'],
+    parties: ['parties', 'dashboard', 'sales', 'purchases'],
+  }
+  const targets = new Set<string>([resource, ...(relatedMap[resource] || [])])
+  for (const key of Array.from(serverResourceCache.keys())) {
+    for (const target of targets) {
+      if (key === target || key.startsWith(`${target}_`)) {
+        serverResourceCache.delete(key)
+        break
+      }
+    }
+  }
+}
+
 function formatDocNumber(
   sequence: number | string,
   prefix: string = '',
@@ -2052,7 +2079,18 @@ export async function list(resource: string, partyName?: string, options?: { man
     }
   }
   if (resource === 'report-financial') { const { data, error } = await client.from('erp_trial_balance').select('*').eq('organization_id', organizationId).order('name'); if (error) throw error; return (data ?? []).map((x: any) => ({ ledger: x.name, group: x.account_group, debit: Number(x.debit), credit: Number(x.credit), balance: Number(x.balance) })) }
-  if (resource === 'report-stock' || resource === 'stock') { const { data, error } = await client.from('erp_stock_position').select('*').eq('organization_id', organizationId).order('item_name'); if (error) throw error; return (data ?? []).map((x: any) => ({ name: x.item_name, batch: x.batch_number, expiry: x.expiry_on ?? '', qty: Number(x.quantity), reserved: Number(x.reserved_quantity), location: x.warehouse_name, schedule: x.schedule_class, recalled: x.is_recalled, mrp:Number(x.mrp), rate:Number(x.purchase_rate) })) }
+  if (resource === 'report-stock' || resource === 'stock') {
+    const cacheKey = `stock_${organizationId}`
+    const cached = serverResourceCache.get(cacheKey)
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data
+    }
+    const { data, error } = await client.from('erp_stock_position').select('*').eq('organization_id', organizationId).order('item_name')
+    if (error) throw error
+    const mapped = (data ?? []).map((x: any) => ({ name: x.item_name, batch: x.batch_number, expiry: x.expiry_on ?? '', qty: Number(x.quantity), reserved: Number(x.reserved_quantity), location: x.warehouse_name, schedule: x.schedule_class, recalled: x.is_recalled, mrp:Number(x.mrp), rate:Number(x.purchase_rate) }))
+    serverResourceCache.set(cacheKey, { data: mapped, expiry: Date.now() + 60_000 })
+    return mapped
+  }
   if (resource === 'report-sales') { const { data,error }=await client.from('sales_invoices').select('invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(category)))').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),parties=new Map<string,number>(),items=new Map<string,{name:string;qty:number;revenue:number;margin:number}>(),categories=new Map<string,number>();for(const invoice of data??[]){const month=String(invoice.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(invoice.grand_total));const party=(invoice.parties as any)?.legal_name??'Unknown';parties.set(party,(parties.get(party)??0)+Number(invoice.grand_total));for(const line of (invoice.sales_invoice_lines as any[])??[]){const name=line.items?.name??'Unknown',revenue=Number(line.line_total),current=items.get(name)??{name,qty:0,revenue:0,margin:0};current.qty+=Number(line.quantity);current.revenue+=revenue;items.set(name,current);const category=line.items?.salts?.category??'Uncategorised';categories.set(category,(categories.get(category)??0)+revenue)}}return{monthlySales:[...months].sort().map(([month,value])=>({month,value})),topParties:[...parties].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,sales])=>({name,sales,growth:0})),topItems:[...items.values()].sort((a,b)=>b.revenue-a.revenue).slice(0,10),categories:[...categories].map(([name,value])=>({name,value})),units:[...items.values()].reduce((n,x)=>n+x.qty,0)} }
   if (resource === 'report-purchases') { const { data,error }=await client.from('purchase_invoices').select('invoice_date,grand_total,parties(legal_name)').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),suppliers=new Map<string,number>();for(const row of data??[]){const month=String(row.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(row.grand_total));const name=(row.parties as any)?.legal_name??'Unknown';suppliers.set(name,(suppliers.get(name)??0)+Number(row.grand_total))}return{monthlyPurchases:[...months].sort().map(([month,value])=>({month,value})),topSuppliers:[...suppliers].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,purchases])=>({name,purchases,growth:0})),activeSuppliers:suppliers.size} }
   if (resource === 'parties') {
@@ -2234,6 +2272,14 @@ export async function list(resource: string, partyName?: string, options?: { man
     return cleanDbParties
   }
   if (resource === 'items') {
+    const isFiltered = Boolean(options?.manufacturerId || options?.manufacturer)
+    const cacheKey = `items_${organizationId}`
+    if (!isFiltered) {
+      const cached = serverResourceCache.get(cacheKey)
+      if (cached && cached.expiry > Date.now()) {
+        return cached.data
+      }
+    }
     let query = client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
     const isUuid = (val?: string | null): boolean =>
       Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim()))
@@ -2311,6 +2357,10 @@ export async function list(resource: string, partyName?: string, options?: { man
     if (unmappedToBackfill.length > 0) {
       // Trigger non-blocking asynchronous backfill to Supabase
       backfillMissingDbItemHsn(client, organizationId, unmappedToBackfill).catch(() => {})
+    }
+
+    if (!isFiltered) {
+      serverResourceCache.set(cacheKey, { data: dbItems, expiry: Date.now() + 60_000 })
     }
 
     if (options?.manufacturer) {

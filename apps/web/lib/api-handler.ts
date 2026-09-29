@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { applyRefreshedSession, clearSessionCookies, verifyRequest, type AuthenticatedRequest } from './auth'
-import { create, list, remove, update } from './erp-store'
+import { create, list, remove, update, invalidateServerCache } from './erp-store'
 import { canAccess, userRole, type ErpMethod } from './permissions'
 
 export const runtime = 'nodejs'
@@ -75,7 +75,70 @@ function mutationOriginAllowed(request: NextRequest) {
 }
 async function access(request: NextRequest, method: ErpMethod, resource: string) { const authenticated = await authenticate(request); if (authenticated.response) return authenticated; const role = userRole(authenticated.auth!.user.app_metadata?.role, authenticated.auth!.user.user_metadata?.role); if (!canAccess(role, method, resource)) return { response: NextResponse.json({ error: { message: 'Forbidden.' } }, { status: 403 }) }; if (method !== 'GET' && !mutationOriginAllowed(request)) return { response: NextResponse.json({ error: { message: 'Invalid request origin.' } }, { status: 403 }) }; return authenticated }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'GET', resource); if (granted.response) return granted.response; try { const party = request.nextUrl.searchParams.get('party') ?? undefined; const manufacturer = request.nextUrl.searchParams.get('manufacturer') ?? undefined; const manufacturerId = request.nextUrl.searchParams.get('manufacturerId') ?? undefined; return success(await list(resource, party, { manufacturer, manufacturerId }), granted.auth!, requestId) } catch (error) { return failure(error, requestId) } }
-export async function POST(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'POST', resource); if (granted.response) return granted.response; try { const body = await request.json(); if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('A JSON object is required.'); const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId }; const data = await create(resource, body, actor); console.info(JSON.stringify({ level: 'info', event: 'erp_mutation', requestId, resource, method: 'POST', actorId: actor.id })); return success(data, granted.auth!, requestId, 201) } catch (error) { return failure(error, requestId) } }
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'PATCH', resource); if (granted.response) return granted.response; try { const id = request.nextUrl.searchParams.get('id'); if (!id) throw new Error('Record id is required.'); const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId }; return success(await update(resource, id, await request.json(), actor), granted.auth!, requestId) } catch (error) { return failure(error, requestId) } }
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) { const requestId = crypto.randomUUID(); const { resource } = await params; const granted = await access(request, 'DELETE', resource); if (granted.response) return granted.response; try { const id = request.nextUrl.searchParams.get('id'); if (!id) throw new Error('Record id is required.'); const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId }; return success(await remove(resource, id, actor), granted.auth!, requestId) } catch (error) { return failure(error, requestId) } }
+export async function GET(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) {
+  const requestId = crypto.randomUUID();
+  const { resource } = await params;
+  const granted = await access(request, 'GET', resource);
+  if (granted.response) return granted.response;
+  try {
+    const party = request.nextUrl.searchParams.get('party') ?? undefined;
+    const manufacturer = request.nextUrl.searchParams.get('manufacturer') ?? undefined;
+    const manufacturerId = request.nextUrl.searchParams.get('manufacturerId') ?? undefined;
+    const force = request.nextUrl.searchParams.get('force') === 'true' || request.nextUrl.searchParams.get('fresh') === 'true';
+    if (force) {
+      invalidateServerCache(resource);
+    }
+    return success(await list(resource, party, { manufacturer, manufacturerId }), granted.auth!, requestId)
+  } catch (error) {
+    return failure(error, requestId)
+  }
+}
+export async function POST(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) {
+  const requestId = crypto.randomUUID();
+  const { resource } = await params;
+  const granted = await access(request, 'POST', resource);
+  if (granted.response) return granted.response;
+  try {
+    const body = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('A JSON object is required.');
+    const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId };
+    const data = await create(resource, body, actor);
+    invalidateServerCache(resource);
+    console.info(JSON.stringify({ level: 'info', event: 'erp_mutation', requestId, resource, method: 'POST', actorId: actor.id }));
+    return success(data, granted.auth!, requestId, 201)
+  } catch (error) {
+    return failure(error, requestId)
+  }
+}
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) {
+  const requestId = crypto.randomUUID();
+  const { resource } = await params;
+  const granted = await access(request, 'PATCH', resource);
+  if (granted.response) return granted.response;
+  try {
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) throw new Error('Record id is required.');
+    const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId };
+    const data = await update(resource, id, await request.json(), actor);
+    invalidateServerCache(resource);
+    return success(data, granted.auth!, requestId)
+  } catch (error) {
+    return failure(error, requestId)
+  }
+}
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ resource: string }> }) {
+  const requestId = crypto.randomUUID();
+  const { resource } = await params;
+  const granted = await access(request, 'DELETE', resource);
+  if (granted.response) return granted.response;
+  try {
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) throw new Error('Record id is required.');
+    const actor = { id: granted.auth!.user.id, email: granted.auth!.user.email, requestId };
+    const data = await remove(resource, id, actor);
+    invalidateServerCache(resource);
+    return success(data, granted.auth!, requestId)
+  } catch (error) {
+    return failure(error, requestId)
+  }
+}

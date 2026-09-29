@@ -12,21 +12,35 @@ export function useErpAutoRefresh(
 ) {
   const refreshRef = useRef(onRefresh)
   refreshRef.current = onRefresh
+  const lastRefreshTimeRef = useRef<number>(0)
+  const isRefreshingRef = useRef<boolean>(false)
 
   useEffect(() => {
     const resourceList = Array.isArray(resources) ? resources : [resources]
+
+    const triggerRefresh = async () => {
+      if (isRefreshingRef.current) return
+      isRefreshingRef.current = true
+      try {
+        lastRefreshTimeRef.current = Date.now()
+        await refreshRef.current()
+      } finally {
+        isRefreshingRef.current = false
+      }
+    }
 
     const handleEvent = (event: Event) => {
       const customEvent = event as CustomEvent<{ resource?: string }>
       const res = customEvent.detail?.resource
       if (!res || resourceList.includes(res) || resourceList.includes('*')) {
-        void refreshRef.current()
+        void triggerRefresh()
       }
     }
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        void refreshRef.current()
+      // Throttle window focus / tab visibility change to once every 30 seconds
+      if (document.visibilityState === 'visible' && Date.now() - lastRefreshTimeRef.current > 30_000) {
+        void triggerRefresh()
       }
     }
 
