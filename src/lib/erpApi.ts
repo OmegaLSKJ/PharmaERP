@@ -28,14 +28,15 @@ function buildApiUrl(path: string): string {
 function cascadeRelatedEvents(resource: string, id?: string): void {
   const cascadedMap: Record<string, string[]> = {
     series: ['sales', 'purchases', 'challans', 'orders', 'vouchers', 'ledgers', 'credit-notes', 'debit-notes', 'sale-returns', 'purchase-returns'],
-    sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'pendings'],
-    purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'pendings'],
-    items: ['dashboard', 'stock', 'report-stock', 'item-batches'],
-    'item-batches': ['items', 'dashboard', 'stock', 'report-stock'],
+    sales: ['dashboard', 'stock', 'report-stock', 'report-sales', 'ledgers', 'day-book', 'pendings', 'item-mappings'],
+    purchases: ['dashboard', 'stock', 'report-stock', 'report-purchases', 'ledgers', 'day-book', 'pendings', 'item-mappings'],
+    items: ['dashboard', 'stock', 'report-stock', 'item-batches', 'item-mappings'],
+    'item-batches': ['items', 'dashboard', 'stock', 'report-stock', 'item-mappings'],
     vouchers: ['dashboard', 'ledgers', 'day-book', 'report-financial'],
     orders: ['dashboard', 'pendings', 'sales'],
-    challans: ['dashboard', 'stock', 'pendings'],
-    parties: ['dashboard', 'ledgers', 'sales', 'purchases'],
+    challans: ['dashboard', 'stock', 'pendings', 'item-mappings'],
+    parties: ['dashboard', 'ledgers', 'sales', 'purchases', 'item-mappings'],
+    'item-mappings': ['items', 'item-batches', 'stock', 'report-stock', 'dashboard'],
   }
   const related = cascadedMap[resource]
   if (related) {

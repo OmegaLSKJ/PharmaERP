@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Plus,
   Edit2,
@@ -13,13 +13,15 @@ import {
   ChevronsRight,
   Layers,
   ArrowDownCircle,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../../lib/erpApi'
 import { useUIStore } from '../../../store/uiStore'
 import TopTableScroller from '../../../components/common/TopTableScroller'
 import { inferHsnForItem } from '../../../lib/hsnUtils'
+import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 
 interface Map {
   id: string
@@ -54,6 +56,7 @@ export default function ItemMapping() {
   const [mappings, setMappings] = useState<Map[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editor, setEditor] = useState<MappingForm | null>(null)
   const [saving, setSaving] = useState(false)
@@ -66,8 +69,15 @@ export default function ItemMapping() {
 
   const showToast = useUIStore((s) => s.showToast)
 
-  useEffect(() => {
-    getErp<any[]>('item-mappings')
+  const loadMappings = useCallback((force = false) => {
+    if (force) setRefreshing(true)
+    else setLoading(true)
+
+    return getErp<any[]>(
+      'item-mappings',
+      force ? { force: 'true', fresh: 'true' } : undefined,
+      force ? { forceRefresh: true } : undefined
+    )
       .then((rows) => {
         setMappings(
           rows.map((row) => {
@@ -93,7 +103,7 @@ export default function ItemMapping() {
             )
             const sale = Number(row.salePrice ?? getVal('sale', ['Sales Price', 'Sales Price - Rate']) ?? 0)
             const mrp = Number(row.mrp ?? getVal('mrp', ['M.R.P.', 'M.R.P. - Rate']) ?? 0)
-            const value = Number(row.reportedValue ?? getVal('value', ['Value', 'Value - At Cost']) ?? 0)
+            const value = Number(row.reportedValue ?? getVal('value', ['Value', 'Value - At Cost']) ?? (stock * cost))
 
             // Scheme formatting
             const salesDeal =
@@ -161,8 +171,19 @@ export default function ItemMapping() {
         )
       })
       .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load mappings.'))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        setRefreshing(false)
+      })
   }, [showToast])
+
+  useEffect(() => {
+    loadMappings(false)
+  }, [loadMappings])
+
+  useErpAutoRefresh(['item-mappings', 'items', 'item-batches', 'stock', 'purchases', 'sales'], () => {
+    loadMappings(true)
+  })
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -250,18 +271,34 @@ export default function ItemMapping() {
             <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold shadow-2xs">
               {totalItems.toLocaleString()} Mappings
             </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Supabase Live
+            </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
             <Link2 size={14} className="text-primary" />
-            Imported stock mapping with fixed top scroller and continuous chunking
+            Live Supabase catalog & imported stock mapping with real-time stock sync
           </p>
         </div>
-        <button
-          onClick={addMapping}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition"
-        >
-          <Plus size={16} /> New Mapping
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => loadMappings(true)}
+            disabled={refreshing || loading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition disabled:opacity-50"
+            title="Fetch real-time live stock and batch mapping directly from Supabase"
+          >
+            <RefreshCw size={14} className={cn(refreshing && "animate-spin text-primary")} />
+            <span>{refreshing ? 'Syncing...' : 'Sync Live'}</span>
+          </button>
+          <button
+            onClick={addMapping}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition"
+          >
+            <Plus size={16} /> New Mapping
+          </button>
+        </div>
       </div>
 
       {editor && (

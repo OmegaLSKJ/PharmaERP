@@ -87,12 +87,13 @@ export function invalidateServerCache(resource?: string): void {
     return
   }
   const relatedMap: Record<string, string[]> = {
-    sales: ['items', 'stock', 'report-stock', 'report-sales', 'dashboard'],
-    purchases: ['items', 'stock', 'report-stock', 'report-purchases', 'dashboard'],
-    items: ['items', 'stock', 'report-stock', 'dashboard', 'item-batches'],
-    'item-batches': ['items', 'stock', 'report-stock', 'dashboard'],
-    stock: ['items', 'stock', 'report-stock'],
-    parties: ['parties', 'dashboard', 'sales', 'purchases'],
+    sales: ['items', 'stock', 'report-stock', 'report-sales', 'dashboard', 'item-mappings'],
+    purchases: ['items', 'stock', 'report-stock', 'report-purchases', 'dashboard', 'item-mappings'],
+    items: ['items', 'stock', 'report-stock', 'dashboard', 'item-batches', 'item-mappings'],
+    'item-batches': ['items', 'stock', 'report-stock', 'dashboard', 'item-mappings'],
+    stock: ['items', 'stock', 'report-stock', 'item-mappings'],
+    parties: ['parties', 'dashboard', 'sales', 'purchases', 'item-mappings'],
+    'item-mappings': ['items', 'item-batches', 'stock', 'report-stock', 'dashboard'],
   }
   const targets = new Set<string>([resource, ...(relatedMap[resource] || [])])
   for (const key of Array.from(serverResourceCache.keys())) {
@@ -2563,37 +2564,184 @@ export async function list(resource: string, partyName?: string, options?: { man
     })
   }
   if (resource === 'item-mappings') {
-    const [imported, manual] = await Promise.all([
-      fetchAll<any>((from, to) => client.from('stock_import_rows').select('id,source_file,source_row,item_code,product_name,unit,current_stock,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,cost_price,reported_value,mrp,purchase_price,sale_price,company,manufacturer,received_on,batch_number,manufactured_on,expiry_on,supplier_name,invoice_number,invoice_date,rack_number').eq('organization_id', organizationId).order('product_name').order('source_row').range(from, to)),
-      fetchAll<any>((from, to) => client.from('business_documents').select('id,status,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', 'item_mapping').order('document_date', { ascending: false }).range(from, to)),
+    const [importedRes, manualRes, liveBatchesRes] = await Promise.allSettled([
+      fetchAll<any>((from, to) =>
+        client
+          .from('stock_import_rows')
+          .select('id,item_id,item_batch_id,source_file,source_row,item_code,product_name,unit,current_stock,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,cost_price,reported_value,mrp,purchase_price,sale_price,company,manufacturer,received_on,batch_number,manufactured_on,expiry_on,supplier_name,invoice_number,invoice_date,rack_number')
+          .eq('organization_id', organizationId)
+          .order('product_name')
+          .order('source_row')
+          .range(from, to)
+      ),
+      fetchAll<any>((from, to) =>
+        client
+          .from('business_documents')
+          .select('id,status,details,parties(legal_name)')
+          .eq('organization_id', organizationId)
+          .eq('document_type', 'item_mapping')
+          .order('document_date', { ascending: false })
+          .range(from, to)
+      ),
+      fetchAll<any>((from, to) =>
+        client
+          .from('item_batches')
+          .select('id,item_id,batch_number,expiry_on,mrp,received_on,manufactured_on,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,items!inner(id,code,name,unit,packing,is_active,organization_id,manufacturers(name),hsn_codes(code,gst_rate)),parties(legal_name),stock_movements(quantity)')
+          .eq('items.organization_id', organizationId)
+          .order('expiry_on')
+          .range(from, to)
+      ),
     ])
-    const importedRows = (imported ?? []).map((row: any) => ({
-      id: `import-${row.id}`,
-      source: 'import',
-      supplier: row.supplier_name ?? '',
-      supplierItem: row.item_code ?? '',
-      canonicalItem: row.product_name ?? '',
-      company: row.company ?? row.manufacturer ?? '',
-      unit: row.unit ?? '',
-      batch: row.batch_number ?? '',
-      stock: Number(row.current_stock ?? 0),
-      mrp: Number(row.mrp ?? 0),
-      costPrice: Number(row.cost_price ?? 0),
-      purchasePrice: Number(row.purchase_price ?? 0),
-      salePrice: Number(row.sale_price ?? 0),
-      reportedValue: Number(row.reported_value ?? 0),
-      salesSchemeDeal: Number(row.sales_scheme_deal ?? 0),
-      salesSchemeFree: Number(row.sales_scheme_free ?? 0),
-      purchaseSchemeDeal: Number(row.purchase_scheme_deal ?? 0),
-      purchaseSchemeFree: Number(row.purchase_scheme_free ?? 0),
-      receivedOn: row.received_on ?? '',
-      manufacturedOn: row.manufactured_on ?? '',
-      expiryOn: row.expiry_on ?? '',
-      invoiceNumber: row.invoice_number ?? '',
-      invoiceDate: row.invoice_date ?? '',
-      rackNumber: row.rack_number ?? '',
-      status: 'active',
-    }))
+
+    const imported = importedRes.status === 'fulfilled' ? importedRes.value : []
+    const manual = manualRes.status === 'fulfilled' ? manualRes.value : []
+    const liveBatches = liveBatchesRes.status === 'fulfilled' ? liveBatchesRes.value : []
+
+    const liveBatchById = new Map<string, any>()
+    const liveBatchByNameBatch = new Map<string, any>()
+    const liveBatchByCodeBatch = new Map<string, any>()
+    const claimedLiveBatchIds = new Set<string>()
+
+    const norm = (s?: string) => (s ?? '').trim().toLowerCase()
+
+    for (const b of (liveBatches ?? [])) {
+      const stock = (b.stock_movements ?? []).reduce((n: number, m: any) => n + Number(m.quantity || 0), 0)
+      const costPrice = Number(b.cost_price ?? 0)
+      const itemCode = b.items?.code ?? ''
+      const itemName = b.items?.name ?? ''
+      const batchNo = b.batch_number ?? ''
+      const entry = {
+        id: b.id,
+        itemId: b.item_id,
+        itemCode,
+        itemName,
+        company: b.items?.manufacturers?.name ?? '',
+        unit: b.items?.unit || b.items?.packing || '',
+        batch: batchNo,
+        expiryOn: b.expiry_on ?? '',
+        receivedOn: b.received_on ?? '',
+        manufacturedOn: b.manufactured_on ?? '',
+        mrp: Number(b.mrp ?? 0),
+        costPrice,
+        purchasePrice: Number(b.purchase_price ?? 0),
+        salePrice: Number(b.sale_price ?? 0),
+        salesSchemeDeal: Number(b.sales_scheme_deal ?? 0),
+        salesSchemeFree: Number(b.sales_scheme_free ?? 0),
+        purchaseSchemeDeal: Number(b.purchase_scheme_deal ?? 0),
+        purchaseSchemeFree: Number(b.purchase_scheme_free ?? 0),
+        supplier: b.parties?.legal_name ?? '',
+        invoiceNumber: b.supplier_invoice_number ?? '',
+        invoiceDate: b.supplier_invoice_date ?? '',
+        rackNumber: b.rack_number ?? '',
+        reportedValue: Number(b.source_report_value ?? (costPrice * stock)),
+        hsn: b.items?.hsn_codes?.code ?? '',
+        gstRate: Number(b.items?.hsn_codes?.gst_rate ?? 0),
+        stock,
+        status: b.items?.is_active === false ? 'inactive' : 'active'
+      }
+      liveBatchById.set(b.id, entry)
+      if (itemName && batchNo) {
+        liveBatchByNameBatch.set(`${norm(itemName)}:::${norm(batchNo)}`, entry)
+      }
+      if (itemCode && batchNo) {
+        liveBatchByCodeBatch.set(`${norm(itemCode)}:::${norm(batchNo)}`, entry)
+      }
+    }
+
+    const importedRows = (imported ?? []).map((row: any) => {
+      let liveMatch = row.item_batch_id ? liveBatchById.get(row.item_batch_id) : null
+      if (!liveMatch && row.product_name && row.batch_number) {
+        liveMatch = liveBatchByNameBatch.get(`${norm(row.product_name)}:::${norm(row.batch_number)}`)
+      }
+      if (!liveMatch && row.item_code && row.batch_number) {
+        liveMatch = liveBatchByCodeBatch.get(`${norm(row.item_code)}:::${norm(row.batch_number)}`)
+      }
+
+      if (liveMatch) {
+        claimedLiveBatchIds.add(liveMatch.id)
+      }
+
+      const stock = liveMatch !== null && liveMatch !== undefined ? liveMatch.stock : Number(row.current_stock ?? 0)
+      const mrp = liveMatch && liveMatch.mrp > 0 ? liveMatch.mrp : Number(row.mrp ?? 0)
+      const costPrice = liveMatch && liveMatch.costPrice > 0 ? liveMatch.costPrice : Number(row.cost_price ?? 0)
+      const purchasePrice = liveMatch && liveMatch.purchasePrice > 0 ? liveMatch.purchasePrice : Number(row.purchase_price ?? 0)
+      const salePrice = liveMatch && liveMatch.salePrice > 0 ? liveMatch.salePrice : Number(row.sale_price ?? 0)
+      const rackNumber = (liveMatch && liveMatch.rackNumber) ? liveMatch.rackNumber : (row.rack_number ?? '')
+      const expiryOn = (liveMatch && liveMatch.expiryOn) ? liveMatch.expiryOn : (row.expiry_on ?? '')
+      const receivedOn = (liveMatch && liveMatch.receivedOn) ? liveMatch.receivedOn : (row.received_on ?? '')
+      const supplier = (liveMatch && liveMatch.supplier) ? liveMatch.supplier : (row.supplier_name ?? '')
+      const company = (liveMatch && liveMatch.company) ? liveMatch.company : (row.company ?? row.manufacturer ?? '')
+
+      return {
+        id: `import-${row.id}`,
+        batchId: liveMatch?.id,
+        itemId: liveMatch?.itemId || row.item_id,
+        source: liveMatch ? 'supabase_live' : 'import',
+        supplier,
+        supplierItem: row.item_code ?? liveMatch?.itemCode ?? '',
+        canonicalItem: row.product_name ?? liveMatch?.itemName ?? '',
+        company,
+        unit: row.unit ?? liveMatch?.unit ?? '',
+        batch: row.batch_number ?? liveMatch?.batch ?? '',
+        stock,
+        mrp,
+        costPrice,
+        purchasePrice,
+        salePrice,
+        reportedValue: Number(row.reported_value ?? (costPrice * stock)),
+        salesSchemeDeal: liveMatch ? liveMatch.salesSchemeDeal : Number(row.sales_scheme_deal ?? 0),
+        salesSchemeFree: liveMatch ? liveMatch.salesSchemeFree : Number(row.sales_scheme_free ?? 0),
+        purchaseSchemeDeal: liveMatch ? liveMatch.purchaseSchemeDeal : Number(row.purchase_scheme_deal ?? 0),
+        purchaseSchemeFree: liveMatch ? liveMatch.purchaseSchemeFree : Number(row.purchase_scheme_free ?? 0),
+        receivedOn,
+        manufacturedOn: (liveMatch && liveMatch.manufacturedOn) ? liveMatch.manufacturedOn : (row.manufactured_on ?? ''),
+        expiryOn,
+        invoiceNumber: (liveMatch && liveMatch.invoiceNumber) ? liveMatch.invoiceNumber : (row.invoice_number ?? ''),
+        invoiceDate: (liveMatch && liveMatch.invoiceDate) ? liveMatch.invoiceDate : (row.invoice_date ?? ''),
+        rackNumber,
+        hsn: liveMatch?.hsn,
+        gstRate: liveMatch?.gstRate,
+        status: 'active',
+      }
+    })
+
+    const unclaimedLiveRows: any[] = []
+    for (const [batchId, liveBatch] of liveBatchById.entries()) {
+      if (!claimedLiveBatchIds.has(batchId)) {
+        unclaimedLiveRows.push({
+          id: `batch-${liveBatch.id}`,
+          batchId: liveBatch.id,
+          itemId: liveBatch.itemId,
+          source: 'supabase_live',
+          supplier: liveBatch.supplier,
+          supplierItem: liveBatch.itemCode,
+          canonicalItem: liveBatch.itemName,
+          company: liveBatch.company,
+          unit: liveBatch.unit,
+          batch: liveBatch.batch,
+          stock: liveBatch.stock,
+          mrp: liveBatch.mrp,
+          costPrice: liveBatch.costPrice,
+          purchasePrice: liveBatch.purchasePrice,
+          salePrice: liveBatch.salePrice,
+          reportedValue: liveBatch.reportedValue,
+          salesSchemeDeal: liveBatch.salesSchemeDeal,
+          salesSchemeFree: liveBatch.salesSchemeFree,
+          purchaseSchemeDeal: liveBatch.purchaseSchemeDeal,
+          purchaseSchemeFree: liveBatch.purchaseSchemeFree,
+          receivedOn: liveBatch.receivedOn,
+          manufacturedOn: liveBatch.manufacturedOn,
+          expiryOn: liveBatch.expiryOn,
+          invoiceNumber: liveBatch.invoiceNumber,
+          invoiceDate: liveBatch.invoiceDate,
+          rackNumber: liveBatch.rackNumber,
+          hsn: liveBatch.hsn,
+          gstRate: liveBatch.gstRate,
+          status: liveBatch.status,
+        })
+      }
+    }
+
     const manualRows = (manual ?? []).map((row: any) => ({
       id: row.id,
       source: 'manual',
@@ -2621,7 +2769,8 @@ export async function list(resource: string, partyName?: string, options?: { man
       rackNumber: row.details?.rackNumber ?? '',
       status: row.status,
     }))
-    const dbRows = [...importedRows, ...manualRows]
+
+    const dbRows = [...unclaimedLiveRows, ...importedRows, ...manualRows]
     return dbRows
   }
   if (resource === 'account-groups') {
@@ -3662,20 +3811,94 @@ export async function create(resource: string, body: any, actor: MutationActor =
     'item-mappings': { type: 'item_mapping', prefix: 'MAP' }
   }
   if (resource === 'item-mappings') {
+    let itemId: string | null = null
+    const productName = (body.product || '').trim()
+    const itemCode = (body.code || '').trim() || `ITEM-${Date.now().toString().slice(-6)}`
+    if (productName) {
+      const { data: existingItem } = await client.from('items').select('id').eq('organization_id', organizationId).ilike('name', productName).maybeSingle()
+      if (existingItem?.id) {
+        itemId = existingItem.id
+      } else {
+        const { data: newItem } = await client.from('items').insert({
+          organization_id: organizationId,
+          name: productName,
+          code: itemCode,
+          unit: body.unit || null,
+          packing: body.unit || null,
+          mrp: Number(body.mrp || 0),
+          sale_rate: Number(body.sale || 0),
+          purchase_rate: Number(body.purchase || 0),
+          is_active: true
+        }).select('id').maybeSingle()
+        if (newItem?.id) itemId = newItem.id
+      }
+    }
+
+    let batchId: string | null = null
+    const batchNo = (body.batch || 'DEFAULT').trim()
+    if (itemId) {
+      const { data: existingBatch } = await client.from('item_batches').select('id').eq('item_id', itemId).eq('batch_number', batchNo).maybeSingle()
+      if (existingBatch?.id) {
+        batchId = existingBatch.id
+      } else {
+        let supId: string | null = null
+        if (body.supplier) {
+          supId = await party(client, organizationId, body.supplier, 'supplier')
+        }
+        const { data: newBatch } = await client.from('item_batches').insert({
+          item_id: itemId,
+          batch_number: batchNo,
+          expiry_on: normalizeExpiryDate(body.exp) || body.exp || null,
+          manufactured_on: body.mfg === '—' ? null : (normalizeExpiryDate(body.mfg) || body.mfg || null),
+          received_on: body.received || null,
+          mrp: Number(body.mrp || 0),
+          cost_price: Number(body.cost || 0),
+          purchase_price: Number(body.purchase || 0),
+          sale_price: Number(body.sale || 0),
+          rack_number: body.rack || null,
+          supplier_id: supId,
+          supplier_invoice_number: body.invoice_no || null,
+          supplier_invoice_date: body.invoice_date || null,
+          sales_scheme_deal: Number(String(body.sales_scheme || '0+0').split('+')[0] || 0),
+          sales_scheme_free: Number(String(body.sales_scheme || '0+0').split('+')[1] || 0),
+          purchase_scheme_deal: Number(String(body.purchase_scheme || '0+0').split('+')[0] || 0),
+          purchase_scheme_free: Number(String(body.purchase_scheme || '0+0').split('+')[1] || 0),
+        }).select('id').maybeSingle()
+        if (newBatch?.id) batchId = newBatch.id
+      }
+
+      const qty = Number(body.stock || 0)
+      if (batchId && qty > 0) {
+        const { data: wh } = await client.from('warehouses').select('id').eq('organization_id', organizationId).limit(1).maybeSingle()
+        if (wh?.id) {
+          await client.from('stock_movements').insert({
+            organization_id: organizationId,
+            item_batch_id: batchId,
+            warehouse_id: wh.id,
+            movement_type: 'opening',
+            quantity: qty,
+            source_type: 'manual_mapping',
+            remarks: 'Opening stock from Item Mapping'
+          })
+        }
+      }
+    }
+
     const sourceFile = `manual-ui-${crypto.randomUUID()}`
     const { data, error } = await client.from('stock_import_rows').insert({
       organization_id: organizationId, source_file: sourceFile, source_row: 1,
-      item_code: body.code || null, product_name: body.product || null, unit: body.unit || null,
+      item_id: itemId, item_batch_id: batchId,
+      item_code: itemCode, product_name: productName || null, unit: body.unit || null,
       current_stock: Number(body.stock || 0), cost_price: Number(body.cost || 0), purchase_price: Number(body.purchase || 0),
       sale_price: Number(body.sale || 0), mrp: Number(body.mrp || 0), reported_value: Number(body.value || 0), company: body.company || null,
-      manufacturer: body.company || null, batch_number: body.batch || null, received_on: body.received || null,
-      manufactured_on: body.mfg === '—' ? null : body.mfg || null, expiry_on: body.exp || null, supplier_name: body.supplier || null,
+      manufacturer: body.company || null, batch_number: batchNo, received_on: body.received || null,
+      manufactured_on: body.mfg === '—' ? null : (normalizeExpiryDate(body.mfg) || body.mfg || null), expiry_on: normalizeExpiryDate(body.exp) || body.exp || null, supplier_name: body.supplier || null,
       invoice_number: body.invoice_no || null, invoice_date: body.invoice_date || null, rack_number: body.rack || null,
       sales_scheme_deal: Number(String(body.sales_scheme || '0+0').split('+')[0] || 0), sales_scheme_free: Number(String(body.sales_scheme || '0+0').split('+')[1] || 0),
       purchase_scheme_deal: Number(String(body.purchase_scheme || '0+0').split('+')[0] || 0), purchase_scheme_free: Number(String(body.purchase_scheme || '0+0').split('+')[1] || 0), raw_payload: { source: 'manual-ui' }
     }).select('id').single()
     if (error) throw error
-    return { ...body, id: `import-${data.id}` }
+    return { ...body, id: batchId ? `batch-${batchId}` : `import-${data.id}`, batchId, itemId }
   }
   if (documentResources[resource]) {
     const config = documentResources[resource]
@@ -4872,12 +5095,49 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     }
   }
   if (resource === 'item-mappings') {
+    const scheme = (value: unknown, position: number) => Number(String(value || '0+0').split('+')[position] || 0)
+    if (id.startsWith('batch-')) {
+      const batchId = id.slice('batch-'.length)
+      const bVals: any = {}
+      if ('batch' in body) bVals.batch_number = String(body.batch).trim()
+      if ('exp' in body) bVals.expiry_on = normalizeExpiryDate(body.exp) || body.exp || null
+      if ('mfg' in body) bVals.manufactured_on = body.mfg === '—' ? null : (normalizeExpiryDate(body.mfg) || body.mfg || null)
+      if ('received' in body) bVals.received_on = body.received || null
+      if ('mrp' in body) bVals.mrp = Number(body.mrp || 0)
+      if ('cost' in body) bVals.cost_price = Number(body.cost || 0)
+      if ('purchase' in body) bVals.purchase_price = Number(body.purchase || 0)
+      if ('sale' in body) bVals.sale_price = Number(body.sale || 0)
+      if ('rack' in body) bVals.rack_number = body.rack || null
+      if ('invoice_no' in body) bVals.supplier_invoice_number = body.invoice_no || null
+      if ('invoice_date' in body) bVals.supplier_invoice_date = body.invoice_date || null
+      if ('sales_scheme' in body) { bVals.sales_scheme_deal = scheme(body.sales_scheme, 0); bVals.sales_scheme_free = scheme(body.sales_scheme, 1) }
+      if ('purchase_scheme' in body) { bVals.purchase_scheme_deal = scheme(body.purchase_scheme, 0); bVals.purchase_scheme_free = scheme(body.purchase_scheme, 1) }
+      if (body.supplier) {
+        const supId = await party(client, organizationId, body.supplier, 'supplier')
+        if (supId) bVals.supplier_id = supId
+      }
+      const { data: updatedBatch, error: bErr } = await client.from('item_batches').update(bVals).eq('id', batchId).select('id, item_id').maybeSingle()
+      if (bErr) throw bErr
+      if (updatedBatch?.item_id) {
+        const iVals: any = {}
+        if ('product' in body && body.product) iVals.name = String(body.product).trim()
+        if ('code' in body && body.code) iVals.code = String(body.code).trim()
+        if ('unit' in body) { iVals.unit = body.unit; iVals.packing = body.unit }
+        if ('mrp' in body) iVals.mrp = Number(body.mrp || 0)
+        if ('sale' in body) iVals.sale_rate = Number(body.sale || 0)
+        if ('purchase' in body) iVals.purchase_rate = Number(body.purchase || 0)
+        if (Object.keys(iVals).length > 0) {
+          await client.from('items').update(iVals).eq('id', updatedBatch.item_id).eq('organization_id', organizationId)
+        }
+      }
+      return { ...body, id }
+    }
+
     if (id.startsWith('import-')) {
       const importId = id.slice('import-'.length)
-      const { data: existing, error: existingError } = await client.from('stock_import_rows').select('id').eq('id', importId).eq('organization_id', organizationId).maybeSingle()
+      const { data: existing, error: existingError } = await client.from('stock_import_rows').select('id, item_id, item_batch_id, product_name, item_code, batch_number').eq('id', importId).eq('organization_id', organizationId).maybeSingle()
       if (existingError) throw existingError
       if (!existing) throw new Error('Imported mapping not found.')
-      const scheme = (value: unknown, position: number) => Number(String(value || '0+0').split('+')[position] || 0)
       const values: any = {}
       if ('code' in body) values.item_code = body.code || null
       if ('product' in body) values.product_name = body.product || null
@@ -4891,8 +5151,8 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       if ('company' in body) { values.company = body.company || null; values.manufacturer = body.company || null }
       if ('batch' in body) values.batch_number = body.batch || null
       if ('received' in body) values.received_on = body.received || null
-      if ('mfg' in body) values.manufactured_on = body.mfg === '—' ? null : body.mfg || null
-      if ('exp' in body) values.expiry_on = body.exp || null
+      if ('mfg' in body) values.manufactured_on = body.mfg === '—' ? null : (normalizeExpiryDate(body.mfg) || body.mfg || null)
+      if ('exp' in body) values.expiry_on = normalizeExpiryDate(body.exp) || body.exp || null
       if ('supplier' in body) values.supplier_name = body.supplier || null
       if ('invoice_no' in body) values.invoice_number = body.invoice_no || null
       if ('invoice_date' in body) values.invoice_date = body.invoice_date || null
@@ -4901,6 +5161,31 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       if ('purchase_scheme' in body) { values.purchase_scheme_deal = scheme(body.purchase_scheme, 0); values.purchase_scheme_free = scheme(body.purchase_scheme, 1) }
       const { error } = await client.from('stock_import_rows').update(values).eq('id', importId).eq('organization_id', organizationId)
       if (error) throw error
+
+      // Also propagate live updates to Supabase item_batches and items
+      try {
+        let targetBatchId = existing.item_batch_id
+        if (!targetBatchId && (existing.product_name || values.product_name) && (existing.batch_number || values.batch_number)) {
+          const pName = values.product_name || existing.product_name
+          const bNo = values.batch_number || existing.batch_number
+          const { data: bMatch } = await client.from('item_batches').select('id, item_id').eq('batch_number', bNo).ilike('items.name', pName).limit(1).maybeSingle()
+          if (bMatch?.id) targetBatchId = bMatch.id
+        }
+        if (targetBatchId) {
+          const bSync: any = {}
+          if ('batch' in body) bSync.batch_number = String(body.batch).trim()
+          if ('exp' in body) bSync.expiry_on = normalizeExpiryDate(body.exp) || body.exp || null
+          if ('mrp' in body) bSync.mrp = Number(body.mrp || 0)
+          if ('cost' in body) bSync.cost_price = Number(body.cost || 0)
+          if ('purchase' in body) bSync.purchase_price = Number(body.purchase || 0)
+          if ('sale' in body) bSync.sale_price = Number(body.sale || 0)
+          if ('rack' in body) bSync.rack_number = body.rack || null
+          if (Object.keys(bSync).length > 0) {
+            await client.from('item_batches').update(bSync).eq('id', targetBatchId)
+          }
+        }
+      } catch {}
+
       return { ...body, id }
     }
     const { data, error } = await client.from('business_documents').update({ details: body }).eq('id', id).eq('organization_id', organizationId).eq('document_type', 'item_mapping').select('id').single()
@@ -5190,6 +5475,23 @@ export async function remove(resource: string, id: string, actor: MutationActor 
     return { id }
   }
   if (resource === 'item-mappings') {
+    if (id.startsWith('batch-')) {
+      const batchId = id.slice('batch-'.length)
+      const [{ count: stockCount }, { count: salesCount }, { count: purchaseCount }] = await Promise.all([
+        client.from('stock_movements').select('*', { count: 'exact', head: true }).eq('item_batch_id', batchId),
+        client.from('sales_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_batch_id', batchId),
+        client.from('purchase_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_batch_id', batchId),
+      ])
+      if ((salesCount ?? 0) + (purchaseCount ?? 0) > 0) {
+        throw new Error('This batch has sales or purchase invoice history and cannot be deleted.')
+      }
+      if ((stockCount ?? 0) > 0) {
+        await client.from('stock_movements').delete().eq('item_batch_id', batchId).eq('organization_id', organizationId)
+      }
+      const { error } = await client.from('item_batches').delete().eq('id', batchId)
+      if (error) throw error
+      return { id }
+    }
     if (id.startsWith('import-')) {
       const { error } = await client.from('stock_import_rows').delete().eq('id', id.slice('import-'.length)).eq('organization_id', organizationId)
       if (error) throw error
