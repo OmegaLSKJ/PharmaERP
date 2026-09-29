@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Download, FileText, Eye, Edit2, RefreshCw } from 'lucide-react'
+import { Search, Download, FileText, Eye, Edit2, RefreshCw, Building2 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
@@ -221,6 +221,7 @@ export default function LedgerView() {
                   <th className="text-left px-4 py-3 font-semibold">Date</th>
                   <th className="text-left px-4 py-3 font-semibold">Type</th>
                   <th className="text-left px-4 py-3 font-semibold">Voucher</th>
+                  <th className="text-left px-4 py-3 font-semibold">Company / Party</th>
                   <th className="text-right px-4 py-3 font-semibold w-24">Debit</th>
                   <th className="text-right px-4 py-3 font-semibold w-24">Credit</th>
                   <th className="text-right px-4 py-3 font-semibold w-32">Balance</th>
@@ -249,6 +250,14 @@ export default function LedgerView() {
                       >
                         {e.vNo}
                       </a>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      <span className="inline-flex items-center gap-1.5 text-xs">
+                        <Building2 size={12} className="text-indigo-400 shrink-0" />
+                        <span className="truncate max-w-[170px]" title={e.party || selectedLedger}>
+                          {e.party || selectedLedger || '-'}
+                        </span>
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{e.debit > 0 ? formatCurrency(e.debit) : '-'}</td>
                     <td className="px-4 py-3 text-right font-mono">{e.credit > 0 ? formatCurrency(e.credit) : '-'}</td>

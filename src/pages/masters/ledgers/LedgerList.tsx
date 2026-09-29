@@ -55,6 +55,10 @@ interface Ledger {
   totalCr?: number
   lastActivityDate?: string
   lastActivityTime?: string
+  companyName?: string
+  city?: string
+  station?: string
+  associatedCompanies?: string[]
 }
 
 interface StatementEntry {
@@ -266,6 +270,12 @@ export default function LedgerList() {
       getErp<StatementEntry[]>('ledgers').catch(() => [])
     ])
       .then(([accounts, parties, ledgerRows]) => {
+        const partyMap: Record<string, any> = {}
+        parties.forEach((p) => {
+          if (p.name) partyMap[p.name.trim().toLowerCase()] = p
+          if (p.id) partyMap[p.id.toLowerCase()] = p
+        })
+
         const partyLedgers: Ledger[] = parties.map((p) => ({
           id: p.id,
           name: p.name,
@@ -273,7 +283,11 @@ export default function LedgerList() {
           openingBalance: Number(p.openingBalance ?? 0),
           openingType: (p.openingType || (Number(p.balance || 0) < 0 ? 'Cr' : 'Dr')) as 'Dr' | 'Cr',
           balance: Math.abs(Number(p.balance || 0)),
-          type: Number(p.balance || 0) < 0 ? 'Cr' : 'Dr'
+          type: Number(p.balance || 0) < 0 ? 'Cr' : 'Dr',
+          companyName: p.name,
+          city: p.city || '',
+          station: p.station || p.city || '',
+          associatedCompanies: [p.name]
         }))
 
         const existingNames = new Set(accounts.map((a) => a.name.toLowerCase()))
@@ -297,18 +311,25 @@ export default function LedgerList() {
         })
         setStatementEntries(validRows)
 
+        // Precompute distinct company sets by transaction category
+        const allSalesCompanies = Array.from(new Set(validRows.filter(r => (r.vType === 'sale' || r.vType === 'sales') && r.party).map(r => r.party.trim())))
+        const allPurchaseCompanies = Array.from(new Set(validRows.filter(r => (r.vType === 'purchase' || r.vType === 'purchases') && r.party).map(r => r.party.trim())))
+        const allVoucherCompanies = Array.from(new Set(validRows.filter(r => ['receipt', 'payment', 'journal', 'contra'].includes((r.vType || '').toLowerCase()) && r.party).map(r => r.party.trim())))
+        const allChallanCompanies = Array.from(new Set(validRows.filter(r => r.vType === 'challan' && r.party).map(r => r.party.trim())))
+
         // Compute balances and totals directly connected to all real transactions for each ledger
-        const ledgerTxnTotals: Record<string, { dr: number; cr: number; net: number; count: number; lastDate: string; lastTime: string }> = {}
+        const ledgerTxnTotals: Record<string, { dr: number; cr: number; net: number; count: number; lastDate: string; lastTime: string; companies: Set<string> }> = {}
         validRows.forEach((row) => {
           const partyKey = (row.party || '').trim().toLowerCase()
           if (!partyKey) return
-          if (!ledgerTxnTotals[partyKey]) ledgerTxnTotals[partyKey] = { dr: 0, cr: 0, net: 0, count: 0, lastDate: '', lastTime: '' }
+          if (!ledgerTxnTotals[partyKey]) ledgerTxnTotals[partyKey] = { dr: 0, cr: 0, net: 0, count: 0, lastDate: '', lastTime: '', companies: new Set() }
           const drVal = Number(row.debit) || 0
           const crVal = Number(row.credit) || 0
           ledgerTxnTotals[partyKey].dr += drVal
           ledgerTxnTotals[partyKey].cr += crVal
           ledgerTxnTotals[partyKey].net += drVal - crVal
           ledgerTxnTotals[partyKey].count += 1
+          if (row.party) ledgerTxnTotals[partyKey].companies.add(row.party.trim())
           // Track the most recent date for last activity
           const rowDate = (row.date || '').slice(0, 10)
           if (!ledgerTxnTotals[partyKey].lastDate || rowDate > ledgerTxnTotals[partyKey].lastDate) {
@@ -320,6 +341,28 @@ export default function LedgerList() {
         const updatedCombined = combined.map((ledger) => {
           const key = ledger.name.trim().toLowerCase()
           const txnData = ledgerTxnTotals[key]
+          const matchedParty = partyMap[key]
+          const g = ledger.group.toLowerCase()
+
+          let associated: string[] = []
+          if (matchedParty) {
+            associated = [matchedParty.name]
+          } else if (g.includes('sale') || g.includes('income')) {
+            associated = allSalesCompanies
+          } else if (g.includes('purchase') || g.includes('expense')) {
+            associated = allPurchaseCompanies
+          } else if (g.includes('challan')) {
+            associated = allChallanCompanies
+          } else if (g.includes('cash') || g.includes('bank') || g.includes('duty') || g.includes('tax') || g.includes('capital')) {
+            associated = allVoucherCompanies
+          } else if (txnData && txnData.companies.size > 0) {
+            associated = Array.from(txnData.companies)
+          }
+
+          const compName = matchedParty?.name || (associated.length === 1 ? associated[0] : ledger.name)
+          const compCity = matchedParty?.city || ''
+          const compStation = matchedParty?.station || matchedParty?.city || ''
+
           if (txnData && txnData.count > 0) {
             // Apply transactions to Opening Balance (not the already-calculated balance)
             const opBal = Number(ledger.openingBalance ?? 0)
@@ -335,6 +378,10 @@ export default function LedgerList() {
               totalCr: txnData.cr,
               lastActivityDate: txnData.lastDate,
               lastActivityTime: txnData.lastTime,
+              companyName: compName,
+              city: compCity,
+              station: compStation,
+              associatedCompanies: associated
             }
           }
           return {
@@ -344,6 +391,10 @@ export default function LedgerList() {
             totalCr: 0,
             lastActivityDate: '',
             lastActivityTime: '',
+            companyName: compName,
+            city: compCity,
+            station: compStation,
+            associatedCompanies: associated
           }
         })
 
@@ -569,12 +620,13 @@ export default function LedgerList() {
       : selectedLedgerObj?.type || 'Dr'
 
   const TransactionTable = ({ txns }: { txns: any[] }) => (
-    <table className="w-full text-xs text-left min-w-[700px]">
+    <table className="w-full text-xs text-left min-w-[850px]">
       <thead>
         <tr className="bg-secondary/50 text-muted-foreground border-b border-border uppercase tracking-wider">
           <th className="px-4 py-3 font-medium w-36">Date &amp; Time</th>
-          <th className="px-4 py-3 font-medium w-28">Type</th>
-          <th className="px-4 py-3 font-medium w-36">Voucher No</th>
+          <th className="px-4 py-3 font-medium w-24">Type</th>
+          <th className="px-4 py-3 font-medium w-32">Voucher No</th>
+          <th className="px-4 py-3 font-medium w-48">Company / Party</th>
           <th className="px-4 py-3 font-medium">Narration</th>
           <th className="px-4 py-3 font-medium text-right w-28">Debit (₹)</th>
           <th className="px-4 py-3 font-medium text-right w-28">Credit (₹)</th>
@@ -584,10 +636,11 @@ export default function LedgerList() {
       </thead>
       <tbody className="divide-y divide-border text-foreground">
         {txns.length === 0 && (
-          <tr><td colSpan={8} className="p-6 text-center text-muted-foreground italic">No records found.</td></tr>
+          <tr><td colSpan={9} className="p-6 text-center text-muted-foreground italic">No records found.</td></tr>
         )}
         {txns.map((t, i) => {
           const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
+          const compName = t.party || selectedLedger || '-'
           return (
           <tr
             key={t.id || i}
@@ -614,6 +667,12 @@ export default function LedgerList() {
               <span className="inline-flex items-center gap-1 underline underline-offset-2">
                 {t.vNo}
                 <ExternalLink size={11} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
+              </span>
+            </td>
+            <td className="px-4 py-2.5 font-medium text-foreground">
+              <span className="inline-flex items-center gap-1.5 text-xs">
+                <Building2 size={12} className="text-indigo-500 shrink-0" />
+                <span className="truncate max-w-[190px]" title={compName}>{compName}</span>
               </span>
             </td>
             <td className="px-4 py-2.5 text-muted-foreground max-w-xs truncate group-hover:text-foreground">{t.narration || '-'}</td>
@@ -766,10 +825,11 @@ export default function LedgerList() {
             const otherLedgers = filteredLedgers.filter(l => !assignedIds.has(l.id))
 
             const LedgerTable = ({ rows }: { rows: Ledger[] }) => (
-              <table className="min-w-[1000px] w-full text-left border-collapse text-xs">
+              <table className="min-w-[1100px] w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-secondary/30 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     <th className="px-4 py-2.5">Ledger Name</th>
+                    <th className="px-4 py-2.5">Company / Party Details</th>
                     <th className="px-4 py-2.5">Account Group</th>
                     <th className="px-4 py-2.5 text-center">Txns</th>
                     <th className="px-4 py-2.5 text-right">Total Debit</th>
@@ -783,6 +843,7 @@ export default function LedgerList() {
                 <tbody className="divide-y divide-border">
                   {rows.map((l) => {
                     const dt = getTxnDateTime(l.lastActivityDate, l.lastActivityTime, l.id)
+                    const isPartyLedger = ['sundry debtors', 'sundry creditors', 'sundry debtors & creditors'].includes(l.group.toLowerCase())
                     return (
                       <tr key={l.id} className="hover:bg-secondary/40 text-foreground transition group">
                         <td className="px-4 py-2.5 font-medium">
@@ -793,6 +854,31 @@ export default function LedgerList() {
                           >
                             {l.name}
                           </button>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {isPartyLedger ? (
+                            <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                              <Building2 size={12} className="text-indigo-400 shrink-0" />
+                              <span className="truncate max-w-[180px]">{l.companyName || l.name}</span>
+                              {l.city && (
+                                <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 rounded bg-secondary border border-border shrink-0">
+                                  {l.city}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+                              <Building2 size={11} className="text-indigo-400 shrink-0" />
+                              <span
+                                className="truncate max-w-[200px]"
+                                title={l.associatedCompanies && l.associatedCompanies.length > 0 ? l.associatedCompanies.join(', ') : 'Direct accounts'}
+                              >
+                                {l.associatedCompanies && l.associatedCompanies.length > 0
+                                  ? l.associatedCompanies.slice(0, 2).join(', ') + (l.associatedCompanies.length > 2 ? ` (+${l.associatedCompanies.length - 2} parties)` : '')
+                                  : 'Direct / Internal'}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-muted-foreground text-[11px]">{l.group}</td>
                         <td className="px-4 py-2.5 text-center">
@@ -1188,8 +1274,9 @@ export default function LedgerList() {
                 <thead>
                   <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
                     <th className="text-left px-4 py-3 font-medium w-36">Date &amp; Time</th>
-                    <th className="text-left px-4 py-3 font-medium w-28">Voucher Type</th>
-                    <th className="text-left px-4 py-3 font-medium w-36">Voucher / Ref No</th>
+                    <th className="text-left px-4 py-3 font-medium w-24">Voucher Type</th>
+                    <th className="text-left px-4 py-3 font-medium w-32">Voucher / Ref No</th>
+                    <th className="text-left px-4 py-3 font-medium w-48">Company / Party</th>
                     <th className="text-left px-4 py-3 font-medium">Particulars / Narration</th>
                     <th className="text-right px-4 py-3 font-medium w-32">Debit (Dr ₹)</th>
                     <th className="text-right px-4 py-3 font-medium w-32">Credit (Cr ₹)</th>
@@ -1200,6 +1287,7 @@ export default function LedgerList() {
                 <tbody className="divide-y divide-border text-foreground">
                   {filteredStatementTxns.map((txn, idx) => {
                     const dt = getTxnDateTime(txn.date, txn.time, txn.id || txn.vNo)
+                    const compName = txn.party || selectedLedger || '-'
                     return (
                     <tr
                       key={txn.id || idx}
@@ -1224,6 +1312,12 @@ export default function LedgerList() {
                         <span className="inline-flex items-center gap-1 underline underline-offset-2">
                           {txn.vNo}
                           <ExternalLink size={12} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <Building2 size={12} className="text-indigo-500 shrink-0" />
+                          <span className="truncate max-w-[190px]" title={compName}>{compName}</span>
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground max-w-sm truncate group-hover:text-foreground">{txn.narration || '-'}</td>
