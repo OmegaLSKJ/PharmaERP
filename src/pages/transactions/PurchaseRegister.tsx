@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2, Pill } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
@@ -9,6 +10,7 @@ import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transac
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import TopTableScroller from '../../components/common/TopTableScroller'
 
 interface ItemOption {
   id?: string
@@ -179,6 +181,16 @@ export default function PurchaseRegister() {
       }, 50)
     }
   }, [showItemPicker])
+
+  useEffect(() => {
+    if (!editing && !showItemPicker && !selected) return
+    if (typeof document === 'undefined') return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [editing, showItemPicker, selected])
 
   const statusCounts = {
     all: purchases.length,
@@ -797,13 +809,13 @@ export default function PurchaseRegister() {
       </div>
 
       {/* In-Place Challan Modifier Modal */}
-      {editing && (
+      {editing && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setEditing(null)}
         >
           <div
-            className="bg-card border border-border w-full max-w-6xl xl:max-w-7xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-card-foreground"
+            className="bg-card border border-border w-[98vw] max-w-[1550px] rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[94vh] overflow-y-auto text-card-foreground flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -845,7 +857,7 @@ export default function PurchaseRegister() {
                   type="text"
                   value={editing.supplier}
                   onChange={(e) => setEditing({ ...editing, supplier: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-slate-300 dark:border-slate-700 text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
@@ -854,7 +866,7 @@ export default function PurchaseRegister() {
                   type="text"
                   value={editing.invoiceNo}
                   onChange={(e) => setEditing({ ...editing, invoiceNo: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-slate-300 dark:border-slate-700 text-foreground font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
@@ -863,7 +875,7 @@ export default function PurchaseRegister() {
                   type="date"
                   value={editing.date}
                   onChange={(e) => setEditing({ ...editing, date: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-slate-300 dark:border-slate-700 text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none transition"
                 />
               </div>
               <div className="space-y-1">
@@ -871,7 +883,7 @@ export default function PurchaseRegister() {
                 <select
                   value={editing.status}
                   onChange={(e) => setEditing({ ...editing, status: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-input text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none capitalize"
+                  className="w-full px-2.5 py-1.5 rounded-md bg-background border border-slate-300 dark:border-slate-700 text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none capitalize"
                 >
                   <option value="received">Received</option>
                   <option value="pending">Pending</option>
@@ -915,28 +927,36 @@ export default function PurchaseRegister() {
                 ))}
               </datalist>
 
-              <div className="border border-border rounded-xl overflow-x-auto bg-card shadow-xs">
-                <table className="w-full text-xs min-w-[1240px]">
+              <TopTableScroller
+                shortcuts={[
+                  { label: 'Item & Batch', offsetPercent: 0 },
+                  { label: 'Qty & Rate', offsetPercent: 0.35 },
+                  { label: 'Sale & MRP', offsetPercent: 0.65 },
+                  { label: 'Amount & Actions', offsetPercent: 1.0 },
+                ]}
+                className="border border-slate-300 dark:border-slate-800 rounded-xl bg-card shadow-xs overflow-hidden"
+              >
+                <table className="w-full text-xs min-w-[1060px] border-collapse">
                   <thead>
-                    <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-mono font-semibold">
-                      <th className="text-left px-3.5 py-2.5 min-w-[230px]">Item Description</th>
-                      <th className="text-left px-2.5 py-2.5 w-36 min-w-[130px]">Batch</th>
-                      <th className="text-center px-2 py-2.5 w-28 min-w-[110px]">Expiry</th>
-                      <th className="text-right px-2 py-2.5 w-20 min-w-[75px]">Qty</th>
-                      <th className="text-right px-2 py-2.5 w-20 min-w-[70px]">Free</th>
-                      <th className="text-right px-2 py-2.5 w-32 min-w-[110px]">Rate (₹)</th>
-                      <th className="text-right px-2 py-2.5 w-32 min-w-[110px] text-primary">Sale Price</th>
-                      <th className="text-right px-2 py-2.5 w-32 min-w-[110px]">MRP (₹)</th>
-                      <th className="text-right px-2 py-2.5 w-20 min-w-[75px]">Disc %</th>
-                      <th className="text-center px-2 py-2.5 w-24 min-w-[90px]">GST %</th>
-                      <th className="text-right px-3.5 py-2.5 w-36 min-w-[125px]">Amount (₹)</th>
-                      <th className="w-12 min-w-[48px] px-2 py-2.5 text-center"></th>
+                    <tr className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 uppercase text-[10px] font-mono font-bold tracking-wider">
+                      <th className="text-left px-3 py-2.5 min-w-[210px] border-r border-slate-200 dark:border-slate-700">Item Description</th>
+                      <th className="text-left px-2 py-2.5 w-28 min-w-[95px] border-r border-slate-200 dark:border-slate-700">Batch</th>
+                      <th className="text-center px-2 py-2.5 w-24 min-w-[80px] border-r border-slate-200 dark:border-slate-700">Expiry</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[60px] border-r border-slate-200 dark:border-slate-700">Qty</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[60px] border-r border-slate-200 dark:border-slate-700">Free</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[80px] border-r border-slate-200 dark:border-slate-700">Rate (₹)</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[80px] border-r border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-400">Sale Price</th>
+                      <th className="text-right px-2 py-2.5 w-24 min-w-[80px] border-r border-slate-200 dark:border-slate-700">MRP (₹)</th>
+                      <th className="text-right px-2 py-2.5 w-16 min-w-[60px] border-r border-slate-200 dark:border-slate-700">Disc %</th>
+                      <th className="text-center px-2 py-2.5 w-20 min-w-[70px] border-r border-slate-200 dark:border-slate-700">GST %</th>
+                      <th className="text-right px-3 py-2.5 w-28 min-w-[100px] border-r border-slate-200 dark:border-slate-700">Amount (₹)</th>
+                      <th className="w-10 min-w-[40px] px-1 py-2.5 text-center"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {editLines.map((line, idx) => (
-                      <tr key={line.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="px-2.5 py-2 min-w-[230px]">
+                      <tr key={line.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="p-2 min-w-[210px] border-r border-slate-200 dark:border-slate-800">
                           <div className="relative flex items-center">
                             <input
                               type="text"
@@ -944,7 +964,7 @@ export default function PurchaseRegister() {
                               value={line.name}
                               placeholder="Search or type medicine name..."
                               onChange={(e) => updateLine(idx, 'name', e.target.value)}
-                              className="w-full pl-2.5 pr-8 py-1.5 bg-background border border-input rounded-lg text-foreground font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
+                              className="w-full pl-2.5 pr-7 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground font-semibold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                             />
                             <button
                               type="button"
@@ -955,113 +975,111 @@ export default function PurchaseRegister() {
                               <Search size={13} />
                             </button>
                           </div>
-                          <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                          <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
                             <input
                               type="text"
                               list="register-hsn-list"
                               placeholder="HSN code"
                               value={line.hsn || ''}
                               onChange={(e) => updateLine(idx, 'hsn', e.target.value)}
-                              className="w-20 px-1.5 py-0.5 text-[10px] font-mono bg-muted/60 border border-input rounded text-foreground outline-none focus:border-primary"
+                              className="w-20 px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-foreground outline-none focus:border-primary"
                               title="HSN Code (auto-calculates GST%)"
                             />
                             {line.hsn && (
-                              <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+                              <span className="text-[10px] font-mono font-medium text-muted-foreground whitespace-nowrap">
                                 {getGstRateForHsn(line.hsn)}% GST
                               </span>
                             )}
                             {line.packing && (
-                              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1 py-0.5 rounded border border-border/50 max-w-[80px] truncate" title={line.packing}>
+                              <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 max-w-[80px] truncate" title={line.packing}>
                                 {line.packing}
                               </span>
                             )}
                             {line.mfr && (
-                              <span className="text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/60 max-w-[100px] truncate font-medium" title={line.mfr}>
+                              <span className="text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/60 max-w-[100px] truncate font-medium" title={line.mfr}>
                                 {line.mfr}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-2.5 py-2 min-w-[130px]">
+                        <td className="p-1.5 min-w-[95px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="text"
                             value={line.batch}
                             onChange={(e) => updateLine(idx, 'batch', e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary uppercase shadow-2xs transition"
+                            className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground font-mono font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
-                        <td className="px-2 py-2 min-w-[110px]">
+                        <td className="p-1.5 min-w-[80px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="text"
                             value={line.expiry}
                             onChange={(e) => updateLine(idx, 'expiry', e.target.value)}
                             placeholder="MM/YY"
-                            className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition text-center"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground font-mono font-bold text-xs text-center outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition"
                           />
                         </td>
-                        <td className="px-2 py-2 text-right min-w-[75px]">
+                        <td className="p-1.5 text-right min-w-[60px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             value={line.qty}
                             onChange={(e) => updateLine(idx, 'qty', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </td>
-                        <td className="px-2 py-2 text-right min-w-[70px]">
+                        <td className="p-1.5 text-right min-w-[60px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             value={line.freeQty}
                             onChange={(e) => updateLine(idx, 'freeQty', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-muted-foreground text-right font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-muted-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </td>
-                        <td className="px-2 py-2 text-right min-w-[110px]">
+                        <td className="p-1.5 text-right min-w-[80px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             step="0.01"
                             value={line.rate}
                             onChange={(e) => updateLine(idx, 'rate', e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </td>
-                        {/* Sale Price */}
-                        <td className="px-2 py-2 text-right min-w-[110px]">
+                        <td className="p-1.5 text-right min-w-[80px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             step="0.01"
                             value={line.saleRate || ''}
                             onChange={(e) => updateLine(idx, 'saleRate', e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-2.5 py-1.5 bg-background border border-indigo-400/60 rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-600 rounded-md text-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             title="Sale Price (₹)"
                           />
                         </td>
-                        {/* MRP */}
-                        <td className="px-2 py-2 text-right min-w-[110px]">
+                        <td className="p-1.5 text-right min-w-[80px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             step="0.01"
                             value={line.mrp || ''}
                             onChange={(e) => updateLine(idx, 'mrp', e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-2.5 py-1.5 bg-background border border-input rounded-lg text-foreground text-right font-mono font-bold outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             title="MRP (₹)"
                           />
                         </td>
-                        <td className="px-2 py-2 text-right min-w-[75px]">
+                        <td className="p-1.5 text-right min-w-[60px] border-r border-slate-200 dark:border-slate-800">
                           <input
                             type="number"
                             step="0.1"
                             value={line.discount}
                             onChange={(e) => updateLine(idx, 'discount', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-muted-foreground text-right font-mono outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-muted-foreground text-right font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </td>
-                        <td className="px-2 py-2 text-center min-w-[90px]">
+                        <td className="p-1.5 text-center min-w-[70px] border-r border-slate-200 dark:border-slate-800">
                           <select
                             value={line.gstRate}
                             onChange={(e) => updateLine(idx, 'gstRate', Number(e.target.value))}
-                            className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground text-center font-mono font-medium outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs cursor-pointer"
+                            className="w-full px-1 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-foreground text-center font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs cursor-pointer"
                           >
                             <option value={0}>0%</option>
                             <option value={5}>5%</option>
@@ -1070,24 +1088,24 @@ export default function PurchaseRegister() {
                             <option value={28}>28%</option>
                           </select>
                         </td>
-                        <td className="px-3.5 py-2 text-right font-mono font-bold text-foreground whitespace-nowrap min-w-[125px]">
+                        <td className="px-3 py-1.5 text-right font-mono font-extrabold text-foreground text-xs whitespace-nowrap min-w-[100px] border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40">
                           {formatCurrency(line.amount)}
                         </td>
-                        <td className="px-2 py-2 text-center min-w-[48px]">
+                        <td className="p-1 text-center min-w-[40px]">
                           <button
                             type="button"
                             onClick={() => removeLine(idx)}
-                            className="p-1.5 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-muted rounded-lg transition"
+                            className="p-1.5 text-rose-500 hover:text-white hover:bg-rose-600 rounded-md transition cursor-pointer"
                             title="Remove Line"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TopTableScroller>
             </div>
 
             {/* Bottom calculation summary & actions */}
@@ -1118,7 +1136,7 @@ export default function PurchaseRegister() {
                   type="button"
                   onClick={handleSaveChallan}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
                 >
                   <Save size={14} />
                   {isSaving ? 'Saving Changes...' : 'Save & Update Challan'}
@@ -1126,13 +1144,14 @@ export default function PurchaseRegister() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Product Selection Modal for Challan Modifier */}
-      {showItemPicker && (
+      {showItemPicker && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print animate-in fade-in duration-150"
+          className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print animate-in fade-in duration-150"
           onClick={() => {
             setShowItemPicker(false)
             setItemPickerTargetIndex(null)
@@ -1312,13 +1331,14 @@ export default function PurchaseRegister() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Invoice Detail / Print Preview Modal */}
-      {selected && (
+      {selected && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-2 sm:p-4 no-print overflow-y-auto backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setSelected(null)}
         >
           <div
@@ -1383,7 +1403,8 @@ export default function PurchaseRegister() {
               <PurchaseInvoicePrint data={getPrintData(selected)} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Print Target (Only visible when printing) */}
