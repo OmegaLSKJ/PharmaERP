@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -26,6 +27,7 @@ import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transacti
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 interface SaleLine {
   id?: string
@@ -120,6 +122,7 @@ export default function SaleRegister() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(() => !getCached('sales'))
   const addToast = useUIStore((s) => s.addToast)
+  useBodyScrollLock(!!selected)
   const navigate = useNavigate()
 
   const loadSales = useCallback((force = false) => {
@@ -434,9 +437,10 @@ export default function SaleRegister() {
       </div>
 
       {/* Rich Invoice View & Edit Modal */}
-      {selected && (
+      {selected && createPortal(
         <div
-          className="no-print fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-xs"
+          className="no-print fixed inset-0 z-[9999] grid place-items-center bg-black/70 p-4"
+          style={{ willChange: 'opacity' }}
           onClick={() => setSelected(null)}
         >
           <div
@@ -532,7 +536,8 @@ export default function SaleRegister() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
 

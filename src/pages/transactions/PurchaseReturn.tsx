@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -38,6 +39,7 @@ export default function PurchaseReturn() {
   const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+  useBodyScrollLock(showForm || !!selectedReturn || detailModalOpen)
 
   const load = () =>
     getErp<any[]>('purchase-returns')

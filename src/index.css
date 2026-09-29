@@ -92,10 +92,28 @@
     letter-spacing: -0.011em;
   }
 
+
   body {
     @apply bg-background text-foreground;
     font-variant-numeric: tabular-nums;
+    /* Prevent layout shifts from scrollbar appearing/disappearing */
+    overflow-x: hidden;
   }
+
+  /* Body-locked state: body padding is managed by useBodyScrollLock hook */
+  body.scroll-locked {
+    overflow: hidden;
+  }
+
+  /* Promote fixed-position modal backdrops to their own GPU compositor layer.
+     This prevents the browser from repainting the entire page when a modal
+     fades in/out, which is the primary cause of "jittery" pages. */
+  .fixed.inset-0[class*='z-'] {
+    will-change: opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
 
   code, pre, .font-mono, table.font-mono, td.font-mono {
     font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace !important;

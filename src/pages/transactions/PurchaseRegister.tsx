@@ -10,6 +10,7 @@ import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transac
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import TopTableScroller from '../../components/common/TopTableScroller'
 
 interface ItemOption {
@@ -182,15 +183,8 @@ export default function PurchaseRegister() {
     }
   }, [showItemPicker])
 
-  useEffect(() => {
-    if (!editing && !showItemPicker && !selected) return
-    if (typeof document === 'undefined') return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [editing, showItemPicker, selected])
+  const anyModalOpen = !!(editing || showItemPicker || selected)
+  useBodyScrollLock(anyModalOpen)
 
   const statusCounts = {
     all: purchases.length,
