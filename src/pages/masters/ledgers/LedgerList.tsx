@@ -121,6 +121,57 @@ const Section = ({ title, icon: Icon, iconColor, badgeBg, transactions, children
   )
 }
 
+interface LedgerSectionProps {
+  title: string
+  subtitle?: string
+  icon: React.ElementType
+  iconColor: string
+  badgeBg: string
+  ledgers: Ledger[]
+  children: React.ReactNode
+  defaultOpen?: boolean
+}
+
+const LedgerSection = ({ title, subtitle, icon: Icon, iconColor, badgeBg, ledgers, children, defaultOpen = true }: LedgerSectionProps) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const totalDr = ledgers.reduce((s, l) => s + (l.totalDr || 0), 0)
+  const totalCr = ledgers.reduce((s, l) => s + (l.totalCr || 0), 0)
+  const totalTxns = ledgers.reduce((s, l) => s + (l.txnCount || 0), 0)
+  if (ledgers.length === 0) return null
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-secondary/30 hover:bg-secondary/60 transition"
+      >
+        <div className="flex items-center gap-2.5">
+          {isOpen ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground" />}
+          <div className={cn('p-1.5 rounded-lg border flex items-center justify-center', badgeBg)}>
+            <Icon size={16} className={iconColor} />
+          </div>
+          <div className="flex flex-col items-start">
+            <span className="font-semibold text-sm text-foreground tracking-tight leading-tight">{title}</span>
+            {subtitle && <span className="text-[10px] text-muted-foreground leading-tight">{subtitle}</span>}
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-secondary border border-border text-[11px] font-mono text-muted-foreground">
+            {ledgers.length} ledger{ledgers.length !== 1 ? 's' : ''}
+          </span>
+          {totalTxns > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-mono text-indigo-400">
+              {totalTxns} txn{totalTxns !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4 text-xs font-mono">
+          {totalDr > 0 && <span className="text-emerald-500 dark:text-emerald-400">Dr: {formatCurrency(totalDr)}</span>}
+          {totalCr > 0 && <span className="text-rose-500 dark:text-rose-400">Cr: {formatCurrency(totalCr)}</span>}
+        </div>
+      </button>
+      {isOpen && <div className="border-t border-border overflow-x-auto">{children}</div>}
+    </div>
+  )
+}
+
 export default function LedgerList() {
   const [activeTab, setActiveTab] = useState<'masters' | 'statement'>('masters')
   const [ledgers, setLedgers] = useState<Ledger[]>([])
@@ -655,10 +706,11 @@ export default function LedgerList() {
 
       {activeTab === 'masters' && (
         <div className="space-y-4">
+          {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
               <Search className="text-muted-foreground shrink-0" size={16} />
-              <input type="text" placeholder="Search ledgers..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-foreground text-xs sm:text-sm w-full placeholder:text-muted-foreground/60" />
+              <input type="text" placeholder="Search ledgers by name or group..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-foreground text-xs sm:text-sm w-full placeholder:text-muted-foreground/60" />
             </div>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer select-none bg-card border border-border rounded-lg px-3 py-1.5 hover:bg-secondary/50">
@@ -687,108 +739,191 @@ export default function LedgerList() {
               </select>
             </div>
           </div>
-          <div className="bg-card border border-border rounded-xl overflow-x-auto shadow-xs">
-            <table className="min-w-[1050px] w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="p-3.5">Ledger Name</th>
-                  <th className="p-3.5">Account Group</th>
-                  <th className="p-3.5 text-center">Connected Txns</th>
-                  <th className="p-3.5 text-right">Total Debit</th>
-                  <th className="p-3.5 text-right">Total Credit</th>
-                  <th className="p-3.5 text-right">Current Balance</th>
-                  <th className="p-3.5 text-center">Type</th>
-                  <th className="p-3.5">
-                    <div className="flex items-center gap-1">
-                      <Calendar size={11} className="text-indigo-400" />
-                      Last Activity
-                      <span className="text-[9px] text-muted-foreground font-normal">(Newer→Older)</span>
-                    </div>
-                  </th>
-                  <th className="p-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-sm">
-                {filteredLedgers.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-xs text-muted-foreground">
-                      No ledgers found.
-                    </td>
+
+          {filteredLedgers.length === 0 ? (
+            <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm shadow-xs">
+              No ledgers found matching your search or filter.
+            </div>
+          ) : (() => {
+            // Define sub-section buckets
+            const SALES_GROUPS = ['Sales Accounts', 'Sales', 'Sales Returns', 'Direct Income', 'Indirect Income', 'Other Income']
+            const PURCHASE_GROUPS = ['Purchase Accounts', 'Purchases', 'Purchase Returns', 'Direct Expenses', 'Indirect Expenses', 'Manufacturing Expenses', 'Cost of Goods Sold']
+            const DEBTOR_GROUPS = ['Sundry Debtors', 'Sundry Debtors & Creditors']
+            const CREDITOR_GROUPS = ['Sundry Creditors']
+            const VOUCHER_GROUPS = ['Cash-in-Hand', 'CASH-IN-HAND', 'Bank Accounts', 'BANK ACCOUNTS', 'Bank OCC A/C', 'BANK OCC A/C', 'Investments', 'Current Investments', 'Loans & Advances (Asset)', 'Loans (Liability)', 'Duties & Taxes', 'Provision & Contingencies', 'Reserves & Surplus', 'Capital Account', 'CAPITAL ACCOUNT']
+
+            const normalize = (s: string) => s.trim().toLowerCase()
+
+            const salesLedgers = filteredLedgers.filter(l => SALES_GROUPS.some(g => normalize(l.group) === normalize(g)))
+            const purchaseLedgers = filteredLedgers.filter(l => PURCHASE_GROUPS.some(g => normalize(l.group) === normalize(g)))
+            const debtorLedgers = filteredLedgers.filter(l => DEBTOR_GROUPS.some(g => normalize(l.group) === normalize(g)))
+            const creditorLedgers = filteredLedgers.filter(l => CREDITOR_GROUPS.some(g => normalize(l.group) === normalize(g)))
+            const voucherLedgers = filteredLedgers.filter(l => VOUCHER_GROUPS.some(g => normalize(l.group) === normalize(g)))
+            const assignedIds = new Set([
+              ...salesLedgers, ...purchaseLedgers, ...debtorLedgers,
+              ...creditorLedgers, ...voucherLedgers
+            ].map(l => l.id))
+            const otherLedgers = filteredLedgers.filter(l => !assignedIds.has(l.id))
+
+            const LedgerTable = ({ rows }: { rows: Ledger[] }) => (
+              <table className="min-w-[1000px] w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-secondary/30 border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2.5">Ledger Name</th>
+                    <th className="px-4 py-2.5">Account Group</th>
+                    <th className="px-4 py-2.5 text-center">Txns</th>
+                    <th className="px-4 py-2.5 text-right">Total Debit</th>
+                    <th className="px-4 py-2.5 text-right">Total Credit</th>
+                    <th className="px-4 py-2.5 text-right">Balance</th>
+                    <th className="px-4 py-2.5 text-center">Dr/Cr</th>
+                    <th className="px-4 py-2.5">Last Activity</th>
+                    <th className="px-4 py-2.5 text-right">Actions</th>
                   </tr>
-                ) : (
-                  filteredLedgers.map((l) => {
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rows.map((l) => {
                     const dt = getTxnDateTime(l.lastActivityDate, l.lastActivityTime, l.id)
                     return (
-                    <tr key={l.id} className="hover:bg-secondary/40 text-foreground transition group">
-                      <td className="p-3.5 font-medium text-foreground">
-                        <button
-                          onClick={() => openPartyStatement(l.name)}
-                          className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition text-left flex items-center gap-1.5"
-                          title="Click to view all connected transactions"
-                        >
-                          <span>{l.name}</span>
-                        </button>
-                      </td>
-                      <td className="p-3.5 text-muted-foreground text-xs">{l.group}</td>
-                      <td className="p-3.5 text-center">
-                        <span
-                          className={cn(
-                            'px-2 py-0.5 rounded-full text-[10px] font-semibold',
-                            (l.txnCount || 0) > 0
-                              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
-                              : 'text-muted-foreground'
-                          )}
-                        >
-                          {l.txnCount || 0} txn{(l.txnCount || 0) !== 1 ? 's' : ''}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-right font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                        {(l.totalDr || 0) > 0 ? formatCurrency(l.totalDr || 0) : '-'}
-                      </td>
-                      <td className="p-3.5 text-right font-mono text-xs text-rose-600 dark:text-rose-400">
-                        {(l.totalCr || 0) > 0 ? formatCurrency(l.totalCr || 0) : '-'}
-                      </td>
-                      <td className={cn('p-3.5 text-right font-mono font-semibold', l.type === 'Dr' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
-                        ₹{l.balance.toLocaleString()}
-                      </td>
-                      <td className="p-3.5 text-center text-xs">
-                        <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold', l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400')}>
-                          {l.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        {l.lastActivityDate ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
-                              <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
-                            </span>
-                            <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
-                              <Clock size={9} className="shrink-0" />{dt.time}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-[10px]">No activity</span>
-                        )}
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <div className="flex justify-end items-center gap-2">
+                      <tr key={l.id} className="hover:bg-secondary/40 text-foreground transition group">
+                        <td className="px-4 py-2.5 font-medium">
                           <button
                             onClick={() => openPartyStatement(l.name)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition cursor-pointer"
-                            title="View Statement &amp; Transactions"
+                            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition text-left"
+                            title="Click to view all connected transactions"
                           >
-                            <FileText size={12} /> Statement
+                            {l.name}
                           </button>
-                          <button onClick={() => editLedger(l)} className="p-1 text-muted-foreground hover:text-foreground transition cursor-pointer" title="Edit"><Edit2 size={12}/></button>
-                          <button onClick={() => removeLedger(l)} className="p-1 text-muted-foreground hover:text-rose-500 transition cursor-pointer" title="Delete"><Trash2 size={12}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})
-                )}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground text-[11px]">{l.group}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={cn(
+                            'px-2 py-0.5 rounded-full text-[10px] font-semibold',
+                            (l.txnCount || 0) > 0
+                              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                              : 'text-muted-foreground'
+                          )}>
+                            {l.txnCount || 0}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                          {(l.totalDr || 0) > 0 ? formatCurrency(l.totalDr || 0) : '-'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-rose-600 dark:text-rose-400">
+                          {(l.totalCr || 0) > 0 ? formatCurrency(l.totalCr || 0) : '-'}
+                        </td>
+                        <td className={cn('px-4 py-2.5 text-right font-mono font-semibold', l.type === 'Dr' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
+                          ₹{l.balance.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold', l.type === 'Dr' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400')}>
+                            {l.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {l.lastActivityDate ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                                <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
+                              </span>
+                              <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                                <Clock size={9} className="shrink-0" />{dt.time}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-[10px]">No activity</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex justify-end items-center gap-2">
+                            <button
+                              onClick={() => openPartyStatement(l.name)}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition cursor-pointer"
+                              title="View Statement & Transactions"
+                            >
+                              <FileText size={12} /> Statement
+                            </button>
+                            <button onClick={() => editLedger(l)} className="p-1 text-muted-foreground hover:text-foreground transition cursor-pointer" title="Edit"><Edit2 size={12}/></button>
+                            <button onClick={() => removeLedger(l)} className="p-1 text-muted-foreground hover:text-rose-500 transition cursor-pointer" title="Delete"><Trash2 size={12}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )
+
+            return (
+              <div className="space-y-3">
+                <LedgerSection
+                  title="Sales & Income Accounts"
+                  subtitle="Revenue, direct income, sales returns"
+                  icon={TrendingUp}
+                  iconColor="text-blue-400"
+                  badgeBg="bg-blue-500/10 border-blue-500/20"
+                  ledgers={salesLedgers}
+                >
+                  <LedgerTable rows={salesLedgers} />
+                </LedgerSection>
+
+                <LedgerSection
+                  title="Purchase & Expense Accounts"
+                  subtitle="Cost of goods, direct & indirect expenses"
+                  icon={TrendingDown}
+                  iconColor="text-purple-400"
+                  badgeBg="bg-purple-500/10 border-purple-500/20"
+                  ledgers={purchaseLedgers}
+                >
+                  <LedgerTable rows={purchaseLedgers} />
+                </LedgerSection>
+
+                <LedgerSection
+                  title="Customer Ledgers (Sundry Debtors)"
+                  subtitle="Parties who owe money — trade receivables"
+                  icon={Users}
+                  iconColor="text-emerald-400"
+                  badgeBg="bg-emerald-500/10 border-emerald-500/20"
+                  ledgers={debtorLedgers}
+                >
+                  <LedgerTable rows={debtorLedgers} />
+                </LedgerSection>
+
+                <LedgerSection
+                  title="Supplier Ledgers (Sundry Creditors)"
+                  subtitle="Parties to whom money is owed — trade payables"
+                  icon={Building2}
+                  iconColor="text-amber-400"
+                  badgeBg="bg-amber-500/10 border-amber-500/20"
+                  ledgers={creditorLedgers}
+                >
+                  <LedgerTable rows={creditorLedgers} />
+                </LedgerSection>
+
+                <LedgerSection
+                  title="Voucher & Cash / Bank Accounts"
+                  subtitle="Cash-in-hand, bank, capital, duties, reserves — used in voucher entries"
+                  icon={Wallet}
+                  iconColor="text-cyan-400"
+                  badgeBg="bg-cyan-500/10 border-cyan-500/20"
+                  ledgers={voucherLedgers}
+                >
+                  <LedgerTable rows={voucherLedgers} />
+                </LedgerSection>
+
+                <LedgerSection
+                  title="Other Accounts"
+                  subtitle="Miscellaneous accounts not classified in the above sections"
+                  icon={FolderTree}
+                  iconColor="text-slate-400"
+                  badgeBg="bg-slate-500/10 border-slate-500/20"
+                  ledgers={otherLedgers}
+                  defaultOpen={false}
+                >
+                  <LedgerTable rows={otherLedgers} />
+                </LedgerSection>
+              </div>
+            )
+          })()}
         </div>
       )}
 
