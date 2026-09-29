@@ -177,7 +177,7 @@ const LedgerSection = ({ title, subtitle, icon: Icon, iconColor, badgeBg, ledger
 }
 
 export default function LedgerList() {
-  const [activeTab, setActiveTab] = useState<'masters' | 'statement'>('masters')
+  const [activeTab, setActiveTab] = useState<'masters' | 'statement' | 'all-transactions'>('masters')
   const [ledgers, setLedgers] = useState<Ledger[]>([])
   const [statementEntries, setStatementEntries] = useState<StatementEntry[]>([])
   const [selectedLedger, setSelectedLedger] = useState<string>('')
@@ -194,6 +194,17 @@ export default function LedgerList() {
   const [ledgerSort, setLedgerSort] = useState<'newer' | 'name' | 'balance'>('newer')
   const [statementSortKey, setStatementSortKey] = useState<'date' | 'amount' | 'debit' | 'credit'>('date')
   const [statementSortDir, setStatementSortDir] = useState<'asc' | 'desc'>('desc')
+
+  // All Transactions (Chronological) Tab State
+  const [allTxnSearch, setAllTxnSearch] = useState('')
+  const [allTxnTypeFilter, setAllTxnTypeFilter] = useState('all')
+  const [allTxnFromDate, setAllTxnFromDate] = useState(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    return d.toISOString().slice(0, 10)
+  })
+  const [allTxnToDate, setAllTxnToDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [allTxnSortDir, setAllTxnSortDir] = useState<'desc' | 'asc'>('desc')
 
   const [showModal, setShowModal] = useState(false)
   const [editModalLedger, setEditModalLedger] = useState<Ledger | null>(null)
@@ -619,6 +630,39 @@ export default function LedgerList() {
       ? partyTransactions[partyTransactions.length - 1].balanceType
       : selectedLedgerObj?.type || 'Dr'
 
+  // Chronological All Transactions List (Newest to Oldest)
+  const chronologicalAllTxns = useMemo(() => {
+    const filtered = statementEntries.filter((txn) => {
+      const matchSearch =
+        !allTxnSearch ||
+        txn.vNo.toLowerCase().includes(allTxnSearch.toLowerCase()) ||
+        (txn.party || '').toLowerCase().includes(allTxnSearch.toLowerCase()) ||
+        txn.narration.toLowerCase().includes(allTxnSearch.toLowerCase()) ||
+        txn.vType.toLowerCase().includes(allTxnSearch.toLowerCase())
+      const matchType = allTxnTypeFilter === 'all' || txn.vType.toLowerCase() === allTxnTypeFilter.toLowerCase()
+      const matchDate = (!allTxnFromDate || txn.date >= allTxnFromDate) && (!allTxnToDate || txn.date <= allTxnToDate)
+      return matchSearch && matchType && matchDate
+    })
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.date || ''
+      const dateB = b.date || ''
+      if (dateA !== dateB) {
+        return allTxnSortDir === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB)
+      }
+      const timeA = (a as any).time || ''
+      const timeB = (b as any).time || ''
+      if (timeA && timeB) {
+        return allTxnSortDir === 'desc' ? timeB.localeCompare(timeA) : timeA.localeCompare(timeB)
+      }
+      return (b.id || '').localeCompare(a.id || '')
+    })
+  }, [statementEntries, allTxnSearch, allTxnTypeFilter, allTxnFromDate, allTxnToDate, allTxnSortDir])
+
+  const totalAllTxnDr = chronologicalAllTxns.reduce((s, t) => s + (Number(t.debit) || 0), 0)
+  const totalAllTxnCr = chronologicalAllTxns.reduce((s, t) => s + (Number(t.credit) || 0), 0)
+  const netAllTxnDiff = totalAllTxnDr - totalAllTxnCr
+
   const TransactionTable = ({ txns }: { txns: any[] }) => (
     <table className="w-full text-xs text-left min-w-[850px]">
       <thead>
@@ -703,7 +747,13 @@ export default function LedgerList() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
-      <PrintHeader title={`Party Statement: ${selectedLedger || 'All Ledgers'}`} />
+      <PrintHeader
+        title={
+          activeTab === 'all-transactions'
+            ? 'All Transactions (Chronological: Newest to Oldest)'
+            : `Party Statement: ${selectedLedger || 'All Ledgers'}`
+        }
+      />
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground dark:text-white flex items-center gap-2">
@@ -712,26 +762,35 @@ export default function LedgerList() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Chart of accounts, customer/supplier ledgers and party-wise financial statements</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Small compact zero-value delete button */}
           <button
             onClick={handleForceRemoveZeroValueTxns}
             disabled={purging}
-            className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 rounded-md text-[11px] font-medium transition disabled:opacity-50 cursor-pointer shadow-none"
             title="Delete and force remove all accounts and transactions with no value (0 txns & ₹0 balance) from Chart of Accounts"
           >
-            <Trash2 size={14} className={cn(purging && 'animate-spin', 'text-rose-400')} />
-            <span>{purging ? 'Deleting Zero-Value...' : 'Delete Zero-Value (0 Txns / ₹0)'}</span>
+            <Trash2 size={12} className={cn(purging && 'animate-spin', 'text-rose-400 shrink-0')} />
+            <span>{purging ? 'Deleting...' : 'Delete Zero-Value'}</span>
           </button>
-          {activeTab === 'statement' ? (
+          {activeTab === 'statement' || activeTab === 'all-transactions' ? (
             <>
-              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700">
-                <Printer size={15} /> Print Statement
+              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700 cursor-pointer">
+                <Printer size={15} /> Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}
               </button>
-              <button onClick={() => exportVisibleTables(`statement-${selectedLedger || 'party'}`, useUIStore.getState().company)} className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
+              <button
+                onClick={() =>
+                  exportVisibleTables(
+                    activeTab === 'all-transactions' ? 'all-transactions-chronological' : `statement-${selectedLedger || 'party'}`,
+                    useUIStore.getState().company
+                  )
+                }
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md transition cursor-pointer"
+              >
                 <Download size={15} /> Export CSV
               </button>
             </>
           ) : (
-            <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition">
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md transition cursor-pointer">
               <Plus size={16} /> New Ledger
             </button>
           )}
@@ -742,7 +801,7 @@ export default function LedgerList() {
         <button
           onClick={() => setActiveTab('masters')}
           className={cn(
-            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
+            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer',
             activeTab === 'masters'
               ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-white'
               : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-foreground'
@@ -753,13 +812,24 @@ export default function LedgerList() {
         <button
           onClick={() => setActiveTab('statement')}
           className={cn(
-            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2',
+            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer',
             activeTab === 'statement'
               ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-white'
               : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-foreground'
           )}
         >
-          <FileText size={15} /> Party-Wise Statement {selectedLedger && `(${selectedLedger})`}
+          <FileText size={15} /> Party-Wise Statement
+        </button>
+        <button
+          onClick={() => setActiveTab('all-transactions')}
+          className={cn(
+            'px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer',
+            activeTab === 'all-transactions'
+              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-white'
+              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-foreground'
+          )}
+        >
+          <BookOpen size={15} /> All Transactions (Chronological)
         </button>
       </div>
 
@@ -1341,15 +1411,247 @@ export default function LedgerList() {
                     </tr>
                   )})}
                   {filteredStatementTxns.length === 0 && (
-                    <tr><td colSpan={8} className="p-10 text-center text-muted-foreground">No transactions found for {selectedLedger} in the selected period.</td></tr>
+                    <tr><td colSpan={9} className="p-10 text-center text-muted-foreground">No transactions found for {selectedLedger} in the selected period.</td></tr>
                   )}
                 </tbody>
                 <tfoot>
                   <tr className="bg-secondary/40 border-t border-border text-foreground font-bold text-xs">
-                    <td colSpan={4} className="px-4 py-3 uppercase">Total Movement</td>
+                    <td colSpan={5} className="px-4 py-3 uppercase">Total Movement</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totalStatementDr)}</td>
                     <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">{formatCurrency(totalStatementCr)}</td>
                     <td colSpan={2} className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">{formatCurrency(closingBalance)} {closingBalType}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: All Transactions (Chronological: Newest to Oldest) */}
+      {activeTab === 'all-transactions' && (
+        <div className="space-y-4">
+          {/* Filters Bar */}
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="relative">
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">Search All Transactions</label>
+                <div className="relative mt-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search by voucher no, company, narration..."
+                    value={allTxnSearch}
+                    onChange={(e) => setAllTxnSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-background border border-border rounded-lg text-foreground text-xs outline-none focus:border-indigo-500 placeholder:text-muted-foreground/60"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">From Date</label>
+                <input
+                  type="date"
+                  value={allTxnFromDate}
+                  onChange={(e) => setAllTxnFromDate(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg p-2 text-foreground outline-none text-xs mt-1 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase font-semibold">To Date</label>
+                <input
+                  type="date"
+                  value={allTxnToDate}
+                  onChange={(e) => setAllTxnToDate(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg p-2 text-foreground outline-none text-xs mt-1 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Type filter buttons & sort toggle */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium">Filter Type:</span>
+                {[
+                  { key: 'all', label: 'All Transactions' },
+                  { key: 'sale', label: 'Sales' },
+                  { key: 'purchase', label: 'Purchases' },
+                  { key: 'challan', label: 'Challans' },
+                  { key: 'receipt', label: 'Receipts' },
+                  { key: 'payment', label: 'Payments' },
+                  { key: 'journal', label: 'Journals' },
+                  { key: 'contra', label: 'Contra / Bank' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setAllTxnTypeFilter(key)}
+                    className={cn(
+                      'px-2.5 py-1 rounded text-[11px] font-medium transition border cursor-pointer',
+                      allTxnTypeFilter === key
+                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
+                        : 'bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort Order Toggle */}
+              <button
+                type="button"
+                onClick={() => setAllTxnSortDir(allTxnSortDir === 'desc' ? 'asc' : 'desc')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border rounded-lg text-xs font-semibold text-foreground transition cursor-pointer"
+                title="Toggle chronological sorting"
+              >
+                <ArrowUpDown size={12} className="text-indigo-400" />
+                <span>Sort: {allTxnSortDir === 'desc' ? 'Newest → Oldest (Chronological)' : 'Oldest → Newest'}</span>
+                {allTxnSortDir === 'desc' ? <ArrowDown size={11} className="text-indigo-400" /> : <ArrowUp size={11} className="text-indigo-400" />}
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
+                <span>Total Transactions</span>
+                <BookOpen size={14} className="text-indigo-400" />
+              </div>
+              <div className="text-lg font-bold text-foreground font-mono mt-1">{chronologicalAllTxns.length}</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
+                <span>Total Debit</span>
+                <TrendingUp size={14} className="text-emerald-500" />
+              </div>
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{formatCurrency(totalAllTxnDr)}</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
+                <span>Total Credit</span>
+                <TrendingDown size={14} className="text-rose-500" />
+              </div>
+              <div className="text-lg font-bold text-rose-600 dark:text-rose-400 font-mono mt-1">{formatCurrency(totalAllTxnCr)}</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-3 shadow-xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-semibold">
+                <span>Net Difference</span>
+                <Scale size={14} className={netAllTxnDiff >= 0 ? 'text-emerald-500' : 'text-amber-500'} />
+              </div>
+              <div className={cn('text-lg font-bold font-mono mt-1', netAllTxnDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
+                {formatCurrency(Math.abs(netAllTxnDiff))} {netAllTxnDiff >= 0 ? 'Dr' : 'Cr'}
+              </div>
+            </div>
+          </div>
+
+          {/* Chronological Table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+            <div className="flex items-center justify-between p-3.5 bg-secondary/30 border-b border-border">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-2">
+                <div className="p-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <BookOpen size={14} className="text-indigo-400" />
+                </div>
+                <span>All Transactions (Date-Wise Chronological Order: Newest to Oldest)</span>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="text-muted-foreground">{chronologicalAllTxns.length} entries</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Period: {allTxnFromDate || 'Start'} → {allTxnToDate || 'Present'}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[850px]">
+                <thead>
+                  <tr className="bg-secondary/50 border-b border-border text-muted-foreground uppercase tracking-wider">
+                    <th className="text-left px-4 py-3 font-medium w-36">Date &amp; Time</th>
+                    <th className="text-left px-4 py-3 font-medium w-24">Voucher Type</th>
+                    <th className="text-left px-4 py-3 font-medium w-32">Voucher / Ref No</th>
+                    <th className="text-left px-4 py-3 font-medium w-48">Company / Party</th>
+                    <th className="text-left px-4 py-3 font-medium">Particulars / Narration</th>
+                    <th className="text-right px-4 py-3 font-medium w-32">Debit (Dr ₹)</th>
+                    <th className="text-right px-4 py-3 font-medium w-32">Credit (Cr ₹)</th>
+                    <th className="text-center px-3 py-3 font-medium w-20">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border text-foreground">
+                  {chronologicalAllTxns.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-10 text-center text-muted-foreground italic">
+                        No transactions found matching the filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    chronologicalAllTxns.map((txn, idx) => {
+                      const dt = getTxnDateTime(txn.date, (txn as any).time, txn.id || txn.vNo)
+                      const compName = txn.party || '-'
+                      return (
+                        <tr
+                          key={txn.id || idx}
+                          onClick={() => handleNavigateToTransaction(txn)}
+                          className="hover:bg-secondary/40 cursor-pointer transition group"
+                          title={`Click to open and modify ${txn.vType?.toUpperCase()} ${txn.vNo}`}
+                        >
+                          <td className="px-4 py-3 group-hover:text-foreground">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1 font-mono text-foreground text-[11px]">
+                                <Calendar size={10} className="text-indigo-500 shrink-0" />{dt.date}
+                              </span>
+                              <span className="inline-flex items-center gap-1 font-mono text-muted-foreground text-[10px]">
+                                <Clock size={9} className="shrink-0" />{dt.time}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn('px-2 py-0.5 rounded text-[10px] font-semibold uppercase border', TYPE_BADGES[txn.vType?.toLowerCase()] || 'bg-secondary text-muted-foreground border-border')}>
+                              {txn.vType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-indigo-600 dark:text-indigo-400 group-hover:underline font-medium">
+                            <span className="inline-flex items-center gap-1 underline underline-offset-2">
+                              {txn.vNo}
+                              <ExternalLink size={12} className="opacity-70 group-hover:opacity-100 transition shrink-0" />
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            <span className="inline-flex items-center gap-1.5 text-xs">
+                              <Building2 size={12} className="text-indigo-500 shrink-0" />
+                              <span className="truncate max-w-[190px]" title={compName}>{compName}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground max-w-sm truncate group-hover:text-foreground">{txn.narration || '-'}</td>
+                          <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                            {Number(txn.debit) > 0 ? formatCurrency(Number(txn.debit)) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400 font-medium">
+                            {Number(txn.credit) > 0 ? formatCurrency(Number(txn.credit)) : '-'}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleNavigateToTransaction(txn)
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-600/15 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-medium transition cursor-pointer"
+                              title={`Open & modify ${txn.vNo}`}
+                            >
+                              <span>Edit</span>
+                              <ExternalLink size={10} />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-secondary/40 border-t border-border text-foreground font-bold text-xs">
+                    <td colSpan={5} className="px-4 py-3 uppercase">Total ({chronologicalAllTxns.length} Transactions)</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(totalAllTxnDr)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400">{formatCurrency(totalAllTxnCr)}</td>
+                    <td></td>
                   </tr>
                 </tfoot>
               </table>
