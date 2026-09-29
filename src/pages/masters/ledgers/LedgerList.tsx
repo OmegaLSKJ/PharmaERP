@@ -747,14 +747,7 @@ export default function LedgerList() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
-      <PrintHeader
-        title={
-          activeTab === 'all-transactions'
-            ? 'All Transactions (Chronological: Newest to Oldest)'
-            : `Party Statement: ${selectedLedger || 'All Ledgers'}`
-        }
-      />
-      <div className="flex flex-wrap justify-between items-center gap-3">
+      <div className="flex flex-wrap justify-between items-center gap-3 no-print">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground dark:text-white flex items-center gap-2">
             <Landmark className="text-indigo-600 dark:text-indigo-400" size={24} /> Ledger &amp; Party Master
@@ -774,10 +767,18 @@ export default function LedgerList() {
           </button>
           {activeTab === 'statement' || activeTab === 'all-transactions' ? (
             <>
-              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700 cursor-pointer">
-                <Printer size={15} /> Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}
+              {/* Clean, high-contrast, professional Print Statement button */}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                title="Print statement in Borgang Drug Distributors branding style"
+              >
+                <Printer size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}</span>
               </button>
               <button
+                type="button"
                 onClick={() =>
                   exportVisibleTables(
                     activeTab === 'all-transactions' ? 'all-transactions-chronological' : `statement-${selectedLedger || 'party'}`,
@@ -834,7 +835,7 @@ export default function LedgerList() {
       </div>
 
       {activeTab === 'masters' && (
-        <div className="space-y-4">
+        <div className="space-y-4 no-print">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-2 max-w-md w-full shadow-xs">
@@ -1084,7 +1085,7 @@ export default function LedgerList() {
       )}
 
       {activeTab === 'statement' && (
-        <div className="space-y-4">
+        <div className="space-y-4 no-print">
           {/* Filters */}
           <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1430,7 +1431,7 @@ export default function LedgerList() {
 
       {/* Tab: All Transactions (Chronological: Newest to Oldest) */}
       {activeTab === 'all-transactions' && (
-        <div className="space-y-4">
+        <div className="space-y-4 no-print">
           {/* Filters Bar */}
           <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1659,6 +1660,239 @@ export default function LedgerList() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          DEDICATED PRINT DOCUMENT — BORGANG DRUG DISTRIBUTORS BRANDING STYLE
+      ══════════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden print:block w-full text-black bg-white select-text">
+        {activeTab === 'all-transactions' ? (
+          <div>
+            <PrintHeader
+              title="ALL TRANSACTIONS REGISTER (CHRONOLOGICAL)"
+              subtitle={`Period: ${allTxnFromDate || 'Start'} to ${allTxnToDate || 'Present'} | Total: ${chronologicalAllTxns.length} Transactions`}
+            />
+
+            {/* Audit Summary Box */}
+            <div className="border border-black p-2.5 mb-2.5 bg-gray-50/50 text-[10px]">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-[11px] font-bold uppercase text-[#0c2f66]">Audit Scope: Complete Transactions Log</div>
+                  <div className="text-gray-700">Chronological Sequence: Newest to Oldest</div>
+                  <div className="text-gray-700">Active Filter: {allTxnTypeFilter.toUpperCase()}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-gray-700">Audit Period: <span className="font-bold text-black">{allTxnFromDate || 'Start'} to {allTxnToDate || 'Present'}</span></div>
+                  <div className="font-semibold text-gray-700">Total Entries: <span className="font-mono font-bold text-black">{chronologicalAllTxns.length}</span></div>
+                  <div className="font-semibold text-gray-700">
+                    Net Movement: <span className="font-mono font-bold text-black">{formatCurrency(Math.abs(netAllTxnDiff))} {netAllTxnDiff >= 0 ? 'Dr' : 'Cr'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Complete Chronological Transactions Table */}
+            <table className="w-full text-[9px] border-collapse border border-black mb-3">
+              <thead>
+                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[8.5px]">
+                  <th className="border-r border-black p-1.5 text-center w-8">#</th>
+                  <th className="border-r border-black p-1.5 text-left w-24">Date &amp; Time</th>
+                  <th className="border-r border-black p-1.5 text-left w-16">Type</th>
+                  <th className="border-r border-black p-1.5 text-left w-24">Voucher No</th>
+                  <th className="border-r border-black p-1.5 text-left w-44">Company / Party</th>
+                  <th className="border-r border-black p-1.5 text-left">Particulars / Narration</th>
+                  <th className="border-r border-black p-1.5 text-right w-24">Debit (Dr ₹)</th>
+                  <th className="p-1.5 text-right w-24">Credit (Cr ₹)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-300">
+                {chronologicalAllTxns.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-6 text-center text-gray-500 italic">No transactions found.</td>
+                  </tr>
+                ) : (
+                  chronologicalAllTxns.map((t, idx) => {
+                    const dt = getTxnDateTime(t.date, (t as any).time, t.id || t.vNo)
+                    const comp = t.party || '-'
+                    return (
+                      <tr key={t.id || idx} className="border-b border-gray-200">
+                        <td className="border-r border-black p-1 text-center font-mono">{idx + 1}</td>
+                        <td className="border-r border-black p-1 font-mono">{dt.date} {dt.time}</td>
+                        <td className="border-r border-black p-1 uppercase font-semibold text-[8px]">{t.vType}</td>
+                        <td className="border-r border-black p-1 font-mono font-bold">{t.vNo}</td>
+                        <td className="border-r border-black p-1 font-medium">{comp}</td>
+                        <td className="border-r border-black p-1 truncate max-w-xs">{t.narration || '-'}</td>
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                          {Number(t.debit) > 0 ? formatCurrency(Number(t.debit)) : '-'}
+                        </td>
+                        <td className="p-1 text-right font-mono font-semibold">
+                          {Number(t.credit) > 0 ? formatCurrency(Number(t.credit)) : '-'}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[9.5px]">
+                  <td colSpan={6} className="border-r border-black p-1.5 text-right uppercase">
+                    Total ({chronologicalAllTxns.length} Transactions)
+                  </td>
+                  <td className="border-r border-black p-1.5 text-right font-mono text-emerald-800">
+                    {formatCurrency(totalAllTxnDr)}
+                  </td>
+                  <td className="p-1.5 text-right font-mono text-rose-800">
+                    {formatCurrency(totalAllTxnCr)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+
+            {/* Signatory Footer */}
+            <div className="grid grid-cols-2 pt-4 text-[9px] border-t border-black mt-3">
+              <div>
+                <div className="text-gray-700 font-bold uppercase text-[9.5px]">Borgang Drug Distributors &bull; Biswanath, Assam</div>
+                <div className="text-gray-500 text-[8.5px] mt-0.5 leading-tight">
+                  This report is an authentic, system-generated transaction register.<br/>
+                  All transactions reflected herein are subject to Biswanath Jurisdiction.
+                </div>
+              </div>
+              <div className="text-right flex flex-col justify-end">
+                <div className="font-bold text-[10px] text-[#0c2f66] uppercase mb-7">For BORGANG DRUG DISTRIBUTORS</div>
+                <div className="font-semibold text-gray-800 border-t border-gray-400 inline-block pt-1 ml-auto w-44 text-center">
+                  Authorised Signatory
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <PrintHeader
+              title="STATEMENT OF ACCOUNTS / PARTY LEDGER"
+              subtitle={`Party: ${selectedLedger || 'All Ledgers'} | Period: ${fromDate || 'Start'} to ${toDate || 'Present'}`}
+            />
+
+            {/* Party & Financial Summary Box in Borgang Drug Distributors Style */}
+            <div className="border border-black p-2.5 mb-2.5 bg-gray-50/50 text-[10px]">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-xs font-black uppercase text-[#0c2f66]">{selectedLedger}</div>
+                  <div className="text-gray-700 font-medium mt-0.5">Account Group: {selectedLedgerObj?.group || 'Sundry Debtors'}</div>
+                  {selectedLedgerObj?.city && <div className="text-gray-700 font-medium">Station / City: {selectedLedgerObj.city}</div>}
+                  {selectedLedgerObj?.companyName && selectedLedgerObj.companyName !== selectedLedger && (
+                    <div className="text-gray-700">Trade Entity: {selectedLedgerObj.companyName}</div>
+                  )}
+                </div>
+                <div className="text-right space-y-0.5">
+                  <div className="font-medium text-gray-700">Statement Period: <span className="font-bold text-black">{fromDate || 'Start'} to {toDate || 'Present'}</span></div>
+                  <div className="font-medium text-gray-700">Opening Balance: <span className="font-mono font-bold text-black">{formatCurrency(selectedLedgerObj?.openingBalance || 0)} {selectedLedgerObj?.openingType || 'Dr'}</span></div>
+                  <div className="font-medium text-gray-700">Total Debit (Dr): <span className="font-mono font-bold text-emerald-800">{formatCurrency(totalStatementDr)}</span></div>
+                  <div className="font-medium text-gray-700">Total Credit (Cr): <span className="font-mono font-bold text-rose-800">{formatCurrency(totalStatementCr)}</span></div>
+                  <div className="font-bold text-black text-[11px] pt-0.5 border-t border-gray-300">
+                    Closing Balance: <span className="font-mono text-[#0c2f66]">{formatCurrency(closingBalance)} {closingBalType}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Complete Chronological Transactions Table in Borgang Drug Distributors Style */}
+            <table className="w-full text-[9px] border-collapse border border-black mb-3">
+              <thead>
+                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[8.5px]">
+                  <th className="border-r border-black p-1.5 text-center w-8">#</th>
+                  <th className="border-r border-black p-1.5 text-left w-24">Date &amp; Time</th>
+                  <th className="border-r border-black p-1.5 text-left w-16">Type</th>
+                  <th className="border-r border-black p-1.5 text-left w-24">Voucher No</th>
+                  <th className="border-r border-black p-1.5 text-left">Particulars / Narration</th>
+                  <th className="border-r border-black p-1.5 text-right w-24">Debit (Dr ₹)</th>
+                  <th className="border-r border-black p-1.5 text-right w-24">Credit (Cr ₹)</th>
+                  <th className="p-1.5 text-right w-28">Running Balance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-300">
+                {/* Initial Opening Balance Line */}
+                <tr className="bg-gray-50/70 border-b border-gray-300 font-semibold italic text-gray-700">
+                  <td className="border-r border-black p-1 text-center font-mono">0</td>
+                  <td className="border-r border-black p-1 font-mono">{fromDate || 'Opening'}</td>
+                  <td className="border-r border-black p-1 uppercase text-[8px]">OP-BAL</td>
+                  <td className="border-r border-black p-1 font-mono">—</td>
+                  <td className="border-r border-black p-1">Opening Balance Brought Forward</td>
+                  <td className="border-r border-black p-1 text-right font-mono">
+                    {selectedLedgerObj?.openingType === 'Dr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
+                  </td>
+                  <td className="border-r border-black p-1 text-right font-mono">
+                    {selectedLedgerObj?.openingType === 'Cr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
+                  </td>
+                  <td className="p-1 text-right font-mono font-bold text-gray-900">
+                    {formatCurrency(selectedLedgerObj?.openingBalance || 0)} {selectedLedgerObj?.openingType || 'Dr'}
+                  </td>
+                </tr>
+
+                {filteredStatementTxns.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-6 text-center text-gray-500 italic">No transactions found for this party in the selected period.</td>
+                  </tr>
+                ) : (
+                  filteredStatementTxns.map((t, idx) => {
+                    const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
+                    return (
+                      <tr key={t.id || idx} className="border-b border-gray-200">
+                        <td className="border-r border-black p-1 text-center font-mono">{idx + 1}</td>
+                        <td className="border-r border-black p-1 font-mono">{dt.date} {dt.time}</td>
+                        <td className="border-r border-black p-1 uppercase font-semibold text-[8px]">{t.vType}</td>
+                        <td className="border-r border-black p-1 font-mono font-bold">{t.vNo}</td>
+                        <td className="border-r border-black p-1 truncate max-w-xs">{t.narration || '-'}</td>
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                          {t.debit > 0 ? formatCurrency(t.debit) : '-'}
+                        </td>
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                          {t.credit > 0 ? formatCurrency(t.credit) : '-'}
+                        </td>
+                        <td className="p-1 text-right font-mono font-bold">
+                          {formatCurrency(t.runningBalance)} {t.balanceType}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[9.5px]">
+                  <td colSpan={5} className="border-r border-black p-1.5 text-right uppercase">
+                    Total Movement ({filteredStatementTxns.length} Transactions)
+                  </td>
+                  <td className="border-r border-black p-1.5 text-right font-mono text-emerald-800">
+                    {formatCurrency(totalStatementDr)}
+                  </td>
+                  <td className="border-r border-black p-1.5 text-right font-mono text-rose-800">
+                    {formatCurrency(totalStatementCr)}
+                  </td>
+                  <td className="p-1.5 text-right font-mono font-extrabold text-[#0c2f66]">
+                    {formatCurrency(closingBalance)} {closingBalType}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+
+            {/* Declaration and Signatory Block */}
+            <div className="grid grid-cols-2 pt-4 text-[9px] border-t border-black mt-3">
+              <div>
+                <div className="text-gray-700 font-bold uppercase text-[9.5px]">Terms &amp; Conditions:</div>
+                <div className="text-gray-500 text-[8.5px] mt-0.5 leading-tight">
+                  1. Kindly check this statement and notify us of any discrepancy within 7 days.<br/>
+                  2. All payments must be made by crossed cheque / NEFT / RTGS in favour of Borgang Drug Distributors.<br/>
+                  3. Subject to Biswanath Jurisdiction only.
+                </div>
+              </div>
+              <div className="text-right flex flex-col justify-end">
+                <div className="font-bold text-[10px] text-[#0c2f66] uppercase mb-7">For BORGANG DRUG DISTRIBUTORS</div>
+                <div className="font-semibold text-gray-800 border-t border-gray-400 inline-block pt-1 ml-auto w-44 text-center">
+                  Authorised Signatory
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {showModal &&
         createPortal(
