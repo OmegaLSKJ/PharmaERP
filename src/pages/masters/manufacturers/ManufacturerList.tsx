@@ -75,10 +75,9 @@ export default function ManufacturerList() {
     getErp<any[]>('manufacturers')
       .then((rows) => {
         if (Array.isArray(rows)) {
-          setManufacturers(
-            rows.map((row) => {
-              const name = displayManufacturerName(row?.name)
-              return {
+          const mapped = rows.map((row) => {
+            const name = displayManufacturerName(row?.name)
+            return {
               id: String(row?.id || ''),
               name,
               code: String(row?.code || 'MFG') === 'MFG' && name === 'Unassigned Manufacturer' ? 'UNASSIGNED' : String(row?.code || 'MFG'),
@@ -88,10 +87,17 @@ export default function ManufacturerList() {
                 : [row?.primarySupplier || name || 'Self'],
               supplierCount: Number(row?.supplierCount || 1),
               primarySupplier: String(row?.primarySupplier || name || ''),
-              status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-              }
-            })
-          )
+              status: (row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active') as 'Active' | 'Blocked'
+            }
+          })
+          mapped.sort((a, b) => {
+            const aIsUnassigned = a.code === 'UNASSIGNED' || a.name.toLowerCase() === 'unassigned manufacturer' || a.name === '**'
+            const bIsUnassigned = b.code === 'UNASSIGNED' || b.name.toLowerCase() === 'unassigned manufacturer' || b.name === '**'
+            if (aIsUnassigned && !bIsUnassigned) return -1
+            if (!aIsUnassigned && bIsUnassigned) return 1
+            return a.name.localeCompare(b.name)
+          })
+          setManufacturers(mapped)
         }
       })
       .catch((err) => {
@@ -218,7 +224,7 @@ export default function ManufacturerList() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return manufacturers.filter((m) => {
+    const matches = manufacturers.filter((m) => {
       const matchSearch =
         !q ||
         (m?.name || '').toLowerCase().includes(q) ||
@@ -228,6 +234,15 @@ export default function ManufacturerList() {
         supplierFilter === 'ALL' ||
         (m?.connectedSuppliers || []).includes(supplierFilter)
       return matchSearch && matchSupplier
+    })
+
+    // Keep Unassigned Manufacturer pinned at the top of the table
+    return matches.sort((a, b) => {
+      const aIsUnassigned = a.code === 'UNASSIGNED' || a.name.toLowerCase() === 'unassigned manufacturer' || a.name === '**'
+      const bIsUnassigned = b.code === 'UNASSIGNED' || b.name.toLowerCase() === 'unassigned manufacturer' || b.name === '**'
+      if (aIsUnassigned && !bIsUnassigned) return -1
+      if (!aIsUnassigned && bIsUnassigned) return 1
+      return a.name.localeCompare(b.name)
     })
   }, [manufacturers, search, supplierFilter])
 
@@ -445,20 +460,33 @@ export default function ManufacturerList() {
               </tr>
             )}
             {!loading &&
-              displayedItems.map((m) => (
-                <tr
-                  key={m.id}
-                  onClick={() => setViewingMedicinesMfg(m)}
-                  className="hover:bg-muted/40 transition-colors group cursor-pointer"
-                  title={`Click to view medicines from ${m.name}`}
-                >
-                  <td className="px-4 py-3 font-mono font-medium text-primary">
-                    {m.code || '—'}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
-                    <Building2 size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                    <span className="font-semibold">{m.name}</span>
-                  </td>
+              displayedItems.map((m) => {
+                const isUnassigned =
+                  m.code === 'UNASSIGNED' ||
+                  m.name.toLowerCase() === 'unassigned manufacturer' ||
+                  m.name === '**'
+                return (
+                  <tr
+                    key={m.id}
+                    onClick={() => setViewingMedicinesMfg(m)}
+                    className={cn(
+                      'hover:bg-muted/40 transition-colors group cursor-pointer',
+                      isUnassigned && 'bg-amber-500/5 hover:bg-amber-500/10'
+                    )}
+                    title={`Click to view medicines from ${m.name}`}
+                  >
+                    <td className="px-4 py-3 font-mono font-medium text-primary">
+                      {m.code || '—'}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                      <Building2 size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                      <span className="font-semibold">{m.name}</span>
+                      {isUnassigned && (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-mono">
+                          Pinned
+                        </span>
+                      )}
+                    </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1 max-w-xs">
                       {(m.connectedSuppliers && m.connectedSuppliers.length > 0 ? m.connectedSuppliers : [m.name]).slice(0, 2).map((sup) => (
@@ -540,7 +568,8 @@ export default function ManufacturerList() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
           </tbody>
         </table>
 

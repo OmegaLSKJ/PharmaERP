@@ -2165,7 +2165,7 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
 
   if (resource === 'manufacturers') {
     const rawList = mockStore.manufacturers || []
-    return rawList.map((m: any) => {
+    const mapped = rawList.map((m: any) => {
       const isPlaceholder = String(m.name || '').trim() === '**' || String(m.code || '').trim().toUpperCase() === 'UNASSIGNED'
       const name = isPlaceholder ? 'Unassigned Manufacturer' : (m.name || '')
       const code = isPlaceholder && (!m.code || m.code === 'MFG') ? 'UNASSIGNED' : (m.code || 'MFG')
@@ -2185,6 +2185,14 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
         itemcount: m.itemcount ?? pCount
       }
     })
+    mapped.sort((a: any, b: any) => {
+      const aIsUnassigned = a.code === 'UNASSIGNED' || a.name?.toLowerCase() === 'unassigned manufacturer' || a.name === '**'
+      const bIsUnassigned = b.code === 'UNASSIGNED' || b.name?.toLowerCase() === 'unassigned manufacturer' || b.name === '**'
+      if (aIsUnassigned && !bIsUnassigned) return -1
+      if (!aIsUnassigned && bIsUnassigned) return 1
+      return (a.name || '').localeCompare(b.name || '')
+    })
+    return mapped
   }
 
   if (mockStore[resource]) {
@@ -2680,6 +2688,13 @@ export async function list(resource: string, partyName?: string, options?: ListO
         itemcount: Number(m.items?.[0]?.count ?? 0),
         items: undefined
       }
+    })
+    dbMfgs.sort((a: any, b: any) => {
+      const aIsUnassigned = a.code === 'UNASSIGNED' || a.name?.toLowerCase() === 'unassigned manufacturer' || a.name === '**'
+      const bIsUnassigned = b.code === 'UNASSIGNED' || b.name?.toLowerCase() === 'unassigned manufacturer' || b.name === '**'
+      if (aIsUnassigned && !bIsUnassigned) return -1
+      if (!aIsUnassigned && bIsUnassigned) return 1
+      return (a.name || '').localeCompare(b.name || '')
     })
     return dbMfgs
   }

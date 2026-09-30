@@ -39,6 +39,23 @@ describe('Unassigned Manufacturer Master & Medicine Mapping', () => {
     expect(unassigned.code).toBe('UNASSIGNED')
   })
 
+  it('pins Unassigned Manufacturer at the top of the manufacturer list', async () => {
+    // Add other manufacturers that would alphabetically come before 'U'
+    const aMfg: any = await create('manufacturers', {
+      name: 'Abbott Healthcare',
+      code: 'ABBOTT',
+      status: 'active'
+    })
+    if (aMfg?.id) createdMfgIds.push(aMfg.id)
+
+    const mfgs: any = await list('manufacturers')
+    expect(Array.isArray(mfgs)).toBe(true)
+    expect(mfgs.length).toBeGreaterThan(1)
+    // First element must be Unassigned Manufacturer
+    expect(mfgs[0].code).toBe('UNASSIGNED')
+    expect(mfgs[0].name).toBe('Unassigned Manufacturer')
+  })
+
   it('retrieves medicines under Unassigned Manufacturer when queried by name or ID', async () => {
     const unassignedMfgId = 'unassigned-mfg-test-id'
     
