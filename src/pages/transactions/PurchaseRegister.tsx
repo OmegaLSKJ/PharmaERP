@@ -7,6 +7,7 @@ import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import PurchaseInvoicePrint, { InvoicePrintItem } from '../../components/transactions/PurchaseInvoicePrint'
+import { findKnownDistributor } from '../../lib/ocr/pharmaMasterCatalog'
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
@@ -576,58 +577,94 @@ export default function PurchaseRegister() {
 
   // Build print data for selected invoice
   const getPrintData = (inv: PurchaseInv) => {
-    const partyInfo = partiesMap[inv.supplier.toLowerCase()] || {}
+    const supKey = (inv.supplier || '').toLowerCase().trim()
+    let partyInfo = partiesMap[supKey] || {}
+    if (!partyInfo.name && supKey) {
+      const match = Object.values(partiesMap).find((p: any) =>
+        p.name && (p.name.toLowerCase() === supKey || p.name.toLowerCase().includes(supKey) || supKey.includes(p.name.toLowerCase()))
+      )
+      if (match) partyInfo = match
+    }
+
+    const known = findKnownDistributor(inv.supplier)
+    const supplierName = inv.supplier || partyInfo.name || known?.name || 'SUPPLIER / DISTRIBUTOR'
+    const supplierAddress = partyInfo.address || partyInfo.city || known?.address || ''
+    const supplierGstin = partyInfo.gstin || known?.gstin || ''
+    const supplierDlNo = partyInfo.dlNo || partyInfo.dlNumber || known?.dlNo || ''
+    const supplierPhone = partyInfo.phone || known?.phone || ''
+    const supplierPan = partyInfo.pan || (supplierGstin ? supplierGstin.slice(2, 12) : '')
+    const supplierBalance = partyInfo.balance !== undefined ? Number(partyInfo.balance) : partyInfo.outstanding !== undefined ? Number(partyInfo.outstanding) : 0
+
     const itemsList: InvoicePrintItem[] =
       inv.lines && inv.lines.length > 0
         ? inv.lines.map((l: any) => ({
-            itemName: l.name || l.itemName || 'CUTIROSE',
-            packing: l.packing || '50ML',
+            itemName: l.name || l.itemName || 'Medicine Item',
+            packing: l.packing || '10S',
             mfr: l.manufacturer || l.mfr || '',
             hsn: l.hsn || '3004',
-            batch: l.batch || 'CT251459',
-            expiry: l.expiry || '1/28',
-            qty: Number(l.qty || l.quantity || 20),
+            batch: l.batch || '—',
+            expiry: l.expiry || '—',
+            qty: Number(l.qty || l.quantity || 1),
             freeQty: Number(l.free || l.freeQty || 0),
-            mrp: Number(l.mrp || 97.0),
-            purchaseRate: Number(l.rate || l.purchaseRate || 73.9),
-            discount: Number(l.disc || l.discount || 5.0),
+            mrp: Number(l.mrp || 0),
+            purchaseRate: Number(l.rate || l.purchaseRate || 0),
+            discount: Number(l.disc || l.discount || 0),
             scheme: Number(l.scheme || 0),
             gstRate: Number(l.gst || l.gstRate || 5.0),
-            amount: Number(l.amount || 1478.0),
+            amount: Number(l.amount || 0),
           }))
         : [
             {
-              itemName: 'CUTIROSE',
-              packing: '50ML',
+              itemName: 'Medicine Item',
+              packing: '10S',
               mfr: '',
               hsn: '3004',
-              batch: 'CT251459',
-              expiry: '1/28',
-              qty: 20,
+              batch: '—',
+              expiry: '—',
+              qty: 1,
               freeQty: 0,
-              mrp: 97.0,
-              purchaseRate: 73.9,
-              discount: 5.0,
+              mrp: Number(inv.total || 0),
+              purchaseRate: Number(inv.total || 0),
+              discount: 0,
               scheme: 0,
               gstRate: 5.0,
-              amount: 1478.0,
+              amount: Number(inv.total || 0),
             },
           ]
 
     return {
       supplier: {
-        name: inv.supplier || 'M/S ASHA DRUG DISTRIBUTORS TEZPUR',
-        address: partyInfo.address || 'OPP BORGANG T.E. HOSPITAL P.O. BORGANG, DIST- BISWANATH',
-        gstin: partyInfo.gstin || '18ABCFS4582H1Z8',
-        dlNo: partyInfo.dlNo || 'DLR-IV-41584/85',
-        phone: partyInfo.phone || '9435081045',
+        name: supplierName,
+        address: supplierAddress,
+        gstin: supplierGstin,
+        dlNo: supplierDlNo,
+        phone: supplierPhone,
         state: partyInfo.state || 'Assam',
-        pan: partyInfo.pan || 'ABCFS4582H',
+        pan: supplierPan,
+        balance: supplierBalance,
       },
-      challanNo: inv.challanNo || 'PB-2026-347165',
-      supplierInvoiceNo: inv.invoiceNo || 'G-86',
-      date: inv.date || '2026-04-02',
-      invoiceDate: inv.date || '2026-04-02',
+      supplierName,
+      supplierAddress,
+      supplierGstin,
+      supplierDlNo,
+      supplierPhone,
+      supplierPan,
+      supplierBalance,
+
+      buyerName: supplierName,
+      buyerAddress: supplierAddress,
+      buyerGstin: supplierGstin,
+      buyerDlNo: supplierDlNo,
+      buyerPhone: supplierPhone,
+      buyerPan: supplierPan,
+      buyerBalance: supplierBalance,
+
+      challanNo: inv.challanNo,
+      receiptNo: inv.challanNo || inv.invoiceNo,
+      invoiceNo: inv.invoiceNo || inv.challanNo,
+      supplierInvoiceNo: inv.invoiceNo,
+      date: inv.date || new Date().toISOString().slice(0, 10),
+      invoiceDate: inv.date || new Date().toISOString().slice(0, 10),
       paymentType: 'CREDIT',
       items: itemsList,
     }

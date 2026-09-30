@@ -4,6 +4,7 @@ import { manufacturerShortName } from '../../lib/manufacturerShortName'
 import { useUIStore } from '../../store/uiStore'
 import { DocumentSeries, formatBillWithActiveSeries } from '../../lib/seriesUtils'
 import { getErp } from '../../lib/erpApi'
+import { findKnownDistributor } from '../../lib/ocr/pharmaMasterCatalog'
 
 export interface InvoicePrintItem {
   id?: string
@@ -36,6 +37,26 @@ export interface InvoicePrintData {
   companyIfsc?: string
   companyJurisdiction?: string
 
+  // Dynamic supplier/consignor details for the purchase bill
+  supplier?: {
+    name?: string
+    address?: string
+    phone?: string
+    gstin?: string
+    dlNo?: string
+    pan?: string
+    state?: string
+    balance?: number
+  }
+  supplierName?: string
+  supplierAddress?: string
+  supplierPhone?: string
+  supplierGstin?: string
+  supplierDlNo?: string
+  supplierPan?: string
+  supplierBalance?: number
+
+  // Legacy field names preserved for backward-compatibility
   buyerName?: string
   buyerAddress?: string
   buyerPhone?: string
@@ -44,6 +65,8 @@ export interface InvoicePrintData {
   buyerPan?: string
   buyerBalance?: number
 
+  challanNo?: string
+  supplierInvoiceNo?: string
   receiptNo?: string
   invoiceNo?: string
   invoiceDate?: string
@@ -74,15 +97,58 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
     jurisdiction: data.companyJurisdiction || storeCompany.jurisdiction,
   }
 
+  // Resolve supplier/consignor details dynamically based on whichever bill it is generated for
+  const rawSupplierName = (
+    data.supplierName ||
+    data.supplier?.name ||
+    data.buyerName ||
+    ''
+  ).trim()
 
-  const buyer = {
-    name: data.buyerName || 'HUVET ENTERPRISES',
-    address: data.buyerAddress || 'TEZPUR',
-    phone: data.buyerPhone || '03712232931',
-    dlNo: data.buyerDlNo || 'STR-5018/5019',
-    gstin: data.buyerGstin || '18AAHFH7021B1ZS',
-    pan: data.buyerPan || 'AAHFH7021B',
-    balance: data.buyerBalance !== undefined ? data.buyerBalance : -144352.0,
+  const known = rawSupplierName ? findKnownDistributor(rawSupplierName) : undefined
+
+  const rawGstin =
+    data.supplierGstin ||
+    data.supplier?.gstin ||
+    data.buyerGstin ||
+    (known ? known.gstin : '') ||
+    ''
+
+  const supplier = {
+    name: rawSupplierName || (known ? known.name : '') || 'SUPPLIER / DISTRIBUTOR',
+    address:
+      data.supplierAddress ||
+      data.supplier?.address ||
+      data.buyerAddress ||
+      (known ? known.address : '') ||
+      '',
+    phone:
+      data.supplierPhone ||
+      data.supplier?.phone ||
+      data.buyerPhone ||
+      (known ? known.phone : '') ||
+      '',
+    dlNo:
+      data.supplierDlNo ||
+      data.supplier?.dlNo ||
+      data.buyerDlNo ||
+      (known ? known.dlNo : '') ||
+      '',
+    gstin: rawGstin,
+    pan:
+      data.supplierPan ||
+      data.supplier?.pan ||
+      data.buyerPan ||
+      (rawGstin ? rawGstin.slice(2, 12) : '') ||
+      '',
+    balance:
+      data.supplierBalance !== undefined
+        ? data.supplierBalance
+        : data.supplier?.balance !== undefined
+        ? data.supplier.balance
+        : data.buyerBalance !== undefined
+        ? data.buyerBalance
+        : 0,
   }
 
   const [seriesList, setSeriesList] = React.useState<DocumentSeries[]>([])
@@ -91,7 +157,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
     getErp<DocumentSeries[]>('series').then((res) => { if (res) setSeriesList(res) }).catch(() => {})
   }, [])
 
-  const rawReceiptNo = data.receiptNo || data.invoiceNo || 'P000045'
+  const rawReceiptNo = data.receiptNo || data.challanNo || data.invoiceNo || 'PB-0001'
   const receiptNo = formatBillWithActiveSeries(rawReceiptNo, 'Purchase Bill', seriesList)
   const invDate = data.invoiceDate ? formatDateDisplay(data.invoiceDate) : '02-04-2026'
   const orderNo = data.orderNo || ''
@@ -254,7 +320,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
               </div>
               <div className="flex justify-between text-[9px] text-gray-700 pt-0.5 border-t border-gray-200">
                 <span>Order Ref:</span>
-                <span>{orderNo} ({orderDate})</span>
+                <span>{orderNo || '—'}{orderDate ? ` (${orderDate})` : ''}</span>
               </div>
             </div>
           </div>
@@ -267,16 +333,18 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
               SUPPLIER / CONSIGNOR (BILLED FROM):
             </div>
             <div className="text-[12px] font-black uppercase text-black leading-tight">
-              {buyer.name}
+              {supplier.name}
             </div>
-            <div className="text-[9.5px] font-semibold text-gray-800 uppercase leading-snug">
-              {buyer.address}
-            </div>
+            {supplier.address && (
+              <div className="text-[9.5px] font-semibold text-gray-800 uppercase leading-snug">
+                {supplier.address}
+              </div>
+            )}
             <div className="flex flex-wrap gap-x-3 text-[9px] font-bold text-black mt-0.5">
-              {buyer.phone && <span>Phone: {buyer.phone}</span>}
-              {buyer.gstin && <span>GSTIN: <span className="font-mono">{buyer.gstin}</span></span>}
-              {buyer.dlNo && <span>D.L.No: {buyer.dlNo}</span>}
-              {buyer.pan && <span>PAN: {buyer.pan}</span>}
+              {supplier.phone && <span>Phone: {supplier.phone}</span>}
+              {supplier.gstin && <span>GSTIN: <span className="font-mono">{supplier.gstin}</span></span>}
+              {supplier.dlNo && <span>D.L.No: {supplier.dlNo}</span>}
+              {supplier.pan && <span>PAN: {supplier.pan}</span>}
             </div>
           </div>
 
@@ -293,7 +361,7 @@ export default function PurchaseInvoicePrint({ data }: { data: InvoicePrintData 
               </div>
             </div>
             <div className="text-[9px] font-bold text-gray-700 pt-1 border-t border-gray-200">
-              Supplier Ledger Balance: <span className="font-mono text-black">₹{buyer.balance.toFixed(2)}</span>
+              Supplier Ledger Balance: <span className="font-mono text-black">₹{supplier.balance.toFixed(2)}</span>
             </div>
           </div>
         </div>

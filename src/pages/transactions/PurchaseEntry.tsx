@@ -12,6 +12,7 @@ import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../
 import { openTransactionWindow } from '../../lib/windowUtils'
 import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
 import { ExtractedInvoice } from '../../lib/ocr/types'
+import { findKnownDistributor } from '../../lib/ocr/pharmaMasterCatalog'
 
 interface LineItem {
   id: string
@@ -617,17 +618,34 @@ export default function PurchaseEntry() {
   }
 
   const getPrintData = (): InvoicePrintData => {
-    const partyInfo = partiesMap[supplier.toLowerCase()] || {}
+    const supKey = (supplier || '').toLowerCase().trim()
+    let partyInfo = partiesMap[supKey] || {}
+    if (!partyInfo.name && supKey) {
+      const match = Object.values(partiesMap).find((p: any) =>
+        p.name && (p.name.toLowerCase() === supKey || p.name.toLowerCase().includes(supKey) || supKey.includes(p.name.toLowerCase()))
+      )
+      if (match) partyInfo = match
+    }
+
+    const known = findKnownDistributor(supplier)
+    const supplierName = partyInfo.name || supplier || known?.name || 'SUPPLIER / DISTRIBUTOR'
+    const supplierAddress = partyInfo.address || partyInfo.city || known?.address || ''
+    const supplierPhone = partyInfo.phone || known?.phone || ''
+    const supplierDlNo = partyInfo.dlNumber || partyInfo.dlNo || known?.dlNo || ''
+    const supplierGstin = partyInfo.gstin || known?.gstin || ''
+    const supplierPan = partyInfo.pan || (supplierGstin ? supplierGstin.slice(2, 12) : '')
+    const supplierBalance = partyInfo.balance !== undefined ? Number(partyInfo.balance) : partyInfo.outstanding !== undefined ? Number(partyInfo.outstanding) : 0
+
     const itemsList: InvoicePrintItem[] =
       items.length > 0
         ? items.map((i) => ({
             id: i.id,
             itemName: i.itemName,
-            packing: i.packing || '50ML',
+            packing: i.packing || '10S',
             mfr: i.manufacturer,
             hsn: i.hsn || '3004',
-            batch: i.batch || 'CT251459',
-            expiry: i.expiry || '1/28',
+            batch: i.batch || '—',
+            expiry: i.expiry || '—',
             qty: i.qty,
             freeQty: i.freeQty,
             mrp: i.mrp,
@@ -639,34 +657,52 @@ export default function PurchaseEntry() {
           }))
         : [
             {
-              itemName: 'CUTIROSE',
-              packing: '50ML',
+              itemName: 'Medicine Item',
+              packing: '10S',
               mfr: '',
               hsn: '3004',
-              batch: 'CT251459',
-              expiry: '1/28',
-              qty: 20,
+              batch: '—',
+              expiry: '—',
+              qty: 1,
               freeQty: 0,
-              mrp: 97.0,
-              purchaseRate: 73.9,
-              discount: 5.0,
+              mrp: 100.0,
+              purchaseRate: 80.0,
+              discount: 0,
               scheme: 0.0,
               gstRate: 5.0,
-              amount: 1478.0,
+              amount: 80.0,
             },
           ]
 
     return {
-      buyerName: partyInfo.name || supplier || 'HUVET ENTERPRISES',
-      buyerAddress: partyInfo.city || partyInfo.address || 'TEZPUR',
-      buyerPhone: partyInfo.phone || '03712232931',
-      buyerDlNo: partyInfo.dlNumber || partyInfo.dlNo || 'STR-5018/5019',
-      buyerGstin: partyInfo.gstin || '18AAHFH7021B1ZS',
-      buyerPan: partyInfo.pan || 'AAHFH7021B',
-      buyerBalance: partyInfo.balance !== undefined ? Number(partyInfo.balance) : -144352.0,
-      receiptNo: invoiceNo || 'P000045',
-      invoiceNo: invoiceNo || 'P000045',
-      invoiceDate: invoiceDate || '2026-04-02',
+      supplier: {
+        name: supplierName,
+        address: supplierAddress,
+        phone: supplierPhone,
+        dlNo: supplierDlNo,
+        gstin: supplierGstin,
+        pan: supplierPan,
+        balance: supplierBalance,
+      },
+      supplierName,
+      supplierAddress,
+      supplierPhone,
+      supplierDlNo,
+      supplierGstin,
+      supplierPan,
+      supplierBalance,
+
+      buyerName: supplierName,
+      buyerAddress: supplierAddress,
+      buyerPhone: supplierPhone,
+      buyerDlNo: supplierDlNo,
+      buyerGstin: supplierGstin,
+      buyerPan: supplierPan,
+      buyerBalance: supplierBalance,
+
+      receiptNo: invoiceNo || 'PB-0001',
+      invoiceNo: invoiceNo || 'PB-0001',
+      invoiceDate: invoiceDate || new Date().toISOString().slice(0, 10),
       paymentType: 'CREDIT',
       items: itemsList,
     }

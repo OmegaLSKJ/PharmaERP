@@ -110,6 +110,24 @@ export const KNOWN_DISTRIBUTORS: DistributorProfile[] = [
   }
 ]
 
+export function findKnownDistributor(query?: string): DistributorProfile | undefined {
+  if (!query) return undefined
+  const q = query.trim().toUpperCase()
+  if (!q) return undefined
+
+  // 1. Direct match on full name or GSTIN
+  const exact = KNOWN_DISTRIBUTORS.find(
+    (d) => d.name.toUpperCase() === q || (d.gstin && d.gstin.toUpperCase() === q)
+  )
+  if (exact) return exact
+
+  // 2. Inclusion / substring match (e.g. 'DEY DRUG', 'ASSAM PHARMA', 'PRAGATI', 'SHANTI')
+  return KNOWN_DISTRIBUTORS.find((d) => {
+    const dName = d.name.toUpperCase()
+    return dName.includes(q) || q.includes(dName)
+  })
+}
+
 export const MANUFACTURER_CODE_MAP: Record<string, string> = {
   OZONE: 'Ozone Pharmaceuticals Ltd',
   JUPITER: 'Jupiter Remedies',
