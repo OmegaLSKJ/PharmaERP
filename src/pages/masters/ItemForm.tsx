@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Save, Plus, X, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getErp, patchErp, postErp } from '../../lib/erpApi'
+import { getErp, patchErp, postErp, deleteErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { formatCurrency } from '../../lib/utils'
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb, HsnMasterEntry } from '../../lib/hsnUtils'
@@ -20,6 +20,7 @@ export default function ItemForm() {
   const [resolvedItemId, setResolvedItemId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showAddBatch, setShowAddBatch] = useState(false)
+  const [submittingBatch, setSubmittingBatch] = useState(false)
   const [newBatch, setNewBatch] = useState({
     batch: '',
     expiry: '',
@@ -126,39 +127,121 @@ export default function ItemForm() {
     setForm((prev) => ({ ...prev, stock: total }))
   }
 
-  const handleRemoveBatch = (idx: number) => {
-    const updated = batches.filter((_, i) => i !== idx)
-    setBatches(updated)
-    const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
-    setForm((prev) => ({ ...prev, stock: total }))
+  const handleRemoveBatch = async (idx: number) => {
+    const targetBatch = batches[idx]
+    if (!targetBatch) return
+
+    const isPersistedInDb = Boolean(targetBatch.id && !String(targetBatch.id).startsWith('b-'))
+    const targetItemId = resolvedItemId || id
+
+    if (isPersistedInDb && targetItemId) {
+      if (!window.confirm(`Delete batch "${targetBatch.batch || targetBatch.batchNumber || 'this batch'}" from Supabase?`)) return
+      try {
+        await deleteErp('item-batches', targetBatch.id)
+        const updated = batches.filter((_, i) => i !== idx)
+        setBatches(updated)
+        const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+        setForm((prev) => ({ ...prev, stock: total }))
+        showToast(`Batch "${targetBatch.batch || targetBatch.batchNumber}" deleted from Supabase.`)
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Unable to delete batch.')
+      }
+    } else {
+      const updated = batches.filter((_, i) => i !== idx)
+      setBatches(updated)
+      const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+      setForm((prev) => ({ ...prev, stock: total }))
+    }
   }
 
-  const handleAddBatch = (e: React.FormEvent) => {
+  const handleAddBatch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newBatch.batch.trim()) {
       showToast('Batch number is required.')
       return
     }
-    const createdBatch = {
-      id: `b-${Date.now()}`,
-      batch: newBatch.batch.trim().toUpperCase(),
-      expiry: newBatch.expiry || '',
-      stock: Number(newBatch.stock || 0),
-      costPrice: Number(newBatch.purchasePrice || form.purchaseRate || 0),
-      purchasePrice: Number(newBatch.purchasePrice || form.purchaseRate || 0),
-      salePrice: Number(newBatch.salePrice || form.saleRate || 0),
-      mrp: Number(newBatch.mrp || form.mrp || 0),
-      receivedOn: new Date().toISOString().slice(0, 10),
-      rackNumber: newBatch.rackNumber.trim(),
-      supplier: form.manufacturer || 'Direct Master Entry'
+
+    const cleanBatchNo = newBatch.batch.trim().toUpperCase()
+    const targetItemId = resolvedItemId || id
+    const batchStock = Number(newBatch.stock || 0)
+    const costPrice = Number(newBatch.purchasePrice || form.purchaseRate || 0)
+    const purchasePrice = Number(newBatch.purchasePrice || form.purchaseRate || 0)
+    const salePrice = Number(newBatch.salePrice || form.saleRate || 0)
+    const mrp = Number(newBatch.mrp || form.mrp || 0)
+    const rackNumber = newBatch.rackNumber.trim()
+    const supplier = form.manufacturer || 'Direct Master Entry'
+    const receivedOn = new Date().toISOString().slice(0, 10)
+    const expiry = newBatch.expiry || ''
+
+    if (targetItemId) {
+      setSubmittingBatch(true)
+      try {
+        const payload = {
+          itemId: targetItemId,
+          batchNumber: cleanBatchNo,
+          batch: cleanBatchNo,
+          expiryOn: expiry || null,
+          expiry: expiry || null,
+          stock: batchStock,
+          costPrice,
+          purchasePrice,
+          salePrice,
+          mrp,
+          rackNumber: rackNumber || null,
+          supplier,
+          receivedOn,
+        }
+        const created = await postErp<any>('item-batches', payload)
+        const batchForState = {
+          id: created?.id || `b-${Date.now()}`,
+          batch: cleanBatchNo,
+          batchNumber: cleanBatchNo,
+          expiry,
+          expiryOn: expiry,
+          stock: batchStock,
+          costPrice,
+          purchasePrice,
+          salePrice,
+          mrp,
+          receivedOn,
+          rackNumber,
+          supplier,
+        }
+        const updated = [...batches, batchForState]
+        setBatches(updated)
+        const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+        setForm((prev) => ({ ...prev, stock: total }))
+        setNewBatch({ batch: '', expiry: '', stock: 0, purchasePrice: 0, salePrice: 0, mrp: 0, rackNumber: '' })
+        setShowAddBatch(false)
+        showToast(`Batch "${cleanBatchNo}" saved to Supabase with ${batchStock} units stock.`)
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to save batch to Supabase.')
+      } finally {
+        setSubmittingBatch(false)
+      }
+    } else {
+      const createdBatch = {
+        id: `b-${Date.now()}`,
+        batch: cleanBatchNo,
+        batchNumber: cleanBatchNo,
+        expiry,
+        stock: batchStock,
+        costPrice,
+        purchasePrice,
+        salePrice,
+        mrp,
+        receivedOn,
+        rackNumber,
+        supplier
+      }
+      const updated = [...batches, createdBatch]
+      setBatches(updated)
+      const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
+      setForm((prev) => ({ ...prev, stock: total }))
+      setNewBatch({ batch: '', expiry: '', stock: 0, purchasePrice: 0, salePrice: 0, mrp: 0, rackNumber: '' })
+      setShowAddBatch(false)
+      showToast(`Batch "${createdBatch.batch}" added with ${createdBatch.stock} units stock. (Click Save item to persist)`)
     }
-    const updated = [...batches, createdBatch]
-    setBatches(updated)
-    const total = updated.reduce((s, b) => s + (Number(b.stock) || 0), 0)
-    setForm((prev) => ({ ...prev, stock: total }))
-    setNewBatch({ batch: '', expiry: '', stock: 0, purchasePrice: 0, salePrice: 0, mrp: 0, rackNumber: '' })
-    setShowAddBatch(false)
-    showToast(`Batch "${createdBatch.batch}" added with ${createdBatch.stock} units stock.`)
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -450,24 +533,34 @@ export default function ItemForm() {
               Total Stock: {form.stock}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setNewBatch({
-                batch: '',
-                expiry: '',
-                stock: 0,
-                purchasePrice: form.purchaseRate || 0,
-                salePrice: form.saleRate || 0,
-                mrp: form.mrp || 0,
-                rackNumber: ''
-              })
-              setShowAddBatch(true)
-            }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition cursor-pointer"
-          >
-            <Plus size={14} className="text-primary" /> Add batch
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setNewBatch({
+                  batch: '',
+                  expiry: '',
+                  stock: 0,
+                  purchasePrice: form.purchaseRate || 0,
+                  salePrice: form.saleRate || 0,
+                  mrp: form.mrp || 0,
+                  rackNumber: ''
+                })
+                setShowAddBatch(true)
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition cursor-pointer"
+            >
+              <Plus size={14} className="text-primary" /> Add batch
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={submit}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs transition cursor-pointer disabled:opacity-50"
+            >
+              <Save size={14} /> {saving ? 'Saving…' : 'Save item'}
+            </button>
+          </div>
         </div>
 
         {/* Add Batch Inline Card */}
@@ -551,17 +644,23 @@ export default function ItemForm() {
             <div className="flex justify-end gap-2 pt-1 border-t border-border">
               <button
                 type="button"
+                disabled={submittingBatch}
                 onClick={() => setShowAddBatch(false)}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition"
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={submittingBatch}
                 onClick={handleAddBatch}
-                className="rounded-lg bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs cursor-pointer transition"
+                className="rounded-lg bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs cursor-pointer transition disabled:opacity-50 inline-flex items-center gap-1.5"
               >
-                Confirm Add Batch
+                {submittingBatch ? (
+                  <>Saving to Supabase…</>
+                ) : (
+                  <>{id || resolvedItemId ? 'Save Batch to Supabase' : 'Confirm Add Batch'}</>
+                )}
               </button>
             </div>
           </div>

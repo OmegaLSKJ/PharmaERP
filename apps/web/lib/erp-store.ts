@@ -4222,18 +4222,40 @@ export async function create(resource: string, body: any, actor: MutationActor =
     }
   }
   if (resource === 'item-batches') {
-    if (!body.itemId || !body.batchNumber?.trim()) throw new Error('Item and batch number are required.')
-    const { data: item, error: itemError } = await client.from('items').select('id').eq('id', body.itemId).eq('organization_id', organizationId).maybeSingle()
+    const rawBatchNumber = body.batchNumber || body.batch
+    if (!body.itemId || !rawBatchNumber?.trim()) throw new Error('Item and batch number are required.')
+    const isTargetUuid = Boolean(body.itemId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.itemId).trim()))
+    let itemQuery = client.from('items').select('id, name, code').eq('organization_id', organizationId)
+    if (isTargetUuid) {
+      itemQuery = itemQuery.eq('id', body.itemId)
+    } else {
+      itemQuery = itemQuery.eq('code', body.itemId)
+    }
+    const { data: item, error: itemError } = await itemQuery.maybeSingle()
     if (itemError) throw itemError
     if (!item) throw new Error('The selected item is unavailable.')
     const supplierId = body.supplier ? await party(client, organizationId, String(body.supplier), 'supplier') : null
+    const batchNum = String(rawBatchNumber).trim().toUpperCase()
+    const expiryOn = normalizeExpiryDate(body.expiryOn || body.expiry) || body.expiryOn || body.expiry || null
     const { data, error } = await client.from('item_batches').insert({
-      item_id: item.id, batch_number: body.batchNumber.trim(), expiry_on: body.expiryOn || null, received_on: body.receivedOn || null,
-      manufactured_on: body.manufacturedOn || null, mrp: Number(body.mrp || 0), cost_price: Number(body.costPrice || 0),
-      purchase_price: Number(body.purchasePrice || 0), sale_price: Number(body.salePrice || 0), sales_scheme_deal: Number(body.salesSchemeDeal || 0),
-      sales_scheme_free: Number(body.salesSchemeFree || 0), purchase_scheme_deal: Number(body.purchaseSchemeDeal || 0),
-      purchase_scheme_free: Number(body.purchaseSchemeFree || 0), supplier_id: supplierId, supplier_invoice_number: body.supplierInvoiceNumber || null,
-      supplier_invoice_date: body.supplierInvoiceDate || null, rack_number: body.rackNumber || null, source_report_value: Number(body.sourceReportValue || 0)
+      item_id: item.id,
+      batch_number: batchNum,
+      expiry_on: expiryOn,
+      received_on: body.receivedOn || null,
+      manufactured_on: body.manufacturedOn || null,
+      mrp: Number(body.mrp || 0),
+      cost_price: Number(body.costPrice || body.purchasePrice || 0),
+      purchase_price: Number(body.purchasePrice || body.costPrice || 0),
+      sale_price: Number(body.salePrice || 0),
+      sales_scheme_deal: Number(body.salesSchemeDeal || 0),
+      sales_scheme_free: Number(body.salesSchemeFree || 0),
+      purchase_scheme_deal: Number(body.purchaseSchemeDeal || 0),
+      purchase_scheme_free: Number(body.purchaseSchemeFree || 0),
+      supplier_id: supplierId,
+      supplier_invoice_number: body.supplierInvoiceNumber || null,
+      supplier_invoice_date: body.supplierInvoiceDate || null,
+      rack_number: body.rackNumber || null,
+      source_report_value: Number(body.sourceReportValue || 0)
     }).select('id').single()
     if (error) throw error
 
@@ -4251,7 +4273,18 @@ export async function create(resource: string, body: any, actor: MutationActor =
       })
       if (smErr) throw smErr
     }
-    return { ...body, id: data.id, stock: batchStock }
+    return {
+      ...body,
+      id: data.id,
+      itemId: item.id,
+      itemCode: item.code,
+      itemName: item.name,
+      batch: batchNum,
+      batchNumber: batchNum,
+      expiry: expiryOn,
+      expiryOn,
+      stock: batchStock
+    }
   }
   if (resource === 'stock-transfers') {
     if (!body.lines?.length) throw new Error('Add at least one stock transfer line.')
