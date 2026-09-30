@@ -1,1 +1,140 @@
-[]
+[
+  {
+    "id": "mfg-ozon",
+    "name": "Ozone Pharmaceuticals Ltd",
+    "code": "OZONE",
+    "is_active": true
+  },
+  {
+    "id": "mfg-jupi",
+    "name": "Jupiter Remedies",
+    "code": "JUPITER",
+    "is_active": true
+  },
+  {
+    "id": "mfg-tabl",
+    "name": "Tablets India Ltd",
+    "code": "TABLET",
+    "is_active": true
+  },
+  {
+    "id": "mfg-morp",
+    "name": "Dr. Morepen Laboratories",
+    "code": "DR MORPEN",
+    "is_active": true
+  },
+  {
+    "id": "mfg-alle",
+    "name": "Allen Healthcare",
+    "code": "ALLEN",
+    "is_active": true
+  },
+  {
+    "id": "mfg-hima",
+    "name": "Himalaya Wellness Company",
+    "code": "HIMALAYA",
+    "is_active": true
+  },
+  {
+    "id": "mfg-naxp",
+    "name": "Naxpar Pharma",
+    "code": "NAXPAR",
+    "is_active": true
+  },
+  {
+    "id": "mfg-micr",
+    "name": "Micro Labs Ltd",
+    "code": "MICRO",
+    "is_active": true
+  },
+  {
+    "id": "mfg-ipca",
+    "name": "Ipca Laboratories",
+    "code": "IPCA",
+    "is_active": true
+  },
+  {
+    "id": "mfg-ster",
+    "name": "Steril-Gene Life Sciences",
+    "code": "STERLI",
+    "is_active": true
+  },
+  {
+    "id": "mfg-apex",
+    "name": "Apex Laboratories",
+    "code": "APEX",
+    "is_active": true
+  },
+  {
+    "id": "mfg-jbcpl",
+    "name": "J.B. Chemicals & Pharmaceuticals",
+    "code": "JBCPL",
+    "is_active": true
+  },
+  {
+    "id": "mfg-usv",
+    "name": "USV Private Limited",
+    "code": "USV",
+    "is_active": true
+  },
+  {
+    "id": "mfg-drl",
+    "name": "Dr. Reddy's Laboratories",
+    "code": "DRL",
+    "is_active": true
+  },
+  {
+    "id": "mfg-alem",
+    "name": "Alembic Pharmaceuticals",
+    "code": "ALEMBIC",
+    "is_active": true
+  },
+  {
+    "id": "mfg-rexw",
+    "name": "Rexwel Pharmaceuticals",
+    "code": "REXWEL",
+    "is_active": true
+  },
+  {
+    "id": "mfg-alke",
+    "name": "Alkem Laboratories",
+    "code": "ALKEM",
+    "is_active": true
+  },
+  {
+    "id": "mfg-dyna",
+    "name": "Dynamic Techno Medicals",
+    "code": "DYNA",
+    "is_active": true
+  },
+  {
+    "id": "mfg-lupi",
+    "name": "Lupin Limited",
+    "code": "LUPIN",
+    "is_active": true
+  },
+  {
+    "id": "mfg-shin",
+    "name": "Shin Pharmaceuticals",
+    "code": "SHIN",
+    "is_active": true
+  },
+  {
+    "id": "mfg-merc",
+    "name": "Merck Healthcare",
+    "code": "MERCK",
+    "is_active": true
+  },
+  {
+    "id": "mfg-indc",
+    "name": "Indoco Remedies",
+    "code": "INDOCO",
+    "is_active": true
+  },
+  {
+    "id": "mfg-macl",
+    "name": "Macleods Pharmaceuticals",
+    "code": "MACLEODS",
+    "is_active": true
+  }
+]

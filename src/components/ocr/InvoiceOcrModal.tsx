@@ -23,6 +23,7 @@ import { scanInvoice } from '../../lib/ocr/ocrEngine'
 import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
 import { ExtractedInvoice, ExtractedLineItem } from '../../lib/ocr/types'
 import { mapExtractedItemsToMaster, MasterItemOption, matchMedicineToMaster } from '../../lib/ocr/medicineMapper'
+import { PHARMA_MASTER_CATALOG } from '../../lib/ocr/pharmaMasterCatalog'
 import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
@@ -54,44 +55,42 @@ export default function InvoiceOcrModal({
 
   // Load cached ERP items or provide rich defaults for comprehensive master mapping
   const effectiveMasterItems: MasterItemOption[] = useMemo(() => {
-    if (masterItems && masterItems.length >= 6) return masterItems
+    const baseCatalog: MasterItemOption[] = [...PHARMA_MASTER_CATALOG]
 
-    const cached = getCached<any[]>('items') || []
-    if (cached.length > 0) {
-      const fromCache: MasterItemOption[] = cached.map((it: any) => ({
-        id: it.id || it.itemId || String(Math.random()),
-        itemId: it.id || it.itemId,
-        name: it.name || it.itemName || it.label || '',
-        label: it.name || it.itemName || it.label || '',
-        packing: it.packing || '10x10',
-        hsn: it.hsn || it.hsnCode || '30049099',
-        mrp: Number(it.mrp || 0),
-        rate: Number(it.rate || it.saleRate || 0),
-        purchaseRate: Number(it.purchaseRate || 0),
-        gstRate: Number(it.gstRate || it.gst || 12),
-        stock: Number(it.stock || it.currentStock || 0),
-        manufacturer: it.manufacturer || '',
-        salt: it.salt || ''
-      }))
-      if (masterItems && masterItems.length > 0) {
-        const existingIds = new Set(masterItems.map(m => m.id || m.itemId))
-        return [...masterItems, ...fromCache.filter(c => !existingIds.has(c.id || c.itemId))]
+    let combined: MasterItemOption[] = []
+    if (masterItems && masterItems.length > 0) {
+      combined = [...masterItems]
+    } else {
+      const cached = getCached<any[]>('items') || []
+      if (cached.length > 0) {
+        combined = cached.map((it: any) => ({
+          id: it.id || it.itemId || String(Math.random()),
+          itemId: it.id || it.itemId,
+          name: it.name || it.itemName || it.label || '',
+          label: it.name || it.itemName || it.label || '',
+          packing: it.packing || '10x10',
+          hsn: it.hsn || it.hsnCode || '30049099',
+          mrp: Number(it.mrp || 0),
+          rate: Number(it.rate || it.saleRate || 0),
+          purchaseRate: Number(it.purchaseRate || 0),
+          gstRate: Number(it.gstRate || it.gst || 5),
+          stock: Number(it.stock || it.currentStock || 0),
+          manufacturer: it.manufacturer || '',
+          salt: it.salt || ''
+        }))
       }
-      return fromCache
     }
 
-    const defaultCatalog: MasterItemOption[] = [
-      { id: '1', name: 'PAN 40MG TAB', label: 'PAN 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 155, rate: 112.5, purchaseRate: 98, gstRate: 12, stock: 450 },
-      { id: '2', name: 'MOXIKIND CV 625 TAB', label: 'MOXIKIND CV 625 TAB', packing: '10\'S', hsn: '30041010', mrp: 220, rate: 168, purchaseRate: 145, gstRate: 12, stock: 280 },
-      { id: '3', name: 'TELMA 40MG TAB', label: 'TELMA 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 135, rate: 98, purchaseRate: 84, gstRate: 12, stock: 520 },
-      { id: '4', name: 'AUGMENTIN 625 DUO TAB', label: 'AUGMENTIN 625 DUO TAB', packing: '10\'S', hsn: '30041010', mrp: 240, rate: 185, purchaseRate: 160, gstRate: 12, stock: 190 },
-      { id: '5', name: 'DOLO 650 TAB', label: 'DOLO 650 TAB', packing: '15\'S', hsn: '30049099', mrp: 35, rate: 26.5, purchaseRate: 22, gstRate: 12, stock: 950 },
-      { id: '6', name: 'AZITHRAL 500 TAB', label: 'AZITHRAL 500 TAB', packing: '5\'S', hsn: '30041010', mrp: 125, rate: 92, purchaseRate: 80, gstRate: 12, stock: 320 },
-      { id: '7', name: 'CALPOL 500MG TAB', label: 'CALPOL 500MG TAB', packing: '15\'S', hsn: '30049099', mrp: 32, rate: 24, purchaseRate: 19.5, gstRate: 12, stock: 800 },
-      { id: '8', name: 'CEFTUM 500MG TAB', label: 'CEFTUM 500MG TAB', packing: '10\'S', hsn: '30041010', mrp: 480, rate: 375, purchaseRate: 320, gstRate: 12, stock: 140 }
-    ]
+    const existingNames = new Set(combined.map(c => (c.name || c.label || '').toLowerCase().trim()))
+    for (const b of baseCatalog) {
+      const nameKey = (b.name || b.label || '').toLowerCase().trim()
+      if (!existingNames.has(nameKey)) {
+        combined.push(b)
+        existingNames.add(nameKey)
+      }
+    }
 
-    return masterItems && masterItems.length > 0 ? [...masterItems, ...defaultCatalog.filter(d => !masterItems.some(m => m.name === d.name))] : defaultCatalog
+    return combined
   }, [masterItems])
 
   // Camera State
