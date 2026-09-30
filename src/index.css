@@ -498,7 +498,7 @@
   ═══════════════════════════════════════════════════════════════ */
   @page {
     size: A4 portrait;
-    margin: 8mm 8mm 10mm 8mm;
+    margin: 6mm 6mm 8mm 6mm;
 
     @bottom-left {
       content: "BORGANG DRUG DISTRIBUTORS";
@@ -682,14 +682,19 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     TABLES — professional bordered layout
+     TABLES — professional bordered layout with AUTOMATIC FIT TO PAGE
   ═══════════════════════════════════════════════════════════════ */
   table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) {
     width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
     border-collapse: collapse !important;
-    font-size: 9pt !important;
+    font-size: 8pt !important;
     margin-bottom: 0 !important;
     page-break-inside: auto !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
   }
 
   thead {
@@ -708,14 +713,17 @@
   table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th {
     background: #d4ebf2 !important;
     color: #000000 !important;
-    font-size: 8.5pt !important;
+    font-size: 7.5pt !important;
     font-weight: 800 !important;
-    padding: 4pt 6pt !important;
+    padding: 3pt 3pt !important;
     text-align: left !important;
     border: 1px solid #000000 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    white-space: nowrap !important;
+    letter-spacing: 0.02em !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    box-sizing: border-box !important;
   }
 
   th[class*="text-right"] {
@@ -727,13 +735,16 @@
   }
 
   table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td {
-    font-size: 9pt !important;
+    font-size: 7.5pt !important;
     color: #111827 !important;
-    padding: 3.5pt 6pt !important;
+    padding: 2.5pt 3pt !important;
     border-bottom: 0.5pt solid #d1d5db !important;
     border-left: 0.5pt solid #e5e7eb !important;
     border-right: 0.5pt solid #e5e7eb !important;
     vertical-align: middle !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    box-sizing: border-box !important;
   }
 
   td[class*="text-right"] {
@@ -759,9 +770,10 @@
     background: #f3f4f6 !important;
     color: #000000 !important;
     font-weight: 800 !important;
-    font-size: 9.5pt !important;
+    font-size: 8pt !important;
     border: 1.5px solid #000000 !important;
-    padding: 4pt 6pt !important;
+    padding: 3pt 3pt !important;
+    box-sizing: border-box !important;
   }
 
   /* ═══════════════════════════════════════════════════════════════

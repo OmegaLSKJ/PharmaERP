@@ -1664,7 +1664,7 @@ export default function LedgerList() {
       {/* ══════════════════════════════════════════════════════════════════════════
           DEDICATED PRINT DOCUMENT — BORGANG DRUG DISTRIBUTORS BRANDING STYLE
       ══════════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden print:block w-full text-black bg-white select-text">
+      <div className="hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text">
         {activeTab === 'all-transactions' ? (
           <div>
             <PrintHeader
@@ -1690,18 +1690,18 @@ export default function LedgerList() {
               </div>
             </div>
 
-            {/* Complete Chronological Transactions Table */}
-            <table className="w-full text-[9px] border-collapse border border-black mb-3">
+            {/* Complete Chronological Transactions Table with Automatic Fit to Page */}
+            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3">
               <thead>
-                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[8.5px]">
-                  <th className="border-r border-black p-1.5 text-center w-8">#</th>
-                  <th className="border-r border-black p-1.5 text-left w-24">Date &amp; Time</th>
-                  <th className="border-r border-black p-1.5 text-left w-16">Type</th>
-                  <th className="border-r border-black p-1.5 text-left w-24">Voucher No</th>
-                  <th className="border-r border-black p-1.5 text-left w-44">Company / Party</th>
-                  <th className="border-r border-black p-1.5 text-left">Particulars / Narration</th>
-                  <th className="border-r border-black p-1.5 text-right w-24">Debit (Dr ₹)</th>
-                  <th className="p-1.5 text-right w-24">Credit (Cr ₹)</th>
+                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[7.5pt]">
+                  <th className="border-r border-black p-1 text-center w-[4%]">#</th>
+                  <th className="border-r border-black p-1 text-left w-[14%]">Date &amp; Time</th>
+                  <th className="border-r border-black p-1 text-center w-[7%]">Type</th>
+                  <th className="border-r border-black p-1 text-left w-[12%]">Voucher No</th>
+                  <th className="border-r border-black p-1 text-left w-[24%]">Company / Party</th>
+                  <th className="border-r border-black p-1 text-left w-[19%]">Particulars / Narration</th>
+                  <th className="border-r border-black p-1 text-right w-[10%]">Debit (Dr ₹)</th>
+                  <th className="p-1 text-right w-[10%]">Credit (Cr ₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
@@ -1715,16 +1715,16 @@ export default function LedgerList() {
                     const comp = t.party || '-'
                     return (
                       <tr key={t.id || idx} className="border-b border-gray-200">
-                        <td className="border-r border-black p-1 text-center font-mono">{idx + 1}</td>
-                        <td className="border-r border-black p-1 font-mono">{dt.date} {dt.time}</td>
-                        <td className="border-r border-black p-1 uppercase font-semibold text-[8px]">{t.vType}</td>
-                        <td className="border-r border-black p-1 font-mono font-bold">{t.vNo}</td>
-                        <td className="border-r border-black p-1 font-medium">{comp}</td>
-                        <td className="border-r border-black p-1 truncate max-w-xs">{t.narration || '-'}</td>
-                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                        <td className="border-r border-black p-1 text-center font-mono text-[7.5pt]">{idx + 1}</td>
+                        <td className="border-r border-black p-1 font-mono text-[7.5pt] leading-tight">{dt.date} {dt.time}</td>
+                        <td className="border-r border-black p-1 text-center uppercase font-semibold text-[7.5pt]">{t.vType}</td>
+                        <td className="border-r border-black p-1 font-mono font-bold text-[7.5pt] break-all">{t.vNo}</td>
+                        <td className="border-r border-black p-1 font-medium break-words text-[7.5pt]">{comp}</td>
+                        <td className="border-r border-black p-1 break-words text-[7.5pt]">{t.narration || '-'}</td>
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {Number(t.debit) > 0 ? formatCurrency(Number(t.debit)) : '-'}
                         </td>
-                        <td className="p-1 text-right font-mono font-semibold">
+                        <td className="p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {Number(t.credit) > 0 ? formatCurrency(Number(t.credit)) : '-'}
                         </td>
                       </tr>
@@ -1733,14 +1733,14 @@ export default function LedgerList() {
                 )}
               </tbody>
               <tfoot>
-                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[9.5px]">
+                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[8.5pt]">
                   <td colSpan={6} className="border-r border-black p-1.5 text-right uppercase">
                     Total ({chronologicalAllTxns.length} Transactions)
                   </td>
-                  <td className="border-r border-black p-1.5 text-right font-mono text-emerald-800">
+                  <td className="border-r border-black p-1 text-right font-mono text-emerald-800 whitespace-nowrap text-[8pt]">
                     {formatCurrency(totalAllTxnDr)}
                   </td>
-                  <td className="p-1.5 text-right font-mono text-rose-800">
+                  <td className="p-1 text-right font-mono text-rose-800 whitespace-nowrap text-[8pt]">
                     {formatCurrency(totalAllTxnCr)}
                   </td>
                 </tr>
@@ -1794,35 +1794,35 @@ export default function LedgerList() {
               </div>
             </div>
 
-            {/* Complete Chronological Transactions Table in Borgang Drug Distributors Style */}
-            <table className="w-full text-[9px] border-collapse border border-black mb-3">
+            {/* Complete Chronological Transactions Table with Automatic Fit to Page */}
+            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3">
               <thead>
-                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[8.5px]">
-                  <th className="border-r border-black p-1.5 text-center w-8">#</th>
-                  <th className="border-r border-black p-1.5 text-left w-24">Date &amp; Time</th>
-                  <th className="border-r border-black p-1.5 text-left w-16">Type</th>
-                  <th className="border-r border-black p-1.5 text-left w-24">Voucher No</th>
-                  <th className="border-r border-black p-1.5 text-left">Particulars / Narration</th>
-                  <th className="border-r border-black p-1.5 text-right w-24">Debit (Dr ₹)</th>
-                  <th className="border-r border-black p-1.5 text-right w-24">Credit (Cr ₹)</th>
-                  <th className="p-1.5 text-right w-28">Running Balance</th>
+                <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[7.5pt]">
+                  <th className="border-r border-black p-1 text-center w-[4%]">#</th>
+                  <th className="border-r border-black p-1 text-left w-[14%]">Date &amp; Time</th>
+                  <th className="border-r border-black p-1 text-center w-[7%]">Type</th>
+                  <th className="border-r border-black p-1 text-left w-[12%]">Voucher No</th>
+                  <th className="border-r border-black p-1 text-left w-[27%]">Particulars / Narration</th>
+                  <th className="border-r border-black p-1 text-right w-[12%]">Debit (Dr ₹)</th>
+                  <th className="border-r border-black p-1 text-right w-[12%]">Credit (Cr ₹)</th>
+                  <th className="p-1 text-right w-[12%]">Running Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
                 {/* Initial Opening Balance Line */}
                 <tr className="bg-gray-50/70 border-b border-gray-300 font-semibold italic text-gray-700">
-                  <td className="border-r border-black p-1 text-center font-mono">0</td>
-                  <td className="border-r border-black p-1 font-mono">{fromDate || 'Opening'}</td>
-                  <td className="border-r border-black p-1 uppercase text-[8px]">OP-BAL</td>
-                  <td className="border-r border-black p-1 font-mono">—</td>
-                  <td className="border-r border-black p-1">Opening Balance Brought Forward</td>
-                  <td className="border-r border-black p-1 text-right font-mono">
+                  <td className="border-r border-black p-1 text-center font-mono text-[7.5pt]">0</td>
+                  <td className="border-r border-black p-1 font-mono text-[7.5pt]">{fromDate || 'Opening'}</td>
+                  <td className="border-r border-black p-1 text-center uppercase text-[7.5pt]">OP-BAL</td>
+                  <td className="border-r border-black p-1 font-mono text-[7.5pt]">—</td>
+                  <td className="border-r border-black p-1 break-words text-[7.5pt]">Opening Balance Brought Forward</td>
+                  <td className="border-r border-black p-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
                     {selectedLedgerObj?.openingType === 'Dr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
                   </td>
-                  <td className="border-r border-black p-1 text-right font-mono">
+                  <td className="border-r border-black p-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
                     {selectedLedgerObj?.openingType === 'Cr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
                   </td>
-                  <td className="p-1 text-right font-mono font-bold text-gray-900">
+                  <td className="p-1 text-right font-mono font-bold text-gray-900 text-[7.5pt] whitespace-nowrap">
                     {formatCurrency(selectedLedgerObj?.openingBalance || 0)} {selectedLedgerObj?.openingType || 'Dr'}
                   </td>
                 </tr>
@@ -1836,18 +1836,18 @@ export default function LedgerList() {
                     const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
                     return (
                       <tr key={t.id || idx} className="border-b border-gray-200">
-                        <td className="border-r border-black p-1 text-center font-mono">{idx + 1}</td>
-                        <td className="border-r border-black p-1 font-mono">{dt.date} {dt.time}</td>
-                        <td className="border-r border-black p-1 uppercase font-semibold text-[8px]">{t.vType}</td>
-                        <td className="border-r border-black p-1 font-mono font-bold">{t.vNo}</td>
-                        <td className="border-r border-black p-1 truncate max-w-xs">{t.narration || '-'}</td>
-                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                        <td className="border-r border-black p-1 text-center font-mono text-[7.5pt]">{idx + 1}</td>
+                        <td className="border-r border-black p-1 font-mono text-[7.5pt] leading-tight">{dt.date} {dt.time}</td>
+                        <td className="border-r border-black p-1 text-center uppercase font-semibold text-[7.5pt]">{t.vType}</td>
+                        <td className="border-r border-black p-1 font-mono font-bold text-[7.5pt] break-all">{t.vNo}</td>
+                        <td className="border-r border-black p-1 break-words text-[7.5pt]">{t.narration || '-'}</td>
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {t.debit > 0 ? formatCurrency(t.debit) : '-'}
                         </td>
-                        <td className="border-r border-black p-1 text-right font-mono font-semibold">
+                        <td className="border-r border-black p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {t.credit > 0 ? formatCurrency(t.credit) : '-'}
                         </td>
-                        <td className="p-1 text-right font-mono font-bold">
+                        <td className="p-1 text-right font-mono font-bold text-[7.5pt] whitespace-nowrap">
                           {formatCurrency(t.runningBalance)} {t.balanceType}
                         </td>
                       </tr>
@@ -1856,17 +1856,17 @@ export default function LedgerList() {
                 )}
               </tbody>
               <tfoot>
-                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[9.5px]">
+                <tr className="border-t-[1.5px] border-black bg-gray-100 font-bold text-[8.5pt]">
                   <td colSpan={5} className="border-r border-black p-1.5 text-right uppercase">
                     Total Movement ({filteredStatementTxns.length} Transactions)
                   </td>
-                  <td className="border-r border-black p-1.5 text-right font-mono text-emerald-800">
+                  <td className="border-r border-black p-1 text-right font-mono text-emerald-800 whitespace-nowrap text-[8pt]">
                     {formatCurrency(totalStatementDr)}
                   </td>
-                  <td className="border-r border-black p-1.5 text-right font-mono text-rose-800">
+                  <td className="border-r border-black p-1 text-right font-mono text-rose-800 whitespace-nowrap text-[8pt]">
                     {formatCurrency(totalStatementCr)}
                   </td>
-                  <td className="p-1.5 text-right font-mono font-extrabold text-[#0c2f66]">
+                  <td className="p-1 text-right font-mono font-extrabold text-[#0c2f66] whitespace-nowrap text-[8pt]">
                     {formatCurrency(closingBalance)} {closingBalType}
                   </td>
                 </tr>
