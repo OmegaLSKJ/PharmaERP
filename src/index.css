@@ -613,6 +613,39 @@
   /* ═══════════════════════════════════════════════════════════════
      UNIVERSAL CENTER-ALIGNED & EQUAL-PADDING FIT-TO-PAGE RULES
   ═══════════════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════
+     LAYOUT SHELL — strip scroll containers, center 100% document shell
+  ═══════════════════════════════════════════════════════════════ */
+  #root,
+  #root > div,
+  div[class*="h-screen"],
+  div[class*="overflow-hidden"],
+  div[class*="flex-1"],
+  div[class*="flex-col"],
+  main,
+  .page-enter,
+  .page-enter > div,
+  div.p-3.sm\:p-6.space-y-4 {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    float: none !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     UNIVERSAL TRUE CENTER-ALIGNED & EQUAL-PADDING FIT-TO-PAGE RULES
+  ═══════════════════════════════════════════════════════════════ */
   .tax-invoice-bill,
   .goods-receipt-note-print,
   .voucher-print-bill,
@@ -621,49 +654,21 @@
   [id*="print"],
   div[class*="print:block"],
   .sale-analysis-print,
-  #audit-print-document {
+  #audit-print-document,
+  .print-portrait,
+  .print-landscape {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     margin-left: auto !important;
     margin-right: auto !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     padding: 0 !important;
     float: none !important;
-  }
-
-  /* Fit-to-page max bounds ensuring equal side margins on portrait vs landscape */
-  body.print-orientation-portrait .tax-invoice-bill,
-  body.print-orientation-portrait .goods-receipt-note-print,
-  body.print-orientation-portrait .voucher-print-bill,
-  body.print-orientation-portrait [data-print-target],
-  body.print-orientation-portrait [id*="print"],
-  body.print-orientation-portrait div[class*="print:block"],
-  .print-portrait .tax-invoice-bill,
-  .print-portrait .goods-receipt-note-print,
-  .print-portrait .voucher-print-bill {
-    width: 100% !important;
-    max-width: 194mm !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
-
-  body.print-orientation-landscape .tax-invoice-bill,
-  body.print-orientation-landscape .goods-receipt-note-print,
-  body.print-orientation-landscape .voucher-print-bill,
-  body.print-orientation-landscape [data-print-target],
-  body.print-orientation-landscape [id*="print"],
-  body.print-orientation-landscape div[class*="print:block"],
-  body.print-orientation-landscape #audit-print-document,
-  body.print-orientation-landscape table,
-  .print-landscape {
-    width: 100% !important;
-    max-width: 281mm !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
   }
 
   /* Dedicated print target isolation: hide screen dialog overlays and non-print siblings */
@@ -675,24 +680,6 @@
   body:has(.tax-invoice-bill, .goods-receipt-note-print, .voucher-print-bill, #audit-print-document)
     .page-enter > div > *:not(.print\:block):not(#audit-print-document):not(:has(.tax-invoice-bill)):not(:has(.goods-receipt-note-print)):not(:has(.voucher-print-bill)):not(:has(#audit-print-document)) {
     display: none !important;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     LAYOUT SHELL — strip scroll containers, center document shell
-  ═══════════════════════════════════════════════════════════════ */
-  #root,
-  div[class*="h-screen"],
-  div[class*="overflow-hidden"],
-  div[class*="flex-1"],
-  main,
-  .page-enter {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    position: static !important;
-    padding: 0 !important;
-    margin: 0 auto !important;
-    display: block !important;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1038,7 +1025,7 @@
   /* ═══════════════════════════════════════════════════════════════
      FLEX LAYOUT PRESERVATION (header/title rows, totals)
   ═══════════════════════════════════════════════════════════════ */
-  .flex:not(.no-print):not(header):not(aside):not(nav):not([data-no-print]) {
+  .flex:not(.no-print):not(header):not(aside):not(nav):not([data-no-print]):not(#root):not(#root > div):not([class*="h-screen"]):not([class*="flex-col"]:has(main)):not(main):not(.page-enter):not(.page-enter > div) {
     display: flex !important;
   }
 
