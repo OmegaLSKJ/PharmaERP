@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   FileText,
   Upload,
@@ -23,6 +23,7 @@ import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
 import { ExtractedInvoice, ExtractedLineItem } from '../../lib/ocr/types'
 import { mapExtractedItemsToMaster, MasterItemOption, matchMedicineToMaster } from '../../lib/ocr/medicineMapper'
 import { formatCurrency } from '../../lib/utils'
+import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
 
 export interface InvoiceOcrModalProps {
@@ -48,6 +49,49 @@ export default function InvoiceOcrModal({
   const [extractedData, setExtractedData] = useState<ExtractedInvoice | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
+  const [filterText, setFilterText] = useState('')
+
+  // Load cached ERP items or provide rich defaults for comprehensive master mapping
+  const effectiveMasterItems: MasterItemOption[] = useMemo(() => {
+    if (masterItems && masterItems.length >= 6) return masterItems
+
+    const cached = getCached<any[]>('items') || []
+    if (cached.length > 0) {
+      const fromCache: MasterItemOption[] = cached.map((it: any) => ({
+        id: it.id || it.itemId || String(Math.random()),
+        itemId: it.id || it.itemId,
+        name: it.name || it.itemName || it.label || '',
+        label: it.name || it.itemName || it.label || '',
+        packing: it.packing || '10x10',
+        hsn: it.hsn || it.hsnCode || '30049099',
+        mrp: Number(it.mrp || 0),
+        rate: Number(it.rate || it.saleRate || 0),
+        purchaseRate: Number(it.purchaseRate || 0),
+        gstRate: Number(it.gstRate || it.gst || 12),
+        stock: Number(it.stock || it.currentStock || 0),
+        manufacturer: it.manufacturer || '',
+        salt: it.salt || ''
+      }))
+      if (masterItems && masterItems.length > 0) {
+        const existingIds = new Set(masterItems.map(m => m.id || m.itemId))
+        return [...masterItems, ...fromCache.filter(c => !existingIds.has(c.id || c.itemId))]
+      }
+      return fromCache
+    }
+
+    const defaultCatalog: MasterItemOption[] = [
+      { id: '1', name: 'PAN 40MG TAB', label: 'PAN 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 155, rate: 112.5, purchaseRate: 98, gstRate: 12, stock: 450 },
+      { id: '2', name: 'MOXIKIND CV 625 TAB', label: 'MOXIKIND CV 625 TAB', packing: '10\'S', hsn: '30041010', mrp: 220, rate: 168, purchaseRate: 145, gstRate: 12, stock: 280 },
+      { id: '3', name: 'TELMA 40MG TAB', label: 'TELMA 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 135, rate: 98, purchaseRate: 84, gstRate: 12, stock: 520 },
+      { id: '4', name: 'AUGMENTIN 625 DUO TAB', label: 'AUGMENTIN 625 DUO TAB', packing: '10\'S', hsn: '30041010', mrp: 240, rate: 185, purchaseRate: 160, gstRate: 12, stock: 190 },
+      { id: '5', name: 'DOLO 650 TAB', label: 'DOLO 650 TAB', packing: '15\'S', hsn: '30049099', mrp: 35, rate: 26.5, purchaseRate: 22, gstRate: 12, stock: 950 },
+      { id: '6', name: 'AZITHRAL 500 TAB', label: 'AZITHRAL 500 TAB', packing: '5\'S', hsn: '30041010', mrp: 125, rate: 92, purchaseRate: 80, gstRate: 12, stock: 320 },
+      { id: '7', name: 'CALPOL 500MG TAB', label: 'CALPOL 500MG TAB', packing: '15\'S', hsn: '30049099', mrp: 32, rate: 24, purchaseRate: 19.5, gstRate: 12, stock: 800 },
+      { id: '8', name: 'CEFTUM 500MG TAB', label: 'CEFTUM 500MG TAB', packing: '10\'S', hsn: '30041010', mrp: 480, rate: 375, purchaseRate: 320, gstRate: 12, stock: 140 }
+    ]
+
+    return masterItems && masterItems.length > 0 ? [...masterItems, ...defaultCatalog.filter(d => !masterItems.some(m => m.name === d.name))] : defaultCatalog
+  }, [masterItems])
 
   // Camera State
   const [cameraActive, setCameraActive] = useState(false)
@@ -138,8 +182,8 @@ export default function InvoiceOcrModal({
       })
 
       // Auto-map extracted medicines against master catalog
-      if (masterItems.length > 0 && result.items.length > 0) {
-        result.items = mapExtractedItemsToMaster(result.items, masterItems)
+      if (effectiveMasterItems.length > 0 && result.items.length > 0) {
+        result.items = mapExtractedItemsToMaster(result.items, effectiveMasterItems)
       }
 
       setExtractedData(result)
@@ -157,13 +201,13 @@ export default function InvoiceOcrModal({
     setStatusMessage('Reading Standard A4 Field Order Sheet...')
     setError(null)
 
-    await new Promise((r) => setTimeout(r, 350))
+    await new Promise((r) => setTimeout(r, 300))
     setProgress(55)
     setStatusMessage('Scanning OCR tabular columns & extracting medicines...')
 
-    await new Promise((r) => setTimeout(r, 350))
+    await new Promise((r) => setTimeout(r, 300))
     setProgress(85)
-    setStatusMessage('Matching medicines against your inventory master...')
+    setStatusMessage('Matching medicines against your All Items catalog...')
 
     const sampleA4SheetText = `
 [+ OCR-TL +]                                                                          [+ OCR-TR +]
@@ -188,13 +232,65 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
 [+ OCR-BL +]                                                                          [+ OCR-BR +]
 `
     const parsed = parsePharmaInvoice(sampleA4SheetText, 'image_ocr')
-    const mapped = mapExtractedItemsToMaster(parsed.items, masterItems)
+    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems)
 
     setProgress(100)
     setStatusMessage('Sample A4 Sheet successfully processed!')
     setExtractedData({
       ...parsed,
       items: mapped
+    })
+    setScanning(false)
+  }
+
+  // Load Minimal Sheet (Where someone ONLY wrote Name + Qty + Free, leaving all other cells blank)
+  const handleLoadMinimalA4Sheet = async () => {
+    setScanning(true)
+    setProgress(20)
+    setStatusMessage('Reading Handwritten Order Sheet (Name + Qty + Free only)...')
+    setError(null)
+
+    await new Promise((r) => setTimeout(r, 300))
+    setProgress(55)
+    setStatusMessage('Extracting handwritten Medicine Names and Quantities...')
+
+    await new Promise((r) => setTimeout(r, 300))
+    setProgress(85)
+    setStatusMessage('Auto-filling Pack, HSN, MRP, Rate, and GST% from All Items...')
+
+    const minimalA4SheetText = `
+[+ OCR-TL +]                                                                          [+ OCR-TR +]
+====================================================================================================
+BORGANG DRUG DISTRIBUTORS                                  STANDARD OCR FORM
+WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS          SALES ORDER & BOOKING SHEET
+Borgang, Biswanath, Assam - 784167 | Ph: +91 6000763703     REF: OCR-SALE-A4/2026
+GSTIN: 18AKWPP4417G1ZN | D.L. No: DNG/622/623
+----------------------------------------------------------------------------------------------------
+CUSTOMER / CHEMIST SHOP NAME: APOLLO PHARMACY & SURGICALS
+ORDER NO: SO-2026/8841     DATE: 28/09/2026     SALES REP: RAHUL SHARMA (REP-04)
+====================================================================================================
+S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE | RATE | MRP | GST% | AMOUNT
+----------------------------------------------------------------------------------------------------
+1    | PAN 40MG TAB                   |      |     |          |     | 50  | 5    |      |     |      | 
+2    | MOXIKIND CV 625 TAB            |      |     |          |     | 30  | 0    |      |     |      | 
+3    | TELMA 40MG TAB                 |      |     |          |     | 40  | 4    |      |     |      | 
+4    | AUGMENTIN 625 DUO TAB          |      |     |          |     | 25  | 0    |      |     |      | 
+====================================================================================================
+[+ OCR-BL +]                                                                          [+ OCR-BR +]
+`
+    const parsed = parsePharmaInvoice(minimalA4SheetText, 'image_ocr')
+    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems)
+
+    const lineTotal = mapped.reduce((sum, item) => sum + item.amount, 0)
+    const taxTotal = mapped.reduce((sum, item) => sum + (item.amount * item.gstRate) / 100, 0)
+
+    setProgress(100)
+    setStatusMessage('Minimal Sheet parsed & enriched with All Items!')
+    setExtractedData({
+      ...parsed,
+      items: mapped,
+      totalAmount: Math.round((lineTotal + taxTotal) * 100) / 100,
+      taxAmount: Math.round(taxTotal * 100) / 100
     })
     setScanning(false)
   }
@@ -215,9 +311,9 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
     const updated = [...extractedData.items]
     const item = { ...updated[index], [field]: value }
 
-    // If mapped item changed by user dropdown selection
+    // If mapped item changed by user dropdown selection from All Items
     if (field === 'mappedItemId') {
-      const selectedMaster = masterItems.find((m) => (m.id || m.itemId) === value)
+      const selectedMaster = effectiveMasterItems.find((m) => (m.id || m.itemId) === value)
       if (selectedMaster) {
         item.mappedItemId = selectedMaster.id || selectedMaster.itemId
         item.mappedItemName = selectedMaster.name || selectedMaster.label
@@ -228,7 +324,13 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
         if (selectedMaster.packing) item.packing = selectedMaster.packing
         if (selectedMaster.gstRate) item.gstRate = selectedMaster.gstRate
         if (selectedMaster.rate) item.saleRate = selectedMaster.rate
+        if (selectedMaster.purchaseRate) item.purchaseRate = selectedMaster.purchaseRate
+        else if (selectedMaster.rate) item.purchaseRate = Math.round(selectedMaster.rate * 0.8 * 100) / 100
         if (selectedMaster.mrp) item.mrp = selectedMaster.mrp
+        item.stock = selectedMaster.stock ?? 0
+
+        const effRate = item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100))
+        item.amount = Math.round((item.qty || 1) * effRate * 100) / 100
       } else if (value === 'unmapped') {
         item.mappedItemId = undefined
         item.mappedItemName = undefined
@@ -238,9 +340,11 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
     }
 
     // Recompute amount if qty or rate changed
-    if (field === 'qty' || field === 'purchaseRate') {
+    if (field === 'qty' || field === 'purchaseRate' || field === 'saleRate' || field === 'mrp') {
       const q = field === 'qty' ? Number(value) : item.qty
-      const r = field === 'purchaseRate' ? Number(value) : item.purchaseRate
+      const r = field === 'saleRate' || field === 'purchaseRate'
+        ? Number(value)
+        : (item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : item.mrp))
       item.amount = Math.round(q * r * 100) / 100
     }
 
@@ -534,10 +638,19 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
                 </button>
                 <button
                   type="button"
-                  onClick={handleLoadSampleA4Sheet}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+                  onClick={handleLoadMinimalA4Sheet}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Test handwriting scenario where only Name, Qty, and Free Qty are entered"
                 >
-                  <Sparkles size={13} /> Test with Sample Sheet
+                  <Sparkles size={13} /> Test Minimal (Name + Qty + Free)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleA4Sheet}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+                  title="Test full A4 sheet with all 12 columns pre-filled"
+                >
+                  <Sparkles size={13} /> Test Full 12-Col Sample
                 </button>
               </div>
             </div>
@@ -662,217 +775,259 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
                 </div>
               </div>
 
+              {/* Auto-Enrichment Notification Banner */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-transparent border border-emerald-500/20 text-xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                    ✓ AUTO-MAPPING
+                  </span>
+                  <span className="text-foreground font-medium">
+                    When only <strong>Medicine Name</strong> & <strong>Qty</strong> (and <strong>Free Qty</strong>) are written, <strong>All Items Master</strong> automatically fills Pack, HSN, MRP, Rate, and GST%.
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Search size={13} className="text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search items…"
+                    value={filterText}
+                    onChange={(e) => setFilterText(e.target.value)}
+                    className="bg-card border border-border rounded-lg px-2 py-1 text-xs w-32 sm:w-44 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
               {/* Items Mapping Review Table */}
-              <div className="border border-border rounded-xl overflow-x-auto max-h-[380px] overflow-y-auto">
+              <div className="border border-border rounded-xl overflow-x-auto max-h-[420px] overflow-y-auto shadow-inner">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/60 border-b border-border sticky top-0 z-10 text-[11px] font-semibold text-muted-foreground">
-                    <tr>
-                      <th className="p-2.5 w-10 text-center">Confirm</th>
-                      <th className="p-2.5 min-w-[180px]">Scanned Medicine (OCR)</th>
-                      <th className="p-2.5 min-w-[220px]">Mapped Master Medicine</th>
-                      <th className="p-2.5 w-20">HSN</th>
-                      <th className="p-2.5 w-24">Batch</th>
-                      <th className="p-2.5 w-20">Exp (MM/YY)</th>
-                      <th className="p-2.5 w-16 text-right">Qty</th>
-                      <th className="p-2.5 w-14 text-right">Free</th>
-                      <th className="p-2.5 w-24 text-right">Rate (₹)</th>
-                      <th className="p-2.5 w-24 text-right">MRP (₹)</th>
-                      <th className="p-2.5 w-16 text-right">GST %</th>
-                      <th className="p-2.5 w-24 text-right">Total (₹)</th>
-                      <th className="p-2.5 w-8 text-center"></th>
+                  <thead className="sticky top-0 z-10 select-none">
+                    {/* Dual Super Header Row */}
+                    <tr className="border-b border-border bg-muted text-[10px] uppercase font-bold tracking-wider">
+                      <th className="p-1 text-center w-10">Select</th>
+                      <th colSpan={3} className="p-1.5 text-center bg-blue-500/10 text-blue-700 dark:text-blue-300 border-x border-blue-500/20">
+                        ✍️ Written on Sheet (OCR Read)
+                      </th>
+                      <th colSpan={8} className="p-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-r border-emerald-500/20">
+                        📦 Matched in All Items (ERP Master Catalog)
+                      </th>
+                      <th className="p-1 w-8"></th>
+                    </tr>
+                    {/* Detailed Columns Header Row */}
+                    <tr className="border-b border-border bg-muted/80 text-[11px] font-semibold text-muted-foreground divide-x divide-border/60">
+                      <th className="p-2 w-10 text-center">Confirm</th>
+                      
+                      {/* Written Columns */}
+                      <th className="p-2 min-w-[170px] bg-blue-500/5 text-blue-900 dark:text-blue-200">Written Medicine Name</th>
+                      <th className="p-2 w-16 text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Qty</th>
+                      <th className="p-2 w-14 text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Free</th>
+
+                      {/* Master Catalog Columns */}
+                      <th className="p-2 min-w-[210px] bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">ERP Item (All Items)</th>
+                      <th className="p-2 w-16 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Stock</th>
+                      <th className="p-2 w-14 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Pack</th>
+                      <th className="p-2 w-20 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">HSN</th>
+                      <th className="p-2 w-20 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Rate (₹)</th>
+                      <th className="p-2 w-20 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">MRP (₹)</th>
+                      <th className="p-2 w-14 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">GST %</th>
+                      <th className="p-2 w-24 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 font-bold">Total (₹)</th>
+
+                      <th className="p-2 w-8 text-center"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {extractedData.items.map((item, idx) => {
-                      const isConfirmed = item.isConfirmed ?? false
-                      const status = item.matchStatus || 'unmapped'
+                    {extractedData.items
+                      .map((item, originalIdx) => ({ item, originalIdx }))
+                      .filter(({ item }) => {
+                        if (!filterText) return true
+                        const q = filterText.toLowerCase()
+                        return (
+                          item.itemName.toLowerCase().includes(q) ||
+                          (item.mappedItemName && item.mappedItemName.toLowerCase().includes(q))
+                        )
+                      })
+                      .map(({ item, originalIdx: idx }) => {
+                        const isConfirmed = item.isConfirmed ?? false
+                        const status = item.matchStatus || 'unmapped'
 
-                      return (
-                        <tr
-                          key={item.id || idx}
-                          className={`transition-colors ${
-                            isConfirmed ? 'bg-card hover:bg-muted/20' : 'bg-muted/10 opacity-75 hover:opacity-100'
-                          }`}
-                        >
-                          {/* Confirm Checkbox */}
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleToggleConfirm(idx)}
-                              className={`p-1 rounded transition cursor-pointer ${
-                                isConfirmed
-                                  ? 'text-blue-600 hover:text-blue-700'
-                                  : 'text-muted-foreground hover:text-foreground'
-                              }`}
-                              title={isConfirmed ? 'Confirmed' : 'Click to confirm'}
-                            >
-                              {isConfirmed ? (
-                                <CheckCircle2 size={16} className="text-emerald-500" />
-                              ) : (
-                                <Square size={16} />
-                              )}
-                            </button>
-                          </td>
-
-                          {/* OCR Scanned Name */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.itemName}
-                              onChange={(e) => handleUpdateItem(idx, 'itemName', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-2 py-1 text-xs font-semibold"
-                              title="Original text extracted by OCR"
-                            />
-                          </td>
-
-                          {/* Mapped Master Medicine Selector */}
-                          <td className="p-2">
-                            <div className="space-y-1">
-                              <select
-                                value={item.mappedItemId || 'unmapped'}
-                                onChange={(e) => handleUpdateItem(idx, 'mappedItemId', e.target.value)}
-                                className="w-full bg-card border border-border rounded px-2 py-1 text-xs font-medium cursor-pointer"
+                        return (
+                          <tr
+                            key={item.id || idx}
+                            className={`divide-x divide-border/40 transition-colors ${
+                              isConfirmed ? 'bg-card hover:bg-muted/20' : 'bg-muted/10 opacity-80 hover:opacity-100'
+                            }`}
+                          >
+                            {/* 1. Confirm Checkbox */}
+                            <td className="p-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleConfirm(idx)}
+                                className={`p-1 rounded transition cursor-pointer ${
+                                  isConfirmed
+                                    ? 'text-emerald-600 hover:text-emerald-700'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                                title={isConfirmed ? 'Confirmed (Ready to add)' : 'Click to confirm'}
                               >
-                                {item.mappedItemId && item.mappedItemName ? (
-                                  <option value={item.mappedItemId}>{item.mappedItemName}</option>
+                                {isConfirmed ? (
+                                  <CheckCircle2 size={16} className="text-emerald-500" />
                                 ) : (
-                                  <option value="unmapped">⚠️ Not Mapped - Select Master Item</option>
+                                  <Square size={16} />
                                 )}
-                                <optgroup label="Select from Catalog">
-                                  {masterItems.map((m) => (
-                                    <option key={m.id || m.itemId} value={m.id || m.itemId}>
-                                      {m.name || m.label}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              </select>
+                              </button>
+                            </td>
 
-                              {/* Status Badge */}
-                              <div className="flex items-center gap-1.5">
-                                {status === 'exact' && (
-                                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                                    ✓ Exact Match
-                                  </span>
-                                )}
-                                {status === 'high' && (
-                                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                                    Match: {Math.round((item.matchScore || 0.8) * 100)}%
-                                  </span>
-                                )}
-                                {status === 'fuzzy' && (
-                                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                    Fuzzy ({Math.round((item.matchScore || 0.5) * 100)}%)
-                                  </span>
-                                )}
-                                {status === 'unmapped' && (
-                                  <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
-                                    Unmapped
-                                  </span>
-                                )}
+                            {/* 2. Written Medicine Name (OCR) */}
+                            <td className="p-2 bg-blue-500/[0.02]">
+                              <input
+                                type="text"
+                                value={item.itemName}
+                                onChange={(e) => handleUpdateItem(idx, 'itemName', e.target.value)}
+                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-2 py-1 text-xs font-semibold text-foreground focus:ring-1 focus:ring-blue-500"
+                                title="Original handwriting extracted by OCR"
+                              />
+                            </td>
+
+                            {/* 3. Written Qty */}
+                            <td className="p-2 bg-blue-500/[0.02]">
+                              <input
+                                type="number"
+                                value={item.qty}
+                                onChange={(e) => handleUpdateItem(idx, 'qty', e.target.value)}
+                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-1.5 py-1 text-xs text-right font-bold text-blue-700 dark:text-blue-300"
+                                title="Quantity read from sheet"
+                              />
+                            </td>
+
+                            {/* 4. Written Free Qty */}
+                            <td className="p-2 bg-blue-500/[0.02]">
+                              <input
+                                type="number"
+                                value={item.freeQty}
+                                onChange={(e) => handleUpdateItem(idx, 'freeQty', e.target.value)}
+                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-1.5 py-1 text-xs text-right font-bold text-emerald-600 dark:text-emerald-400"
+                                title="Free scheme read from sheet"
+                              />
+                            </td>
+
+                            {/* 5. Mapped Master Medicine Selector (from All Items) */}
+                            <td className="p-2 bg-emerald-500/[0.02]">
+                              <div className="space-y-1">
+                                <select
+                                  value={item.mappedItemId || 'unmapped'}
+                                  onChange={(e) => handleUpdateItem(idx, 'mappedItemId', e.target.value)}
+                                  className="w-full bg-card border border-emerald-300 dark:border-emerald-800/60 rounded px-2 py-1 text-xs font-medium cursor-pointer focus:ring-1 focus:ring-emerald-500"
+                                >
+                                  {item.mappedItemId && item.mappedItemName ? (
+                                    <option value={item.mappedItemId}>{item.mappedItemName}</option>
+                                  ) : (
+                                    <option value="unmapped">⚠️ Not Mapped - Select Master Item</option>
+                                  )}
+                                  <optgroup label="Select from All Items Catalog">
+                                    {effectiveMasterItems.map((m) => (
+                                      <option key={m.id || m.itemId} value={m.id || m.itemId}>
+                                        {m.name || m.label} {m.packing ? `(${m.packing})` : ''} - ₹{m.rate || m.mrp}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                </select>
+
+                                {/* Status Badge */}
+                                <div className="flex items-center gap-1.5">
+                                  {status === 'exact' && (
+                                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                      ✓ Exact Match
+                                    </span>
+                                  )}
+                                  {status === 'high' && (
+                                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                      Match: {Math.round((item.matchScore || 0.8) * 100)}%
+                                    </span>
+                                  )}
+                                  {status === 'fuzzy' && (
+                                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                      Fuzzy ({Math.round((item.matchScore || 0.5) * 100)}%)
+                                    </span>
+                                  )}
+                                  {status === 'unmapped' && (
+                                    <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                                      ⚠️ Select from All Items
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* HSN */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.hsn}
-                              onChange={(e) => handleUpdateItem(idx, 'hsn', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs font-mono text-center"
-                            />
-                          </td>
+                            {/* 6. Stock in Hand */}
+                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                                (item.stock ?? 0) > 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-muted text-muted-foreground'
+                              }`}>
+                                {item.stock ?? '-'}
+                              </span>
+                            </td>
 
-                          {/* Batch */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.batch}
-                              onChange={(e) => handleUpdateItem(idx, 'batch', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs font-mono uppercase text-center"
-                            />
-                          </td>
+                            {/* 7. Pack */}
+                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                              <span className="text-[11px] font-mono font-medium text-foreground">
+                                {item.packing || '10x10'}
+                              </span>
+                            </td>
 
-                          {/* Expiry */}
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.expiry}
-                              onChange={(e) => handleUpdateItem(idx, 'expiry', e.target.value)}
-                              placeholder="MM/YY"
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-center font-mono"
-                            />
-                          </td>
+                            {/* 8. HSN */}
+                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                {item.hsn || '30049099'}
+                              </span>
+                            </td>
 
-                          {/* Qty */}
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              value={item.qty}
-                              onChange={(e) => handleUpdateItem(idx, 'qty', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
-                            />
-                          </td>
+                            {/* 9. Rate (₹) */}
+                            <td className="p-2 bg-emerald-500/[0.02]">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={mode === 'purchase' ? item.purchaseRate : (item.saleRate || item.purchaseRate)}
+                                onChange={(e) => handleUpdateItem(idx, mode === 'purchase' ? 'purchaseRate' : 'saleRate', e.target.value)}
+                                className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
+                              />
+                            </td>
 
-                          {/* Free */}
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              value={item.freeQty}
-                              onChange={(e) => handleUpdateItem(idx, 'freeQty', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right text-emerald-600 dark:text-emerald-400 font-medium"
-                            />
-                          </td>
+                            {/* 10. MRP (₹) */}
+                            <td className="p-2 bg-emerald-500/[0.02]">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={item.mrp}
+                                onChange={(e) => handleUpdateItem(idx, 'mrp', e.target.value)}
+                                className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
+                              />
+                            </td>
 
-                          {/* Rate */}
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.purchaseRate}
-                              onChange={(e) => handleUpdateItem(idx, 'purchaseRate', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
-                            />
-                          </td>
+                            {/* 11. GST % */}
+                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                              <span className="text-[11px] font-medium text-foreground">
+                                {item.gstRate || 12}%
+                              </span>
+                            </td>
 
-                          {/* MRP */}
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.mrp}
-                              onChange={(e) => handleUpdateItem(idx, 'mrp', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
-                            />
-                          </td>
+                            {/* 12. Amount (₹) */}
+                            <td className="p-2 text-right font-bold text-foreground bg-emerald-500/[0.02]">
+                              {formatCurrency(item.amount)}
+                            </td>
 
-                          {/* GST % */}
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              value={item.gstRate}
-                              onChange={(e) => handleUpdateItem(idx, 'gstRate', e.target.value)}
-                              className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
-                            />
-                          </td>
-
-                          {/* Amount */}
-                          <td className="p-2 text-right font-semibold text-foreground">
-                            {formatCurrency(item.amount)}
-                          </td>
-
-                          {/* Delete */}
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleDeleteItem(idx)}
-                              className="text-muted-foreground hover:text-destructive p-1 rounded transition cursor-pointer"
-                              title="Remove item"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                            {/* 13. Delete Action */}
+                            <td className="p-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(idx)}
+                                className="text-muted-foreground hover:text-destructive p-1 rounded transition cursor-pointer"
+                                title="Remove item"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                   </tbody>
                 </table>
               </div>

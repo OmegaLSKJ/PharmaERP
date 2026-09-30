@@ -7,6 +7,12 @@ const PHARMA_KEYWORDS = [
   'MG', 'ML', 'GM', 'MCG', 'IU', 'DUO', 'FORTE', 'PLUS', 'XR', 'SR', 'D'
 ]
 
+// Common pharmaceutical dosage strengths
+const PHARMA_STRENGTHS = new Set([
+  '1000', '650', '625', '500', '400', '300', '250', '200', '150',
+  '100', '75', '50', '40', '25', '20', '15', '10', '5'
+])
+
 // Common headers to reject as line items
 const HEADER_EXCLUDE_WORDS = [
   'PARTICULARS', 'DESCRIPTION', 'ITEM NAME', 'PRODUCT NAME', 'HSN CODE',
@@ -159,21 +165,48 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
     const hasPharmaKeyword = PHARMA_KEYWORDS.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(line))
     const hasHsn = hsnRegex.test(line)
     const hasExpiry = expiryRegex.test(line)
+    const hasPipe = line.includes('|')
+    const hasLetters = /[a-zA-Z]{3,}/.test(line)
+    const startsWithSerial = /^\s*\d{1,3}[\.\)\-\s]/.test(line)
+    const hasQuantityOrScheme = /\b\d+\s*\+\s*\d+\b/i.test(line) || /\b(?:QTY|QUANTITY)[:.\s-]*\d+/i.test(line) || /\b\d{1,4}\b/.test(line)
+    const hasPricePattern = /(\d+\s*X\s*\d+|\d+\.?\d{2})/i.test(line)
 
-    // A valid item line typically has at least a name and some numbers (batch, exp, qty, rate)
-    if (!hasPharmaKeyword && !hasHsn && !hasExpiry && !/(\d+\s*X\s*\d+|\d+\.?\d{2})/i.test(line)) {
+    if (!hasLetters) {
       continue
     }
 
-    // Extract HSN
-    let hsn = '30049099'
-    const hsnMatch = line.match(hsnRegex)
-    if (hsnMatch) {
-      hsn = hsnMatch[1]
+    // Must be either pharma keyword, HSN, expiry, price pattern, pipe table, or row with serial/letters + numbers
+    const isLineCandidate =
+      hasPharmaKeyword ||
+      hasHsn ||
+      hasExpiry ||
+      hasPricePattern ||
+      hasPipe ||
+      (startsWithSerial && hasQuantityOrScheme) ||
+      (hasLetters && hasQuantityOrScheme)
+
+    if (!isLineCandidate) {
+      continue
     }
 
-    // Extract Expiry
+    let qty = 1
+    let freeQty = 0
+    let purchaseRate = 0
+    let mrp = 0
+    let saleRate = 0
+    let gstRate = 12 // Default Indian Pharma GST rate
+    let amount = 0
+    let hsn = ''
     let expiry = ''
+    let batch = ''
+    let packing = ''
+    let itemName = ''
+
+    // 1. Extract HSN
+    const hsnMatch = line.match(hsnRegex)
+    if (hsnMatch) hsn = hsnMatch[1]
+
+    // 2. Extract Expiry
     const expMatch = line.match(expiryRegex)
     if (expMatch) {
       let month = expMatch[1].padStart(2, '0')
@@ -182,37 +215,30 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
       expiry = `${month}/${yr.slice(-2)}`
     }
 
-    // Extract Batch
-    let batch = ''
+    // 3. Extract Batch
     const batchMatch = line.match(batchExplicitRegex)
     if (batchMatch) {
       batch = batchMatch[1].trim()
     } else {
-      // Find candidate alphanumeric token (e.g. TL4891, CP109, AS882)
-      // Exclude dosage tokens (500MG, 10ML, 250MCG) and pack sizes (10X10)
       const tokens = line.split(/\s+/)
       for (const t of tokens) {
-        if (/^\d+(?:MG|ML|GM|MCG|IU|S)$/i.test(t) || /^\d+X\d+[A-Z]*$/i.test(t)) {
-          continue
-        }
+        if (/^\d+(?:MG|ML|GM|MCG|IU|S)$/i.test(t) || /^\d+X\d+[A-Z]*$/i.test(t)) continue
         if (/^[A-Z0-9]{3,12}$/i.test(t) && /\d/.test(t) && /[A-Z]/i.test(t) && t !== hsn) {
           batch = t.toUpperCase()
           break
         }
       }
-      if (!batch) {
-        batch = `BAT${Math.floor(1000 + Math.random() * 9000)}`
-      }
     }
 
-    // 1. Check for labeled fields first (e.g. RATE: 145.50, MRP: 220.00, QTY: 20)
-    let qty = 1
-    let freeQty = 0
-    let purchaseRate = 0
-    let mrp = 0
-    let gstRate = 12 // Default Indian Pharma GST rate
-    let amount = 0
+    // 4. Extract Packing
+    const packMatch = line.match(/\b(\d+\s*x\s*\d+[a-z]*|\d+x\d+|\d+'s|\d+\s*ml|\d+\s*gm)\b/i)
+    if (packMatch) packing = packMatch[1].trim()
 
+    // 5. Extract GST%
+    const gstMatch = line.match(/\b(5|12|18|28)\s*%/i)
+    if (gstMatch) gstRate = parseFloat(gstMatch[1])
+
+    // 6. Explicit labels
     const rateMatch = line.match(/(?:RATE|PUR\.?\s*RATE|PRICE|P\.?RATE)[:.\s-]*([0-9]+(?:\.[0-9]{1,2})?)/i)
     if (rateMatch) purchaseRate = parseFloat(rateMatch[1])
 
@@ -225,62 +251,151 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
     const freeMatch = line.match(/(?:FREE|SCHEME|BONUS)[:.\s-]*([0-9]+)/i)
     if (freeMatch) freeQty = parseInt(freeMatch[1], 10)
 
-    // Look for GST percentages: 5%, 12%, 18%, 28%
-    const gstMatch = line.match(/\b(5|12|18|28)\s*%/i)
-    if (gstMatch) {
-      gstRate = parseFloat(gstMatch[1])
-    }
-
-    // Strip HSN, Batch, and Expiry so numbers like 30049099 or 09/27 aren't confused with qty or prices
-    let stripped = line
-      .replace(hsnRegex, '')
-      .replace(expiryRegex, '')
-      .replace(batchExplicitRegex, '')
-      .replace(new RegExp(`\\b${batch}\\b`, 'g'), '')
-
     // Free quantity pattern like "10 + 1" or "10+1"
-    const freeQtyPattern = stripped.match(/\b(\d+)\s*\+\s*(\d+)\b/)
+    const freeQtyPattern = line.match(/\b(\d+)\s*\+\s*(\d+)\b/)
     if (freeQtyPattern) {
       qty = parseInt(freeQtyPattern[1], 10)
       freeQty = parseInt(freeQtyPattern[2], 10)
     }
 
-    // 2. Fallback to positional columns if labels weren't present
+    // Strip HSN, Batch, and Expiry for numeric parsing
+    let stripped = line
+      .replace(hsnRegex, '')
+      .replace(expiryRegex, '')
+      .replace(batchExplicitRegex, '')
+    if (batch) stripped = stripped.replace(new RegExp(`\\b${batch}\\b`, 'g'), '')
+
+    // 7. Check for decimal rates (Rates & MRPs)
+    const decimals = stripped.match(/\b\d+\.\d{2}\b/g)?.map(d => parseFloat(d)) || []
     if (purchaseRate === 0 || mrp === 0) {
-      // Find all decimal numbers (rates & MRPs)
-      const decimals = stripped.match(/\b\d+\.\d{2}\b/g)?.map(d => parseFloat(d)) || []
       if (decimals.length >= 2) {
-        // In pharma, Rate is lower than MRP, Amount is highest or rate * qty
         const unique = Array.from(new Set(decimals)).sort((a, b) => a - b)
         if (purchaseRate === 0) purchaseRate = unique[0]
-        if (mrp === 0) {
-          mrp = unique.length > 2 ? unique[1] : unique[unique.length - 1]
-        }
-      } else if (decimals.length === 1) {
-        if (purchaseRate === 0) purchaseRate = decimals[0]
+        if (mrp === 0) mrp = unique.length > 2 ? unique[1] : unique[unique.length - 1]
+      } else if (decimals.length === 1 && purchaseRate === 0) {
+        purchaseRate = decimals[0]
         if (mrp === 0) mrp = Math.round(purchaseRate * 1.35 * 100) / 100
       }
     }
 
-    // If qty wasn't found by label or scheme, pick the integer column from stripped
-    if (qty === 1 && !freeQtyPattern && !qtyMatch) {
-      // Find integers that are not serial number, pack size, dosage, or GST
-      const lineWithoutName = stripped
-        .replace(/^[0-9]{1,3}\s+/, '') // remove leading serial no
-        .replace(/\b\d+\s*['xX][a-zA-Z0-9]*\b/g, '') // remove pack sizes like 15's, 10x10
-      const intMatches = lineWithoutName.match(/\b\d{1,4}\b/g)
-      if (intMatches && intMatches.length > 0) {
-        // Filter out GST % (5, 12, 18, 28) and dosages
-        const candidates = intMatches
-          .map(n => parseInt(n, 10))
-          .filter(n => n !== gstRate && n > 0 && n < 5000 && !line.includes(`${n}MG`) && !line.includes(`${n}ML`))
-        if (candidates.length > 0) {
-          qty = candidates[0]
-          if (candidates.length > 1 && freeQty === 0) {
-            freeQty = candidates[1]
+    // 8. Extract Quantities
+    // Case A: Pipe-delimited table line
+    if (hasPipe) {
+      const rawCols = line.split('|').map(c => c.trim())
+      const cols = rawCols.filter((c, idx) => !(idx === 0 && c === '') && !(idx === rawCols.length - 1 && c === ''))
+      
+      const nameColIdx = cols.findIndex(c => /[a-zA-Z]{3,}/.test(c) && !/BATCH|EXP|RATE|MRP|GST/i.test(c))
+      if (nameColIdx !== -1) {
+        itemName = cols[nameColIdx]
+      }
+
+      // If qty wasn't found by explicit label or scheme, check numeric columns
+      if (qty === 1 && !freeQtyPattern && !qtyMatch) {
+        const trailingCols = cols.slice(nameColIdx + 1).filter(Boolean)
+        const intCols = trailingCols
+          .map(c => c.replace(/[^0-9]/g, ''))
+          .filter(c => c.length > 0 && c.length <= 4)
+          .map(c => parseInt(c, 10))
+          .filter(n => n !== gstRate && n > 0 && n < 5000)
+
+        if (intCols.length > 0) {
+          qty = intCols[0]
+          if (intCols.length > 1 && freeQty === 0) {
+            freeQty = intCols[1]
           }
         }
       }
+    }
+
+    // Case B: Space-delimited line or minimal sheet
+    if (!itemName) {
+      let lineForName = stripped.replace(/^\s*\d{1,3}[\.\)\-\s]+/, '').trim()
+
+      // If NO decimals on line (Minimal sheet: e.g. "PAN 40MG TAB 50 5", "MOXIKIND CV 625 30", "TELMA 40 40 4")
+      if (decimals.length === 0 && !rateMatch && !mrpMatch) {
+        const threeTrailingInts = lineForName.match(/^(.*?)\s+(\d{1,4})\s+(\d{1,4})\s+(\d{1,4})$/)
+        const twoTrailingInts = lineForName.match(/^(.*?)\s+(\d{1,4})\s+(\d{1,4})$/)
+        const oneTrailingInt = lineForName.match(/^(.*?)\s+(\d{1,4})$/)
+
+        if (threeTrailingInts && /[a-zA-Z]/.test(threeTrailingInts[1])) {
+          // e.g. "DOLO 650 100 10" or "TELMA 40 40 4"
+          itemName = `${threeTrailingInts[1].trim()} ${threeTrailingInts[2]}`
+          if (!qtyMatch && !freeQtyPattern) {
+            qty = parseInt(threeTrailingInts[3], 10)
+            freeQty = parseInt(threeTrailingInts[4], 10)
+          }
+        } else if (twoTrailingInts && /[a-zA-Z]/.test(twoTrailingInts[1])) {
+          const int1 = twoTrailingInts[2]
+          const int2 = twoTrailingInts[3]
+          const isInt1Strength = PHARMA_STRENGTHS.has(int1) && !/(?:MG|ML|GM|TAB|CAP)/i.test(twoTrailingInts[1])
+
+          if (isInt1Strength) {
+            // First int is strength (e.g. "MOXIKIND CV 625 30")
+            itemName = `${twoTrailingInts[1].trim()} ${int1}`
+            if (!qtyMatch && !freeQtyPattern) {
+              qty = parseInt(int2, 10)
+              freeQty = 0
+            }
+          } else {
+            // Standard Name Qty Free (e.g. "PAN 40MG TAB 50 5")
+            itemName = twoTrailingInts[1].trim()
+            if (!qtyMatch && !freeQtyPattern) {
+              qty = parseInt(int1, 10)
+              freeQty = parseInt(int2, 10)
+            }
+          }
+        } else if (oneTrailingInt && /[a-zA-Z]/.test(oneTrailingInt[1])) {
+          itemName = oneTrailingInt[1].trim()
+          if (!qtyMatch && !freeQtyPattern) {
+            qty = parseInt(oneTrailingInt[2], 10)
+          }
+        }
+      }
+
+      // If decimals ARE on line (Standard bill: e.g. "1 PAN 40MG TAB 15'S 30049099 PN8821 09/27 20 2 98.50 155.00 12% 1970.00")
+      if (qty === 1 && !freeQtyPattern && !qtyMatch) {
+        const lineWithoutName = stripped
+          .replace(/^[0-9]{1,3}\s+/, '')
+          .replace(/\b\d+\s*['xX][a-zA-Z0-9]*\b/g, '')
+        const intMatches = lineWithoutName.match(/\b\d{1,4}\b/g)
+        if (intMatches && intMatches.length > 0) {
+          const candidates = intMatches
+            .map(n => parseInt(n, 10))
+            .filter(n => n !== gstRate && n > 0 && n < 5000 && !line.includes(`${n}MG`) && !line.includes(`${n}ML`))
+          if (candidates.length > 0) {
+            qty = candidates[0]
+            if (candidates.length > 1 && freeQty === 0) {
+              freeQty = candidates[1]
+            }
+          }
+        }
+      }
+
+      if (!itemName) {
+        itemName = lineForName
+          .replace(/\b\d+[\.,]\d{2}\b/g, '')
+          .replace(/\b(5|12|18|28)\s*%/g, '')
+          .replace(/[\|\+\=\:\#]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+
+        if (freeQty > 0 && !freeQtyPattern) {
+          itemName = itemName.replace(new RegExp(`\\b${freeQty}\\b\\s*$`), '').trim()
+        }
+        if (qty > 1 && !qtyMatch) {
+          itemName = itemName.replace(new RegExp(`\\b${qty}\\b\\s*$`), '').trim()
+        }
+      }
+    }
+
+    // Clean up serial numbers and edge tokens from itemName
+    itemName = itemName.replace(/^(\d{1,3}[\.\-\s]+)/, '').trim()
+
+    if (itemName.length < 3 || /^\d+$/.test(itemName)) {
+      continue
+    }
+    if (itemName.length > 60) {
+      itemName = itemName.substring(0, 60).trim()
     }
 
     if (purchaseRate > 0 && mrp === 0) {
@@ -290,55 +405,21 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
       amount = Math.round(purchaseRate * qty * 100) / 100
     }
 
-    // Extract item name: remove HSN, Batch, Expiry, numbers, and clean up
-    let packing = '10x10'
-    const packMatch = line.match(/\b(\d+\s*x\s*\d+[a-z]*|\d+x\d+|\d+'s|\d+\s*ml|\d+\s*gm)\b/i)
-    if (packMatch) {
-      packing = packMatch[1].trim()
-    }
-
-    let itemName = line
-      .replace(hsnRegex, '')
-      .replace(expiryRegex, '')
-      .replace(batchExplicitRegex, '')
-      .replace(new RegExp(`\\b${batch}\\b`, 'gi'), '')
-      .replace(/\b\d+[\.,]\d{2}\b/g, '')
-      .replace(/\b(5|12|18|28)\s*%/g, '')
-      .replace(/[\|\+\=\:\#]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-
-    // Strip leading serial numbers (e.g. "1.", "1 ", "01-")
-    itemName = itemName.replace(/^(\d{1,3}[\.\-\s]+)/, '').trim()
-
-    // Strip trailing quantities or packing if remaining
-    itemName = itemName.replace(/\s+\d{1,4}$/, '').trim()
-
-    // If item name is too short or just numbers, skip
-    if (itemName.length < 3 || /^\d+$/.test(itemName)) {
-      continue
-    }
-
-    // Truncate to reasonable length
-    if (itemName.length > 60) {
-      itemName = itemName.substring(0, 60).trim()
-    }
-
     items.push({
       id: `ocr-${idCounter++}`,
       itemName,
-      packing,
-      hsn,
-      batch,
-      expiry: expiry || '12/27',
+      packing: packing || '',
+      hsn: hsn || '',
+      batch: batch || `BAT-${Math.floor(1000 + Math.random() * 9000)}`,
+      expiry: expiry || '12/28',
       qty: qty > 0 ? qty : 10,
       freeQty,
-      purchaseRate: purchaseRate > 0 ? purchaseRate : 100,
-      mrp: mrp > 0 ? mrp : Math.round((purchaseRate || 100) * 1.4),
-      saleRate: mrp > 0 ? Math.round(mrp * 0.9 * 100) / 100 : 120,
+      purchaseRate: purchaseRate > 0 ? purchaseRate : 0,
+      mrp: mrp > 0 ? mrp : 0,
+      saleRate: mrp > 0 ? Math.round(mrp * 0.9 * 100) / 100 : 0,
       discount: 0,
-      gstRate,
-      amount: amount > 0 ? amount : Math.round((purchaseRate || 100) * (qty || 10) * 100) / 100,
+      gstRate: gstRate > 0 ? gstRate : 12,
+      amount: amount > 0 ? amount : 0,
       confidence: sourceType === 'digital_pdf' ? 0.98 : 0.85
     })
   }

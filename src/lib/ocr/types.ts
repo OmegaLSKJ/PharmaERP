@@ -19,6 +19,7 @@ export interface ExtractedLineItem {
   matchScore?: number
   matchStatus?: 'exact' | 'high' | 'fuzzy' | 'unmapped'
   isConfirmed?: boolean
+  stock?: number
 }
 
 export interface ExtractedInvoice {

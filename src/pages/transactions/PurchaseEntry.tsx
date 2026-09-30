@@ -157,9 +157,9 @@ export default function PurchaseEntry() {
           )
 
         const qty = it.qty > 0 ? it.qty : 1
-        const rate = it.purchaseRate > 0 ? it.purchaseRate : 100
-        const mrp = it.mrp > 0 ? it.mrp : Math.round(rate * 1.35 * 100) / 100
-        const saleRate = it.saleRate > 0 ? it.saleRate : Math.round(mrp * 0.9 * 100) / 100
+        const rate = it.purchaseRate > 0 ? it.purchaseRate : (matchedItem?.purchaseRate || matchedItem?.saleRate || 100)
+        const mrp = it.mrp > 0 ? it.mrp : (matchedItem?.mrp || Math.round(rate * 1.35 * 100) / 100)
+        const saleRate = it.saleRate > 0 ? it.saleRate : (matchedItem?.saleRate || Math.round(mrp * 0.9 * 100) / 100)
 
         return {
           id: `ocr-${Date.now()}-${idx}`,

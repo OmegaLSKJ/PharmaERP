@@ -7,6 +7,7 @@ import {
   extractSupplierName,
   parsePharmaInvoice
 } from '../src/lib/ocr/pharmaInvoiceParser'
+import { mapExtractedItemsToMaster } from '../src/lib/ocr/medicineMapper'
 
 describe('pharmaInvoiceParser', () => {
   it('extracts Indian GSTIN correctly', () => {
@@ -130,5 +131,99 @@ describe('pharmaInvoiceParser', () => {
 
     expect(parsed.items[3].itemName).toContain('AUGMENTIN 625 DUO')
     expect(parsed.items[3].batch).toBe('AG7719')
+  })
+
+  it('accurately parses minimal sheets where user only writes Medicine Name and Qty (and optional Free Qty)', () => {
+    const minimalSheetText = `
+    APOLLO PHARMACY & SURGICALS
+    ORDER SLIP NO: SO-2026/9901
+    DATE: 29/09/2026
+
+    1 | PAN 40MG TAB | 50 | 5
+    2 | MOXIKIND CV 625 TAB | 30 | 0
+    3 | TELMA 40MG TAB | 40 | 4
+    4 | AUGMENTIN 625 DUO TAB | 25
+    `
+
+    const parsed = parsePharmaInvoice(minimalSheetText, 'image_ocr')
+    expect(parsed.items.length).toBe(4)
+
+    expect(parsed.items[0].itemName).toBe('PAN 40MG TAB')
+    expect(parsed.items[0].qty).toBe(50)
+    expect(parsed.items[0].freeQty).toBe(5)
+
+    expect(parsed.items[1].itemName).toBe('MOXIKIND CV 625 TAB')
+    expect(parsed.items[1].qty).toBe(30)
+    expect(parsed.items[1].freeQty).toBe(0)
+
+    expect(parsed.items[2].itemName).toBe('TELMA 40MG TAB')
+    expect(parsed.items[2].qty).toBe(40)
+    expect(parsed.items[2].freeQty).toBe(4)
+
+    expect(parsed.items[3].itemName).toBe('AUGMENTIN 625 DUO TAB')
+    expect(parsed.items[3].qty).toBe(25)
+  })
+
+  it('accurately parses space-delimited handwritten orders with Name and Qty', () => {
+    const spaceSheetText = `
+    1  PAN 40MG TAB  50  5
+    2  MOXIKIND CV 625  30
+    3  TELMA 40  40  4
+    4  DOLO 650  100  10
+    `
+
+    const parsed = parsePharmaInvoice(spaceSheetText, 'image_ocr')
+    expect(parsed.items.length).toBe(4)
+
+    expect(parsed.items[0].itemName).toContain('PAN 40MG')
+    expect(parsed.items[0].qty).toBe(50)
+    expect(parsed.items[0].freeQty).toBe(5)
+
+    expect(parsed.items[1].itemName).toContain('MOXIKIND CV 625')
+    expect(parsed.items[1].qty).toBe(30)
+
+    expect(parsed.items[2].itemName).toContain('TELMA 40')
+    expect(parsed.items[2].qty).toBe(40)
+    expect(parsed.items[2].freeQty).toBe(4)
+
+    expect(parsed.items[3].itemName).toContain('DOLO 650')
+    expect(parsed.items[3].qty).toBe(100)
+    expect(parsed.items[3].freeQty).toBe(10)
+  })
+
+  it('enriches minimal sheet items with Master Item catalog values and calculates totals', () => {
+    const minimalText = `
+    1 | PAN 40MG TAB | 50 | 5
+    2 | TELMA 40MG TAB | 30
+    `
+
+    const parsed = parsePharmaInvoice(minimalText, 'image_ocr')
+    const catalog = [
+      { id: '1', name: 'PAN 40MG TAB', label: 'PAN 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 155, rate: 112.5, purchaseRate: 98, gstRate: 12, stock: 450 },
+      { id: '2', name: 'TELMA 40MG TAB', label: 'TELMA 40MG TAB', packing: '15\'S', hsn: '30049099', mrp: 135, rate: 98, purchaseRate: 84, gstRate: 12, stock: 520 }
+    ]
+
+    const mapped = mapExtractedItemsToMaster(parsed.items, catalog)
+
+    // Check Item 1: PAN 40MG TAB
+    expect(mapped[0].mappedItemName).toBe('PAN 40MG TAB')
+    expect(mapped[0].matchStatus).toBe('exact')
+    expect(mapped[0].qty).toBe(50)
+    expect(mapped[0].freeQty).toBe(5)
+    expect(mapped[0].packing).toBe('15\'S')
+    expect(mapped[0].hsn).toBe('30049099')
+    expect(mapped[0].saleRate).toBe(112.5)
+    expect(mapped[0].mrp).toBe(155)
+    expect(mapped[0].gstRate).toBe(12)
+    expect(mapped[0].stock).toBe(450)
+    expect(mapped[0].amount).toBe(5625) // 50 * 112.5
+
+    // Check Item 2: TELMA 40MG TAB
+    expect(mapped[1].mappedItemName).toBe('TELMA 40MG TAB')
+    expect(mapped[1].qty).toBe(30)
+    expect(mapped[1].packing).toBe('15\'S')
+    expect(mapped[1].saleRate).toBe(98)
+    expect(mapped[1].mrp).toBe(135)
+    expect(mapped[1].amount).toBe(2940) // 30 * 98
   })
 })

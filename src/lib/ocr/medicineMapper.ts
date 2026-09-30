@@ -164,6 +164,24 @@ export function mapExtractedItemsToMaster(
     const match = matchMedicineToMaster(item.itemName, masterItems)
     const matched = match.matchedItem
 
+    const masterRate = Number(matched?.rate || 0)
+    const masterPurchaseRate = Number(matched?.purchaseRate || 0)
+    const masterMrp = Number(matched?.mrp || (masterRate > 0 ? Math.round(masterRate * 1.35 * 100) / 100 : 0))
+    const masterGst = Number(matched?.gstRate ?? 12)
+    const masterHsn = matched?.hsn || '30049099'
+    const masterPack = matched?.packing || '10x10'
+    const masterStock = matched?.stock ?? 0
+
+    const packing = (item.packing && item.packing.trim()) ? item.packing : masterPack
+    const hsn = (item.hsn && item.hsn.trim()) ? item.hsn : masterHsn
+    const gstRate = (item.gstRate && item.gstRate > 0) ? item.gstRate : masterGst
+    const saleRate = (item.saleRate && item.saleRate > 0) ? item.saleRate : (masterRate || (masterMrp ? Math.round(masterMrp * 0.85 * 100) / 100 : 100))
+    const purchaseRate = (item.purchaseRate && item.purchaseRate > 0) ? item.purchaseRate : (masterPurchaseRate || (masterRate ? Math.round(masterRate * 0.8 * 100) / 100 : 80))
+    const mrp = (item.mrp && item.mrp > 0) ? item.mrp : (masterMrp || Math.round(saleRate * 1.3 * 100) / 100)
+    
+    const effRate = saleRate > 0 ? saleRate : (purchaseRate > 0 ? purchaseRate : mrp)
+    const amount = (item.amount && item.amount > 0) ? item.amount : Math.round(effRate * (item.qty || 1) * 100) / 100
+
     return {
       ...item,
       mappedItemId: matched?.id || matched?.itemId,
@@ -171,12 +189,14 @@ export function mapExtractedItemsToMaster(
       matchScore: match.score,
       matchStatus: match.matchStatus,
       isConfirmed: match.matchStatus === 'exact' || match.matchStatus === 'high',
-      // If matched, enrich packing, hsn, and rates from master catalog if missing
-      packing: item.packing || matched?.packing || '10x10',
-      hsn: item.hsn || matched?.hsn || '30049099',
-      gstRate: item.gstRate || matched?.gstRate || 12,
-      mrp: item.mrp || matched?.mrp || Math.round((item.purchaseRate || 100) * 1.35 * 100) / 100,
-      saleRate: item.saleRate || (matched?.rate || Math.round((item.mrp || 140) * 0.9 * 100) / 100)
+      packing,
+      hsn,
+      gstRate,
+      mrp,
+      saleRate,
+      purchaseRate,
+      amount,
+      stock: masterStock
     }
   })
 }
