@@ -208,7 +208,9 @@ export default function PartyList() {
   })
 
   const loadParties = (forceRefresh = false) => {
-    if (forceRefresh || !getCached('parties')) {
+    // Only show the loading spinner on the very first cold load when no data exists yet.
+    // Never show it during background auto-refresh — that causes the blank-page flash.
+    if (!getCached('parties') && parties.length === 0) {
       setLoading(true)
     }
     Promise.all([
@@ -363,7 +365,11 @@ export default function PartyList() {
         setParties(enrichedParties)
       })
       .catch((error) => {
-        setParties([])
+        // On background refresh failure, keep existing data intact so the page stays usable.
+        // Only wipe to empty on the very first load when nothing is displayed yet.
+        if (parties.length === 0) {
+          setParties([])
+        }
         showToast(error instanceof Error ? error.message : 'Could not load parties.')
       })
       .finally(() => setLoading(false))
@@ -373,7 +379,9 @@ export default function PartyList() {
     loadParties(false)
   }, [])
 
-  useErpAutoRefresh(['parties'], () => loadParties(true))
+  // Auto-refresh: use cache-first (forceRefresh=false) so existing data is never wiped
+  // during the 30-second background heartbeat. Force-refresh is only used on manual Refresh button.
+  useErpAutoRefresh(['parties'], () => loadParties(false))
 
   const purgeDuplicates = async () => {
     try {

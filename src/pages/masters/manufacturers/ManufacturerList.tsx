@@ -64,8 +64,8 @@ export default function ManufacturerList() {
 
   const showToast = useUIStore((state) => state.showToast)
 
-  const loadData = () => {
-    setLoading(true)
+  const loadData = (quiet = false) => {
+    if (!quiet) setLoading(true)
     getErp<any[]>('manufacturers')
       .then((rows) => {
         if (Array.isArray(rows)) {
@@ -98,7 +98,7 @@ export default function ManufacturerList() {
   }, [])
 
   useErpAutoRefresh(['manufacturers'], () => {
-    loadData()
+    loadData(true) // quiet=true: keep existing rows visible, no loading flash
   })
 
   const openAddModal = () => {

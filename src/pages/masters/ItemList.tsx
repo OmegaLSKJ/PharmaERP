@@ -84,7 +84,8 @@ export default function ItemList() {
       }
       setItems(data)
     } catch (error) {
-      if (!getCached('items')) setItems([])
+      // Only clear items on first cold load; keep existing data on background refresh failure
+      if (!getCached('items') && items.length === 0) setItems([])
       showToast(error instanceof Error ? error.message : 'Could not load items.')
     } finally {
       setLoading(false)
@@ -96,7 +97,7 @@ export default function ItemList() {
     loadItems()
   }, [loadItems])
 
-  useErpAutoRefresh(['items', 'item-batches', 'manufacturers', 'salts', 'hsn'], () => loadItems(true))
+  useErpAutoRefresh(['items', 'item-batches', 'manufacturers', 'salts', 'hsn'], () => loadItems(false))
 
   const categories = useMemo(() => ['all', ...new Set(items.map((i) => i.category))], [items])
 
