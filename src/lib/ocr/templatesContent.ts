@@ -33,11 +33,11 @@ const DEFAULT_COMPANY: TemplateCompanyInfo = {
 }
 
 function getBaseCss(rowCount: number = 25): string {
-  const rowHeight = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  const rowHeight = rowCount <= 15 ? '38px' : rowCount <= 20 ? '30px' : '24px'
   return `
     @page {
       size: A4 portrait;
-      margin: 4mm 6mm;
+      margin: 5mm 6mm;
     }
     * {
       box-sizing: border-box;
@@ -86,9 +86,10 @@ function getBaseCss(rowCount: number = 25): string {
     .sheet {
       width: 210mm;
       max-width: 210mm;
-      height: 290mm;
-      max-height: 290mm;
-      padding: 4mm 6mm;
+      height: 287mm;
+      min-height: 285mm;
+      max-height: 287mm;
+      padding: 3mm 5mm;
       background: #fff;
       border: 1px solid #cbd5e1;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
@@ -122,7 +123,7 @@ function getBaseCss(rowCount: number = 25): string {
         width: 100% !important;
         max-width: 100% !important;
         height: 100% !important;
-        min-height: 0 !important;
+        min-height: 100% !important;
         max-height: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -150,8 +151,8 @@ function getBaseCss(rowCount: number = 25): string {
       }
     }
     .frame {
-      border: 1.5px solid #000;
-      padding: 4px 7px;
+      border: 2px solid #000;
+      padding: 3mm 4mm;
       flex: 1;
       height: 100%;
       max-height: 100%;
@@ -165,20 +166,20 @@ function getBaseCss(rowCount: number = 25): string {
     .ocr-marker {
       position: absolute;
       font-family: monospace;
-      font-size: 7.5px;
+      font-size: 8px;
       font-weight: bold;
       color: #000;
       line-height: 1;
       z-index: 10;
     }
-    .ocr-tl { top: 2px; left: 4px; }
-    .ocr-tr { top: 2px; right: 4px; }
-    .ocr-bl { bottom: 2px; left: 4px; }
-    .ocr-br { bottom: 2px; right: 4px; }
+    .ocr-tl { top: 3px; left: 5px; }
+    .ocr-tr { top: 3px; right: 5px; }
+    .ocr-bl { bottom: 3px; left: 5px; }
+    .ocr-br { bottom: 3px; right: 5px; }
     
     .header-box {
       border: 1.2px solid #000;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
     .header-top {
       display: flex;
@@ -186,12 +187,12 @@ function getBaseCss(rowCount: number = 25): string {
     }
     .branding {
       flex: 7;
-      padding: 2.5px 6px;
+      padding: 3px 8px;
       border-right: 1.2px solid #000;
     }
     .branding h1 {
-      margin: 0 0 1px 0;
-      font-size: 13px;
+      margin: 0 0 2px 0;
+      font-size: 15px;
       font-weight: 900;
       color: #0c2f66;
       letter-spacing: -0.3px;
@@ -199,20 +200,20 @@ function getBaseCss(rowCount: number = 25): string {
       line-height: 1.1;
     }
     .branding .sub {
-      font-size: 6.8px;
+      font-size: 8.5px;
       font-weight: 700;
       color: #333;
-      line-height: 1.2;
+      line-height: 1.25;
     }
     .branding .meta {
-      font-size: 6.8px;
+      font-size: 8.5px;
       color: #444;
-      margin-top: 1px;
-      line-height: 1.2;
+      margin-top: 1.5px;
+      line-height: 1.25;
     }
     .badge {
       flex: 5;
-      padding: 2.5px 6px;
+      padding: 3px 8px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -220,52 +221,52 @@ function getBaseCss(rowCount: number = 25): string {
       text-align: right;
     }
     .badge .title {
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 900;
       text-transform: uppercase;
       color: #111;
       display: block;
-      line-height: 1.1;
+      line-height: 1.15;
     }
     .badge .sub {
-      font-size: 6.8px;
+      font-size: 8px;
       color: #555;
-      margin-top: 1px;
+      margin-top: 1.5px;
       line-height: 1.2;
     }
     .info-grid {
       display: flex;
-      font-size: 7.5px;
+      font-size: 9px;
     }
     .party-col {
       flex: 7;
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-right: 1.2px solid #000;
     }
     .party-col .label {
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 800;
       text-transform: uppercase;
       color: #444;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
     }
     .party-col .line {
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 700;
-      min-height: 13px;
+      min-height: 20px;
       border-bottom: 1px dotted #888;
     }
     .order-col {
       flex: 5;
-      padding: 2px 6px;
+      padding: 3px 8px;
     }
     .order-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
     }
     .order-row span.lbl {
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 800;
       text-transform: uppercase;
       color: #444;
@@ -273,45 +274,45 @@ function getBaseCss(rowCount: number = 25): string {
     .order-row span.val {
       font-family: monospace;
       font-weight: 700;
-      font-size: 7.5px;
+      font-size: 9px;
     }
     .guide-banner {
       background: #f1f5f9;
       border: 1px solid #000;
-      padding: 1.5px 5px;
-      margin-bottom: 2px;
-      font-size: 6.8px;
+      padding: 2.5px 8px;
+      margin-bottom: 3px;
+      font-size: 8px;
       font-weight: 600;
       display: flex;
       justify-content: space-between;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     table.grid {
       width: 100%;
       border-collapse: collapse;
-      font-size: 7.5px;
-      margin-bottom: 2px;
+      font-size: 8.5px;
+      margin-bottom: 3px;
     }
     table.grid th {
       background: #e2e8f0;
       border: 1px solid #000;
-      padding: 2px 1.5px;
-      font-size: 7px;
-      font-weight: 800;
+      padding: 3px 2px;
+      font-size: 8px;
+      font-weight: 900;
       text-transform: uppercase;
       text-align: center;
       line-height: 1.1;
-      height: 15px;
+      height: 19px;
     }
     table.grid td {
       border: 1px solid #000;
-      padding: 1px 3px;
+      padding: 2px 4px;
       height: ${rowHeight};
       min-height: ${rowHeight};
       max-height: ${rowHeight};
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, monospace;
-      font-size: 8px;
-      line-height: 1.15;
+      font-size: 9px;
+      line-height: 1.2;
     }
     table.grid tr.even {
       background: #fafafa;
@@ -319,17 +320,17 @@ function getBaseCss(rowCount: number = 25): string {
     .bottom-box {
       border: 1.2px solid #000;
       display: flex;
-      font-size: 7px;
-      margin-bottom: 2px;
+      font-size: 8.5px;
+      margin-bottom: 3px;
     }
     .notes-col {
       flex: 7;
-      padding: 2px 5px;
+      padding: 3px 6px;
       border-right: 1.2px solid #000;
     }
     .totals-col {
       flex: 5;
-      padding: 2px 5px;
+      padding: 3px 6px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -339,22 +340,22 @@ function getBaseCss(rowCount: number = 25): string {
       border: 1.2px solid #000;
       display: flex;
       text-align: center;
-      font-size: 7px;
+      font-size: 8px;
     }
     .sig-box {
       flex: 1;
-      padding: 2px 5px;
+      padding: 3px 6px;
       border-right: 1px solid #000;
     }
     .sig-box:last-child {
       border-right: none;
     }
     .sig-space {
-      height: 14px;
+      height: 24px;
     }
     .sig-line {
       border-top: 1px dotted #444;
-      padding-top: 1.5px;
+      padding-top: 2px;
       font-weight: 800;
       text-transform: uppercase;
     }
@@ -364,7 +365,7 @@ function getBaseCss(rowCount: number = 25): string {
 export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
   const rowCount = meta?.rowCount || 25
   const copies = Math.max(1, meta?.copies || 1)
-  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  const rowH = rowCount <= 15 ? '38px' : rowCount <= 20 ? '30px' : '24px'
   let rows = ''
   for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
@@ -517,7 +518,7 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY,
 export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
   const rowCount = meta?.rowCount || 25
   const copies = Math.max(1, meta?.copies || 1)
-  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  const rowH = rowCount <= 15 ? '38px' : rowCount <= 20 ? '30px' : '24px'
   let rows = ''
   for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
@@ -669,7 +670,7 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
 export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
   const rowCount = meta?.rowCount || 25
   const copies = Math.max(1, meta?.copies || 1)
-  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  const rowH = rowCount <= 15 ? '38px' : rowCount <= 20 ? '30px' : '24px'
   let rows = ''
   for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''

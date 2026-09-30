@@ -72,7 +72,7 @@ export default function BlankTransactionSheetPrint({
 
   const config = getSheetConfig()
   const rows = Array.from({ length: rowCount }, (_, i) => i + 1)
-  const rowHeightClass = rowCount <= 15 ? 'h-[26px] min-h-[26px]' : rowCount <= 20 ? 'h-[22px] min-h-[22px]' : 'h-[18.5px] min-h-[18.5px]'
+  const rowHeightClass = rowCount <= 15 ? 'h-[38px] min-h-[38px]' : rowCount <= 20 ? 'h-[30px] min-h-[30px]' : 'h-[24px] min-h-[24px]'
 
   return (
     <div className="blank-sheet-root w-full max-w-[210mm] mx-auto bg-white text-black font-sans p-4 sm:p-6 text-[11px] leading-tight select-text print:p-2 print:m-0 print:w-full print:max-w-none">
