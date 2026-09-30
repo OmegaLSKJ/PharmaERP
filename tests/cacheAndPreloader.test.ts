@@ -161,7 +161,7 @@ describe('erpPreloader store', () => {
     // Check that resources are now populated in browser cache
     expect(isCached('dashboard')).toBe(true)
     expect(isCached('items')).toBe(true)
-    expect(isCached('item-batches')).toBe(true)
+    expect(isCached(buildCacheKey('item-batches', { page: '1', pageSize: '50', search: '' }))).toBe(true)
     expect(isCached('parties')).toBe(true)
   })
 })
