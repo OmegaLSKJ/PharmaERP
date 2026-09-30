@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer, X, FileText, Download, Check, Sparkles } from 'lucide-react'
 import BlankTransactionSheetPrint, { BlankSheetMode } from './BlankTransactionSheetPrint'
 import PrintButton from '../common/PrintButton'
+import { useUIStore } from '../../store/uiStore'
+import { getTemplateHtmlById } from '../../lib/ocr/templatesContent'
 
 interface BlankSheetModalProps {
   isOpen: boolean
@@ -25,24 +27,82 @@ export default function BlankSheetModal({
   const [sheetNo, setSheetNo] = useState('')
   const [rowCount, setRowCount] = useState<number>(25)
 
+  const printIframeRef = useRef<HTMLIFrameElement>(null)
+  const storeCompany = useUIStore((s) => s.company)
+
+  const companyInfo = {
+    name: storeCompany.companyName || 'BORGANG DRUG DISTRIBUTORS',
+    sub: 'WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS',
+    address: `${storeCompany.city || 'Borgang'}, ${storeCompany.state || 'Assam'} - ${storeCompany.pincode || '784167'}`,
+    gstin: storeCompany.gstin || '18AKWPP4417G1ZN',
+    dlNo: storeCompany.dlNo || 'DNG/622/623',
+    phone: storeCompany.phone || '+91 6000763703'
+  }
+
+  const handlePrint = () => {
+    const html = getTemplateHtmlById(mode, companyInfo, {
+      partyName,
+      partyGstin,
+      repName,
+      date,
+      sheetNo,
+      rowCount
+    })
+
+    if (printIframeRef.current) {
+      printIframeRef.current.srcdoc = html
+      printIframeRef.current.onload = () => {
+        setTimeout(() => {
+          try {
+            printIframeRef.current?.contentWindow?.focus()
+            printIframeRef.current?.contentWindow?.print()
+          } catch {
+            const printWindow = window.open('', '_blank')
+            if (printWindow) {
+              printWindow.document.write(html)
+              printWindow.document.close()
+              printWindow.focus()
+              printWindow.print()
+            }
+          }
+        }, 150)
+      }
+    } else {
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(html)
+        printWindow.document.close()
+        printWindow.focus()
+        printWindow.print()
+      }
+    }
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         onClose()
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p' && isOpen) {
+        e.preventDefault()
+        handlePrint()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, mode, partyName, partyGstin, repName, date, sheetNo, rowCount, companyInfo])
 
   if (!isOpen || typeof document === 'undefined') return null
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   return createPortal(
-    <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex justify-center items-start sm:items-center p-3 sm:p-6 overflow-y-auto no-print">
+    <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex justify-center items-start sm:items-center p-3 sm:p-6 overflow-y-auto">
+      {/* Hidden print iframe for isolated clean A4 printing without page bleed */}
+      <iframe
+        ref={printIframeRef}
+        className="hidden"
+        style={{ display: 'none', position: 'fixed', right: 0, bottom: 0, width: 0, height: 0, border: 'none' }}
+        title="Print Blank A4 Sheet Frame"
+      />
       <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header (Hidden on Print) */}

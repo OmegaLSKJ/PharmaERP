@@ -13,6 +13,15 @@ export interface TemplateCompanyInfo {
   phone: string
 }
 
+export interface SheetMetadata {
+  partyName?: string
+  partyGstin?: string
+  repName?: string
+  date?: string
+  sheetNo?: string
+  rowCount?: number
+}
+
 const DEFAULT_COMPANY: TemplateCompanyInfo = {
   name: 'BORGANG DRUG DISTRIBUTORS',
   sub: 'WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS',
@@ -320,9 +329,10 @@ function getBaseCss(): string {
   `
 }
 
-export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
+export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
+  const rowCount = meta?.rowCount || 25
   let rows = ''
-  for (let i = 1; i <= 25; i++) {
+  for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -376,24 +386,24 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY)
           <div class="info-grid">
             <div class="party-col">
               <div class="label">Customer / Chemist Shop Name *</div>
-              <div class="line"></div>
+              ${meta?.partyName ? `<div style="font-weight: 800; font-size: 11px; min-height: 18px; color: #000; padding-top: 2px;">${meta.partyName}</div>` : '<div class="line"></div>'}
               <div style="display: flex; gap: 15px; margin-top: 3px; font-size: 7.5px;">
-                <div><strong>GSTIN:</strong> ________________________</div>
+                <div><strong>GSTIN:</strong> ${meta?.partyGstin || '________________________'}</div>
                 <div><strong>D.L. No:</strong> ____________________</div>
               </div>
             </div>
             <div class="order-col">
               <div class="order-row">
                 <span class="lbl">ORDER / SLIP NO:</span>
-                <span class="val">SO-2026/______</span>
+                <span class="val">${meta?.sheetNo || 'SO-2026/______'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">DATE:</span>
-                <span class="val">____/____/2026</span>
+                <span class="val">${meta?.date || '____/____/2026'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">SALES REP / BOOKED BY:</span>
-                <span class="val">__________________</span>
+                <span class="val">${meta?.repName || '__________________'}</span>
               </div>
             </div>
           </div>
@@ -470,9 +480,10 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY)
 </html>`
 }
 
-export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
+export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
+  const rowCount = meta?.rowCount || 25
   let rows = ''
-  for (let i = 1; i <= 25; i++) {
+  for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -526,24 +537,24 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
           <div class="info-grid">
             <div class="party-col">
               <div class="label">Supplier / Manufacturer / Distributor Name *</div>
-              <div class="line"></div>
+              ${meta?.partyName ? `<div style="font-weight: 800; font-size: 11px; min-height: 18px; color: #000; padding-top: 2px;">${meta.partyName}</div>` : '<div class="line"></div>'}
               <div style="display: flex; gap: 15px; margin-top: 3px; font-size: 7.5px;">
-                <div><strong>GSTIN:</strong> ________________________</div>
+                <div><strong>GSTIN:</strong> ${meta?.partyGstin || '________________________'}</div>
                 <div><strong>City / Station:</strong> ________________</div>
               </div>
             </div>
             <div class="order-col">
               <div class="order-row">
                 <span class="lbl">PO NUMBER:</span>
-                <span class="val">PO-2026/______</span>
+                <span class="val">${meta?.sheetNo || 'PO-2026/______'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">DATE:</span>
-                <span class="val">____/____/2026</span>
+                <span class="val">${meta?.date || '____/____/2026'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">PURCHASE AGENT:</span>
-                <span class="val">__________________</span>
+                <span class="val">${meta?.repName || '__________________'}</span>
               </div>
             </div>
           </div>
@@ -620,9 +631,10 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
 </html>`
 }
 
-export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
+export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
+  const rowCount = meta?.rowCount || 25
   let rows = ''
-  for (let i = 1; i <= 25; i++) {
+  for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -676,7 +688,7 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
           <div class="info-grid">
             <div class="party-col">
               <div class="label">Consignee / Destination Branch / Chemist Name *</div>
-              <div class="line"></div>
+              ${meta?.partyName ? `<div style="font-weight: 800; font-size: 11px; min-height: 18px; color: #000; padding-top: 2px;">${meta.partyName}</div>` : '<div class="line"></div>'}
               <div style="display: flex; gap: 15px; margin-top: 3px; font-size: 7.5px;">
                 <div><strong>Address:</strong> ________________________</div>
                 <div><strong>Contact:</strong> ____________________</div>
@@ -685,15 +697,15 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
             <div class="order-col">
               <div class="order-row">
                 <span class="lbl">CHALLAN NO:</span>
-                <span class="val">DC-2026/______</span>
+                <span class="val">${meta?.sheetNo || 'DC-2026/______'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">DISPATCH DATE:</span>
-                <span class="val">____/____/2026</span>
+                <span class="val">${meta?.date || '____/____/2026'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">VEHICLE / TRANSPORTER:</span>
-                <span class="val">__________________</span>
+                <span class="val">${meta?.repName || '__________________'}</span>
               </div>
             </div>
           </div>
@@ -1126,18 +1138,18 @@ export function generateSampleFilledSheetHtml(c: TemplateCompanyInfo = DEFAULT_C
 </html>`
 }
 
-export function getTemplateHtmlById(templateId: string, company?: TemplateCompanyInfo): string {
+export function getTemplateHtmlById(templateId: string, company?: TemplateCompanyInfo, meta?: SheetMetadata): string {
   switch (templateId) {
     case 'purchase':
-      return generatePurchaseSheetHtml(company)
+      return generatePurchaseSheetHtml(company, meta)
     case 'challan':
-      return generateChallanSheetHtml(company)
+      return generateChallanSheetHtml(company, meta)
     case 'voucher':
       return generateVoucherSheetHtml(company)
     case 'sample':
       return generateSampleFilledSheetHtml(company)
     case 'sale':
     default:
-      return generateSalesSheetHtml(company)
+      return generateSalesSheetHtml(company, meta)
   }
 }
