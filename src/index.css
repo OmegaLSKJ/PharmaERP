@@ -523,6 +523,71 @@
     }
   }
 
+  /* Dedicated Landscape Page Setup for High-Visibility Multi-Column Registers */
+  @page landscape-mode {
+    size: A4 landscape;
+    margin: 6mm 6mm 8mm 6mm;
+
+    @bottom-left {
+      content: "BORGANG DRUG DISTRIBUTORS";
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    @bottom-center {
+      content: "— Confidential —";
+      font-size: 7pt;
+      color: #9ca3af;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+  }
+
+  @page portrait-mode {
+    size: A4 portrait;
+    margin: 6mm 6mm 8mm 6mm;
+
+    @bottom-left {
+      content: "BORGANG DRUG DISTRIBUTORS";
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    @bottom-center {
+      content: "— Confidential —";
+      font-size: 7pt;
+      color: #9ca3af;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 7pt;
+      color: #6b7280;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+  }
+
+  .print-landscape,
+  [data-print-orientation="landscape"] {
+    page: landscape-mode !important;
+  }
+
+  .print-portrait,
+  [data-print-orientation="portrait"] {
+    page: portrait-mode !important;
+  }
+
   /* ═══════════════════════════════════════════════════════════════
      BASE RESET & TYPOGRAPHY
   ═══════════════════════════════════════════════════════════════ */
@@ -774,6 +839,34 @@
     border: 1.5px solid #000000 !important;
     padding: 3pt 3pt !important;
     box-sizing: border-box !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LANDSCAPE-ENHANCED TABLE SIZING & VISIBILITY (297mm width)
+  ═══════════════════════════════════════════════════════════════ */
+  body.print-orientation-landscape table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table),
+  [data-print-orientation="landscape"] table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) {
+    font-size: 8.5pt !important;
+  }
+
+  body.print-orientation-landscape table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th,
+  [data-print-orientation="landscape"] table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) th {
+    font-size: 8pt !important;
+    padding: 3.5pt 4pt !important;
+  }
+
+  body.print-orientation-landscape table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td,
+  [data-print-orientation="landscape"] table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) td {
+    font-size: 8pt !important;
+    padding: 3pt 4pt !important;
+  }
+
+  body.print-orientation-landscape table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) tfoot tr td,
+  body.print-orientation-landscape table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) tfoot tr th,
+  [data-print-orientation="landscape"] table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) tfoot tr td,
+  [data-print-orientation="landscape"] table:not(.tax-invoice-bill table):not(.goods-receipt-note-print table):not(.voucher-print-bill table) tfoot tr th {
+    font-size: 8.5pt !important;
+    padding: 3.5pt 4pt !important;
   }
 
   /* ═══════════════════════════════════════════════════════════════

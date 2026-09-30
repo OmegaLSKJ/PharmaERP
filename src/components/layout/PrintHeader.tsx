@@ -3,9 +3,10 @@ import { useUIStore } from '../../store/uiStore'
 interface PrintHeaderProps {
   title: string
   subtitle?: string
+  orientation?: 'portrait' | 'landscape' | 'auto'
 }
 
-export default function PrintHeader({ title, subtitle }: PrintHeaderProps) {
+export default function PrintHeader({ title, subtitle, orientation }: PrintHeaderProps) {
   const storeCompany = useUIStore((s) => s.company)
 
   const company = {
@@ -35,7 +36,11 @@ export default function PrintHeader({ title, subtitle }: PrintHeaderProps) {
   })
 
   return (
-    <div className="hidden print:block w-full mb-3 text-black font-sans select-text">
+    <div
+      data-print-header="true"
+      data-print-orientation={orientation && orientation !== 'auto' ? orientation : undefined}
+      className={`hidden print:block w-full mb-3 text-black font-sans select-text ${orientation === 'landscape' ? 'print-landscape' : orientation === 'portrait' ? 'print-portrait' : ''}`}
+    >
       {/* Framed Header Box */}
       <div className="border-[1.5px] border-black bg-white">
         {/* Top Grid: Branding on Left (7 cols) + Document Badge on Right (5 cols) */}

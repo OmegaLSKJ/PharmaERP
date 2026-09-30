@@ -41,6 +41,7 @@ import { exportVisibleTables } from '../../../lib/download'
 import PrintHeader from '../../../components/layout/PrintHeader'
 import accountGroupMaster from '../../../data/accountGroupMasterData.json'
 import { openTransactionWindow } from '../../../lib/windowUtils'
+import { smartPrint, PrintOrientation } from '../../../lib/printUtils'
 
 interface Ledger {
   id: string
@@ -205,6 +206,7 @@ export default function LedgerList() {
   })
   const [allTxnToDate, setAllTxnToDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [allTxnSortDir, setAllTxnSortDir] = useState<'desc' | 'asc'>('desc')
+  const [printOrientation, setPrintOrientation] = useState<PrintOrientation>('auto')
 
   const [showModal, setShowModal] = useState(false)
   const [editModalLedger, setEditModalLedger] = useState<Ledger | null>(null)
@@ -767,16 +769,36 @@ export default function LedgerList() {
           </button>
           {activeTab === 'statement' || activeTab === 'all-transactions' ? (
             <>
-              {/* Clean, high-contrast, professional Print Statement button */}
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
-                title="Print statement in Borgang Drug Distributors branding style"
-              >
-                <Printer size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                <span>Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}</span>
-              </button>
+              {/* Clean, high-contrast, professional Print Statement button with smart auto-orientation */}
+              <div className="inline-flex rounded-lg shadow-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() =>
+                    smartPrint({
+                      orientation: printOrientation === 'auto' ? 'landscape' : printOrientation,
+                      target: '#audit-print-document',
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-semibold transition cursor-pointer border-r border-slate-200 dark:border-slate-700"
+                  title={`Print ${activeTab === 'all-transactions' ? 'Transactions' : 'Statement'} (Automatically chooses Portrait or Landscape for best visibility)`}
+                >
+                  <Printer size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span>Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}</span>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-medium">
+                    {printOrientation === 'auto' ? 'Auto (Landscape)' : printOrientation === 'landscape' ? 'Landscape' : 'Portrait'}
+                  </span>
+                </button>
+                <select
+                  value={printOrientation}
+                  onChange={(e) => setPrintOrientation(e.target.value as PrintOrientation)}
+                  className="px-2 py-1 bg-transparent text-[11px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                  title="Choose print layout: Auto chooses between Landscape and Portrait for best visibility"
+                >
+                  <option value="auto">Auto (Best Fit)</option>
+                  <option value="landscape">Landscape (Wide)</option>
+                  <option value="portrait">Portrait</option>
+                </select>
+              </div>
               <button
                 type="button"
                 onClick={() =>
@@ -1664,12 +1686,20 @@ export default function LedgerList() {
       {/* ══════════════════════════════════════════════════════════════════════════
           DEDICATED PRINT DOCUMENT — BORGANG DRUG DISTRIBUTORS BRANDING STYLE
       ══════════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text">
+      <div
+        id="audit-print-document"
+        data-print-orientation={printOrientation === 'auto' ? 'landscape' : printOrientation}
+        className={cn(
+          "hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text",
+          (printOrientation === 'landscape' || printOrientation === 'auto') ? 'print-landscape' : 'print-portrait'
+        )}
+      >
         {activeTab === 'all-transactions' ? (
           <div>
             <PrintHeader
               title="ALL TRANSACTIONS REGISTER (CHRONOLOGICAL)"
               subtitle={`Period: ${allTxnFromDate || 'Start'} to ${allTxnToDate || 'Present'} | Total: ${chronologicalAllTxns.length} Transactions`}
+              orientation={printOrientation === 'auto' ? 'landscape' : printOrientation}
             />
 
             {/* Audit Summary Box */}
@@ -1769,6 +1799,7 @@ export default function LedgerList() {
             <PrintHeader
               title="STATEMENT OF ACCOUNTS / PARTY LEDGER"
               subtitle={`Party: ${selectedLedger || 'All Ledgers'} | Period: ${fromDate || 'Start'} to ${toDate || 'Present'}`}
+              orientation={printOrientation === 'auto' ? 'landscape' : printOrientation}
             />
 
             {/* Party & Financial Summary Box in Borgang Drug Distributors Style */}

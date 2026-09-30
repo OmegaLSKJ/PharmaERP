@@ -2175,7 +2175,7 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
           }
         }
       }
-      const capacity = Number(w.capacity) > 1 ? Number(w.capacity) : Math.max(100000, used)
+      const capacity = Math.max(Number(w.capacity) || 100000, used)
       return {
         ...w,
         name: (w.name === 'Main Warehouse' || !w.name) ? 'Main Store' : w.name,
@@ -2778,7 +2778,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
       if (warehousesList.length === 1 || (used === 0 && totalSmStock > 0)) {
         used = totalSmStock > 0 ? totalSmStock : 66573
       }
-      const capacity = Number(w.capacity) > 1 ? Number(w.capacity) : Math.max(100000, used)
+      const capacity = Math.max(Number(w.capacity) || 100000, used)
       return {
         id: w.id,
         code: w.code,
