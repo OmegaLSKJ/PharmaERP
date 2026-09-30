@@ -28,7 +28,7 @@ import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 
 interface SaleLine {
   id?: string
@@ -475,15 +475,11 @@ export default function SaleRegister() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
+                <ModifyButton
                   onClick={() => editInvoice(selected.invoiceNo)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+                  label="Modify"
                   title="Open and edit invoice in new window"
-                >
-                  <ExternalLink size={13} />
-                  <span>Edit in New Window</span>
-                </button>
+                />
                 <PrintButton
                   label="Print Bill"
                   variant="primary"

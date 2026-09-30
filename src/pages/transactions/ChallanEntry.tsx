@@ -10,7 +10,7 @@ import ActiveProductDetailPanel from '../../components/transactions/ActiveProduc
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
 import { ExtractedInvoice } from '../../lib/ocr/types'
 
@@ -595,11 +595,16 @@ export default function ChallanEntry() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <ModifyButton
+                  onClick={() => setShowPrintModal(false)}
+                  label="Modify"
+                  title="Close preview and continue editing delivery challan"
+                />
                 <PrintButton
                   label="Print Challan"
-                  variant="secondary"
+                  variant="primary"
                   autoOrientationHint="portrait"
-                  size="sm"
+                  size="md"
                 />
                 <button
                   onClick={() => setShowPrintModal(false)}

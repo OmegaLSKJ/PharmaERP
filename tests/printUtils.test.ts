@@ -6,6 +6,7 @@ import {
   smartPrint,
   setupSmartPrint,
 } from '../src/lib/printUtils'
+import PrintButton, { ModifyButton } from '../src/components/common/PrintButton'
 
 // Lightweight in-memory DOM mock for node test runner
 class MockElement {
@@ -322,6 +323,13 @@ describe('printUtils', () => {
 
       expect(window.print).toHaveBeenCalled()
       expect(document.documentElement.getAttribute('data-print-orientation')).toBe('landscape')
+    })
+  })
+
+  describe('Print & Modify Button Components', () => {
+    it('exports PrintButton and ModifyButton as functions', () => {
+      expect(typeof PrintButton).toBe('function')
+      expect(typeof ModifyButton).toBe('function')
     })
   })
 })

@@ -8,7 +8,7 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import PrintHeader from '../../components/layout/PrintHeader'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 
 interface ReturnEntry {
   id: string
@@ -387,9 +387,14 @@ export default function PurchaseReturn() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <ModifyButton
+                  onClick={() => setSelectedReturn(null)}
+                  label="Modify"
+                  title="Close preview and modify debit note"
+                />
                 <PrintButton
                   label="Print Debit Note"
-                  variant="secondary"
+                  variant="primary"
                   autoOrientationHint="portrait"
                   size="md"
                 />

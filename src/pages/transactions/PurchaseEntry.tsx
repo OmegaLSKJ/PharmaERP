@@ -4,7 +4,7 @@ import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash,
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -1622,10 +1622,15 @@ export default function PurchaseEntry() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <ModifyButton
+                  onClick={() => setShowPrintModal(false)}
+                  label="Modify"
+                  title="Close preview and continue editing purchase bill"
+                />
                 <PrintButton
                   label="Print Invoice"
                   autoOrientationHint="portrait"
-                  variant="secondary"
+                  variant="primary"
                   kbd="Ctrl+P"
                 />
                 <button

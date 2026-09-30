@@ -4,7 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface Order { id: string; orderNo: string; date: string; party: string; type: string; items: number; total: number; deliveryDate: string; status: string }
@@ -246,10 +246,15 @@ export default function Orders() {
                   </button>
                 )}
 
+                <ModifyButton
+                  onClick={() => setSelectedOrder(null)}
+                  label="Modify"
+                  title="Close preview and modify order"
+                />
                 <PrintButton
                   label="Print Order"
                   autoOrientationHint="portrait"
-                  variant="secondary"
+                  variant="primary"
                   kbd="Ctrl+P"
                 />
                 <button

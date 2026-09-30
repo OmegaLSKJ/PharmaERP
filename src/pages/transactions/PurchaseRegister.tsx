@@ -13,7 +13,7 @@ import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import TopTableScroller from '../../components/common/TopTableScroller'
-import PrintButton from '../../components/common/PrintButton'
+import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 
 interface ItemOption {
   id?: string
@@ -1396,19 +1396,14 @@ export default function PurchaseRegister() {
                 </button>
               </div>
               <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
+                <ModifyButton
                   onClick={() => {
                     const toEdit = selected
                     setSelected(null)
                     openEditModal(toEdit)
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60 active:scale-[0.98] transition cursor-pointer shadow-2xs"
                   title="Modify this challan"
-                >
-                  <Edit3 size={14} />
-                  <span>Modify</span>
-                </button>
+                />
                 <PrintButton
                   label="Print Invoice"
                   variant="primary"
