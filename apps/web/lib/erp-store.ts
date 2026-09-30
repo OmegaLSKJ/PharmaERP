@@ -37,6 +37,10 @@ function normalizeExpiryDate(dateStr?: string | null): string | null {
   return null
 }
 
+function isUuid(val?: string | null): boolean {
+  return Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim()))
+}
+
 function extractDocSequence(
   docNumber: string,
   knownPrefix?: string,
@@ -429,6 +433,8 @@ const mockStore: Record<string, any> = {
   'communication-blocks': [
     { id: 'cb1', type: 'email', value: 'spammer@unreliable.com', reason: 'Bounced multiple times', blockedOn: '2026-08-20' }
   ],
+  'inventory-restrictions': [],
+  'pricing-schemes': [],
   vouchers: [
     { id: 'v1', voucher_type: 'journal', voucher_number: 'VCH-2026-0001', voucher_date: '2026-08-25', status: 'posted', narration: 'Daily sales transfer' }
   ],
@@ -2534,8 +2540,6 @@ export async function list(resource: string, partyName?: string, options?: ListO
       }
     }
     let query = client.from('items').select('id,code,name,packing,unit,manufacturer_id,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name,code),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
-    const isUuid = (val?: string | null): boolean =>
-      Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim()))
 
     const mfgOptionClean = options?.manufacturer?.trim().toLowerCase()
     const isUnassignedQuery =
@@ -3663,6 +3667,28 @@ export async function create(resource: string, body: any, actor: MutationActor =
       const doc = { id, number: body.number || number('TRF'), date: body.date || date(), lines: body.lines || [] }
       if (!mockStore['stock-transfers']) mockStore['stock-transfers'] = []
       mockStore['stock-transfers'].unshift(doc)
+      return doc
+    }
+    if (resource === 'inventory-restrictions') {
+      const doc = {
+        id,
+        item_id: body.item_id || null,
+        item_name: body.item_name || 'Restricted Product',
+        packing: body.packing || '',
+        batch_number: body.batch_number || 'BATCH-01',
+        expiry_on: body.expiry_on || null,
+        quantity: Math.max(1, Number(body.quantity) || 1),
+        mrp: Math.max(0, Number(body.mrp) || 0),
+        purchase_rate: Math.max(0, Number(body.purchase_rate) || 0),
+        reason: body.reason || 'QC Hold',
+        reference_number: body.reference_number || null,
+        restriction_type: body.restriction_type || 'hold',
+        status: body.status || 'active',
+        created_at: new Date().toISOString(),
+        released_at: null
+      }
+      if (!mockStore['inventory-restrictions']) mockStore['inventory-restrictions'] = []
+      mockStore['inventory-restrictions'].unshift(doc)
       return doc
     }
 
@@ -4797,7 +4823,37 @@ export async function create(resource: string, body: any, actor: MutationActor =
 
     return { id: voucherNumber, type: body.type ?? 'Journal', date: voucherDate, narration: body.narration ?? '', lines: body.lines }
   }
-  if (managedCrud[resource]) { const config=managedCrud[resource]; const values:any=mutableValues(body,config.fields); if(config.organizationScoped) values.organization_id=organizationId; if(['reservations','controlled-drug-register','inventory-adjustment-records'].includes(resource)) values.created_by_auth_id=actor.id??null; const {data,error}=await client.from(config.table).insert(values).select('*').single(); if(error) throw error; return data }
+  if (managedCrud[resource]) {
+    const config = managedCrud[resource]
+    const values: any = mutableValues(body, config.fields)
+    if (config.organizationScoped) values.organization_id = organizationId
+    if (['reservations', 'controlled-drug-register', 'inventory-adjustment-records'].includes(resource)) {
+      values.created_by_auth_id = actor.id ?? null
+    }
+    if (resource === 'inventory-restrictions') {
+      if (values.item_id && !isUuid(values.item_id)) {
+        const { data: matched } = await client
+          .from('items')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .or(`code.eq.${values.item_id},id.eq.${values.item_id}`)
+          .maybeSingle()
+        values.item_id = matched?.id && isUuid(matched.id) ? matched.id : null
+      }
+      if (values.quantity !== undefined) {
+        values.quantity = Math.max(1, Number(values.quantity) || 1)
+      }
+      if (values.mrp !== undefined) {
+        values.mrp = Math.max(0, Number(values.mrp) || 0)
+      }
+      if (values.purchase_rate !== undefined) {
+        values.purchase_rate = Math.max(0, Number(values.purchase_rate) || 0)
+      }
+    }
+    const { data, error } = await client.from(config.table).insert(values).select('*').single()
+    if (error) throw error
+    return data
+  }
   throw new Error('Unknown ERP resource.')
 }
 
@@ -5556,8 +5612,29 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     return data
   }
   if (resource === 'challans') { const values:any={}; if('date' in body)values.challan_date=body.date;if('transport' in body)values.transport_name=body.transport||null;if('status' in body)values.status=body.status;if(body.party)values.party_id=await party(client,organizationId,body.party);const{data,error}=await client.from('delivery_challans').update(values).eq('id',id).eq('organization_id',organizationId).select('*').single();if(error)throw error;if(Array.isArray(body.lines)){const{error:deleteError}=await client.from('delivery_challan_lines').delete().eq('challan_id',id);if(deleteError)throw deleteError;for(const line of body.lines){const resolved=await stock(client,organizationId,line);const{error:lineError}=await client.from('delivery_challan_lines').insert({challan_id:id,item_batch_id:resolved.batchId,quantity:Number(line.qty)});if(lineError)throw lineError}}return data }
-  if (resource === 'vouchers') { const values:any={};if('date' in body)values.voucher_date=body.date;if('status' in body)values.status=body.status;if('narration' in body)values.narration=body.narration||null;const{data,error}=await client.from('vouchers').update(values).eq('id',id).eq('organization_id',organizationId).select('*').single();if(error)throw error;if(Array.isArray(body.lines)){const debit=body.lines.reduce((sum:number,line:any)=>sum+Number(line.debit||0),0);const credit=body.lines.reduce((sum:number,line:any)=>sum+Number(line.credit||0),0);if(Math.abs(debit-credit)>0.009)throw new Error('Voucher debits and credits must balance.');const{error:deleteError}=await client.from('voucher_lines').delete().eq('voucher_id',id);if(deleteError)throw deleteError;for(const line of body.lines){let accountId=line.accountId;if(!accountId&&line.ledger){const{data:account}=await client.from('chart_of_accounts').select('id').eq('organization_id',organizationId).eq('name',line.ledger).maybeSingle();accountId=account?.id}if(!accountId)throw new Error('Every voucher line requires a valid ledger.');const{error:lineError}=await client.from('voucher_lines').insert({voucher_id:id,account_id:accountId,debit:Number(line.debit||0),credit:Number(line.credit||0),narration:line.narration||null});if(lineError)throw lineError}}return data }
-  if (managedCrud[resource]) { const config=managedCrud[resource];let query=client.from(config.table).update(mutableValues(body,config.fields)).eq('id',id);if(config.organizationScoped)query=query.eq('organization_id',organizationId);const{data,error}=await query.select('*').single();if(error)throw error;return data }
+  if (managedCrud[resource]) {
+    const config = managedCrud[resource]
+    const values: any = mutableValues(body, config.fields)
+    if (resource === 'inventory-restrictions') {
+      if (values.item_id && !isUuid(values.item_id)) {
+        const { data: matched } = await client
+          .from('items')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .or(`code.eq.${values.item_id},id.eq.${values.item_id}`)
+          .maybeSingle()
+        values.item_id = matched?.id && isUuid(matched.id) ? matched.id : null
+      }
+      if (values.quantity !== undefined) {
+        values.quantity = Math.max(1, Number(values.quantity) || 1)
+      }
+    }
+    let query = client.from(config.table).update(values).eq('id', id)
+    if (config.organizationScoped) query = query.eq('organization_id', organizationId)
+    const { data, error } = await query.select('*').single()
+    if (error) throw error
+    return data
+  }
   const masterTables: Record<string, string> = { manufacturers: 'manufacturers', salts: 'salts', hsn: 'hsn_codes' }
   if (!masterTables[resource]) throw new Error('Unknown ERP resource.')
   const { data, error } = await client.from(masterTables[resource]).update(body).eq('id', id).eq('organization_id', organizationId).select('*').single(); if (error) throw error; return data

@@ -59,17 +59,104 @@ export default function HoldBanStock() {
 
   // Load items from ERP and stored restrictions
   useEffect(() => {
-    Promise.all([getErp<any[]>('items'), getErp<any[]>('inventory-restrictions')])
-      .then(([data, restrictionRows]) => {
-        const prods = data || []
+    let active = true
+
+    async function loadData() {
+      try {
+        const [itemsRes, restrictionsRes] = await Promise.allSettled([
+          getErp<any[]>('items'),
+          getErp<any[]>('inventory-restrictions'),
+        ])
+
+        const prods = itemsRes.status === 'fulfilled' ? itemsRes.value || [] : []
+        if (itemsRes.status === 'rejected') {
+          console.error('Failed to load items in HoldBanStock:', itemsRes.reason)
+        }
+
+        const rawRestrictions = restrictionsRes.status === 'fulfilled' ? restrictionsRes.value || [] : []
+        if (restrictionsRes.status === 'rejected') {
+          console.error('Failed to load restrictions in HoldBanStock:', restrictionsRes.reason)
+        }
+
+        if (!active) return
         setItemsList(prods)
-        setRestricted((restrictionRows || []).filter((row: any) => row.status === 'active').map((row: any) => ({
-          id: row.id, itemId: row.item_id ?? undefined, name: row.item_name, packing: row.packing ?? '', batch: row.batch_number,
-          expiry: row.expiry_on ?? '', qty: Number(row.quantity), mrp: Number(row.mrp), purchaseRate: Number(row.purchase_rate),
-          reason: row.reason, refNo: row.reference_number ?? undefined, type: row.restriction_type, dateAdded: String(row.created_at).slice(0, 10),
-        })))
-      })
-      .catch((e) => addToast(e.message, 'error'))
+
+        // 1. Process active inventory_restrictions records from database
+        const activeRestricted: RestrictedItem[] = rawRestrictions
+          .filter((row: any) => row.status === 'active')
+          .map((row: any) => ({
+            id: String(row.id),
+            itemId: row.item_id ? String(row.item_id) : undefined,
+            name: row.item_name || 'Restricted Product',
+            packing: row.packing ?? '',
+            batch: row.batch_number || 'BATCH-01',
+            expiry: row.expiry_on ?? '',
+            qty: Number(row.quantity) || 1,
+            mrp: Number(row.mrp) || 0,
+            purchaseRate: Number(row.purchase_rate) || 0,
+            reason: row.reason || 'QC Hold',
+            refNo: row.reference_number ?? undefined,
+            type: (row.restriction_type === 'ban' ? 'ban' : 'hold') as 'hold' | 'ban',
+            dateAdded: String(row.created_at || new Date().toISOString()).slice(0, 10),
+          }))
+
+        // 2. Discover items marked as banned or recalled in the Item Master
+        const existingRestrictedItemIds = new Set(activeRestricted.map((r) => r.itemId).filter(Boolean))
+        const catalogRestricted: RestrictedItem[] = []
+
+        for (const item of prods) {
+          const isBanned = item.status === 'banned' || item.is_active === false
+          const isRecalled = Boolean(item.recalled || item.is_recalled)
+          if ((isBanned || isRecalled) && !existingRestrictedItemIds.has(item.id)) {
+            const batches = Array.isArray(item.batches) && item.batches.length > 0 ? item.batches : null
+            if (batches) {
+              for (const b of batches) {
+                catalogRestricted.push({
+                  id: `catalog-${item.id}-${b.batch || b.id || 'all'}`,
+                  itemId: item.id,
+                  name: item.name,
+                  packing: item.packing || '',
+                  batch: b.batch || b.batchNumber || 'ALL-BATCHES',
+                  expiry: b.expiry || b.expiryOn || '',
+                  qty: Number(b.stock || 0) > 0 ? Number(b.stock) : Number(item.stock || 1),
+                  mrp: Number(b.mrp || item.mrp || 0),
+                  purchaseRate: Number(b.purchasePrice || b.costPrice || item.purchaseRate || 0),
+                  reason: isRecalled ? 'Product Recall in Item Master' : 'Banned Formulation in Item Master',
+                  refNo: item.code || undefined,
+                  type: 'ban',
+                  dateAdded: new Date().toISOString().slice(0, 10),
+                })
+              }
+            } else {
+              catalogRestricted.push({
+                id: `catalog-${item.id}`,
+                itemId: item.id,
+                name: item.name,
+                packing: item.packing || '',
+                batch: 'ALL-BATCHES',
+                expiry: '',
+                qty: Number(item.stock || 1),
+                mrp: Number(item.mrp || 0),
+                purchaseRate: Number(item.purchaseRate || 0),
+                reason: isRecalled ? 'Product Recall in Item Master' : 'Banned Formulation in Item Master',
+                refNo: item.code || undefined,
+                type: 'ban',
+                dateAdded: new Date().toISOString().slice(0, 10),
+              })
+            }
+          }
+        }
+
+        setRestricted([...activeRestricted, ...catalogRestricted])
+      } catch (err: any) {
+        addToast(err?.message || 'Error loading stock hold/ban data', 'error')
+      }
+    }
+
+    loadData()
+    return () => {
+      active = false
+    }
   }, [addToast])
 
   // Filter items
@@ -107,15 +194,48 @@ export default function HoldBanStock() {
     setSavingRestriction(true)
     try {
       const saved = await postErp<any>('inventory-restrictions', {
-        item_id: selectedItemId || null, item_name: finalName, packing: finalPacking, batch_number: batch || 'BATCH-01', expiry_on: expiry || null,
-        quantity: Number(qty) || 1, mrp: Number(mrp) || 0, purchase_rate: Number(purchaseRate) || 0, reason: reason.trim() || 'QC Hold',
-        reference_number: refNo.trim() || null, restriction_type: type, status: 'active',
+        item_id: selectedItemId || null,
+        item_name: finalName,
+        packing: finalPacking,
+        batch_number: batch || 'BATCH-01',
+        expiry_on: expiry || null,
+        quantity: Math.max(1, Number(qty) || 1),
+        mrp: Math.max(0, Number(mrp) || 0),
+        purchase_rate: Math.max(0, Number(purchaseRate) || 0),
+        reason: reason.trim() || 'QC Hold',
+        reference_number: refNo.trim() || null,
+        restriction_type: type,
+        status: 'active',
       })
-      if (type === 'ban' && selectedItemId) await patchErp('items', selectedItemId, { status: 'banned' })
-      setRestricted((current) => [{ id: saved.id, itemId: saved.item_id ?? undefined, name: saved.item_name, packing: saved.packing ?? '', batch: saved.batch_number, expiry: saved.expiry_on ?? '', qty: Number(saved.quantity), mrp: Number(saved.mrp), purchaseRate: Number(saved.purchase_rate), reason: saved.reason, refNo: saved.reference_number ?? undefined, type: saved.restriction_type, dateAdded: String(saved.created_at).slice(0, 10) }, ...current])
-      addToast(`Stock for ${finalName} placed on ${type === 'hold' ? 'Hold' : 'Banned Status'} successfully`, 'success')
+      if (type === 'ban' && selectedItemId) {
+        await patchErp('items', selectedItemId, { status: 'banned' })
+      }
+      setRestricted((current) => [
+        {
+          id: String(saved.id),
+          itemId: saved.item_id ? String(saved.item_id) : undefined,
+          name: saved.item_name,
+          packing: saved.packing ?? '',
+          batch: saved.batch_number,
+          expiry: saved.expiry_on ?? '',
+          qty: Number(saved.quantity),
+          mrp: Number(saved.mrp),
+          purchaseRate: Number(saved.purchase_rate),
+          reason: saved.reason,
+          refNo: saved.reference_number ?? undefined,
+          type: saved.restriction_type,
+          dateAdded: String(saved.created_at || new Date().toISOString()).slice(0, 10),
+        },
+        ...current.filter((c) => c.id !== `catalog-${selectedItemId}` && !c.id.startsWith(`catalog-${selectedItemId}-`)),
+      ])
+      addToast(`Stock for ${finalName} placed on ${type === 'hold' ? 'QC Hold' : 'Banned Status'} successfully`, 'success')
       setShowModal(false)
-      setSelectedItemId(''); setCustomName(''); setBatch(''); setExpiry(''); setQty(10); setRefNo('')
+      setSelectedItemId('')
+      setCustomName('')
+      setBatch('')
+      setExpiry('')
+      setQty(10)
+      setRefNo('')
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Unable to save inventory restriction.', 'error')
     } finally {
@@ -127,8 +247,12 @@ export default function HoldBanStock() {
   const handleReleaseStock = async (item: RestrictedItem) => {
     setSavingRestriction(true)
     try {
-      if (item.type === 'ban' && item.itemId) await patchErp('items', item.itemId, { status: 'active' })
-      await patchErp('inventory-restrictions', item.id, { status: 'released', released_at: new Date().toISOString() })
+      if (item.type === 'ban' && item.itemId) {
+        await patchErp('items', item.itemId, { status: 'active', recalled: false })
+      }
+      if (!item.id.startsWith('catalog-')) {
+        await patchErp('inventory-restrictions', item.id, { status: 'released', released_at: new Date().toISOString() })
+      }
       setRestricted((current) => current.filter((r) => r.id !== item.id))
       addToast(`Released ${item.name} (${item.batch}) back to active saleable inventory`, 'success')
     } catch (error) {
@@ -493,6 +617,42 @@ export default function HoldBanStock() {
                     />
                   </div>
                 )}
+                {/* Quick Batch Picker if selected item has batches */}
+                {(() => {
+                  const foundItem = itemsList.find((i) => i.id === selectedItemId)
+                  if (!foundItem?.batches || foundItem.batches.length === 0) return null
+                  return (
+                    <div className="mt-2">
+                      <label className="block font-semibold uppercase text-[10px] text-muted-foreground mb-1">
+                        Select Existing Batch
+                      </label>
+                      <select
+                        value={batch}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setBatch(val)
+                          const matchedBatch = foundItem.batches.find((b: any) => (b.batch || b.batchNumber) === val)
+                          if (matchedBatch) {
+                            setExpiry(matchedBatch.expiry || matchedBatch.expiryOn || '')
+                            setQty(Number(matchedBatch.stock) > 0 ? Number(matchedBatch.stock) : 1)
+                            if (matchedBatch.mrp) setMrp(Number(matchedBatch.mrp))
+                            if (matchedBatch.purchasePrice || matchedBatch.purchaseRate) {
+                              setPurchaseRate(Number(matchedBatch.purchasePrice || matchedBatch.purchaseRate))
+                            }
+                          }
+                        }}
+                        className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 font-mono text-foreground outline-none focus:border-indigo-600"
+                      >
+                        <option value="">-- Choose existing batch or enter custom below --</option>
+                        {foundItem.batches.map((b: any) => (
+                          <option key={b.id || b.batch} value={b.batch || b.batchNumber}>
+                            {b.batch || b.batchNumber} (Exp: {b.expiry || b.expiryOn || 'N/A'}, Stock: {b.stock || 0})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Batch, Expiry, Qty */}
