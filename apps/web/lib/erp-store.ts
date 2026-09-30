@@ -2181,6 +2181,12 @@ export async function list(resource: string, partyName?: string, options?: ListO
   if (resource === 'report-sales') { const { data,error }=await client.from('sales_invoices').select('invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(category)))').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),parties=new Map<string,number>(),items=new Map<string,{name:string;qty:number;revenue:number;margin:number}>(),categories=new Map<string,number>();for(const invoice of data??[]){const month=String(invoice.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(invoice.grand_total));const party=(invoice.parties as any)?.legal_name??'Unknown';parties.set(party,(parties.get(party)??0)+Number(invoice.grand_total));for(const line of (invoice.sales_invoice_lines as any[])??[]){const name=line.items?.name??'Unknown',revenue=Number(line.line_total),current=items.get(name)??{name,qty:0,revenue:0,margin:0};current.qty+=Number(line.quantity);current.revenue+=revenue;items.set(name,current);const category=line.items?.salts?.category??'Uncategorised';categories.set(category,(categories.get(category)??0)+revenue)}}return{monthlySales:[...months].sort().map(([month,value])=>({month,value})),topParties:[...parties].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,sales])=>({name,sales,growth:0})),topItems:[...items.values()].sort((a,b)=>b.revenue-a.revenue).slice(0,10),categories:[...categories].map(([name,value])=>({name,value})),units:[...items.values()].reduce((n,x)=>n+x.qty,0)} }
   if (resource === 'report-purchases') { const { data,error }=await client.from('purchase_invoices').select('invoice_date,grand_total,parties(legal_name)').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),suppliers=new Map<string,number>();for(const row of data??[]){const month=String(row.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(row.grand_total));const name=(row.parties as any)?.legal_name??'Unknown';suppliers.set(name,(suppliers.get(name)??0)+Number(row.grand_total))}return{monthlyPurchases:[...months].sort().map(([month,value])=>({month,value})),topSuppliers:[...suppliers].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,purchases])=>({name,purchases,growth:0})),activeSuppliers:suppliers.size} }
   if (resource === 'parties') {
+    const cacheKey = `parties_${organizationId}`
+    const cached = serverResourceCache.get(cacheKey)
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data
+    }
+
     const [data, accountsData, detailsData, licensesData] = await Promise.all([
       fetchAll<any>((from, to) =>
         client.from('parties').select('*,party_addresses(line1,line2,city,state_code,postal_code,country,is_default)').eq('organization_id', organizationId).order('legal_name').range(from, to)
@@ -2346,16 +2352,17 @@ export async function list(resource: string, partyName?: string, options?: ListO
       }
     }
 
-    // Prune redundant duplicate rows from Supabase database
+    // Prune redundant duplicate rows from Supabase database in background without blocking response
     if (redundantDbIds.length > 0) {
-      try {
-        await client.from('parties').delete().in('id', redundantDbIds).eq('organization_id', organizationId)
-        await client.from('party_addresses').delete().in('party_id', redundantDbIds)
-        await client.from('chart_of_accounts').delete().in('party_id', redundantDbIds)
-      } catch {}
+      void Promise.all([
+        client.from('parties').delete().in('id', redundantDbIds).eq('organization_id', organizationId),
+        client.from('party_addresses').delete().in('party_id', redundantDbIds),
+        client.from('chart_of_accounts').delete().in('party_id', redundantDbIds),
+      ]).catch(() => {})
     }
 
     const cleanDbParties = Array.from(uniqueDbMap.values())
+    serverResourceCache.set(cacheKey, { data: cleanDbParties, expiry: Date.now() + 60_000 })
     return cleanDbParties
   }
   if (resource === 'items') {

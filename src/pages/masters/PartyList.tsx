@@ -213,14 +213,9 @@ export default function PartyList() {
     if (!getCached('parties') && parties.length === 0) {
       setLoading(true)
     }
-    Promise.all([
-      getErp<Party[]>('parties', undefined, { forceRefresh }),
-      getErp<any[]>('sales', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('purchases', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('ledgers', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('vouchers', undefined, { forceRefresh }).catch(() => []),
-    ])
-      .then(([serverParties, sales, purchases, ledgers, vouchers]) => {
+
+    getErp<Party[]>('parties', undefined, { forceRefresh })
+      .then((serverParties) => {
         const partyMap = new Map<string, Party>()
         for (const p of serverParties || []) {
           const key = (p.name || '').trim().toLowerCase()
@@ -229,140 +224,158 @@ export default function PartyList() {
         }
         const uniqueParties = Array.from(partyMap.values())
 
-        // Pre-aggregate transaction count, debits, credits, and total volume for each party
-        const partyStats = new Map<string, {
-          count: number
-          volume: number
-          totalDebit: number
-          totalCredit: number
-          debitCount: number
-          creditCount: number
-          seenDocs: Set<string>
-        }>()
-        const cleanStr = (s?: string) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ')
-
-        // Initialize stats map for all parties by their id and normalized name
-        const partyIndex = new Map<string, string>() // key -> canonical party id
-        for (const p of uniqueParties) {
-          partyStats.set(p.id, {
-            count: 0,
-            volume: 0,
-            totalDebit: 0,
-            totalCredit: 0,
-            debitCount: 0,
-            creditCount: 0,
-            seenDocs: new Set<string>(),
+        // Fast First Paint: display parties immediately with their server-side balances & profiles
+        setParties((prev) => {
+          if (prev.length === 0) return uniqueParties
+          return uniqueParties.map((p) => {
+            const existing = prev.find((x) => x.id === p.id)
+            return existing ? { ...p, ...existing, ...p } : p
           })
-          if (p.id) partyIndex.set(cleanStr(p.id), p.id)
-          if (p.name) partyIndex.set(cleanStr(p.name), p.id)
-          if (p.phone) partyIndex.set(cleanStr(p.phone), p.id)
-        }
-
-        const recordTxn = (partyIdentifier: string | undefined, docId: string, amount: number, side: 'dr' | 'cr') => {
-          if (!partyIdentifier) return
-          const canonicalId = partyIndex.get(cleanStr(partyIdentifier))
-          if (!canonicalId) return
-          const stats = partyStats.get(canonicalId)
-          if (!stats) return
-
-          const cleanDoc = docId.trim().toLowerCase()
-          if (cleanDoc && stats.seenDocs.has(cleanDoc)) return
-          if (cleanDoc) stats.seenDocs.add(cleanDoc)
-
-          const val = Math.max(0, amount)
-          stats.count += 1
-          stats.volume += val
-
-          if (side === 'dr') {
-            stats.totalDebit += val
-            stats.debitCount += 1
-          } else {
-            stats.totalCredit += val
-            stats.creditCount += 1
-          }
-        }
-
-        // 1. Process Sales Invoices (Debits customer)
-        for (const s of sales || []) {
-          const docId = `sale:${s.id || s.invoiceNo || s.number || ''}`
-          const amt = Number(s.total ?? s.grandTotal ?? s.grand_total ?? s.subtotal ?? 0)
-          const pKey = s.partyId || s.party_id || s.party || s.customer || s.party_name
-          recordTxn(pKey, docId, amt, 'dr')
-        }
-
-        // 2. Process Purchase Bills (Credits supplier)
-        for (const pu of purchases || []) {
-          const docId = `purchase:${pu.id || pu.supplierInvoice || pu.invoiceNo || pu.number || ''}`
-          const amt = Number(pu.total ?? pu.grandTotal ?? pu.grand_total ?? pu.subtotal ?? 0)
-          const pKey = pu.partyId || pu.party_id || pu.party || pu.supplier || pu.supplier_name
-          recordTxn(pKey, docId, amt, 'cr')
-        }
-
-        // 3. Process Vouchers
-        for (const v of vouchers || []) {
-          const docId = `voucher:${v.id || v.number || v.voucher_number || ''}`
-          const amt = Number(v.total ?? v.amount ?? 0)
-          const type = String(v.type || v.voucherType || '').toLowerCase()
-          const isReceipt = type.includes('receipt') || type.includes('rec')
-          const isPayment = type.includes('payment') || type.includes('pay')
-          const side: 'dr' | 'cr' = isPayment ? 'dr' : isReceipt ? 'cr' : 'dr'
-          if (v.party) {
-            recordTxn(v.party, docId, amt, side)
-          }
-          for (const l of v.lines || []) {
-            const pKey = l.ledger || l.party
-            const lineDr = Number(l.debit || 0)
-            const lineCr = Number(l.credit || 0)
-            if (lineDr > 0) {
-              recordTxn(pKey, `${docId}:${pKey}:dr`, lineDr, 'dr')
-            } else if (lineCr > 0) {
-              recordTxn(pKey, `${docId}:${pKey}:cr`, lineCr, 'cr')
-            } else if (amt > 0) {
-              recordTxn(pKey, docId, amt, side)
-            }
-          }
-        }
-
-        // 4. Process Ledgers
-        for (const l of ledgers || []) {
-          const pKey = l.party || l.ledger
-          const dr = Number(l.debit || 0)
-          const cr = Number(l.credit || 0)
-          const baseDocId = `ledger:${l.vNo || l.voucher_number || l.id || ''}`
-          if (dr > 0) {
-            recordTxn(pKey, `${baseDocId}:dr`, dr, 'dr')
-          }
-          if (cr > 0) {
-            recordTxn(pKey, `${baseDocId}:cr`, cr, 'cr')
-          }
-        }
-
-        // Attach aggregated statistics to each party
-        const enrichedParties = uniqueParties.map((p) => {
-          const stats = partyStats.get(p.id)
-          const directCount = Number((p as any).totalTransactions || (p as any).transactionsCount || (p as any).billsCount || 0)
-          const finalCount = Math.max(stats?.count || 0, directCount)
-          const finalVolume = stats?.volume || 0
-          const finalDebit = (stats?.totalDebit || 0) + (p.totalDebit && !stats?.totalDebit ? p.totalDebit : 0)
-          const finalCredit = (stats?.totalCredit || 0) + (p.totalCredit && !stats?.totalCredit ? p.totalCredit : 0)
-
-          // Calculate net balance: use server balance if non-zero; otherwise compute from dynamic transactions
-          const computedNet = finalDebit - finalCredit
-          const finalBalance = (p.balance !== undefined && Number(p.balance) !== 0) ? Number(p.balance) : computedNet
-
-          return {
-            ...p,
-            balance: finalBalance,
-            totalTransactions: finalCount,
-            totalVolume: finalVolume,
-            totalDebit: finalDebit,
-            totalCredit: finalCredit,
-            debitCount: stats?.debitCount || 0,
-            creditCount: stats?.creditCount || 0,
-          }
         })
+        setLoading(false)
 
-        setParties(enrichedParties)
+        // Asynchronously enrich transaction volume in the background without blocking screen render
+        Promise.all([
+          getErp<any[]>('sales', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('purchases', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('ledgers', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('vouchers', undefined, { forceRefresh: false }).catch(() => []),
+        ])
+          .then(([sales, purchases, ledgers, vouchers]) => {
+            const partyStats = new Map<string, {
+              count: number
+              volume: number
+              totalDebit: number
+              totalCredit: number
+              debitCount: number
+              creditCount: number
+              seenDocs: Set<string>
+            }>()
+            const cleanStr = (s?: string) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+            const partyIndex = new Map<string, string>()
+            for (const p of uniqueParties) {
+              partyStats.set(p.id, {
+                count: 0,
+                volume: 0,
+                totalDebit: 0,
+                totalCredit: 0,
+                debitCount: 0,
+                creditCount: 0,
+                seenDocs: new Set<string>(),
+              })
+              if (p.id) partyIndex.set(cleanStr(p.id), p.id)
+              if (p.name) partyIndex.set(cleanStr(p.name), p.id)
+              if (p.phone) partyIndex.set(cleanStr(p.phone), p.id)
+            }
+
+            const recordTxn = (partyIdentifier: string | undefined, docId: string, amount: number, side: 'dr' | 'cr') => {
+              if (!partyIdentifier) return
+              const canonicalId = partyIndex.get(cleanStr(partyIdentifier))
+              if (!canonicalId) return
+              const stats = partyStats.get(canonicalId)
+              if (!stats) return
+
+              const cleanDoc = docId.trim().toLowerCase()
+              if (cleanDoc && stats.seenDocs.has(cleanDoc)) return
+              if (cleanDoc) stats.seenDocs.add(cleanDoc)
+
+              const val = Math.max(0, amount)
+              stats.count += 1
+              stats.volume += val
+
+              if (side === 'dr') {
+                stats.totalDebit += val
+                stats.debitCount += 1
+              } else {
+                stats.totalCredit += val
+                stats.creditCount += 1
+              }
+            }
+
+            // 1. Process Sales Invoices
+            for (const s of sales || []) {
+              const docId = `sale:${s.id || s.invoiceNo || s.number || ''}`
+              const amt = Number(s.total ?? s.grandTotal ?? s.grand_total ?? s.subtotal ?? 0)
+              const pKey = s.partyId || s.party_id || s.party || s.customer || s.party_name
+              recordTxn(pKey, docId, amt, 'dr')
+            }
+
+            // 2. Process Purchase Bills
+            for (const pu of purchases || []) {
+              const docId = `purchase:${pu.id || pu.supplierInvoice || pu.invoiceNo || pu.number || ''}`
+              const amt = Number(pu.total ?? pu.grandTotal ?? pu.grand_total ?? pu.subtotal ?? 0)
+              const pKey = pu.partyId || pu.party_id || pu.party || pu.supplier || pu.supplier_name
+              recordTxn(pKey, docId, amt, 'cr')
+            }
+
+            // 3. Process Vouchers
+            for (const v of vouchers || []) {
+              const docId = `voucher:${v.id || v.number || v.voucher_number || ''}`
+              const amt = Number(v.total ?? v.amount ?? 0)
+              const type = String(v.type || v.voucherType || '').toLowerCase()
+              const isReceipt = type.includes('receipt') || type.includes('rec')
+              const isPayment = type.includes('payment') || type.includes('pay')
+              const side: 'dr' | 'cr' = isPayment ? 'dr' : isReceipt ? 'cr' : 'dr'
+              if (v.party) {
+                recordTxn(v.party, docId, amt, side)
+              }
+              for (const l of v.lines || []) {
+                const pKey = l.ledger || l.party
+                const lineDr = Number(l.debit || 0)
+                const lineCr = Number(l.credit || 0)
+                if (lineDr > 0) {
+                  recordTxn(pKey, `${docId}:${pKey}:dr`, lineDr, 'dr')
+                } else if (lineCr > 0) {
+                  recordTxn(pKey, `${docId}:${pKey}:cr`, lineCr, 'cr')
+                } else if (amt > 0) {
+                  recordTxn(pKey, docId, amt, side)
+                }
+              }
+            }
+
+            // 4. Process Ledgers
+            for (const l of ledgers || []) {
+              const pKey = l.party || l.ledger
+              const dr = Number(l.debit || 0)
+              const cr = Number(l.credit || 0)
+              const baseDocId = `ledger:${l.vNo || l.voucher_number || l.id || ''}`
+              if (dr > 0) {
+                recordTxn(pKey, `${baseDocId}:dr`, dr, 'dr')
+              }
+              if (cr > 0) {
+                recordTxn(pKey, `${baseDocId}:cr`, cr, 'cr')
+              }
+            }
+
+            // Attach aggregated statistics to each party
+            const enrichedParties = uniqueParties.map((p) => {
+              const stats = partyStats.get(p.id)
+              const directCount = Number((p as any).totalTransactions || (p as any).transactionsCount || (p as any).billsCount || 0)
+              const finalCount = Math.max(stats?.count || 0, directCount)
+              const finalVolume = stats?.volume || 0
+              const finalDebit = (stats?.totalDebit || 0) + (p.totalDebit && !stats?.totalDebit ? p.totalDebit : 0)
+              const finalCredit = (stats?.totalCredit || 0) + (p.totalCredit && !stats?.totalCredit ? p.totalCredit : 0)
+
+              // Calculate net balance: use server balance if non-zero; otherwise compute from dynamic transactions
+              const computedNet = finalDebit - finalCredit
+              const finalBalance = (p.balance !== undefined && Number(p.balance) !== 0) ? Number(p.balance) : computedNet
+
+              return {
+                ...p,
+                balance: finalBalance,
+                totalTransactions: finalCount,
+                totalVolume: finalVolume,
+                totalDebit: finalDebit,
+                totalCredit: finalCredit,
+                debitCount: stats?.debitCount || 0,
+                creditCount: stats?.creditCount || 0,
+              }
+            })
+
+            setParties(enrichedParties)
+          })
+          .catch(() => {})
       })
       .catch((error) => {
         // On background refresh failure, keep existing data intact so the page stays usable.

@@ -33,6 +33,7 @@ import { cn, formatCurrency, formatDate, getTxnDateTime } from '../../lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
+import { getCached } from '../../lib/erpCache'
 import VoucherPrint, { VoucherPrintData, VoucherPrintLine } from '../../components/accounting/VoucherPrint'
 import PurchaseInvoicePrint, { InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -44,42 +45,111 @@ export default function Party360() {
   const showToast = useUIStore((s) => s.showToast)
 
   const [tab, setTab] = useState<'overview' | 'transactions' | 'items'>('overview')
-  const [loading, setLoading] = useState(true)
 
-  // Core party master state
-  const [partyData, setPartyData] = useState<any>({
-    id: '',
-    name: 'Loading...',
-    legal_name: '',
-    code: '',
-    type: 'supplier',
-    phone: '—',
-    mobile: '',
-    city: '—',
-    state: '18-ASSAM',
-    station: '',
-    address: '',
-    gstin: '',
-    pan: '',
-    dlNo: '',
-    dlExp: '',
-    foodLicenceNo: '',
-    creditLimit: 0,
-    creditDays: 30,
-    outstanding: 0,
-    balType: 'Cr',
-    openingBalance: 0,
-    openingType: 'Cr',
-    totalDebit: 0,
-    totalCredit: 0,
-    billsCount: 0,
-    totalVolume: 0,
-    avgSaleDays: 14,
-    avgCollectionDays: 21,
-    turnoverRatio: '3.8x',
-    trendData: [] as { month: string; value: number; count: number }[],
-    recentTxns: [] as any[],
-    topItems: [] as any[],
+  // Instant render from cache if party data was already loaded in memory/IndexedDB
+  const [partyData, setPartyData] = useState<any>(() => {
+    const cachedParties = getCached<any[]>('parties')
+    if (cachedParties && id) {
+      const decodedId = decodeURIComponent(id).trim().toLowerCase()
+      const norm = (str?: string) => (str || '').replace(/\s+/g, ' ').trim().toLowerCase()
+      const found = cachedParties.find(
+        (p) =>
+          norm(p.id) === norm(decodedId) ||
+          norm(p.code) === norm(decodedId) ||
+          norm(p.name) === norm(decodedId) ||
+          norm(p.legal_name) === norm(decodedId)
+      )
+      if (found) {
+        const opBal = Number(found.openingBalance || 0)
+        const opType = found.openingType || 'Dr'
+        const isSupplier = (found.type || '').toLowerCase() === 'supplier'
+        const directCount = Number(found.totalTransactions || found.transactionsCount || found.billsCount || 0)
+        return {
+          id: found.id || decodedId,
+          name: found.name || found.legal_name || decodedId,
+          legal_name: found.legal_name || found.name || '',
+          code: found.code || '',
+          type: found.type || (isSupplier ? 'supplier' : 'customer'),
+          phone: found.phone || found.mobile || '—',
+          mobile: found.mobile || found.phone || '',
+          city: found.city || '—',
+          state: found.state || '18-ASSAM',
+          station: found.station || '',
+          address: found.address || '',
+          gstin: found.gstin || '',
+          pan: found.pan || '',
+          dlNo: found.dlNo || found.dlNumber || '',
+          dlExp: found.dlExp || '',
+          foodLicenceNo: found.foodLicenceNo || '',
+          creditLimit: Number(found.creditLimit || 0),
+          creditDays: Number(found.creditDays || 30),
+          outstanding: Math.abs(Number(found.balance || 0)),
+          balType: Number(found.balance || 0) >= 0 ? (isSupplier ? 'Cr' : 'Dr') : (isSupplier ? 'Dr' : 'Cr'),
+          openingBalance: opBal,
+          openingType: opType,
+          totalDebit: Number(found.totalDebit || 0),
+          totalCredit: Number(found.totalCredit || 0),
+          billsCount: directCount,
+          totalVolume: Number(found.totalVolume || (Number(found.totalDebit || 0) + Number(found.totalCredit || 0))),
+          avgSaleDays: 14,
+          avgCollectionDays: 21,
+          turnoverRatio: '3.8x',
+          trendData: [],
+          recentTxns: [],
+          topItems: [],
+        }
+      }
+    }
+    return {
+      id: '',
+      name: 'Loading...',
+      legal_name: '',
+      code: '',
+      type: 'supplier',
+      phone: '—',
+      mobile: '',
+      city: '—',
+      state: '18-ASSAM',
+      station: '',
+      address: '',
+      gstin: '',
+      pan: '',
+      dlNo: '',
+      dlExp: '',
+      foodLicenceNo: '',
+      creditLimit: 0,
+      creditDays: 30,
+      outstanding: 0,
+      balType: 'Cr',
+      openingBalance: 0,
+      openingType: 'Cr',
+      totalDebit: 0,
+      totalCredit: 0,
+      billsCount: 0,
+      totalVolume: 0,
+      avgSaleDays: 14,
+      avgCollectionDays: 21,
+      turnoverRatio: '3.8x',
+      trendData: [] as { month: string; value: number; count: number }[],
+      recentTxns: [] as any[],
+      topItems: [] as any[],
+    }
+  })
+
+  const [loading, setLoading] = useState(() => {
+    const cachedParties = getCached<any[]>('parties')
+    if (cachedParties && id) {
+      const decodedId = decodeURIComponent(id).trim().toLowerCase()
+      const norm = (str?: string) => (str || '').replace(/\s+/g, ' ').trim().toLowerCase()
+      return !cachedParties.some(
+        (p) =>
+          norm(p.id) === norm(decodedId) ||
+          norm(p.code) === norm(decodedId) ||
+          norm(p.name) === norm(decodedId) ||
+          norm(p.legal_name) === norm(decodedId)
+      )
+    }
+    return true
   })
 
   // Filters & Sorting
@@ -372,7 +442,9 @@ export default function Party360() {
 
   const loadPartyData = (forceRefresh = false) => {
     if (!id) return
-    setLoading(true)
+    if (!partyData.id || partyData.name === 'Loading...') {
+      setLoading(true)
+    }
 
     Promise.all([
       getErp<any[]>('parties', undefined, { forceRefresh }).catch(() => []),
@@ -381,7 +453,7 @@ export default function Party360() {
       getErp<any[]>('ledgers', undefined, { forceRefresh }).catch(() => []),
       getErp<any[]>('vouchers', undefined, { forceRefresh }).catch(() => []),
       getErp<any[]>('item-mappings', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('items', undefined, { forceRefresh }).catch(() => []),
+      getErp<any[]>('items', undefined, { forceRefresh: false }).catch(() => []),
     ])
       .then(([allParties, allPurchases, allSales, allLedgers, allVouchers, allMappings, allItems]) => {
         const combinedParties = allParties || []
@@ -863,10 +935,10 @@ export default function Party360() {
   }
 
   useEffect(() => {
-    loadPartyData(true)
+    loadPartyData(false)
   }, [id])
 
-  useErpAutoRefresh(['parties', 'ledgers', 'vouchers', 'sales', 'purchases'], () => loadPartyData(true))
+  useErpAutoRefresh(['parties', 'ledgers', 'vouchers', 'sales', 'purchases'], () => loadPartyData(false))
 
   // Filtered & sorted transactions for Transactions Tab (Ledger)
   const filteredTxns = useMemo(() => {
