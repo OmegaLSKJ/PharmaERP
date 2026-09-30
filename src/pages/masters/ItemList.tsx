@@ -10,9 +10,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Layers,
-  ArrowDownCircle,
-  CheckCircle2,
   Trash2,
   RefreshCw
 } from 'lucide-react'
@@ -24,6 +21,7 @@ import { exportVisibleTables } from '../../lib/download'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import { STANDARD_ITEM_CATEGORIES, resolveItemCategory } from '../../lib/itemCategories'
 
 interface Item {
   id: string
@@ -55,11 +53,9 @@ export default function ItemList() {
   const [loading, setLoading] = useState(() => !getCached('items'))
   const [refreshing, setRefreshing] = useState(false)
 
-  // Continuous Page Chunking Controls
+  // Standard Page-by-Page Pagination Controls
   const [pageSize, setPageSize] = useState<number>(50)
   const [currentPage, setCurrentPage] = useState<number>(1)
-  const [continuousCount, setContinuousCount] = useState<number>(50)
-  const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
 
   const showToast = useUIStore((state) => state.showToast)
 
@@ -99,11 +95,42 @@ export default function ItemList() {
 
   useErpAutoRefresh(['items', 'item-batches', 'manufacturers', 'salts', 'hsn'], () => loadItems(false))
 
-  const categories = useMemo(() => ['all', ...new Set(items.map((i) => i.category))], [items])
+  // Dynamically resolve category from salt or name if database returned generic placeholder
+  const normalizedItems = useMemo(() => {
+    return items.map((i) => ({
+      ...i,
+      category:
+        i.category &&
+        i.category.trim() &&
+        i.category.toLowerCase() !== 'medicine' &&
+        i.category.toLowerCase() !== 'general' &&
+        i.category.toLowerCase() !== 'all'
+          ? i.category.trim()
+          : resolveItemCategory(i.name, i.salt, i.category)
+    }))
+  }, [items])
+
+  // Count items across categories
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const item of normalizedItems) {
+      const cat = item.category || 'General Medicine'
+      counts[cat] = (counts[cat] || 0) + 1
+    }
+    return counts
+  }, [normalizedItems])
+
+  // Ordered category choices with counts
+  const categoryOptions = useMemo(() => {
+    const standardOrder = STANDARD_ITEM_CATEGORIES.filter((c) => c !== 'All Categories')
+    const standardSet = new Set(standardOrder)
+    const extraCats = Object.keys(categoryCounts).filter((c) => !standardSet.has(c as any)).sort()
+    return [...standardOrder, ...extraCats]
+  }, [categoryCounts])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return items.filter((i) => {
+    return normalizedItems.filter((i) => {
       const matchSearch =
         !q ||
         i.name.toLowerCase().includes(q) ||
@@ -115,12 +142,11 @@ export default function ItemList() {
       const matchCat = categoryFilter === 'all' || i.category === categoryFilter
       return matchSearch && matchCat
     })
-  }, [items, search, categoryFilter])
+  }, [normalizedItems, search, categoryFilter])
 
   // Reset pagination index whenever search, category, or page size changes
   useEffect(() => {
     setCurrentPage(1)
-    setContinuousCount(pageSize || 50)
   }, [search, categoryFilter, pageSize])
 
   const totalItems = filtered.length
@@ -128,24 +154,13 @@ export default function ItemList() {
 
   const displayedItems = useMemo(() => {
     if (pageSize === 0) return filtered
-    if (chunkMode === 'continuous') {
-      return filtered.slice(0, continuousCount)
-    }
     const start = (currentPage - 1) * pageSize
     return filtered.slice(start, start + pageSize)
-  }, [filtered, chunkMode, currentPage, pageSize, continuousCount])
+  }, [filtered, currentPage, pageSize])
 
-  const startIdx = totalItems === 0 ? 0 : pageSize === 0 ? 1 : chunkMode === 'continuous' ? 1 : (currentPage - 1) * pageSize + 1
-  const endIdx =
-    pageSize === 0
-      ? totalItems
-      : chunkMode === 'continuous'
-      ? Math.min(continuousCount, totalItems)
-      : Math.min(currentPage * pageSize, totalItems)
+  const startIdx = totalItems === 0 ? 0 : pageSize === 0 ? 1 : (currentPage - 1) * pageSize + 1
+  const endIdx = pageSize === 0 ? totalItems : Math.min(currentPage * pageSize, totalItems)
 
-  const handleLoadMore = () => {
-    setContinuousCount((prev) => Math.min(prev + (pageSize || 50), totalItems))
-  }
 
   const activeItem = activeId ? items.find((i) => i.id === activeId) || null : null
   const totalCatalogPurchaseVal = filtered.reduce((s, i) => s + (i.purchaseRate || 0) * (i.stock || 0), 0)
@@ -163,7 +178,7 @@ export default function ItemList() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Real-time batch-wise stock tracking with continuous page chunking
+            Real-time batch-wise stock tracking and inventory management
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -186,7 +201,7 @@ export default function ItemList() {
         </div>
       </div>
 
-      {/* Filter & Continuous Chunking Controls */}
+      {/* Filter & Pagination Controls */}
       <div className="bg-card border border-border p-3 rounded-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xs">
         <div className="flex flex-1 min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1 max-w-2xl">
@@ -203,58 +218,38 @@ export default function ItemList() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="!w-auto shrink-0 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-muted-foreground"
+            aria-label="Filter items by category"
+            className="!w-auto shrink-0 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-foreground shadow-xs cursor-pointer"
           >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === 'all' ? 'All Categories' : c}
-              </option>
-            ))}
+            <option value="all">All Categories ({normalizedItems.length.toLocaleString()})</option>
+            {categoryOptions.map((c) => {
+              const count = categoryCounts[c] || 0
+              return (
+                <option key={c} value={c}>
+                  {c} {count > 0 ? `(${count.toLocaleString()})` : '(0)'}
+                </option>
+              )
+            })}
           </select>
         </div>
 
-        {/* Chunking Mode & Page Size Selectors */}
+        {/* Page Size & Export */}
         <div className="flex items-center flex-wrap gap-2 justify-end">
-          {/* Chunking Mode Toggle */}
-          <div className="flex items-center bg-muted/60 p-0.5 rounded-md border border-border text-xs">
-            <button
-              onClick={() => setChunkMode('paginated')}
-              className={cn(
-                'px-2.5 py-1 rounded font-medium transition-all',
-                chunkMode === 'paginated'
-                  ? 'bg-background text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Pages
-            </button>
-            <button
-              onClick={() => setChunkMode('continuous')}
-              className={cn(
-                'px-2.5 py-1 rounded font-medium transition-all flex items-center gap-1',
-                chunkMode === 'continuous'
-                  ? 'bg-background text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Layers size={12} /> Continuous
-            </button>
-          </div>
-
-          {/* Chunk Size */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span>Chunk:</span>
+          {/* Page Size Selector */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Per page:</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="px-2 py-1 rounded border border-input bg-background text-xs font-medium focus:outline-none"
+              aria-label="Items per page"
+              className="px-2 py-1 rounded border border-input bg-background text-xs font-medium focus:outline-none text-foreground"
             >
               <option value={25}>25 / page</option>
               <option value={50}>50 / page</option>
               <option value={100}>100 / page</option>
               <option value={250}>250 / page</option>
               <option value={500}>500 / page</option>
-              <option value={0}>All ({totalItems})</option>
+              <option value={0}>All ({totalItems.toLocaleString()})</option>
             </select>
           </div>
 
@@ -269,16 +264,21 @@ export default function ItemList() {
         </div>
       </div>
 
-      {/* Chunk Info Strip */}
+      {/* Pagination Summary & Top Quick Nav Strip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground px-1">
         <div className="whitespace-nowrap">
           Showing <span className="font-semibold text-foreground">{startIdx}</span> to{' '}
           <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
           <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> items
+          {categoryFilter !== 'all' && (
+            <span className="ml-2 font-medium text-primary">
+              (Filtered by: {categoryFilter})
+            </span>
+          )}
         </div>
 
         {/* Quick pagination buttons for top toolbar */}
-        {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
+        {pageSize > 0 && totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
               disabled={currentPage <= 1}
@@ -358,9 +358,16 @@ export default function ItemList() {
                     <span className="font-semibold text-foreground">{item.code || item.id}</span>
                   </td>
                   <td className="px-4 py-2.5">
-                    <Link to={`/masters/items/${item.id}`} className="font-medium hover:text-primary hover:underline">
-                      {item.name}
-                    </Link>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Link to={`/masters/items/${item.id}`} className="font-medium hover:text-primary hover:underline">
+                        {item.name}
+                      </Link>
+                      {item.category && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/80 text-muted-foreground border border-border/60 font-sans font-normal">
+                          {item.category}
+                        </span>
+                      )}
+                    </div>
                     {item.salt && <div className="text-[11px] text-muted-foreground truncate max-w-xs">{item.salt}</div>}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.packing || '—'}</td>
@@ -441,35 +448,12 @@ export default function ItemList() {
           </table>
         </div>
 
-        {/* Continuous Stream "Load Next Chunk" Button */}
-        {chunkMode === 'continuous' && continuousCount < totalItems && (
-          <div className="p-4 bg-muted/20 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">
-              Loaded <span className="font-semibold text-foreground">{endIdx}</span> of{' '}
-              <span className="font-semibold text-foreground">{totalItems.toLocaleString()}</span> items (
-              {Math.round((endIdx / totalItems) * 100)}%)
-            </div>
-            <button
-              onClick={handleLoadMore}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold rounded-md transition-colors shadow-xs"
-            >
-              <ArrowDownCircle size={15} /> Load Next {Math.min(pageSize || 50, totalItems - endIdx)} Items
-            </button>
-          </div>
-        )}
-
-        {chunkMode === 'continuous' && continuousCount >= totalItems && totalItems > 0 && (
-          <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <CheckCircle2 size={14} /> All {totalItems.toLocaleString()} items fully loaded
-          </div>
-        )}
-
         {/* Bottom Pagination Footer */}
-        {chunkMode === 'paginated' && pageSize > 0 && totalPages > 1 && (
+        {pageSize > 0 && totalPages > 1 && (
           <div className="p-3 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="text-muted-foreground">
               Showing page <span className="font-medium text-foreground">{currentPage}</span> of{' '}
-              <span className="font-medium text-foreground">{totalPages}</span> ({pageSize} items per chunk)
+              <span className="font-medium text-foreground">{totalPages}</span> ({pageSize} items per page)
             </div>
             <div className="flex items-center gap-1">
               <button
