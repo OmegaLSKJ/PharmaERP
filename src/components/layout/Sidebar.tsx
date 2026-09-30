@@ -6,7 +6,7 @@ import {
   ClipboardList, TrendingUp, Shield, Database, Link2, Hash, Ban,
   Percent, Clock, Upload, Download, FileCheck, Calculator, Scale,
   Wallet, Activity, Boxes, AlertTriangle, Flame, Turtle, Zap,
-  PanelLeftClose, PanelLeft, IndianRupee, ExternalLink
+  PanelLeftClose, PanelLeft, IndianRupee, ExternalLink, ScanLine
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../lib/utils'
@@ -290,6 +290,21 @@ export default function Sidebar() {
 
       {/* Sidebar Footer Controls */}
       <div className="border-t border-border/80 p-2 space-y-0.5 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <NavLink to="/ocr-templates" title={collapsed ? 'OCR Templates' : undefined}
+          aria-label={collapsed ? 'OCR Templates' : undefined}
+          className={({ isActive }) => cn(
+            'flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] transition-all duration-150',
+            collapsed ? 'justify-center' : '',
+            isActive ? 'text-primary bg-primary/10 border-l-2 border-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+          )}>
+          {({ isActive }) => (<>
+            <ScanLine size={16} className={isActive ? 'text-primary' : 'text-muted-foreground/80'} />
+            {!collapsed && <span className="flex-1 flex items-center justify-between">
+              <span>OCR Templates</span>
+              <span className="text-[9px] font-bold bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded border border-blue-500/20">A4</span>
+            </span>}
+          </>)}
+        </NavLink>
         <NavLink to="/settings" title={collapsed ? 'Settings' : undefined}
           aria-label={collapsed ? 'Settings' : undefined}
           className={({ isActive }) => cn(

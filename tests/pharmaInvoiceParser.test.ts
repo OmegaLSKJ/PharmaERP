@@ -94,4 +94,41 @@ describe('pharmaInvoiceParser', () => {
     expect(parsed.items[1].itemName).toContain('ASTHALIN RESPULES')
     expect(parsed.items[1].batch).toBe('AS882')
   })
+
+  it('accurately parses Standard A4 Sales Order Sheet template for field reps', () => {
+    const a4SheetText = `
+    BORGANG DRUG DISTRIBUTORS
+    GSTIN: 18AKWPP4417G1ZN
+    CUSTOMER: APOLLO PHARMACY & SURGICALS
+    ORDER NO: SO-2026/8841
+    DATE: 28/09/2026
+    SALES REP: RAHUL SHARMA
+
+    S.No  Medicine Description    Pack    HSN       Batch No  Exp (MM/YY)  Qty  Free  Rate    MRP     GST%  Amount
+    1     PAN 40MG TAB            15'S    30049099  PN8821    09/27        20   2     98.50   155.00  12%   1970.00
+    2     MOXIKIND CV 625 TAB     10'S    30049099  MK4401    11/26        15   0     145.00  220.00  12%   2175.00
+    3     TELMA 40MG TAB          10X10   30049099  TL9012    04/28        30   3     142.00  210.00  12%   4260.00
+    4     AUGMENTIN 625 DUO TAB   10'S    30049099  AG7719    08/27        10   1     165.00  223.00  12%   1650.00
+
+    ESTIMATED TOTAL: 10055.00
+    `
+
+    const parsed = parsePharmaInvoice(a4SheetText, 'digital_pdf')
+    expect(parsed.invoiceNo).toBe('SO-2026/8841')
+    expect(parsed.items.length).toBe(4)
+    expect(parsed.items[0].itemName).toContain('PAN 40MG')
+    expect(parsed.items[0].batch).toBe('PN8821')
+    expect(parsed.items[0].expiry).toBe('09/27')
+    expect(parsed.items[0].qty).toBe(20)
+    expect(parsed.items[0].purchaseRate).toBe(98.5)
+
+    expect(parsed.items[1].itemName).toContain('MOXIKIND CV 625')
+    expect(parsed.items[1].batch).toBe('MK4401')
+
+    expect(parsed.items[2].itemName).toContain('TELMA 40MG')
+    expect(parsed.items[2].batch).toBe('TL9012')
+
+    expect(parsed.items[3].itemName).toContain('AUGMENTIN 625 DUO')
+    expect(parsed.items[3].batch).toBe('AG7719')
+  })
 })

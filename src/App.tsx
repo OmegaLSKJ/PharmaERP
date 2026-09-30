@@ -33,6 +33,8 @@ import Pendings from './pages/transactions/Pendings'
 import TransactionImport from './pages/transactions/TransactionImport'
 import ServerUpload from './pages/transactions/ServerUpload'
 import ClaimSettlement from './pages/transactions/claims/ClaimSettlement'
+import BlankOrderSheetPage from './pages/transactions/BlankOrderSheetPage'
+import OcrTemplatesPage from './pages/ocr/OcrTemplatesPage'
 import VoucherEntry from './pages/accounting/VoucherEntry'
 import DayBook from './pages/accounting/DayBook'
 import LedgerView from './pages/accounting/LedgerView'
@@ -138,6 +140,9 @@ export default function App() {
           <Route path="/transactions/import" element={<TransactionImport />} />
           <Route path="/transactions/upload" element={<ServerUpload />} />
           <Route path="/transactions/claims" element={<ClaimSettlement />} />
+          <Route path="/transactions/blank-sheet" element={<BlankOrderSheetPage />} />
+          <Route path="/blank-sheet" element={<BlankOrderSheetPage />} />
+          <Route path="/ocr-templates" element={<OcrTemplatesPage />} />
           <Route path="/accounting/vouchers" element={<VoucherEntry />} />
           <Route path="/accounting/daybook" element={<DayBook />} />
           <Route path="/accounting/ledger" element={<LedgerView />} />

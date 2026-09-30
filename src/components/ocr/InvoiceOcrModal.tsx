@@ -15,12 +15,15 @@ import {
   SwitchCamera,
   Search,
   CheckSquare,
-  Square
+  Square,
+  Printer
 } from 'lucide-react'
 import { scanInvoice } from '../../lib/ocr/ocrEngine'
+import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
 import { ExtractedInvoice, ExtractedLineItem } from '../../lib/ocr/types'
 import { mapExtractedItemsToMaster, MasterItemOption, matchMedicineToMaster } from '../../lib/ocr/medicineMapper'
 import { formatCurrency } from '../../lib/utils'
+import BlankSheetModal from '../transactions/BlankSheetModal'
 
 export interface InvoiceOcrModalProps {
   isOpen: boolean
@@ -44,6 +47,7 @@ export default function InvoiceOcrModal({
   const [statusMessage, setStatusMessage] = useState('')
   const [extractedData, setExtractedData] = useState<ExtractedInvoice | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
 
   // Camera State
   const [cameraActive, setCameraActive] = useState(false)
@@ -145,6 +149,54 @@ export default function InvoiceOcrModal({
     } finally {
       setScanning(false)
     }
+  }
+
+  const handleLoadSampleA4Sheet = async () => {
+    setScanning(true)
+    setProgress(20)
+    setStatusMessage('Reading Standard A4 Field Order Sheet...')
+    setError(null)
+
+    await new Promise((r) => setTimeout(r, 350))
+    setProgress(55)
+    setStatusMessage('Scanning OCR tabular columns & extracting medicines...')
+
+    await new Promise((r) => setTimeout(r, 350))
+    setProgress(85)
+    setStatusMessage('Matching medicines against your inventory master...')
+
+    const sampleA4SheetText = `
+[+ OCR-TL +]                                                                          [+ OCR-TR +]
+====================================================================================================
+BORGANG DRUG DISTRIBUTORS                                  STANDARD OCR FORM
+WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS          SALES ORDER & BOOKING SHEET
+Borgang, Biswanath, Assam - 784167 | Ph: +91 6000763703     REF: OCR-SALE-A4/2026
+GSTIN: 18AKWPP4417G1ZN | D.L. No: DNG/622/623
+----------------------------------------------------------------------------------------------------
+CUSTOMER / CHEMIST SHOP NAME: APOLLO PHARMACY & SURGICALS
+GSTIN: 18AABCA1234D1ZX   D.L. No: AS/BIS/2024/991
+ORDER / SLIP NO: SO-2026/8841     DATE: 28/09/2026     SALES REP: RAHUL SHARMA (REP-04)
+====================================================================================================
+S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK  | HSN      | BATCH NO  | EXP   | QTY | FREE | RATE   | MRP    | GST% | AMOUNT
+----------------------------------------------------------------------------------------------------------------------------
+1    | PAN 40MG TAB                   | 15'S  | 30049099 | BAT-8821  | 09/27 | 50  | 5    | 112.50 | 155.00 | 12%  | 5625.00
+2    | MOXIKIND CV 625 TAB            | 10'S  | 30041010 | MK-9042   | 11/26 | 30  | 0    | 168.00 | 220.00 | 12%  | 5040.00
+3    | TELMA 40MG TAB                 | 15'S  | 30049099 | TL-4410   | 04/28 | 40  | 4    | 98.00  | 135.00 | 12%  | 3920.00
+4    | AUGMENTIN 625 DUO TAB          | 10'S  | 30041010 | AG-1190   | 08/27 | 25  | 0    | 185.00 | 240.00 | 12%  | 4625.00
+====================================================================================================
+ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
+[+ OCR-BL +]                                                                          [+ OCR-BR +]
+`
+    const parsed = parsePharmaInvoice(sampleA4SheetText, 'image_ocr')
+    const mapped = mapExtractedItemsToMaster(parsed.items, masterItems)
+
+    setProgress(100)
+    setStatusMessage('Sample A4 Sheet successfully processed!')
+    setExtractedData({
+      ...parsed,
+      items: mapped
+    })
+    setScanning(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -447,6 +499,45 @@ export default function InvoiceOcrModal({
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-secondary text-foreground text-xs font-semibold border border-border shadow-xs active:scale-95 transition cursor-pointer"
                 >
                   <Upload size={14} /> Open Native Mobile Camera
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Blank Sheet & Testing Toolbar */}
+          {!extractedData && !scanning && (
+            <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  <Printer size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    Standard A4 Transaction Sheet Template
+                    <span className="text-[10px] font-semibold bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                      OCR-Ready
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    Print a clean blank sheet for field reps, or test the OCR instantly with a pre-filled sample.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowBlankSheetModal(true)}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-card hover:bg-secondary text-foreground text-xs font-semibold border border-border shadow-xs transition cursor-pointer"
+                >
+                  <Printer size={13} /> Print Blank Sheet
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleA4Sheet}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+                >
+                  <Sparkles size={13} /> Test with Sample Sheet
                 </button>
               </div>
             </div>
@@ -817,6 +908,14 @@ export default function InvoiceOcrModal({
         </div>
 
       </div>
+
+      {showBlankSheetModal && (
+        <BlankSheetModal
+          isOpen={showBlankSheetModal}
+          onClose={() => setShowBlankSheetModal(false)}
+          initialMode={mode}
+        />
+      )}
     </div>
   )
 }

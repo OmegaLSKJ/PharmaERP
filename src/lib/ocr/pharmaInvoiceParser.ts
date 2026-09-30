@@ -29,9 +29,9 @@ export function extractGstin(text: string): string {
 
 export function extractInvoiceNo(text: string): string {
   const invPatterns = [
-    /\b(?:INV(?:OICE)?|BILL|MEMO)\s*(?:NO|NUMBER|#)\s*[:.\s-]*([A-Za-z0-9\/-]{3,30})/i,
-    /\b(?:INV(?:OICE)?|BILL)\s*:\s*([A-Za-z0-9\/-]{3,30})/i,
-    /\b(?:INV\s*#|BILL\s*#)\s*[:.\s-]*([A-Za-z0-9\/-]{3,30})/i
+    /\b(?:INV(?:OICE)?|BILL|MEMO|ORDER|SLIP|CHALLAN)\s*(?:NO|NUMBER|#)\s*[:.\s-]*([A-Za-z0-9\/-]{3,30})/i,
+    /\b(?:INV(?:OICE)?|BILL|ORDER|CHALLAN)\s*:\s*([A-Za-z0-9\/-]{3,30})/i,
+    /\b(?:INV\s*#|BILL\s*#|ORDER\s*#)\s*[:.\s-]*([A-Za-z0-9\/-]{3,30})/i
   ]
   for (const pattern of invPatterns) {
     const match = text.match(pattern)
@@ -130,7 +130,7 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
     const upperLine = line.toUpperCase()
 
     // Skip headers, metadata lines, and footers
-    if (/GSTIN|INVOICE\s*NO|BILL\s*NO|INV\s*DATE|DATE\s*:|DL\s*NO|DRUG\s*LIC|PHONE|EMAIL|ADDRESS|STATE\s*CODE/i.test(line)) {
+    if (/GSTIN|INVOICE\s*NO|BILL\s*NO|ORDER\s*NO|SLIP\s*NO|CHALLAN\s*NO|INV\s*DATE|DATE\s*:|SALES\s*REP|CUSTOMER\s*:|SUPPLIER\s*:|CONSIGNEE|DL\s*NO|DRUG\s*LIC|PHONE|EMAIL|ADDRESS|STATE\s*CODE/i.test(line)) {
       continue
     }
 
@@ -144,7 +144,7 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
     if (HEADER_EXCLUDE_WORDS.some(hw => upperLine.includes(hw) && upperLine.length < 120)) {
       continue
     }
-    if (/\b(?:SUB\s*TOTAL|GRAND\s*TOTAL|TOTAL(?:\s*AMOUNT)?|ROUND\s*OFF|TAXABLE\s*VALUE|NET\s*AMOUNT)\b/i.test(line)) {
+    if (/\b(?:SUB\s*TOTAL|GRAND\s*TOTAL|ESTIMATED(?:\s*TOTAL)?|TOTAL(?:\s*AMOUNT)?|ROUND\s*OFF|TAXABLE\s*VALUE|NET\s*AMOUNT)\b/i.test(line)) {
       const amounts = line.match(/\d+[\.,]\d{2}/g)
       if (amounts && amounts.length > 0) {
         const val = parseFloat(amounts[amounts.length - 1].replace(',', '.'))
@@ -231,8 +231,15 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
       gstRate = parseFloat(gstMatch[1])
     }
 
-    // Free quantity pattern like "10 + 1" or "10+1" or "10 / 1"
-    const freeQtyPattern = line.match(/\b(\d+)\s*[\+\/]\s*(\d+)\b/)
+    // Strip HSN, Batch, and Expiry so numbers like 30049099 or 09/27 aren't confused with qty or prices
+    let stripped = line
+      .replace(hsnRegex, '')
+      .replace(expiryRegex, '')
+      .replace(batchExplicitRegex, '')
+      .replace(new RegExp(`\\b${batch}\\b`, 'g'), '')
+
+    // Free quantity pattern like "10 + 1" or "10+1"
+    const freeQtyPattern = stripped.match(/\b(\d+)\s*\+\s*(\d+)\b/)
     if (freeQtyPattern) {
       qty = parseInt(freeQtyPattern[1], 10)
       freeQty = parseInt(freeQtyPattern[2], 10)
@@ -240,13 +247,6 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
 
     // 2. Fallback to positional columns if labels weren't present
     if (purchaseRate === 0 || mrp === 0) {
-      // Strip HSN, Batch, and Expiry so numbers like 30049099 or 08/27 aren't confused with prices
-      let stripped = line
-        .replace(hsnRegex, '')
-        .replace(expiryRegex, '')
-        .replace(batchExplicitRegex, '')
-        .replace(new RegExp(`\\b${batch}\\b`, 'g'), '')
-
       // Find all decimal numbers (rates & MRPs)
       const decimals = stripped.match(/\b\d+\.\d{2}\b/g)?.map(d => parseFloat(d)) || []
       if (decimals.length >= 2) {
@@ -259,6 +259,27 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
       } else if (decimals.length === 1) {
         if (purchaseRate === 0) purchaseRate = decimals[0]
         if (mrp === 0) mrp = Math.round(purchaseRate * 1.35 * 100) / 100
+      }
+    }
+
+    // If qty wasn't found by label or scheme, pick the integer column from stripped
+    if (qty === 1 && !freeQtyPattern && !qtyMatch) {
+      // Find integers that are not serial number, pack size, dosage, or GST
+      const lineWithoutName = stripped
+        .replace(/^[0-9]{1,3}\s+/, '') // remove leading serial no
+        .replace(/\b\d+\s*['xX][a-zA-Z0-9]*\b/g, '') // remove pack sizes like 15's, 10x10
+      const intMatches = lineWithoutName.match(/\b\d{1,4}\b/g)
+      if (intMatches && intMatches.length > 0) {
+        // Filter out GST % (5, 12, 18, 28) and dosages
+        const candidates = intMatches
+          .map(n => parseInt(n, 10))
+          .filter(n => n !== gstRate && n > 0 && n < 5000 && !line.includes(`${n}MG`) && !line.includes(`${n}ML`))
+        if (candidates.length > 0) {
+          qty = candidates[0]
+          if (candidates.length > 1 && freeQty === 0) {
+            freeQty = candidates[1]
+          }
+        }
       }
     }
 

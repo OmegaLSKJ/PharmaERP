@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Standard A4 Delivery Challan Sheet - PharmaERP OCR</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      margin: 0;
+      padding: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #000;
+      background: #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .top-actions {
+      width: 210mm;
+      max-width: 100%;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .top-actions .btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .top-actions .btn:hover {
+      background: #1d4ed8;
+    }
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 10mm 9mm;
+      background: #fff;
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .top-actions {
+        display: none !important;
+      }
+      .sheet {
+        border: none;
+        box-shadow: none;
+        width: 100%;
+        min-height: auto;
+        padding: 0;
+      }
+    }
+    .frame {
+      border: 2px solid #000;
+      padding: 8px;
+      position: relative;
+    }
+    .ocr-marker {
+      position: absolute;
+      font-family: monospace;
+      font-size: 8px;
+      font-weight: bold;
+      color: #000;
+    }
+    .ocr-tl { top: 2px; left: 2px; }
+    .ocr-tr { top: 2px; right: 2px; }
+    .ocr-bl { bottom: 2px; left: 2px; }
+    .ocr-br { bottom: 2px; right: 2px; }
+    
+    .header-box {
+      border: 1.5px solid #000;
+      margin-bottom: 6px;
+    }
+    .header-top {
+      display: flex;
+      border-bottom: 1.5px solid #000;
+    }
+    .branding {
+      flex: 7;
+      padding: 8px;
+      border-right: 1.5px solid #000;
+    }
+    .branding h1 {
+      margin: 0 0 3px 0;
+      font-size: 17px;
+      font-weight: 900;
+      color: #0c2f66;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+    .branding .sub {
+      font-size: 9px;
+      font-weight: 700;
+      color: #333;
+    }
+    .branding .meta {
+      font-size: 8.5px;
+      color: #444;
+      margin-top: 2px;
+    }
+    .badge {
+      flex: 5;
+      padding: 8px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: right;
+    }
+    .badge .title {
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #111;
+      display: block;
+    }
+    .badge .sub {
+      font-size: 8px;
+      color: #555;
+      margin-top: 1px;
+    }
+    .info-grid {
+      display: flex;
+      font-size: 9.5px;
+    }
+    .party-col {
+      flex: 7;
+      padding: 6px 8px;
+      border-right: 1.5px solid #000;
+    }
+    .party-col .label {
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 2px;
+    }
+    .party-col .line {
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 18px;
+      border-bottom: 1px dotted #888;
+    }
+    .order-col {
+      flex: 5;
+      padding: 6px 8px;
+    }
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .order-row span.lbl {
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #444;
+    }
+    .order-row span.val {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .guide-banner {
+      background: #f1f5f9;
+      border: 1px solid #000;
+      padding: 4px 8px;
+      margin-bottom: 6px;
+      font-size: 8px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+    table.grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+      margin-bottom: 6px;
+    }
+    table.grid th {
+      background: #e2e8f0;
+      border: 1px solid #000;
+      padding: 4px 2px;
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    table.grid td {
+      border: 1px solid #000;
+      padding: 2px 2px;
+      height: 22px;
+      font-family: monospace;
+      font-size: 9px;
+    }
+    table.grid tr.even {
+      background: #fafafa;
+    }
+    .bottom-box {
+      border: 1.5px solid #000;
+      display: flex;
+      font-size: 8.5px;
+      margin-bottom: 6px;
+    }
+    .notes-col {
+      flex: 7;
+      padding: 6px;
+      border-right: 1.5px solid #000;
+    }
+    .totals-col {
+      flex: 5;
+      padding: 6px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .signatures {
+      border: 1.5px solid #000;
+      display: flex;
+      text-align: center;
+      font-size: 8px;
+    }
+    .sig-box {
+      flex: 1;
+      padding: 6px;
+      border-right: 1px solid #000;
+    }
+    .sig-box:last-child {
+      border-right: none;
+    }
+    .sig-space {
+      height: 28px;
+    }
+    .sig-line {
+      border-top: 1px dotted #444;
+      padding-top: 3px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Top Bar with Print/Save Button -->
+  <div class="top-actions">
+    <div>
+      <strong style="font-size: 13px;">Standard A4 Delivery Challan Sheet (OCR-Ready)</strong>
+      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">For Stock Transfer, Branch Dispatches & Delivery Runs</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="/all_a4_sheets_download.html" class="btn" style="background: #475569;">All Sheets Hub</a>
+      <button onclick="window.print()" class="btn">🖨️ Print / Save as PDF (A4)</button>
+    </div>
+  </div>
+
+  <div class="sheet">
+    <div class="frame">
+      <div class="ocr-marker ocr-tl">[+ OCR-TL +]</div>
+      <div class="ocr-marker ocr-tr">[+ OCR-TR +]</div>
+      <div class="ocr-marker ocr-bl">[+ OCR-BL +]</div>
+      <div class="ocr-marker ocr-br">[+ OCR-BR +]</div>
+
+      <!-- 1. Header Box -->
+      <div class="header-box">
+        <div class="header-top">
+          <div class="branding">
+            <h1>BORGANG DRUG DISTRIBUTORS</h1>
+            <div class="sub">WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS</div>
+            <div class="meta">Borgang, Biswanath, Assam - 784167 | Ph: +91 6000763703</div>
+            <div class="meta" style="font-weight: 700; color: #000; margin-top: 3px;">
+              GSTIN: <span style="font-family: monospace;">18AKWPP4417G1ZN</span> &nbsp;|&nbsp; D.L. No: <span style="font-family: monospace;">DNG/622/623</span>
+            </div>
+          </div>
+          <div class="badge">
+            <div>
+              <span style="font-size: 7.5px; font-weight: 900; color: #64748b; letter-spacing: 0.5px;">STANDARD OCR FORM</span>
+              <span class="title">DELIVERY CHALLAN SHEET</span>
+              <span class="sub">GOODS DISPATCH & RECEIVING SLIP</span>
+            </div>
+            <div style="font-family: monospace; font-size: 7.5px; color: #64748b;">
+              REF: OCR-DC-A4/2026
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Metadata Fill-In -->
+        <div class="info-grid">
+          <div class="party-col">
+            <div class="label">Consignee / Destination Branch / Chemist Name *</div>
+            <div class="line"></div>
+            <div style="display: flex; gap: 15px; margin-top: 5px; font-size: 8.5px;">
+              <div><strong>Address:</strong> ________________________</div>
+              <div><strong>Contact:</strong> ____________________</div>
+            </div>
+          </div>
+          <div class="order-col">
+            <div class="order-row">
+              <span class="lbl">CHALLAN NO:</span>
+              <span class="val">DC-2026/______</span>
+            </div>
+            <div class="order-row">
+              <span class="lbl">DISPATCH DATE:</span>
+              <span class="val">____/____/2026</span>
+            </div>
+            <div class="order-row">
+              <span class="lbl">VEHICLE / TRANSPORTER:</span>
+              <span class="val">__________________</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instructions Banner -->
+      <div class="guide-banner">
+        <span>✍️ <strong>OCR Instructions:</strong> Write medicine descriptions, batch, expiry, and dispatched quantity clearly in CAPITAL LETTERS.</span>
+        <span>PAGE 1 OF 1</span>
+      </div>
+
+      <!-- 3. High-Accuracy OCR Data Table (18 Rows) -->
+      <table class="grid">
+        <thead>
+          <tr>
+            <th style="width: 24px;">S.No</th>
+            <th style="text-align: left; padding-left: 6px;">Medicine / Item Description</th>
+            <th style="width: 44px;">Pack</th>
+            <th style="width: 50px;">HSN</th>
+            <th style="width: 60px;">Batch No</th>
+            <th style="width: 48px;">Exp (MM/YY)</th>
+            <th style="width: 40px;">Disp Qty</th>
+            <th style="width: 36px;">Free</th>
+            <th style="width: 48px;">Rate (₹)</th>
+            <th style="width: 48px;">MRP (₹)</th>
+            <th style="width: 40px;">Boxes/Pkgs</th>
+            <th style="width: 58px;">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="text-align: center;">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">7</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">9</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">11</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">12</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">13</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">14</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">15</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td style="text-align: center;">17</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="even"><td style="text-align: center;">18</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+
+      <!-- 4. Bottom Totals & Logistics -->
+      <div class="bottom-box">
+        <div class="notes-col">
+          <div style="font-weight: 800; text-transform: uppercase; font-size: 8px; color: #444; margin-bottom: 2px;">
+            Transport & Dispatch Notes:
+          </div>
+          <div style="min-height: 28px; line-height: 1.4; color: #444;">
+            Total Cases / Corrugated Cartons: _______ Nos. Received goods in good sound condition without damage or tampering.
+          </div>
+        </div>
+        <div class="totals-col">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="font-weight: 800;">TOTAL QUANTITY DISPATCHED:</span>
+            <span style="font-family: monospace; font-weight: 700;">________________ Units</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 3px;">
+            <span style="font-weight: 900; font-size: 10px;">ESTIMATED TOTAL VALUE:</span>
+            <span style="font-family: monospace; font-weight: 900; font-size: 11px;">₹ ________________</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Signatures -->
+      <div class="signatures">
+        <div class="sig-box">
+          <div class="sig-space"></div>
+          <div class="sig-line">DISPATCHED BY (GODOWN INCHARGE)</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-space"></div>
+          <div class="sig-line">DRIVER / TRANSPORTER SIGNATURE</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-space"></div>
+          <div class="sig-line">CONSIGNEE RECEIVER SIGN & STAMP</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

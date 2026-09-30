@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Download All Standard A4 Transaction Sheets - PharmaERP OCR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 30px 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .workflow-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .wf-step {
+      display: flex;
+      gap: 12px;
+    }
+    .wf-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .wf-text h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 3px;
+    }
+    .wf-text p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .sheet-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .sheet-card:hover {
+      transform: translateY(-2px);
+      border-color: #3b82f6;
+    }
+    .card-top {
+      margin-bottom: 20px;
+    }
+    .tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .tag-sale { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    .tag-pur { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .tag-dc { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .tag-vouch { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+    .tag-test { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+
+    .sheet-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .sheet-card p {
+      font-size: 12.5px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .spec-list {
+      list-style: none;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      border-top: 1px solid #334155;
+      padding-top: 10px;
+    }
+    .spec-list li {
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .spec-list li::before {
+      content: "✓";
+      color: #38bdf8;
+      font-weight: 900;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .btn {
+      flex: 1;
+      text-align: center;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #f1f5f9;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="header">
+      <div class="badge">PharmaERP · Universal A4 Printable Suite</div>
+      <h1>Downloadable A4 Transaction Sheets</h1>
+      <p class="subtitle">
+        Standard 210mm × 297mm printable templates formatted specifically for field sales reps, godowns, and billing desks to record transactions manually and scan them via local OCR.
+      </p>
+    </div>
+
+    <!-- Method B Workflow Guide -->
+    <div class="workflow-card">
+      <div class="wf-step">
+        <div class="wf-num">1</div>
+        <div class="wf-text">
+          <h4>Print Template</h4>
+          <p>Print the A4 sheet directly or save as PDF via your browser's print dialog (Ctrl+P / ⌘P).</p>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">2</div>
+        <div class="wf-text">
+          <h4>Fill in Items</h4>
+          <p>Sales rep writes medicine names, batch, expiry (MM/YY), and quantities in BLOCK LETTERS.</p>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">3</div>
+        <div class="wf-text">
+          <h4>Photo or Scan</h4>
+          <p>Take a phone photo or scan using the ERP's live camera / document upload.</p>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">4</div>
+        <div class="wf-text">
+          <h4>Auto Mapping</h4>
+          <p>The local OCR extracts all rows and matches them directly with your master inventory.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 A4 Sheets Grid -->
+    <div class="grid">
+
+      <!-- Sheet 1: Sales Order Sheet -->
+      <div class="sheet-card">
+        <div class="card-top">
+          <span class="tag tag-sale">Field Sales & Chemist Orders</span>
+          <h3>1. Sales Order Sheet</h3>
+          <p>Form for sales representatives visiting retail chemist counters to book orders with quantities and free schemes.</p>
+          <ul class="spec-list">
+            <li>18 rows with Medicine, Pack, HSN, Batch, Exp, Qty, Free, Rate, MRP</li>
+            <li>Corner calibration anchors: <code>[+ OCR-TL +]</code></li>
+            <li>Customer GSTIN, D.L. No, and Sales Rep Code headers</li>
+          </ul>
+        </div>
+        <div class="btn-group">
+          <a href="/blank_sales_order_sheet_a4.html" target="_blank" class="btn btn-primary">🖨️ Open / Print (A4)</a>
+          <a href="/blank_sales_order_sheet_a4.html" download="Standard_A4_Sales_Order_Sheet.html" class="btn btn-secondary">⬇️ Download File</a>
+        </div>
+      </div>
+
+      <!-- Sheet 2: Purchase Order Sheet -->
+      <div class="sheet-card">
+        <div class="card-top">
+          <span class="tag tag-pur">Procurement & Distributors</span>
+          <h3>2. Purchase Order Sheet</h3>
+          <p>Form for placing orders with manufacturers and C&F distributors with purchase rates, payment terms, and delivery instructions.</p>
+          <ul class="spec-list">
+            <li>18 rows with Order Qty, Purchase Rate, Taxable Amount, GST%</li>
+            <li>Supplier station, GSTIN, and credit terms fill-ins</li>
+            <li>Authorised purchase manager approval space</li>
+          </ul>
+        </div>
+        <div class="btn-group">
+          <a href="/blank_purchase_order_sheet_a4.html" target="_blank" class="btn btn-primary">🖨️ Open / Print (A4)</a>
+          <a href="/blank_purchase_order_sheet_a4.html" download="Standard_A4_Purchase_Order_Sheet.html" class="btn btn-secondary">⬇️ Download File</a>
+        </div>
+      </div>
+
+      <!-- Sheet 3: Delivery Challan Sheet -->
+      <div class="sheet-card">
+        <div class="card-top">
+          <span class="tag tag-dc">Dispatches & Godown Transfers</span>
+          <h3>3. Delivery Challan Sheet</h3>
+          <p>Used for branch-to-branch stock transfers, van delivery runs, and chemist consignment shipments.</p>
+          <ul class="spec-list">
+            <li>Columns for Vehicle No, Transporter, Case/Carton count</li>
+            <li>Dispatched quantity and receiving confirmation</li>
+            <li>Three-party signoff: Godown, Transporter, Consignee</li>
+          </ul>
+        </div>
+        <div class="btn-group">
+          <a href="/blank_delivery_challan_sheet_a4.html" target="_blank" class="btn btn-primary">🖨️ Open / Print (A4)</a>
+          <a href="/blank_delivery_challan_sheet_a4.html" download="Standard_A4_Delivery_Challan_Sheet.html" class="btn btn-secondary">⬇️ Download File</a>
+        </div>
+      </div>
+
+      <!-- Sheet 4: Accounting Voucher Sheet -->
+      <div class="sheet-card">
+        <div class="card-top">
+          <span class="tag tag-vouch">Accounting & Cash Counter</span>
+          <h3>4. Accounting Voucher Sheet</h3>
+          <p>Universal accounting voucher for daily Payment, Receipt, Contra, and Journal entries.</p>
+          <ul class="spec-list">
+            <li>16 rows with Particulars, Narration, Debit (₹), Credit (₹)</li>
+            <li>Cheque / UTR / Transaction reference tracking</li>
+            <li>Amount in words and auditor verification stamp</li>
+          </ul>
+        </div>
+        <div class="btn-group">
+          <a href="/blank_accounting_voucher_sheet_a4.html" target="_blank" class="btn btn-primary">🖨️ Open / Print (A4)</a>
+          <a href="/blank_accounting_voucher_sheet_a4.html" download="Standard_A4_Accounting_Voucher_Sheet.html" class="btn btn-secondary">⬇️ Download File</a>
+        </div>
+      </div>
+
+      <!-- Sheet 5: Pre-Filled Sample Test Sheet -->
+      <div class="sheet-card" style="border-color: #ec4899;">
+        <div class="card-top">
+          <span class="tag tag-test">Ready-to-Scan Test Sheet</span>
+          <h3>5. Sample Pre-Filled Sheet</h3>
+          <p>Pre-populated with 4 standard pharma medicines for testing OCR immediately without having to write by hand.</p>
+          <ul class="spec-list">
+            <li>PAN 40MG TAB, MOXIKIND CV 625, TELMA 40MG, AUGMENTIN 625</li>
+            <li>Complete with HSN, Batches, Expiries, Rates, and Totals</li>
+            <li>Ideal for testing phone photo capture and image scanner</li>
+          </ul>
+        </div>
+        <div class="btn-group">
+          <a href="/sample_filled_order_sheet.html" target="_blank" class="btn btn-primary" style="background: #db2777;">🖨️ Open / Print Test</a>
+          <a href="/sample_filled_order_sheet.html" download="Sample_Filled_A4_Order_Sheet.html" class="btn btn-secondary">⬇️ Download File</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <p>PharmaERP OCR System · All templates are strictly local and compliant with Indian Pharmaceutical Wholesale Standards.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>
