@@ -192,14 +192,14 @@ export default function BlankTransactionSheetPrint({
                   </td>
                   <td className="border-r border-black px-2 font-medium"></td>
                   <td className="border-r border-black px-1 text-center text-gray-400 font-mono"></td>
-                  <td className="border-r border-black px-1 text-center font-mono">3004</td>
+                  <td className="border-r border-black px-1 text-center font-mono"></td>
                   <td className="border-r border-black px-1 text-center font-mono uppercase"></td>
                   <td className="border-r border-black px-1 text-center font-mono"></td>
                   <td className="border-r border-black px-1 text-right font-mono"></td>
-                  <td className="border-r border-black px-1 text-right font-mono text-gray-400">0</td>
+                  <td className="border-r border-black px-1 text-right font-mono text-gray-400"></td>
                   <td className="border-r border-black px-1 text-right font-mono"></td>
                   <td className="border-r border-black px-1 text-right font-mono"></td>
-                  <td className="border-r border-black px-1 text-center font-mono text-gray-600">12%</td>
+                  <td className="border-r border-black px-1 text-center font-mono text-gray-600"></td>
                   <td className="px-2 text-right font-mono"></td>
                 </tr>
               ))}

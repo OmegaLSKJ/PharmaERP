@@ -1026,56 +1026,56 @@ export function generateSampleFilledSheetHtml(c: TemplateCompanyInfo = DEFAULT_C
               <td style="text-align:center;">1</td>
               <td style="font-weight: 700; color: #0c2f66;">PAN 40MG TAB</td>
               <td style="text-align:center;">15'S</td>
-              <td style="text-align:center;">30049099</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:center; font-weight:700;">BAT-8821</td>
               <td style="text-align:center;">09/27</td>
               <td style="text-align:center; font-weight: 800;">50</td>
               <td style="text-align:center;">5</td>
               <td style="text-align:right;">112.50</td>
               <td style="text-align:right;">155.00</td>
-              <td style="text-align:center;">12%</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:right; font-weight:700;">5625.00</td>
             </tr>
             <tr class="even">
               <td style="text-align:center;">2</td>
               <td style="font-weight: 700; color: #0c2f66;">MOXIKIND CV 625 TAB</td>
               <td style="text-align:center;">10'S</td>
-              <td style="text-align:center;">30041010</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:center; font-weight:700;">MK-9042</td>
               <td style="text-align:center;">11/26</td>
               <td style="text-align:center; font-weight: 800;">30</td>
               <td style="text-align:center;">-</td>
               <td style="text-align:right;">168.00</td>
               <td style="text-align:right;">220.00</td>
-              <td style="text-align:center;">12%</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:right; font-weight:700;">5040.00</td>
             </tr>
             <tr>
               <td style="text-align:center;">3</td>
               <td style="font-weight: 700; color: #0c2f66;">TELMA 40MG TAB</td>
               <td style="text-align:center;">15'S</td>
-              <td style="text-align:center;">30049099</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:center; font-weight:700;">TL-4410</td>
               <td style="text-align:center;">04/28</td>
               <td style="text-align:center; font-weight: 800;">40</td>
               <td style="text-align:center;">4</td>
               <td style="text-align:right;">98.00</td>
               <td style="text-align:right;">135.00</td>
-              <td style="text-align:center;">12%</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:right; font-weight:700;">3920.00</td>
             </tr>
             <tr class="even">
               <td style="text-align:center;">4</td>
               <td style="font-weight: 700; color: #0c2f66;">AUGMENTIN 625 DUO TAB</td>
               <td style="text-align:center;">10'S</td>
-              <td style="text-align:center;">30041010</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:center; font-weight:700;">AG-1190</td>
               <td style="text-align:center;">08/27</td>
               <td style="text-align:center; font-weight: 800;">25</td>
               <td style="text-align:center;">-</td>
               <td style="text-align:right;">185.00</td>
               <td style="text-align:right;">240.00</td>
-              <td style="text-align:center;">12%</td>
+              <td style="text-align:center;"></td>
               <td style="text-align:right; font-weight:700;">4625.00</td>
             </tr>
             ${emptyRows}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Printer,
   Download,
@@ -336,9 +337,9 @@ export default function OcrTemplatesPage() {
       </div>
 
       {/* Full Sheet Preview Modal - Instant in-memory rendering via srcDoc */}
-      {showPreviewModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-          <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      {showPreviewModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex justify-center items-start sm:items-center p-3 sm:p-6 overflow-y-auto no-print">
+          <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between bg-muted/30">
@@ -384,7 +385,8 @@ export default function OcrTemplatesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* OCR Scanner Modal for Testing */}
