@@ -446,17 +446,29 @@ export default function Party360() {
       setLoading(true)
     }
 
-    Promise.all([
-      getErp<any[]>('parties', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('purchases', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('sales', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('ledgers', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('vouchers', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('item-mappings', undefined, { forceRefresh }).catch(() => []),
-      getErp<any[]>('items', undefined, { forceRefresh: false }).catch(() => []),
-    ])
-      .then(([allParties, allPurchases, allSales, allLedgers, allVouchers, allMappings, allItems]) => {
-        const combinedParties = allParties || []
+    // Targeted single-party load from Supabase (sub-100ms)
+    getErp<any>('party-detail', { partyId: id }, { forceRefresh })
+      .then((detail) => {
+        if (detail && (detail.id || detail.name)) {
+          setPartyData(detail)
+          setLoading(false)
+          return
+        }
+        throw new Error('Fallback to standard aggregation')
+      })
+      .catch(() => {
+        // Fallback: client-side aggregation across cached resources
+        Promise.all([
+          getErp<any[]>('parties', undefined, { forceRefresh }).catch(() => []),
+          getErp<any[]>('purchases', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('sales', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('ledgers', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('vouchers', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('item-mappings', undefined, { forceRefresh: false }).catch(() => []),
+          getErp<any[]>('items', undefined, { forceRefresh: false }).catch(() => []),
+        ])
+          .then(([allParties, allPurchases, allSales, allLedgers, allVouchers, allMappings, allItems]) => {
+            const combinedParties = allParties || []
         const decodedId = decodeURIComponent(id || '').trim().toLowerCase()
         const norm = (str?: string) => (str || '').replace(/\s+/g, ' ').trim().toLowerCase()
 
@@ -932,6 +944,7 @@ export default function Party360() {
         showToast(err?.message || 'Failed to load party details.')
       })
       .finally(() => setLoading(false))
+    })
   }
 
   useEffect(() => {
