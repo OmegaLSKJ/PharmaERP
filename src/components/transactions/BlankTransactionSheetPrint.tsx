@@ -20,7 +20,7 @@ export default function BlankTransactionSheetPrint({
   repName = '',
   date = '',
   sheetNo = '',
-  rowCount = 18
+  rowCount = 15
 }: BlankTransactionSheetPrintProps) {
   const storeCompany = useUIStore((s) => s.company)
 

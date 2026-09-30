@@ -22,7 +22,7 @@ export default function BlankSheetModal({
   const [repName, setRepName] = useState('')
   const [date, setDate] = useState(() => new Date().toLocaleDateString('en-GB'))
   const [sheetNo, setSheetNo] = useState('')
-  const [rowCount, setRowCount] = useState<number>(18)
+  const [rowCount, setRowCount] = useState<number>(15)
 
   if (!isOpen) return null
 

@@ -36,7 +36,7 @@ const TEMPLATES: TemplateInfo[] = [
     tag: 'Sales & Rep Booking',
     tagColor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
     mode: 'sale',
-    description: 'Formatted for sales representatives visiting retail chemist shops. High-contrast grid with 18 writable rows, corner calibration markers, and GST/MRP columns.',
+    description: 'Formatted for sales representatives visiting retail chemist shops. High-contrast grid with 15 writable rows, corner calibration markers, and GST/MRP columns.',
     columns: ['S.No', 'Medicine Description', 'Pack', 'HSN', 'Batch No', 'Exp (MM/YY)', 'Qty', 'Free', 'Rate (₹)', 'MRP (₹)', 'GST%', 'Amount'],
     downloadName: 'PharmaERP_Sales_Order_Sheet_A4.html'
   },
@@ -374,12 +374,12 @@ export default function OcrTemplatesPage() {
             </div>
 
             {/* Modal Iframe View with srcDoc (Zero 404s, renders instantly) */}
-            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-4 sm:p-6 overflow-y-auto flex justify-center">
-              <div className="w-[210mm] max-w-full bg-white shadow-2xl rounded-sm overflow-hidden flex justify-center">
+            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-3 sm:p-5 overflow-y-auto flex justify-center">
+              <div className="w-[205mm] max-w-full bg-white shadow-2xl rounded-sm overflow-hidden flex justify-center">
                 <iframe
                   srcDoc={getTemplateHtmlById(selectedTemplate.id, companyInfo)}
                   title={selectedTemplate.title}
-                  className="w-[210mm] min-h-[305mm] border-none bg-white"
+                  className="w-[200mm] h-[288mm] border-none bg-white"
                 />
               </div>
             </div>

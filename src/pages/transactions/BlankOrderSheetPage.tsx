@@ -10,7 +10,7 @@ export default function BlankOrderSheetPage() {
   const [mode, setMode] = useState<'sale' | 'purchase' | 'challan'>('sale')
   const [partyName, setPartyName] = useState('APOLLO PHARMACY & SURGICALS')
   const [salesRepName, setSalesRepName] = useState('RAHUL SHARMA (REP-04)')
-  const [rowCount, setRowCount] = useState<number>(18)
+  const [rowCount, setRowCount] = useState<number>(15)
   const [showOcrModal, setShowOcrModal] = useState(false)
   const [testSuccess, setTestSuccess] = useState(false)
 
