@@ -2305,7 +2305,7 @@ export default function Party360() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {selectedTxn && (
-        <div className="hidden print:block w-full bg-white text-black p-0 m-0">
+        <div className="hidden print:block w-full bg-white text-black p-0 m-0 mx-auto">
           {printTargetFormat === 'invoice' && (selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') ? (
             <PurchaseInvoicePrint data={getPurchaseInvoicePrintData(selectedTxn, partyData)} />
           ) : printTargetFormat === 'invoice' && (selectedTxn.type.toLowerCase().includes('sale') || selectedTxn.rawType === 'sale') ? (

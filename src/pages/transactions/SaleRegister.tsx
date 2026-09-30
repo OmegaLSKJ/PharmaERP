@@ -539,7 +539,7 @@ export default function SaleRegister() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {selected && (
-        <div className="hidden print:block w-full">
+        <div className="hidden print:block w-full mx-auto">
           <TaxInvoicePrint data={getPrintDataForSelected(selected)} />
         </div>
       )}

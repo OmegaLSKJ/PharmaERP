@@ -178,7 +178,7 @@ export function applyPrintOrientation(orientation: 'portrait' | 'landscape'): vo
   styleEl.textContent = `
     @page {
       size: A4 ${orientation} !important;
-      margin: 6mm 6mm 8mm 6mm !important;
+      margin: 8mm !important;
     }
   `
 
@@ -201,7 +201,7 @@ export function clearPrintOrientation(): void {
     styleEl.textContent = `
       @page {
         size: A4 portrait !important;
-        margin: 6mm 6mm 8mm 6mm !important;
+        margin: 8mm !important;
       }
     `
   }

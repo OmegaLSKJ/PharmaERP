@@ -1399,7 +1399,7 @@ export default function PurchaseRegister() {
 
       {/* Print Target (Only visible when printing) */}
       {selected && (
-        <div className="hidden print:block w-full">
+        <div className="hidden print:block w-full mx-auto">
           <PurchaseInvoicePrint data={getPrintData(selected)} />
         </div>
       )}

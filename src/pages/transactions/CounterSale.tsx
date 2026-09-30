@@ -1027,7 +1027,7 @@ export default function CounterSale() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {completedSale && (
-        <div className="hidden print:block w-full">
+        <div className="hidden print:block w-full mx-auto">
           <TaxInvoicePrint
             data={{
               title: 'RETAIL CASH MEMO',

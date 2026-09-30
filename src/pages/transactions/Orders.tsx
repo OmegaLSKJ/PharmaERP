@@ -273,7 +273,7 @@ export default function Orders() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {selectedOrder && (
-        <div className="hidden print:block w-full">
+        <div className="hidden print:block w-full mx-auto">
           <TaxInvoicePrint data={getPrintDataForOrder(selectedOrder)} />
         </div>
       )}

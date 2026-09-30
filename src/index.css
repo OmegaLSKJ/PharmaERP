@@ -494,11 +494,11 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     PAGE SETUP — A4, balanced print margins, branded footer
+     PAGE SETUP — A4, balanced equal print margins from all sides
   ═══════════════════════════════════════════════════════════════ */
   @page {
     size: A4 portrait;
-    margin: 6mm 6mm 8mm 6mm;
+    margin: 8mm !important;
 
     @bottom-left {
       content: "BORGANG DRUG DISTRIBUTORS";
@@ -526,7 +526,7 @@
   /* Dedicated Landscape Page Setup for High-Visibility Multi-Column Registers */
   @page landscape-mode {
     size: A4 landscape;
-    margin: 6mm 6mm 8mm 6mm;
+    margin: 8mm !important;
 
     @bottom-left {
       content: "BORGANG DRUG DISTRIBUTORS";
@@ -553,7 +553,7 @@
 
   @page portrait-mode {
     size: A4 portrait;
-    margin: 6mm 6mm 8mm 6mm;
+    margin: 8mm !important;
 
     @bottom-left {
       content: "BORGANG DRUG DISTRIBUTORS";
@@ -611,24 +611,74 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     UNIVERSAL FIT-TO-PAGE RULES FOR ALL PRINTOUTS & DOCUMENTS
+     UNIVERSAL CENTER-ALIGNED & EQUAL-PADDING FIT-TO-PAGE RULES
   ═══════════════════════════════════════════════════════════════ */
   .tax-invoice-bill,
   .goods-receipt-note-print,
   .voucher-print-bill,
   [data-print-target],
+  [data-print-header],
   [id*="print"],
-  div[class*="print:block"] {
+  div[class*="print:block"],
+  .sale-analysis-print,
+  #audit-print-document {
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+  }
+
+  /* Fit-to-page max bounds ensuring equal side margins on portrait vs landscape */
+  body.print-orientation-portrait .tax-invoice-bill,
+  body.print-orientation-portrait .goods-receipt-note-print,
+  body.print-orientation-portrait .voucher-print-bill,
+  body.print-orientation-portrait [data-print-target],
+  body.print-orientation-portrait [id*="print"],
+  body.print-orientation-portrait div[class*="print:block"],
+  .print-portrait .tax-invoice-bill,
+  .print-portrait .goods-receipt-note-print,
+  .print-portrait .voucher-print-bill {
+    width: 100% !important;
+    max-width: 194mm !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  body.print-orientation-landscape .tax-invoice-bill,
+  body.print-orientation-landscape .goods-receipt-note-print,
+  body.print-orientation-landscape .voucher-print-bill,
+  body.print-orientation-landscape [data-print-target],
+  body.print-orientation-landscape [id*="print"],
+  body.print-orientation-landscape div[class*="print:block"],
+  body.print-orientation-landscape #audit-print-document,
+  body.print-orientation-landscape table,
+  .print-landscape {
+    width: 100% !important;
+    max-width: 281mm !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Dedicated print target isolation: hide screen dialog overlays and non-print siblings */
+  div.fixed.inset-0:not(.print-target-modal),
+  div[role="dialog"] {
+    display: none !important;
+  }
+
+  body:has(.tax-invoice-bill, .goods-receipt-note-print, .voucher-print-bill, #audit-print-document)
+    .page-enter > div > *:not(.print\:block):not(#audit-print-document):not(:has(.tax-invoice-bill)):not(:has(.goods-receipt-note-print)):not(:has(.voucher-print-bill)):not(:has(#audit-print-document)) {
+    display: none !important;
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     LAYOUT SHELL — strip scroll containers, fix height
+     LAYOUT SHELL — strip scroll containers, center document shell
   ═══════════════════════════════════════════════════════════════ */
   #root,
   div[class*="h-screen"],
@@ -641,7 +691,7 @@
     overflow: visible !important;
     position: static !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     display: block !important;
   }
 
@@ -772,11 +822,15 @@
     table-layout: fixed !important;
     border-collapse: collapse !important;
     font-size: 8pt !important;
+    margin-top: 0 !important;
     margin-bottom: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     page-break-inside: auto !important;
     box-sizing: border-box !important;
     overflow-wrap: break-word !important;
     word-break: break-word !important;
+    border: 1px solid #000000 !important;
   }
 
   thead {
@@ -1193,7 +1247,9 @@
   .voucher-print-bill {
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding: 0 !important;
     box-sizing: border-box !important;
   }

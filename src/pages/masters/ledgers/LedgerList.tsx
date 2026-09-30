@@ -1704,7 +1704,7 @@ export default function LedgerList() {
             : printOrientation
         }
         className={cn(
-          "hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text",
+          "hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text mx-auto",
           (printOrientation === 'landscape' || (printOrientation === 'auto' && activeTab === 'all-transactions'))
             ? 'print-landscape'
             : 'print-portrait'
@@ -1737,7 +1737,7 @@ export default function LedgerList() {
             </div>
 
             {/* Complete Chronological Transactions Table with Automatic Fit to Page */}
-            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3">
+            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3 mx-auto">
               <thead>
                 <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[7.5pt]">
                   <th className="border-r border-black p-1 text-center w-[4%]">#</th>
@@ -1842,7 +1842,7 @@ export default function LedgerList() {
             </div>
 
             {/* Complete Chronological Transactions Table with Automatic Fit to Page */}
-            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3">
+            <table className="w-full table-fixed text-[8pt] border-collapse border border-black mb-3 mx-auto">
               <thead>
                 <tr className="bg-gray-100 text-black border-b border-black font-bold uppercase text-[7.5pt]">
                   <th className="border-r border-black p-1 text-center w-[4%]">#</th>

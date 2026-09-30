@@ -414,7 +414,7 @@ export default function PurchaseReturn() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {selectedReturn && (
-        <div className="hidden print:block w-full">
+        <div className="hidden print:block w-full mx-auto">
           <TaxInvoicePrint data={getPrintDataForReturn(selectedReturn)} />
         </div>
       )}

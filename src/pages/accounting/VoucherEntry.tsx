@@ -1753,7 +1753,7 @@ export default function VoucherEntry() {
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
       {printDataOverride && (
-        <div className="hidden print:block w-full bg-white text-black p-0 m-0">
+        <div className="hidden print:block w-full bg-white text-black p-0 m-0 mx-auto">
           <VoucherPrint data={printDataOverride} />
         </div>
       )}

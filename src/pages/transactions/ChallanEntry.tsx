@@ -584,7 +584,7 @@ export default function ChallanEntry() {
       )}
 
       {/* Dedicated Print Target (Rendered exclusively for window.print()) */}
-      <div className="hidden print:block w-full">
+      <div className="hidden print:block w-full mx-auto">
         <TaxInvoicePrint
           data={{
             title: 'DELIVERY CHALLAN',

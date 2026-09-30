@@ -39,7 +39,7 @@ export default function PrintHeader({ title, subtitle, orientation }: PrintHeade
     <div
       data-print-header="true"
       data-print-orientation={orientation && orientation !== 'auto' ? orientation : undefined}
-      className={`hidden print:block w-full mb-3 text-black font-sans select-text ${orientation === 'landscape' ? 'print-landscape' : orientation === 'portrait' ? 'print-portrait' : ''}`}
+      className={`hidden print:block w-full max-w-full mx-auto mb-3 text-black font-sans select-text ${orientation === 'landscape' ? 'print-landscape' : orientation === 'portrait' ? 'print-portrait' : ''}`}
     >
       {/* Framed Header Box */}
       <div className="border-[1.5px] border-black bg-white">
