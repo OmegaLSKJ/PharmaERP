@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 import { getErp, postErp } from '../../lib/erpApi'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -252,12 +253,11 @@ export default function NegativeStock() {
             <RefreshCw size={13} className={cn(loading && 'animate-spin')} />
             <span>Sync Stock</span>
           </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer"
-          >
-            <FileText size={15} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="landscape"
+            className="no-print"
+          />
           <button
             onClick={() =>
               import('../../lib/download').then(({ exportVisibleTables }) =>

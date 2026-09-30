@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Download, Percent, FileText, Upload } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 import { getErp } from '../../lib/erpApi'
 
@@ -128,12 +129,11 @@ export default function TdsTcs() {
           <p className="text-sm text-muted-foreground mt-1">Deductee &amp; collector ledger | FY 2025-26</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer"
-          >
-            <FileText size={15} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="landscape"
+            className="no-print"
+          />
           <button
             onClick={downloadGovFormat}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold shadow-md transition border border-emerald-500/20"

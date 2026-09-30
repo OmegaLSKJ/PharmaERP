@@ -611,6 +611,23 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
+     UNIVERSAL FIT-TO-PAGE RULES FOR ALL PRINTOUTS & DOCUMENTS
+  ═══════════════════════════════════════════════════════════════ */
+  .tax-invoice-bill,
+  .goods-receipt-note-print,
+  .voucher-print-bill,
+  [data-print-target],
+  [id*="print"],
+  div[class*="print:block"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
      LAYOUT SHELL — strip scroll containers, fix height
   ═══════════════════════════════════════════════════════════════ */
   #root,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Zap, Turtle, Printer } from 'lucide-react'
 import { cn, formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { getErp } from '../../lib/erpApi'
 
 type MovementRow = { name:string; sold:number; stock:number; days:number; value:number }
@@ -64,12 +65,11 @@ export default function FastSlowMoving() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Fast / Slow Moving Items</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">Movement velocity analysis for purchase planning</p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer w-fit"
-        >
-          <Printer size={15} /> Export PDF
-        </button>
+        <PrintButton
+          label="Export PDF"
+          autoOrientationHint="portrait"
+          className="w-fit"
+        />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-card border border-emerald-500/20 rounded-xl p-3 sm:p-4 shadow-xs"><div className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold flex items-center gap-1"><Zap size={11}/>Fast Movers (&lt; 15d cycle)</div><div className="text-lg sm:text-xl font-bold text-foreground mt-1">{fastRows.length} items</div></div>

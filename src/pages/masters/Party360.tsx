@@ -38,6 +38,7 @@ import VoucherPrint, { VoucherPrintData, VoucherPrintLine } from '../../componen
 import PurchaseInvoicePrint, { InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import PrintButton from '../../components/common/PrintButton'
 
 export default function Party360() {
   const nav = useNavigate()
@@ -2073,32 +2074,39 @@ export default function Party360() {
                 </div>
                 <div className="flex items-center gap-2">
                   {(selectedTxn.type.toLowerCase().includes('purchase') || selectedTxn.rawType === 'purchase') && (
-                    <button
-                      type="button"
-                      onClick={() => handlePrintTransaction(selectedTxn, 'invoice')}
-                      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
-                    >
-                      <Printer size={14} /> Print Bill / GRN
-                    </button>
+                    <PrintButton
+                      label="Print Bill / GRN"
+                      autoOrientationHint="portrait"
+                      size="sm"
+                      onBeforePrint={async () => {
+                        setPrintTargetFormat('invoice')
+                        await new Promise((resolve) => setTimeout(resolve, 80))
+                      }}
+                    />
                   )}
 
                   {(selectedTxn.type.toLowerCase().includes('sale') || selectedTxn.rawType === 'sale') && (
-                    <button
-                      type="button"
-                      onClick={() => handlePrintTransaction(selectedTxn, 'invoice')}
-                      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-border hover:bg-muted text-xs sm:text-sm font-medium transition cursor-pointer"
-                    >
-                      <Printer size={14} /> Print Tax Invoice
-                    </button>
+                    <PrintButton
+                      label="Print Tax Invoice"
+                      autoOrientationHint="portrait"
+                      size="sm"
+                      onBeforePrint={async () => {
+                        setPrintTargetFormat('invoice')
+                        await new Promise((resolve) => setTimeout(resolve, 80))
+                      }}
+                    />
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => handlePrintTransaction(selectedTxn, 'voucher')}
-                    className="inline-flex items-center gap-1.5 h-9 px-4 bg-primary text-primary-foreground rounded-xl text-xs sm:text-sm font-medium hover:bg-primary/90 shadow-xs transition cursor-pointer"
-                  >
-                    <Printer size={14} /> Print Voucher
-                  </button>
+                  <PrintButton
+                    label="Print Voucher"
+                    variant="primary"
+                    autoOrientationHint="portrait"
+                    size="sm"
+                    onBeforePrint={async () => {
+                      setPrintTargetFormat('voucher')
+                      await new Promise((resolve) => setTimeout(resolve, 80))
+                    }}
+                  />
 
                   <button
                     type="button"

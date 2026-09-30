@@ -10,6 +10,7 @@ import ActiveProductDetailPanel from '../../components/transactions/ActiveProduc
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import PrintButton from '../../components/common/PrintButton'
 
 interface AvailableItem {
   name: string
@@ -537,12 +538,12 @@ export default function ChallanEntry() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-bold shadow-xs transition border border-border cursor-pointer"
-                >
-                  <Printer size={14} className="text-muted-foreground" /> Print Challan
-                </button>
+                <PrintButton
+                  label="Print Challan"
+                  variant="secondary"
+                  autoOrientationHint="portrait"
+                  size="sm"
+                />
                 <button
                   onClick={() => setShowPrintModal(false)}
                   className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"

@@ -28,6 +28,7 @@ import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import PrintButton from '../../components/common/PrintButton'
 
 interface SaleLine {
   id?: string
@@ -483,17 +484,12 @@ export default function SaleRegister() {
                   <ExternalLink size={13} />
                   <span>Edit in New Window</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Printer size={14} />
-                  <span>Print Bill</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-primary-foreground/80 bg-black/20 dark:bg-white/20 rounded border border-primary-foreground/20">
-                    Ctrl+P
-                  </kbd>
-                </button>
+                <PrintButton
+                  label="Print Bill"
+                  variant="primary"
+                  autoOrientationHint="portrait"
+                  size="md"
+                />
                 <button
                   onClick={() => setSelected(null)}
                   className="hidden sm:inline-flex p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"

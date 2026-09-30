@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import PrintButton from '../../components/common/PrintButton'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 
 interface Order { id: string; orderNo: string; date: string; party: string; type: string; items: number; total: number; deliveryDate: string; status: string }
@@ -245,17 +246,12 @@ export default function Orders() {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Printer size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <span>Print Order</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-background rounded border border-border">
-                    Ctrl+P
-                  </kbd>
-                </button>
+                <PrintButton
+                  label="Print Order"
+                  autoOrientationHint="portrait"
+                  variant="secondary"
+                  kbd="Ctrl+P"
+                />
                 <button
                   type="button"
                   onClick={() => setSelectedOrder(null)}

@@ -3,6 +3,7 @@ import { FileText, Download } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { fetchLiveFinancialData, type TrialBalanceItem, type PnLData, type BalanceSheetData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 
 export default function FinancialReports() {
@@ -38,9 +39,11 @@ export default function FinancialReports() {
           <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Trial Balance, P&L, Balance Sheet</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-sm font-semibold shadow-sm transition border border-border">
-            <FileText size={16} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="portrait"
+            className="no-print"
+          />
           <button onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('financial-report', useUIStore.getState().company))} className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20">
             <Download size={16} /> Export Excel
           </button>

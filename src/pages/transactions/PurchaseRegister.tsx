@@ -12,6 +12,7 @@ import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import TopTableScroller from '../../components/common/TopTableScroller'
+import PrintButton from '../../components/common/PrintButton'
 
 interface ItemOption {
   id?: string
@@ -1371,17 +1372,12 @@ export default function PurchaseRegister() {
                   <Edit3 size={14} />
                   <span>Modify</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="group inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Printer size={14} />
-                  <span>Print Invoice</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-primary-foreground/80 bg-black/20 dark:bg-white/20 rounded border border-primary-foreground/20">
-                    Ctrl+P
-                  </kbd>
-                </button>
+                <PrintButton
+                  label="Print Invoice"
+                  variant="primary"
+                  autoOrientationHint="portrait"
+                  size="md"
+                />
                 <button
                   onClick={() => setSelected(null)}
                   className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition"

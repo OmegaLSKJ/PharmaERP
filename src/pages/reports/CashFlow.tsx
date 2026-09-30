@@ -3,6 +3,7 @@ import { Download, FileText } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { fetchLiveFinancialData, type CashFlowData } from '../../lib/financialData'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 
 const sum = (rows: { inflow: number; outflow: number }[]) => (rows || []).reduce((a, r) => a + r.inflow - r.outflow, 0)
@@ -38,12 +39,11 @@ export default function CashFlow() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 | Indirect Method</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border cursor-pointer"
-          >
-            <FileText size={15} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="portrait"
+            className="no-print"
+          />
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('cash-flow', useUIStore.getState().company))}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20 cursor-pointer"

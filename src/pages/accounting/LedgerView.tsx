@@ -6,6 +6,7 @@ import { getErp, postErp } from '../../lib/erpApi'
 import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 
 interface LedgerEntry {
   id: string
@@ -135,12 +136,11 @@ export default function LedgerView() {
           >
             <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} /> Refresh
           </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-card hover:bg-secondary text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition border border-border cursor-pointer"
-          >
-            <FileText size={14} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="portrait"
+            className="no-print"
+          />
           <button
             onClick={() => exportVisibleTables(`ledger-${selectedLedger || 'all'}`, useUIStore.getState().company)}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20 cursor-pointer"

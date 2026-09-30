@@ -4,6 +4,7 @@ import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash,
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
+import PrintButton from '../../components/common/PrintButton'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { useUIStore } from '../../store/uiStore'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
@@ -1509,17 +1510,12 @@ export default function PurchaseEntry() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Printer size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <span>Print Invoice</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-background rounded border border-border">
-                    Ctrl+P
-                  </kbd>
-                </button>
+                <PrintButton
+                  label="Print Invoice"
+                  autoOrientationHint="portrait"
+                  variant="secondary"
+                  kbd="Ctrl+P"
+                />
                 <button
                   onClick={() => setShowPrintModal(false)}
                   className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"

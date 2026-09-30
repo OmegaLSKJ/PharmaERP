@@ -7,6 +7,7 @@ import { exportVisibleTables } from '../../lib/download'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 
 interface DayBookEntry { id: string; date: string; vType: string; vNo: string; physicalVchNo?: string; ledger: string; debit: number; credit: number; narration: string }
 
@@ -85,9 +86,17 @@ export default function DayBook() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Day Book</h1>
           <p className="text-sm text-muted-foreground mt-1">{filtered.length} entries | March 2026</p>
         </div>
-        <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
-          <Download size={16} /> Export
-        </button>
+        <div className="flex items-center gap-2">
+          <PrintButton
+            label="Print Day Book"
+            variant="outline"
+            autoOrientationHint="landscape"
+            size="md"
+          />
+          <button onClick={() => exportVisibleTables('day-book', useUIStore.getState().company)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm font-medium transition border border-border shadow-xs cursor-pointer">
+            <Download size={16} /> Export
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">

@@ -4,6 +4,7 @@ import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, Arrow
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
+import PrintButton from '../../components/common/PrintButton'
 import Typeahead, { TOption } from '../../components/ui/Typeahead'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
@@ -1433,17 +1434,12 @@ export default function SaleEntry() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-xs font-semibold text-foreground bg-secondary hover:bg-secondary/80 border border-border shadow-xs transition-all cursor-pointer"
-                >
-                  <Printer size={14} className="text-indigo-500" />
-                  <span>Print Bill</span>
-                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-medium text-muted-foreground bg-muted rounded border border-border">
-                    Ctrl+P
-                  </kbd>
-                </button>
+                <PrintButton
+                  label="Print Bill"
+                  autoOrientationHint="portrait"
+                  variant="secondary"
+                  kbd="Ctrl+P"
+                />
                 <button
                   onClick={() => setShowPrintModal(false)}
                   className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"

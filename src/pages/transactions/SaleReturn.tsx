@@ -8,6 +8,7 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
+import PrintButton from '../../components/common/PrintButton'
 
 interface ReturnEntry {
   id: string
@@ -420,12 +421,12 @@ export default function SaleReturn() {
                 </button>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => window.print()}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-9 px-4 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold shadow-xs active:scale-[0.98] transition border border-border cursor-pointer"
-                >
-                  <Printer size={14} className="text-muted-foreground" /> <span>Print Credit Note</span>
-                </button>
+                <PrintButton
+                  label="Print Credit Note"
+                  variant="secondary"
+                  autoOrientationHint="portrait"
+                  size="md"
+                />
                 <button
                   onClick={() => setSelectedReturn(null)}
                   className="hidden sm:inline-flex p-1.5 text-muted-foreground hover:text-foreground rounded-lg bg-secondary transition cursor-pointer"

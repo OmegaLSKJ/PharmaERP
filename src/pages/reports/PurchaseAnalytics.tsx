@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { useEffect, useState, useMemo } from 'react'
 import { getErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 
 type PurchaseReport = {
@@ -66,12 +67,11 @@ export default function PurchaseAnalytics() {
           <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Supplier and purchase intelligence</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer"
-          >
-            <FileText size={15} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="portrait"
+            className="no-print"
+          />
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"

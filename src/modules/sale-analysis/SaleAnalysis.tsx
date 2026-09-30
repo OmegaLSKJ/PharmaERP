@@ -9,6 +9,7 @@ import { openTransactionWindow } from '../../lib/windowUtils'
 import { REPORTS, type ReportId } from './catalog'
 import { buildAnalysisReport, csvReport, formatCell } from './engine'
 import type { AnalysisData, Filters, ReportColumn, ReportRow } from './types'
+import PrintButton from '../../components/common/PrintButton'
 import './sale-analysis.css'
 
 const emptyFilters: Filters = { from: '', to: '', party: '', company: '', item: '', search: '' }
@@ -301,9 +302,14 @@ export default function SaleAnalysis() {
           <button type="button" onClick={() => void reload()} disabled={loading}>
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button type="button" onClick={() => { flushSync(() => setPrinting(true)); window.print() }} disabled={!ready}>
-            <Printer size={15} /> Print / PDF
-          </button>
+          <PrintButton
+            label="Print / PDF"
+            disabled={!ready}
+            autoOrientationHint="landscape"
+            onBeforePrint={() => {
+              flushSync(() => setPrinting(true))
+            }}
+          />
           <button type="button" className="sa-primary" onClick={exportCSV} disabled={!ready || !sorted.length}>
             <Download size={15} /> Export CSV
           </button>

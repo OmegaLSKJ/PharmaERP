@@ -30,6 +30,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import VoucherPrint, { VoucherPrintData } from '../../components/accounting/VoucherPrint'
+import PrintButton from '../../components/common/PrintButton'
 
 interface VoucherLine {
   id: string
@@ -1726,13 +1727,12 @@ export default function VoucherEntry() {
                 <Printer size={16} className="text-indigo-400" /> Voucher Print Preview
               </h3>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
-                >
-                  Print (Ctrl+P)
-                </button>
+                <PrintButton
+                  label="Print Voucher"
+                  variant="primary"
+                  autoOrientationHint="portrait"
+                  size="sm"
+                />
                 <button
                   type="button"
                   onClick={() => setShowPrintModal(false)}

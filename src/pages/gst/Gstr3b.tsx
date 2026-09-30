@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Download, FileText, Calculator, ExternalLink } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
+import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
 import { getErp } from '../../lib/erpApi'
 
@@ -122,12 +123,11 @@ export default function Gstr3b() {
           <p className="text-sm text-muted-foreground mt-1">{month} | Monthly Summary Return</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition border border-border cursor-pointer"
-          >
-            <FileText size={15} /> Export PDF
-          </button>
+          <PrintButton
+            label="Export PDF"
+            autoOrientationHint="landscape"
+            className="no-print"
+          />
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('gstr3b-summary', useUIStore.getState().company))}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"

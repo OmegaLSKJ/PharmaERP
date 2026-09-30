@@ -32,6 +32,7 @@ import TaxInvoicePrint from '../../components/transactions/TaxInvoicePrint'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import PrintButton from '../../components/common/PrintButton'
 
 interface CounterItem {
   id?: string
@@ -424,14 +425,12 @@ export default function CounterSale() {
             </button>
 
             {completedSale && (
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 border border-slate-700 transition cursor-pointer shadow-xs"
-              >
-                <Printer size={14} />
-                <span>Reprint #{completedSale.invoiceNo}</span>
-              </button>
+              <PrintButton
+                label={`Reprint #${completedSale.invoiceNo}`}
+                variant="outline"
+                autoOrientationHint="portrait"
+                size="sm"
+              />
             )}
           </div>
         </div>
