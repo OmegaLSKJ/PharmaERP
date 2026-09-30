@@ -1,66 +1,134 @@
-## Objective
-- Build a production-quality cinematic 3D immersive landing page (per the user's MASTER PROMPT) using React Three Fiber in `C:\Users\SCL\OneDrive\Documents\Default Project`, leveraging the established MCP/3D toolchain.
+# PharmaERP — Agent Summary
 
-## Important Details
-- Project root / working dir: `C:\Users\SCL\OneDrive\Documents\Default Project`. MCP config: `opencode.json` (all servers defined).
-- Stack (neither Vite nor Next present → default **Vite + React 19 + TS**; R3F v9 requires React 19): three 0.185, @react-three/fiber 9, @react-three/drei 10, @react-three/postprocessing 3, gsap, tailwindcss 3, zustand. shadcn already a devDep.
-- **Hero asset is now real**: generated procedurally in Blender (Blender 5.2.0 LTS, MCP connected) — a displaced icosahedron "crystal" core + 3 orbiting accent rings + inner glow sphere — exported to `public/models/hero/hero.glb` (3 material groups, uncompressed glTF). Wired into `HeroModel.tsx` via `useGLTF('/models/hero/hero.glb')` with `useGLTF.preload`. No Hunyuan3D/Hyper3D API keys needed (pure Blender Python).
-- `ChromaticAberration` dropped from PostProcessing — prop typings broken in `@react-three/postprocessing` v3.0.5.
-- **Loader fix:** with no async assets drei `useProgress` never hits 100%; loader clears on `!active` (nothing loading) + 600ms minimum. The hero GLB now drives real progress (0→100) and the loader hides on completion. Title/sub/CTA reveal uses **CSS transitions** (masked slide-up + stagger), not GSAP, for reliability.
-- Vercel MCP: `VERCEL_TOKEN` set via `setx` (persisted) and **verified connected** (HTTP 200). Config uses `Authorization: Bearer {env:VERCEL_TOKEN}`.
-- Blender MCP: **connected and verified** (Blender 5.2.0, addon v1.5, protocol v4). Addon enabled; requires "Start MCP Server" (port 9876) to reconnect if Blender restarts.
-- r3f MCP: enabled:true; stray `r3f-mcp-server` on port 3333 was killed (now free) — restart opencode to reconnect cleanly. r3f codegen tools only fire against a running R3F app on localhost:3333.
-- `3D-TOOLCHAIN.md` is the user-curated reference (toolchain map, format rules, pipeline, texture formats, Poly Haven/Sketchfab, project structure, production guidelines, stack checklist, end-to-end flow).
+## Objective
+Build and maintain a production-quality pharmaceutical distribution ERP for **Borgang Drug Distributors**.
+Live deployment: [pharama-erp.vercel.app](https://pharama-erp.vercel.app)
+
+## Project Root
+`C:\Users\SCL\Downloads\ERP` — all code, migrations, tests, and documentation live here.
+
+## Technology Stack
+- **Frontend:** React 19 + Vite + TypeScript (SPA in `src/`)
+- **Server/API:** Next.js 16 App Router (`apps/web/`, API routes at `src/app/api/`)
+- **Database:** Supabase PostgreSQL with Row-Level Security and server-only access
+- **State:** Zustand (`src/store/authStore.ts`, `src/store/uiStore.ts`)
+- **Styling:** Tailwind CSS + shadcn-style component library
+- **Testing:** Vitest (unit) + Playwright (E2E)
+- **Deployment:** GitHub → Vercel CI/CD
+
+## Repository Layout
+
+| Path | Purpose |
+|------|---------|
+| `src/` | Vite SPA — all UI, pages, components, modules, lib |
+| `src/app/api/` | Next.js API routes (`/api/v1/[resource]`, `/api/auth/`, `/api/health/`) |
+| `apps/web/` | Next.js host, auth middleware, API handler, erp-store |
+| `apps/mobile/` | Expo starter — field operations (in progress) |
+| `packages/domain/` | Shared ERP contracts and API types |
+| `packages/design-tokens/` | Platform-neutral visual tokens |
+| `database/migrations/` | 34 sequential PL/pgSQL migrations (Supabase) |
+| `tests/` | 29 test files — 149 unit + integration tests |
+| `plans/` | Architecture decisions, security reports, roadmaps |
+| `docs/` | Developer documentation |
+
+## ERP Modules
+
+### Masters
+- Parties (suppliers & customers with Party360 view)
+- Items, Batches, Manufacturers, Salts, HSN/SAC codes
+- Ledgers, Locations, Series, Communication Blocking, Item Mapping
+
+### Transactions
+- Sales: entry, register, return, counter-sale, challan
+- Purchases: entry, register, return, orders
+- Breakage, Replacements, Price Difference, Claim Settlement
+- CSV / Server import pipelines, Pending management
+
+### Inventory
+- Live stock, batch-level stock, stock ageing & expiry tracking
+- Stock movement, negative stock, dump stock, hold/ban stock
+- Reservations, inventory adjustments
+
+### Accounting
+- Voucher entry, Day Book, Ledger View, Selected Book
+- Debit Notes, Credit Notes, Item Day Book
+
+### GST & Compliance
+- GSTR-1, GSTR-3B, GSTR-Summary, GSTR-9, GSTR Reconciliation
+- e-Invoice, TDS/TCS
+- Drug Licenses, Product Recalls, Controlled Drug Register
+
+### Reports
+- Sales Analytics, Sale Analysis, Purchase Analysis, Fast/Slow Moving
+- Trial Balance, P&L, Balance Sheet, Cash Flow, Ratio Analysis, Accounts Reports
+
+### Operational
+- Delivery Management, Pricing Schemes, Settings, Role-Based Admin
+
+## Key Library Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/erpApi.ts` | Two-tier cache (memory + IndexedDB), SWR revalidation, cross-tab BroadcastChannel sync |
+| `src/lib/erpCache.ts` | IndexedDB persistence layer, stale check, TTL management |
+| `src/lib/erpPreloader.ts` | Background preload of critical ERP resources on startup |
+| `src/lib/invoiceCalculations.ts` | Discount-before-tax invoice math with rounding adjustment |
+| `src/lib/hsnUtils.ts` | HSN/SAC master cache with DB bootstrap |
+| `src/lib/printUtils.ts` | Invoice / challan print rendering |
+| `src/lib/seriesUtils.ts` | Document series management and cascade |
+| `src/lib/similarity.ts` | Fuzzy item/party search |
+| `src/lib/download.ts` | CSV / Excel export utilities |
+| `src/lib/financialData.ts` | Financial report data transformations |
+
+## Database Schema Highlights
+- **34 migrations** covering: initial schema, RLS policies, security indexes, operational modules, hardening, period guards, cancellation workflows, note posting, invoice amendments, stock import, and comprehensive security lockdown.
+- Row-Level Security enforced on all tables via `organization_id`.
+- Accounting period guard prevents mutations to closed periods.
+- Audit logs capture `actor_email`, `ip_address`, `request_id`, and `metadata`.
+- Drug schedule class constraint: `OTC | H | H1 | X | NDPS`.
+- Stock reservation lifecycle: `active → released → consumed → expired`.
+- Seeded master data: HSN codes, 2016+ items catalog, manufacturers, accounting groups.
+
+## Test Suite
+
+| Suite | Files | Tests | Status |
+|-------|-------|-------|--------|
+| Vitest (unit/integration) | 28 passed, 1 skipped | 149 passed, 1 skipped | ✅ All green |
+| Playwright E2E | chromium + mobile | 6 passed | ✅ All green |
+
+Key test areas: invoice calculations, RBAC permissions, full CRUD lifecycle, HSN mapping (100% coverage), series cascade, sale/purchase analysis, cache/preloader, party dual-role, print utilities, security hardening, company settings reflection.
+
+## Security Posture
+See [`plans/SECURITY_AND_BUG_REPORT.md`](plans/SECURITY_AND_BUG_REPORT.md) for the full audit.
+Overall rating: **C+ (Medium-High Risk)** — strong architectural foundation, several critical operational gaps to address.
+
+Top priorities:
+1. Rotate hardcoded secrets in `.env.local` / `.env.production.local`
+2. Remove mock admin credentials in `apps/web/lib/auth.ts`
+3. Upgrade `next` to `^16.3.7` (2 critical RCE advisories)
+4. Add PII column-level encryption (pgcrypto)
+5. Fix race conditions in document numbering and stock writes
 
 ## Work State
+
 ### Completed
-- Full MCP setup (playwright, filesystem, github, vercel, netlify, replicate, threejs-devtools, r3f, context7, shadcn, blender).
-- Vercel: `VERCEL_TOKEN` set + MCP connection verified.
-- r3f: stray process on port 3333 killed; port free.
-- Installed three.js stack + global `@gltf-transform/cli` v4.4.2.
-- Saved `3D-TOOLCHAIN.md` (all user-provided diagrams/guidelines).
-- **Phase 1 Foundation** built & verified: Vite/React/R3F scaffold, `npm run build` ✓, preview serves on :4173, page loads with 0 errors (only benign three.js deprecation/shader-precision warnings).
-- **Phase 2 Cinematic Reveal** built & verified: loader clears (no-asset + real-GLB aware), `app--ready` applied, camera intro gated on `experienceReady`, hero model scale-in, masked title slide-up + stagger, subline/CTA/nav/scroll-indicator/sound-toggle staggered reveal.
-- **Hero asset**: generated procedurally in Blender, exported `public/models/hero/hero.glb`, wired via `useGLTF` into `HeroModel.tsx` (placeholder replaced). Runtime verified: GLB fetched 200, no console errors, loader clears, reveal works.
-- **Phase 3 Narrative + Interaction** built & verified: scrollable page (`.sections` normal flow, canvas fixed), 3 scroll-revealed narrative sections via IntersectionObserver; `useScrollProgress` writes `scrollProgress` to store + `--scroll` CSS var; **hero fade + scroll-indicator hide driven via React inline styles** (browser rejects `calc(var(--scroll)*N)` in plain CSS — verified at scrollY 600 → scroll 0.31, hero opacity 0, indicator 0); drei `Html` hotspots (3) with click-to-open info panels (store `activeHotspot`); functional Web Audio ambient drone toggled by `SoundToggle`; 3D scene reacts to scroll (camera recede + hero drift in `CameraRig`/`HeroModel`). Headless verify: 0 console errors, scrollable, 3 hotspots, panels open, sound toggles to "SOUND ON".
+- Full ERP feature set across all modules (see Module list above)
+- 34-migration production DB schema with hardening, RLS, and audit trails
+- Dual-runtime architecture (Vite SPA + Next.js API/SSR)
+- Comprehensive test suite (149 unit + 6 E2E tests, all passing)
+- GitHub → Vercel CI/CD pipeline active
+- Seeded master data (HSN, items, manufacturers, accounting groups)
+- Security & bug audit report written to `plans/SECURITY_AND_BUG_REPORT.md`
 
-### Phase 4 — Solar System view
-- **Dedicated view** reachable from the nav (nav button toggles `view` hero↔solar; `setView` also clears `activePlanet`/`activeHotspot`). User chose: dedicated view + realistic textures + clickable planets.
-- **Textures** (realistic, downloaded to `public/textures/planets/`): sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune. Sources: `hkevin01/gnc-space-sim` (GitHub raw, curl) for 9 bodies; Mars pulled from Wikimedia Commons `Special:FilePath` (the solarsystemscope 403s direct download). All validated as JPEG (FF D8 magic). Saturn rings are **procedural** (canvas radial-band alpha texture in `makeRingTexture`).
-- **Scene** (`src/three/solar/SolarSystem.tsx`): emissive textured Sun (point light at center, `decay={0}` for even lighting), 8 orbiting/self-spinning planets (compressed, non-real scale for usability), Saturn rings, orbit guide rings, drei `Stars`, `OrbitControls` (no pan, damped), clickable planet meshes (`onClick`→`setActivePlanet`, hover scale + pointer cursor), drei `Html` name labels. `useTexture.preload` for all bodies so view-switch is instant (no loader flash).
-- **Camera fly-to:** selecting a planet (chip or 3D mesh) smoothly flies the camera in (easeOutCubic intro ~0.9s to a distance scaled by planet radius, `Math.max(9, r*5+6)`) and then **follows** the orbiting planet by lerping `OrbitControls.target` to its live world position each frame (`Planet` writes its world pos into a shared ref each frame). Deselect / HOME eases the camera back to the overview (`[0,28,82]`, target origin). Entering solar view snaps camera to overview.
-- **Overlay** (`src/components/SolarOverlay.tsx`): title + hint, 9 planet chips (Sun + 8) that open an info panel with facts (`PLANETS`/`SUN_FACTS` in `src/three/solar/data.ts`), texture credit line. `Navigation.tsx` repurposed: section links only in hero; menu button toggles SOLAR SYSTEM / HOME.
-- **App/Experience wiring**: `App.tsx` switches Canvas scene + DOM overlay by `view`; `Experience.tsx` swaps hero scene↔`SolarSystem`, fog only in hero, camera `far` bumped to 2000, `CameraRig` only in hero.
-- **Verified (headless)**: 0 console errors; nav switches to solar (`app--solar`, `.solar-ui` present, 9 chips, canvas renders); clicking Jupiter chip → panel "Jupiter"; Sun chip → "Sun"; HOME returns to hero (`app--hero`, no `.solar-ui`). Screenshot saved to `solar-system.png`.
-
-### Active
-- None pending. Phases 1–4 are complete and verified.
+### Active / In Progress
+- Addressing security findings from audit (see remediation roadmap in report)
+- Mobile app (`apps/mobile/`) field-operations features (Expo starter)
 
 ### Blocked
-- (none critical) r3f codegen needs a running R3F app; Blender MCP needs "Start MCP Server" if Blender restarts.
+- None critical
 
-## Next Move
-1. Optional polish/extensions: mobile tuning, more hotspots, second hero variant, Draco compression (needs draco in `useGLTF`), real HDR environment, or deploy to Vercel.
-2. Deploy: `vercel deploy` (token configured) when ready for production.
-
-## Relevant Files
-- `C:\Users\SCL\OneDrive\Documents\Default Project\opencode.json`: MCP server configuration.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\3D-TOOLCHAIN.md`: user-curated 3D pipeline/reference doc.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\package.json`: Vite/React/R3F dependency manifest + scripts (`dev`, `build`, `preview`).
-- `C:\Users\SCL\OneDrive\Documents\Default Project\public\models\hero\hero.glb`: the generated hero model.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\Experience.tsx`: root R3F `<Canvas className="canvas-fixed">` (camera, quality, fog, composer, Hotspots).
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\camera\CameraRig.tsx`: intro + scroll-driven camera recede.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\models\HeroModel.tsx`: loads `hero.glb` via `useGLTF`; scroll drift + scale-in.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\Hotspots.tsx`: drei `<Html>` hotspots + info panels.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\Sections.tsx`: 3 scroll-revealed narrative sections.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\Loader.tsx`: no-asset / real-GLB aware load completion.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\HeroContent.tsx`: CSS-transition masked title reveal + React-driven scroll fade.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\ScrollIndicator.tsx`: React-driven hide on scroll.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\SoundToggle.tsx`: toggles `soundEnabled`.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\hooks\useScrollProgress.ts`: scroll → store + `--scroll` CSS var.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\hooks\useAmbientAudio.ts`: Web Audio ambient drone.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\index.css`: reveal/scroll/section/hotspot/vignette/solar styles.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\solar\SolarSystem.tsx`: sun, planets, rings, stars, OrbitControls, click.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\three\solar\data.ts`: `PLANETS` + `SUN_FACTS` (radii/distances/speeds/textures/facts).
-- `C:\Users\SCL\OneDrive\Documents\Default Project\src\components\SolarOverlay.tsx`: solar title/hint/chips/info panel/credit.
-- `C:\Users\SCL\OneDrive\Documents\Default Project\public\textures\planets\*.jpg`: realistic planet/sun textures.
+## Next Steps
+1. **Immediate:** Rotate secrets, remove mock auth, upgrade Next.js (C-1, C-2, C-3)
+2. **This sprint:** CSP header, rate limiting, race condition fixes, RLS hardening (H-1 through H-11)
+3. **Next sprint:** CSV formula injection fix, QR local generation, MFA, coverage reporting
+4. **Ongoing:** Component-level React tests, mobile app build-out, audit log partitioning

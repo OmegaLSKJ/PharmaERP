@@ -69,7 +69,12 @@ export function openTransactionWindow(
     url = `${origin}${cleanPath}`
   }
 
-  const newWindow = window.open(url, target, options?.features)
+  // Always include noopener,noreferrer to prevent the opened window from
+  // accessing window.opener and navigating the parent context (L-1 fix).
+  const secureFeatures = options?.features
+    ? `${options.features},noopener,noreferrer`
+    : 'noopener,noreferrer'
+  const newWindow = window.open(url, target, secureFeatures)
   if (newWindow) {
     try {
       newWindow.focus()

@@ -74,7 +74,7 @@ describe('windowUtils', () => {
       expect(openSpy).toHaveBeenCalledWith(
         'http://localhost:3000/transactions/sale/new',
         '_blank',
-        undefined
+        'noopener,noreferrer'
       )
       expect(focusSpy).toHaveBeenCalled()
 

@@ -46,7 +46,9 @@ function mutationOriginAllowed(request: NextRequest) {
     }
 
     // 2. Reverse proxy / forwarded host match
-    const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    // Note: x-forwarded-host is excluded — it can be set by clients and is
+    // therefore not a trusted origin indicator. Only use the server-set 'host'.
+    const hostHeader = request.headers.get('host');
     if (hostHeader) {
       const cleanHost = hostHeader.split(':')[0].trim().toLowerCase();
       if (originUrl.hostname.toLowerCase() === cleanHost) {

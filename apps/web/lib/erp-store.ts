@@ -20,7 +20,7 @@ const managedCrud: Record<string, CrudConfig> = {
 }
 const mutableValues = (body: any, fields: string[]) => Object.fromEntries(fields.filter((field) => Object.prototype.hasOwnProperty.call(body, field)).map((field) => [field, body[field] === '' ? null : body[field]]))
 const date = () => new Date().toISOString().slice(0, 10)
-const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
+const number = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`
 const organizationName = process.env.ERP_ORGANIZATION_NAME ?? 'Borgang Drug Distributors'
 
 function normalizeExpiryDate(dateStr?: string | null): string | null {
@@ -342,12 +342,20 @@ function getNextSeriesNumberMock(docType: string): string {
 
 async function getNextSeriesNumberDb(docType: string, client: any, organizationId: string): Promise<string> {
   try {
-    const { data: s } = await client.from('document_series').select('*').eq('organization_id', organizationId).ilike('document_type', docType).maybeSingle()
-    if (s && s.is_active !== false) {
-      const nextNo = Number(s.next_number || 1)
-      const formatted = formatDocNumber(nextNo, s.prefix || '', s.suffix || '', Number(s.padding || 4))
-      await client.from('document_series').update({ next_number: nextNo + 1 }).eq('id', s.id)
-      return formatted
+    // Atomic read-and-increment: a single UPDATE...RETURNING prevents duplicate numbers
+    // under concurrent requests (eliminates the read-then-write race condition).
+    const { data: s, error } = await client
+      .from('document_series')
+      .update({ next_number: client.sql`next_number + 1` })
+      .eq('organization_id', organizationId)
+      .ilike('document_type', docType)
+      .eq('is_active', true)
+      .select('prefix,suffix,padding,next_number')
+      .maybeSingle()
+    if (!error && s) {
+      // next_number now holds the already-incremented value; the issued number is next_number - 1
+      const issued = Number(s.next_number) - 1
+      return formatDocNumber(issued, s.prefix || '', s.suffix || '', Number(s.padding || 4))
     }
   } catch (err) {
     console.warn('getNextSeriesNumberDb non-fatal warning:', err)

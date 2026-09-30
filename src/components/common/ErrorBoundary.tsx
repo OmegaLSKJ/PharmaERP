@@ -56,7 +56,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-xl font-bold text-foreground tracking-tight">Something went wrong</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+            An unexpected error occurred. Please reload the page. If the issue persists, check the browser console for details or contact support.
           </p>
           <div className="pt-2 flex flex-col items-center gap-2">
             <button

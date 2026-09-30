@@ -63,15 +63,23 @@ export type AuthenticatedRequest = {
 
 export async function signIn(email: string, password: string) {
   if (!hasRealSupabase()) {
+    // In production, always fail closed — never allow mock paths.
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Authentication backend is not configured or unavailable.')
     }
+    // In development, mock auth must be explicitly opted in via ERP_ALLOW_MOCK_AUTH=true.
+    // The mock accepts any non-empty password for the configured dev admin email.
+    // This prevents accidental access with stale tokens in shared environments.
+    if (process.env.ERP_ALLOW_MOCK_AUTH !== 'true') {
+      throw new Error('Mock authentication is disabled. Set ERP_ALLOW_MOCK_AUTH=true in .env.local for local development.')
+    }
     const cleanEmail = email.trim().toLowerCase()
-    if (cleanEmail === 'admin@borgangdrugdistributors.com' && password === 'admin12345678') {
+    const devEmail = (process.env.ERP_MOCK_ADMIN_EMAIL ?? 'admin@borgangdrugdistributors.com').toLowerCase()
+    if (cleanEmail === devEmail && password.length >= 8) {
       return {
         user: {
           id: 'mock-admin-id',
-          email: 'admin@borgangdrugdistributors.com',
+          email: devEmail,
           app_metadata: { role: 'admin' },
           user_metadata: { name: 'Administrator' },
           created_at: new Date().toISOString(),
@@ -97,10 +105,14 @@ export async function acceptInvite(accessToken: string, refreshToken: string, pa
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Authentication backend is not configured or unavailable.')
     }
+    if (process.env.ERP_ALLOW_MOCK_AUTH !== 'true') {
+      throw new Error('Mock authentication is disabled. Set ERP_ALLOW_MOCK_AUTH=true in .env.local for local development.')
+    }
+    const devEmail = (process.env.ERP_MOCK_ADMIN_EMAIL ?? 'admin@borgangdrugdistributors.com').toLowerCase()
     return {
       user: {
         id: 'mock-admin-id',
-        email: 'admin@borgangdrugdistributors.com',
+        email: devEmail,
         app_metadata: { role: 'admin' },
         user_metadata: { name: 'Administrator' },
         created_at: new Date().toISOString(),
@@ -134,11 +146,15 @@ export async function verifyRequest(request: NextRequest): Promise<Authenticated
     if (process.env.NODE_ENV === 'production') {
       return null
     }
+    if (process.env.ERP_ALLOW_MOCK_AUTH !== 'true') {
+      return null
+    }
     if (accessToken === 'mock-access-token') {
+      const devEmail = (process.env.ERP_MOCK_ADMIN_EMAIL ?? 'admin@borgangdrugdistributors.com').toLowerCase()
       return {
         user: {
           id: 'mock-admin-id',
-          email: 'admin@borgangdrugdistributors.com',
+          email: devEmail,
           app_metadata: { role: 'admin' },
           user_metadata: { name: 'Administrator' },
           created_at: new Date().toISOString(),

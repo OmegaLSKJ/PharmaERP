@@ -11,7 +11,13 @@ function save(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url)
 }
 
-const csvCell = (value: string) => `"${value.replace(/"/g, '""').trim()}"`
+// Prefixes cells that start with formula-triggering characters (=, +, -, @) with a
+// tab character so spreadsheet apps (Excel, Google Sheets) treat them as text (M-1 fix).
+const sanitizeCsvValue = (value: string): string => {
+  const trimmed = value.trim()
+  return /^[=+\-@\t]/.test(trimmed) ? `\t${trimmed}` : trimmed
+}
+const csvCell = (value: string) => `"${sanitizeCsvValue(value).replace(/"/g, '""')}"`
 
 function companyHeaderRows(reportTitle: string, company?: CompanyProfile): string {
   if (!company) return ''
