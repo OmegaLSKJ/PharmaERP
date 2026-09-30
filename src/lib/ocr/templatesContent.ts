@@ -1,7 +1,7 @@
 /**
  * Generates standalone, self-contained A4 HTML templates for OCR-ready transaction sheets.
  * Engineered with precision CSS to guarantee 100% fit on a single A4 sheet (210mm x 297mm)
- * with zero overflow, comfortable margins, and crisp OCR alignment.
+ * with generous, elegant padding from all sides and crisp OCR alignment.
  */
 
 export interface TemplateCompanyInfo {
@@ -26,7 +26,7 @@ function getBaseCss(): string {
   return `
     @page {
       size: A4 portrait;
-      margin: 5mm;
+      margin: 10mm 10mm 10mm 10mm;
     }
     * {
       box-sizing: border-box;
@@ -42,17 +42,18 @@ function getBaseCss(): string {
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100%;
     }
     .top-actions {
       width: 210mm;
       max-width: 100%;
-      margin: 10px 0;
+      margin: 14px 0 18px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: #0f172a;
       color: #fff;
-      padding: 8px 16px;
+      padding: 10px 18px;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
@@ -60,27 +61,27 @@ function getBaseCss(): string {
       background: #2563eb;
       color: #fff;
       border: none;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 6px;
       font-weight: 600;
-      font-size: 11.5px;
+      font-size: 12px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       text-decoration: none;
     }
     .top-actions .btn:hover {
       background: #1d4ed8;
     }
     .sheet {
-      width: 200mm;
-      height: 287mm;
-      max-height: 287mm;
-      padding: 4mm;
+      width: 210mm;
+      min-height: 297mm;
+      max-height: 297mm;
+      padding: 12mm 14mm 12mm 14mm;
       background: #fff;
       border: 1px solid #cbd5e1;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
       box-sizing: border-box;
       overflow: hidden;
       display: flex;
@@ -88,6 +89,7 @@ function getBaseCss(): string {
       position: relative;
       page-break-inside: avoid;
       break-inside: avoid;
+      margin: 16px auto;
     }
     @media print {
       html, body {
@@ -101,8 +103,8 @@ function getBaseCss(): string {
       .sheet {
         width: 100%;
         height: 100%;
-        max-height: 287mm;
-        padding: 0;
+        max-height: 275mm;
+        padding: 4mm 6mm 6mm 6mm;
         margin: 0;
         border: none;
         box-shadow: none;
@@ -112,7 +114,7 @@ function getBaseCss(): string {
     }
     .frame {
       border: 1.5px solid #000;
-      padding: 6px 8px;
+      padding: 10px 14px 10px 14px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -129,10 +131,10 @@ function getBaseCss(): string {
       line-height: 1;
       z-index: 10;
     }
-    .ocr-tl { top: 3px; left: 4px; }
-    .ocr-tr { top: 3px; right: 4px; }
-    .ocr-bl { bottom: 3px; left: 4px; }
-    .ocr-br { bottom: 3px; right: 4px; }
+    .ocr-tl { top: 4px; left: 6px; }
+    .ocr-tr { top: 4px; right: 6px; }
+    .ocr-bl { bottom: 4px; left: 6px; }
+    .ocr-br { bottom: 4px; right: 6px; }
     
     .header-box {
       border: 1.2px solid #000;
@@ -197,7 +199,7 @@ function getBaseCss(): string {
     }
     .party-col {
       flex: 7;
-      padding: 3px 8px;
+      padding: 4px 8px;
       border-right: 1.2px solid #000;
     }
     .party-col .label {
@@ -215,7 +217,7 @@ function getBaseCss(): string {
     }
     .order-col {
       flex: 5;
-      padding: 3px 8px;
+      padding: 4px 8px;
     }
     .order-row {
       display: flex;

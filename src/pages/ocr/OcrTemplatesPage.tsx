@@ -374,12 +374,12 @@ export default function OcrTemplatesPage() {
             </div>
 
             {/* Modal Iframe View with srcDoc (Zero 404s, renders instantly) */}
-            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-3 sm:p-5 overflow-y-auto flex justify-center">
-              <div className="w-[205mm] max-w-full bg-white shadow-2xl rounded-sm overflow-hidden flex justify-center">
+            <div className="flex-1 bg-slate-300/80 dark:bg-slate-950 p-4 sm:p-8 overflow-y-auto flex justify-center items-start">
+              <div className="w-[216mm] max-w-full bg-white shadow-2xl rounded-md p-3 flex justify-center">
                 <iframe
                   srcDoc={getTemplateHtmlById(selectedTemplate.id, companyInfo)}
                   title={selectedTemplate.title}
-                  className="w-[200mm] h-[288mm] border-none bg-white"
+                  className="w-full min-h-[305mm] border-none bg-white"
                 />
               </div>
             </div>

@@ -74,10 +74,10 @@ export default function BlankTransactionSheetPrint({
   const rows = Array.from({ length: rowCount }, (_, i) => i + 1)
 
   return (
-    <div className="blank-sheet-root w-full max-w-[210mm] mx-auto bg-white text-black font-sans p-4 sm:p-6 text-[11px] leading-tight select-text print:p-0 print:m-0 print:w-full print:max-w-none">
+    <div className="blank-sheet-root w-full max-w-[210mm] mx-auto bg-white text-black font-sans p-6 sm:p-8 text-[11px] leading-tight select-text print:p-4 print:m-0 print:w-full print:max-w-none">
       
       {/* Outer Border Frame with OCR Corner Markers */}
-      <div className="border-2 border-black p-3 relative bg-white">
+      <div className="border-2 border-black p-4 sm:p-5 relative bg-white">
         
         {/* OCR Corner Calibration Crosshairs */}
         <div className="absolute top-1 left-1 text-[8px] font-mono text-black font-bold select-none">+ OCR-TL +</div>
