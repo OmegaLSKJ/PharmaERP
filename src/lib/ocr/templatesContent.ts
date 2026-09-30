@@ -26,7 +26,7 @@ function getBaseCss(): string {
   return `
     @page {
       size: A4 portrait;
-      margin: 10mm 10mm 10mm 10mm;
+      margin: 6mm 8mm 6mm 8mm;
     }
     * {
       box-sizing: border-box;
@@ -47,7 +47,7 @@ function getBaseCss(): string {
     .top-actions {
       width: 210mm;
       max-width: 100%;
-      margin: 14px 0 18px 0;
+      margin: 12px 0 16px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -78,7 +78,7 @@ function getBaseCss(): string {
       width: 210mm;
       min-height: 297mm;
       max-height: 297mm;
-      padding: 12mm 14mm 12mm 14mm;
+      padding: 6mm 10mm 6mm 10mm;
       background: #fff;
       border: 1px solid #cbd5e1;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
@@ -89,7 +89,7 @@ function getBaseCss(): string {
       position: relative;
       page-break-inside: avoid;
       break-inside: avoid;
-      margin: 16px auto;
+      margin: 12px auto;
     }
     @media print {
       html, body {
@@ -103,8 +103,8 @@ function getBaseCss(): string {
       .sheet {
         width: 100%;
         height: 100%;
-        max-height: 275mm;
-        padding: 4mm 6mm 6mm 6mm;
+        max-height: 285mm;
+        padding: 2mm 4mm 4mm 4mm;
         margin: 0;
         border: none;
         box-shadow: none;
@@ -114,7 +114,7 @@ function getBaseCss(): string {
     }
     .frame {
       border: 1.5px solid #000;
-      padding: 10px 14px 10px 14px;
+      padding: 6px 10px 6px 10px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -131,14 +131,14 @@ function getBaseCss(): string {
       line-height: 1;
       z-index: 10;
     }
-    .ocr-tl { top: 4px; left: 6px; }
-    .ocr-tr { top: 4px; right: 6px; }
-    .ocr-bl { bottom: 4px; left: 6px; }
-    .ocr-br { bottom: 4px; right: 6px; }
+    .ocr-tl { top: 3px; left: 5px; }
+    .ocr-tr { top: 3px; right: 5px; }
+    .ocr-bl { bottom: 3px; left: 5px; }
+    .ocr-br { bottom: 3px; right: 5px; }
     
     .header-box {
       border: 1.2px solid #000;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .header-top {
       display: flex;
@@ -146,12 +146,12 @@ function getBaseCss(): string {
     }
     .branding {
       flex: 7;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-right: 1.2px solid #000;
     }
     .branding h1 {
-      margin: 0 0 2px 0;
-      font-size: 15px;
+      margin: 0 0 1px 0;
+      font-size: 14px;
       font-weight: 900;
       color: #0c2f66;
       letter-spacing: -0.3px;
@@ -159,20 +159,20 @@ function getBaseCss(): string {
       line-height: 1.1;
     }
     .branding .sub {
-      font-size: 7.5px;
+      font-size: 7px;
       font-weight: 700;
       color: #333;
       line-height: 1.2;
     }
     .branding .meta {
-      font-size: 7.5px;
+      font-size: 7px;
       color: #444;
-      margin-top: 1.5px;
+      margin-top: 1px;
       line-height: 1.2;
     }
     .badge {
       flex: 5;
-      padding: 4px 8px;
+      padding: 3px 8px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -180,7 +180,7 @@ function getBaseCss(): string {
       text-align: right;
     }
     .badge .title {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
       color: #111;
@@ -195,11 +195,11 @@ function getBaseCss(): string {
     }
     .info-grid {
       display: flex;
-      font-size: 8.5px;
+      font-size: 8px;
     }
     .party-col {
       flex: 7;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-right: 1.2px solid #000;
     }
     .party-col .label {
@@ -210,19 +210,19 @@ function getBaseCss(): string {
       margin-bottom: 1px;
     }
     .party-col .line {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
-      min-height: 16px;
+      min-height: 14px;
       border-bottom: 1px dotted #888;
     }
     .order-col {
       flex: 5;
-      padding: 4px 8px;
+      padding: 3px 8px;
     }
     .order-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 2px;
+      margin-bottom: 1.5px;
     }
     .order-row span.lbl {
       font-size: 7.5px;
@@ -233,14 +233,14 @@ function getBaseCss(): string {
     .order-row span.val {
       font-family: monospace;
       font-weight: 700;
-      font-size: 8.5px;
+      font-size: 8px;
     }
     .guide-banner {
       background: #f1f5f9;
       border: 1px solid #000;
-      padding: 3px 6px;
-      margin-bottom: 4px;
-      font-size: 7.5px;
+      padding: 2px 6px;
+      margin-bottom: 3px;
+      font-size: 7px;
       font-weight: 600;
       display: flex;
       justify-content: space-between;
@@ -250,25 +250,27 @@ function getBaseCss(): string {
       width: 100%;
       border-collapse: collapse;
       font-size: 8px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     table.grid th {
       background: #e2e8f0;
       border: 1px solid #000;
-      padding: 3px 2px;
+      padding: 2.5px 2px;
       font-size: 7.5px;
       font-weight: 800;
       text-transform: uppercase;
       text-align: center;
       line-height: 1.1;
+      height: 19px;
     }
     table.grid td {
       border: 1px solid #000;
-      padding: 1px 2px;
-      height: 20px;
-      font-family: monospace;
+      padding: 2px 4px;
+      height: 23px;
+      min-height: 23px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, monospace;
       font-size: 8.5px;
-      line-height: 1;
+      line-height: 1.2;
     }
     table.grid tr.even {
       background: #fafafa;
@@ -277,16 +279,16 @@ function getBaseCss(): string {
       border: 1.2px solid #000;
       display: flex;
       font-size: 7.5px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .notes-col {
       flex: 7;
-      padding: 4px 6px;
+      padding: 3px 6px;
       border-right: 1.2px solid #000;
     }
     .totals-col {
       flex: 5;
-      padding: 4px 6px;
+      padding: 3px 6px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -300,14 +302,14 @@ function getBaseCss(): string {
     }
     .sig-box {
       flex: 1;
-      padding: 4px 6px;
+      padding: 3px 6px;
       border-right: 1px solid #000;
     }
     .sig-box:last-child {
       border-right: none;
     }
     .sig-space {
-      height: 22px;
+      height: 18px;
     }
     .sig-line {
       border-top: 1px dotted #444;
@@ -320,7 +322,7 @@ function getBaseCss(): string {
 
 export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
   let rows = ''
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 25; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -405,18 +407,18 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY)
         <table class="grid">
           <thead>
             <tr>
-              <th style="width: 24px;">S.No</th>
-              <th style="text-align: left; padding-left: 6px;">Medicine / Product Description</th>
-              <th style="width: 44px;">Pack</th>
-              <th style="width: 48px;">HSN</th>
-              <th style="width: 54px;">Batch No</th>
-              <th style="width: 44px;">Exp (MM/YY)</th>
-              <th style="width: 36px;">Order Qty</th>
-              <th style="width: 32px;">Free</th>
+              <th style="width: 22px;">S.No</th>
+              <th style="text-align: left; padding-left: 8px;">Medicine / Product Description</th>
+              <th style="width: 40px;">Pack</th>
+              <th style="width: 44px;">HSN</th>
+              <th style="width: 50px;">Batch No</th>
+              <th style="width: 42px;">Exp</th>
+              <th style="width: 28px;">Qty</th>
+              <th style="width: 26px;">Free</th>
               <th style="width: 46px;">Rate (₹)</th>
               <th style="width: 46px;">MRP (₹)</th>
-              <th style="width: 34px;">GST%</th>
-              <th style="width: 56px;">Amount (₹)</th>
+              <th style="width: 28px;">GST%</th>
+              <th style="width: 58px;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
@@ -470,7 +472,7 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY)
 
 export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
   let rows = ''
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 25; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -555,18 +557,18 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
         <table class="grid">
           <thead>
             <tr>
-              <th style="width: 24px;">S.No</th>
-              <th style="text-align: left; padding-left: 6px;">Medicine / Product Description</th>
-              <th style="width: 44px;">Pack</th>
-              <th style="width: 48px;">HSN</th>
-              <th style="width: 54px;">Batch No</th>
-              <th style="width: 44px;">Exp (MM/YY)</th>
-              <th style="width: 36px;">Order Qty</th>
-              <th style="width: 32px;">Free</th>
+              <th style="width: 22px;">S.No</th>
+              <th style="text-align: left; padding-left: 8px;">Medicine / Product Description</th>
+              <th style="width: 40px;">Pack</th>
+              <th style="width: 44px;">HSN</th>
+              <th style="width: 50px;">Batch No</th>
+              <th style="width: 42px;">Exp</th>
+              <th style="width: 28px;">Qty</th>
+              <th style="width: 26px;">Free</th>
               <th style="width: 46px;">Pur Rate (₹)</th>
               <th style="width: 46px;">MRP (₹)</th>
-              <th style="width: 34px;">GST%</th>
-              <th style="width: 56px;">Amount (₹)</th>
+              <th style="width: 28px;">GST%</th>
+              <th style="width: 58px;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
@@ -620,7 +622,7 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
 
 export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
   let rows = ''
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 25; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -705,18 +707,18 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
         <table class="grid">
           <thead>
             <tr>
-              <th style="width: 24px;">S.No</th>
-              <th style="text-align: left; padding-left: 6px;">Medicine / Item Description</th>
-              <th style="width: 44px;">Pack</th>
-              <th style="width: 50px;">HSN</th>
-              <th style="width: 54px;">Batch No</th>
-              <th style="width: 44px;">Exp (MM/YY)</th>
-              <th style="width: 38px;">Disp Qty</th>
-              <th style="width: 32px;">Free</th>
+              <th style="width: 22px;">S.No</th>
+              <th style="text-align: left; padding-left: 8px;">Medicine / Item Description</th>
+              <th style="width: 40px;">Pack</th>
+              <th style="width: 44px;">HSN</th>
+              <th style="width: 50px;">Batch No</th>
+              <th style="width: 42px;">Exp</th>
+              <th style="width: 28px;">Qty</th>
+              <th style="width: 26px;">Free</th>
               <th style="width: 46px;">Rate (₹)</th>
               <th style="width: 46px;">MRP (₹)</th>
-              <th style="width: 38px;">Boxes/Pkgs</th>
-              <th style="width: 56px;">Remarks</th>
+              <th style="width: 36px;">Boxes</th>
+              <th style="width: 58px;">Remarks</th>
             </tr>
           </thead>
           <tbody>
@@ -770,7 +772,7 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
 
 export function generateVoucherSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
   let rows = ''
-  for (let i = 1; i <= 14; i++) {
+  for (let i = 1; i <= 25; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     const drCr = i === 1 ? 'Dr' : i === 2 ? 'Cr' : ''
     rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td style="text-align:center;">${drCr}</td><td></td><td></td><td></td><td></td><td></td></tr>`
@@ -861,12 +863,12 @@ export function generateVoucherSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
           <thead>
             <tr>
               <th style="width: 26px;">S.No</th>
-              <th style="width: 34px;">Type</th>
-              <th style="text-align: left; padding-left: 6px;">Particulars / Ledger Account Name</th>
-              <th style="width: 85px;">Bill / Inv Ref</th>
+              <th style="width: 32px;">Type</th>
+              <th style="text-align: left; padding-left: 8px;">Particulars / Ledger Account Name</th>
+              <th style="width: 80px;">Bill / Ref No</th>
               <th style="text-align: left; padding-left: 6px;">Narration / Remarks</th>
-              <th style="width: 80px; text-align: right; padding-right: 6px;">Debit (₹)</th>
-              <th style="width: 80px; text-align: right; padding-right: 6px;">Credit (₹)</th>
+              <th style="width: 75px; text-align: right; padding-right: 6px;">Debit (₹)</th>
+              <th style="width: 75px; text-align: right; padding-right: 6px;">Credit (₹)</th>
             </tr>
           </thead>
           <tbody>
@@ -920,7 +922,7 @@ export function generateVoucherSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
 
 export function generateSampleFilledSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY): string {
   let emptyRows = ''
-  for (let i = 5; i <= 15; i++) {
+  for (let i = 5; i <= 25; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
     emptyRows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
@@ -1005,18 +1007,18 @@ export function generateSampleFilledSheetHtml(c: TemplateCompanyInfo = DEFAULT_C
         <table class="grid">
           <thead>
             <tr>
-              <th style="width: 24px;">S.No</th>
-              <th style="text-align: left; padding-left: 6px;">Medicine / Product Description</th>
-              <th style="width: 44px;">Pack</th>
-              <th style="width: 48px;">HSN</th>
-              <th style="width: 54px;">Batch No</th>
-              <th style="width: 44px;">Exp (MM/YY)</th>
-              <th style="width: 36px;">Order Qty</th>
-              <th style="width: 32px;">Free</th>
+              <th style="width: 22px;">S.No</th>
+              <th style="text-align: left; padding-left: 8px;">Medicine / Product Description</th>
+              <th style="width: 40px;">Pack</th>
+              <th style="width: 44px;">HSN</th>
+              <th style="width: 50px;">Batch No</th>
+              <th style="width: 42px;">Exp</th>
+              <th style="width: 28px;">Qty</th>
+              <th style="width: 26px;">Free</th>
               <th style="width: 46px;">Rate (₹)</th>
               <th style="width: 46px;">MRP (₹)</th>
-              <th style="width: 34px;">GST%</th>
-              <th style="width: 56px;">Amount (₹)</th>
+              <th style="width: 28px;">GST%</th>
+              <th style="width: 58px;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>

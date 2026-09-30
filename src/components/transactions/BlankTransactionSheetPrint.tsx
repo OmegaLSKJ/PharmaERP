@@ -20,7 +20,7 @@ export default function BlankTransactionSheetPrint({
   repName = '',
   date = '',
   sheetNo = '',
-  rowCount = 15
+  rowCount = 25
 }: BlankTransactionSheetPrintProps) {
   const storeCompany = useUIStore((s) => s.company)
 
@@ -170,23 +170,23 @@ export default function BlankTransactionSheetPrint({
           <table className="w-full border-collapse text-left text-[9px]">
             <thead>
               <tr className="bg-gray-200 border-b border-black text-[9px] font-black uppercase text-gray-900 leading-tight">
-                <th className="border-r border-black py-1.5 px-1 w-7 text-center">S.No</th>
-                <th className="border-r border-black py-1.5 px-2">Medicine / Product Description</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-14 text-center">Pack</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-14 text-center">HSN</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-16 text-center">Batch No</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-14 text-center">Exp (MM/YY)</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-10 text-right">Qty</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-10 text-right">Free</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-14 text-right">Rate (₹)</th>
-                <th className="border-r border-black py-1.5 px-1.5 w-14 text-right">MRP (₹)</th>
-                <th className="border-r border-black py-1.5 px-1 w-10 text-center">GST%</th>
-                <th className="py-1.5 px-2 w-16 text-right">Amount (₹)</th>
+                <th className="border-r border-black py-1 px-1 w-6 text-center">S.No</th>
+                <th className="border-r border-black py-1 px-2.5">Medicine / Product Description</th>
+                <th className="border-r border-black py-1 px-1 w-11 text-center">Pack</th>
+                <th className="border-r border-black py-1 px-1 w-11 text-center">HSN</th>
+                <th className="border-r border-black py-1 px-1 w-13 text-center">Batch No</th>
+                <th className="border-r border-black py-1 px-1 w-11 text-center">Exp</th>
+                <th className="border-r border-black py-1 px-1 w-8 text-right">Qty</th>
+                <th className="border-r border-black py-1 px-1 w-7 text-right">Free</th>
+                <th className="border-r border-black py-1 px-1 w-12 text-right">Rate (₹)</th>
+                <th className="border-r border-black py-1 px-1 w-12 text-right">MRP (₹)</th>
+                <th className="border-r border-black py-1 px-1 w-8 text-center">GST%</th>
+                <th className="py-1 px-1.5 w-14 text-right">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((rowNum) => (
-                <tr key={rowNum} className="border-b border-gray-400 min-h-[22px] h-[22px]">
+                <tr key={rowNum} className="border-b border-gray-400 min-h-[23px] h-[23px]">
                   <td className="border-r border-black px-1 text-center font-mono text-gray-600 font-semibold bg-gray-50/50">
                     {rowNum}
                   </td>

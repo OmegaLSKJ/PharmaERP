@@ -22,7 +22,7 @@ export default function BlankSheetModal({
   const [repName, setRepName] = useState('')
   const [date, setDate] = useState(() => new Date().toLocaleDateString('en-GB'))
   const [sheetNo, setSheetNo] = useState('')
-  const [rowCount, setRowCount] = useState<number>(15)
+  const [rowCount, setRowCount] = useState<number>(25)
 
   if (!isOpen) return null
 
@@ -105,9 +105,9 @@ export default function BlankSheetModal({
               onChange={(e) => setRowCount(Number(e.target.value))}
               className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer"
             >
-              <option value={15}>15 Rows (Large writing room)</option>
-              <option value={18}>18 Rows (Standard A4 fit)</option>
-              <option value={22}>22 Rows (Compact / high item density)</option>
+              <option value={15}>15 Rows (Spacious)</option>
+              <option value={20}>20 Rows (Balanced)</option>
+              <option value={25}>25 Rows (Standard A4 fit - Recommended)</option>
             </select>
           </div>
         </div>

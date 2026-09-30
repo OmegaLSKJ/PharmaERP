@@ -36,7 +36,7 @@ const TEMPLATES: TemplateInfo[] = [
     tag: 'Sales & Rep Booking',
     tagColor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
     mode: 'sale',
-    description: 'Formatted for sales representatives visiting retail chemist shops. High-contrast grid with 15 writable rows, corner calibration markers, and GST/MRP columns.',
+    description: 'Formatted for sales representatives visiting retail chemist shops. High-contrast grid with 25 writable rows, corner calibration markers, and GST/MRP columns.',
     columns: ['S.No', 'Medicine Description', 'Pack', 'HSN', 'Batch No', 'Exp (MM/YY)', 'Qty', 'Free', 'Rate (₹)', 'MRP (₹)', 'GST%', 'Amount'],
     downloadName: 'PharmaERP_Sales_Order_Sheet_A4.html'
   },
@@ -318,7 +318,7 @@ export default function OcrTemplatesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
           <div className="p-3 rounded-xl bg-secondary/50 border border-border/60">
             <strong className="block text-foreground font-semibold mb-1">1. Print Sheet</strong>
-            <p className="text-muted-foreground">Click "1-Click Print" to get a clean A4 sheet with 18 tabular rows and corner OCR calibration anchors.</p>
+            <p className="text-muted-foreground">Click "1-Click Print" to get a clean A4 sheet with 25 tabular rows and corner OCR calibration anchors.</p>
           </div>
           <div className="p-3 rounded-xl bg-secondary/50 border border-border/60">
             <strong className="block text-foreground font-semibold mb-1">2. Fill Manually</strong>

@@ -10,7 +10,7 @@ export default function BlankOrderSheetPage() {
   const [mode, setMode] = useState<'sale' | 'purchase' | 'challan'>('sale')
   const [partyName, setPartyName] = useState('APOLLO PHARMACY & SURGICALS')
   const [salesRepName, setSalesRepName] = useState('RAHUL SHARMA (REP-04)')
-  const [rowCount, setRowCount] = useState<number>(15)
+  const [rowCount, setRowCount] = useState<number>(25)
   const [showOcrModal, setShowOcrModal] = useState(false)
   const [testSuccess, setTestSuccess] = useState(false)
 
@@ -131,8 +131,8 @@ export default function BlankOrderSheetPage() {
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium"
             >
               <option value={15}>15 Rows (Spacious handwriting)</option>
-              <option value={18}>18 Rows (Standard A4 balance)</option>
-              <option value={22}>22 Rows (Maximum density)</option>
+              <option value={20}>20 Rows (Balanced)</option>
+              <option value={25}>25 Rows (Standard 25-row A4 - Recommended)</option>
             </select>
           </div>
         </div>
