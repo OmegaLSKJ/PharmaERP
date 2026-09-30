@@ -12,7 +12,7 @@ const PHARMA_KEYWORDS = [
 // Common pharmaceutical dosage strengths
 const PHARMA_STRENGTHS = new Set([
   '1000', '650', '625', '500', '400', '300', '250', '200', '150',
-  '100', '75', '50', '40', '25', '20', '16', '15', '14', '10', '5', '2.5', '1.25'
+  '100', '90', '75', '60', '50', '40', '30', '25', '20', '16', '15', '14', '10', '5', '4', '3', '2', '2.5', '1.25', '1'
 ])
 
 // Month name to numeric string mapping for expiries (e.g. May-28, Feb-30)
@@ -149,8 +149,8 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
   let taxAmount = 0
 
   // Regex patterns for parsing tabular lines
-  const hsnRegex = /\b(300[2-6]\d{0,5}|3307\d{0,4}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/
-  const expiryRegex = /(?<!\d[\/\-\.])\b(0[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b(?!\d)/
+  const hsnRegex = /\b(300[2-6]\d{0,5}|330[4-7]\d{0,6}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/
+  const expiryRegex = /(?<!\d[\/\-\.])\b(0?[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b(?!\d)/
   const batchExplicitRegex = /(?:BATCH|B\.?NO|LOT)[:.\s-]*([A-Za-z0-9\-_]{3,15})/i
 
   let idCounter = 1
@@ -212,12 +212,12 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
 
     // Check if line contains pharmaceutical medicine indicators or medicine patterns
     const hasPharmaKeyword = PHARMA_KEYWORDS.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(line))
-    const hasHsn = hsnRegex.test(line) || /^\s*(300[2-6]\d{0,5}|3307\d{0,4}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/.test(line)
+    const hasHsn = hsnRegex.test(line) || /^\s*(300[2-6]\d{0,5}|330[4-7]\d{0,6}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/.test(line)
     const hasExpiry = expiryRegex.test(line) || /\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[\-\/\. ]?(20\d{2}|\d{2})\b/i.test(line)
     const hasPipe = line.includes('|')
     const hasLetters = /[a-zA-Z]{3,}/.test(line)
     const startsWithSerial = /^\s*\d{1,3}[\.\)\-\s]/.test(line)
-    const hasScheme = /\b\d{1,4}\s*\+\s*\d{1,4}\b/.test(line)
+    const hasScheme = /\b\d{1,4}(?:\.0+)?\s*\+\s*\d{1,4}(?:\.0+)?\b/.test(line)
     const hasPricePattern = /(\d+\s*X\s*\d+|\d+\.?\d{2})/i.test(line)
 
     if (!hasLetters) {
@@ -256,7 +256,7 @@ const HIGH_PHARMA_STRENGTHS = new Set([
     let itemName = ''
 
     // 1. Extract Leading or Inline HSN (e.g. 3004, 300490, 300420, 300450, 330720, 21069099, 3401, 9018, 9021)
-    const leadingHsnMatch = line.match(/^\s*(300[2-6]\d{0,5}|3307\d{0,4}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/)
+    const leadingHsnMatch = line.match(/^\s*(300[2-6]\d{0,5}|330[4-7]\d{0,6}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/)
     if (leadingHsnMatch) {
       hsn = leadingHsnMatch[1]
     } else {
@@ -323,8 +323,8 @@ const HIGH_PHARMA_STRENGTHS = new Set([
       }
     }
 
-    // 5. Extract GST% (support split notation like 2.5+2.5 => 5%, 9+9 => 18%, 6+6 => 12%)
-    const splitGstMatch = line.match(/\b(2\.5|6|9|14)\s*\+\s*(2\.5|6|9|14)\b/)
+    // 5. Extract GST% (support split notation like 2.5+2.5 => 5%, 9+9 => 18%, 9.00 9.00 => 18%, 2.50 2.50 => 5%)
+    const splitGstMatch = line.match(/\b(2\.5|6|9|14)(?:\.0+)?\s*[\+\s]\s*(2\.5|6|9|14)(?:\.0+)?\b/)
     if (splitGstMatch) {
       gstRate = parseFloat(splitGstMatch[1]) + parseFloat(splitGstMatch[2])
     } else {
@@ -339,6 +339,11 @@ const HIGH_PHARMA_STRENGTHS = new Set([
           else if (singleTax === 6) gstRate = 12
           else if (singleTax === 9) gstRate = 18
           else if (singleTax === 14) gstRate = 28
+        } else {
+          const standaloneGst = line.match(/\b(?:GST\s*[:.\s-]*)?(18|28|12|5)\.00\b/i)
+          if (standaloneGst) {
+            gstRate = parseFloat(standaloneGst[1])
+          }
         }
       }
     }
@@ -356,11 +361,11 @@ const HIGH_PHARMA_STRENGTHS = new Set([
     const freeMatch = line.match(/(?:FREE|SCHEME|BONUS)[:.\s-]*([0-9]+)/i)
     if (freeMatch) freeQty = parseInt(freeMatch[1], 10)
 
-    // Free quantity pattern like "25+5", "50+10", "20+2", "10+1", "27+3", "25+25", "11+1"
-    const freeQtyPattern = line.match(/\b(\d{1,4})\s*\+\s*(\d{1,4})\b/)
+    // Free quantity pattern like "25+5", "50+10", "20+2", "10+1", "27+3", "25+25", "11+1", "30.0+3.0"
+    const freeQtyPattern = line.match(/\b(\d{1,4}(?:\.0+)?)\s*\+\s*(\d{1,4}(?:\.0+)?)\b/)
     if (freeQtyPattern) {
-      qty = parseInt(freeQtyPattern[1], 10)
-      freeQty = parseInt(freeQtyPattern[2], 10)
+      qty = Math.round(parseFloat(freeQtyPattern[1]))
+      freeQty = Math.round(parseFloat(freeQtyPattern[2]))
     }
 
     // Strip HSN, Batch, and Expiry for numeric parsing
@@ -490,14 +495,16 @@ const HIGH_PHARMA_STRENGTHS = new Set([
           'OZONE LT', 'OZONE', 'JUPITER', 'DR. MORP', 'DR MORP', 'ALLEN PH', 'HIMALAYA',
           'NAXPAR', 'MICRO', 'IPCA', 'STERLI', 'APEX', 'JBCPL', 'USV / CR', 'USV/CR',
           'USV (C', 'USV (M', 'USV', 'DRL/ZE', 'DRL', 'REE', 'ALEM', 'REXWEL', 'ALKEM', 'ALKE',
-          'DYNA', 'LUPI', 'ABBO', 'SHIN', 'MERC', 'INDC', 'MACL', 'TABLET'
+          'DYNA', 'LUPI', 'ABBO', 'SHIN', 'MERC', 'INDC', 'MACL', 'SYMBI', 'CONCEP', 'GENX P',
+          'RSH', 'INDICO', 'WARREN', 'DWD', 'ALBE', 'NOVI', 'GALP', 'WARN', 'STRA', 'FOURRT',
+          'SIKKIM', 'ALEMBI', 'CAPSUL', 'TABLET'
         ]
 
         let cleanedLine = lineForName
           .replace(/\b\d+[\.,]\d{2}\b/g, '')
           .replace(/\b(5|12|18|28)\s*%/g, '')
           .replace(/\b(2\.5|6|9|14)\s*[\+\s]\s*(2\.5|6|9|14)\b/g, '')
-          .replace(/\b\d{1,4}\s*\+\s*\d{1,4}\b/g, '')
+          .replace(/\b\d{1,4}(?:\.0+)?\s*\+\s*\d{1,4}(?:\.0+)?\b/g, '')
           .replace(/\b\d+\s*S\b/gi, '')
           .replace(/[\|\+\=\:\#\*]/g, ' ')
           .replace(/\s+/g, ' ')
@@ -535,9 +542,24 @@ const HIGH_PHARMA_STRENGTHS = new Set([
     }
 
     // If multiple decimals were present, use rate * qty = total check to accurately separate purchaseRate, mrp, and amount
-    if (decimals.length >= 2 && qty > 0) {
+    if (decimals.length >= 2) {
       const lastDec = decimals[decimals.length - 1]
-      const rateCandidate = decimals.slice(0, -1).find(d => Math.abs(d * qty - lastDec) < 0.15)
+      let rateCandidate = qty > 0 ? decimals.slice(0, -1).find(d => Math.abs(d * qty - lastDec) < 0.15) : undefined
+
+      // If existing qty doesn't match rate * qty = amount and no explicit scheme was present, check if any decimal divides amount into an exact integer qty
+      if (!rateCandidate && !freeQtyPattern) {
+        for (const d of decimals.slice(0, -1)) {
+          if (d > 0) {
+            const possibleQty = Math.round(lastDec / d)
+            if (possibleQty > 0 && possibleQty < 1000 && Math.abs(possibleQty * d - lastDec) < 0.15) {
+              rateCandidate = d
+              qty = possibleQty
+              break
+            }
+          }
+        }
+      }
+
       if (rateCandidate) {
         purchaseRate = rateCandidate
         amount = lastDec

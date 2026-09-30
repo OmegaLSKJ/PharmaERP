@@ -5,14 +5,19 @@ import { PHARMA_MASTER_CATALOG, KNOWN_DISTRIBUTORS } from '../src/lib/ocr/pharma
 
 describe('Assam Distributors Real Purchase Bills OCR & Mapping Training', () => {
 
-  it('correctly identifies all 5 distributor profiles and buyer separation', () => {
-    expect(KNOWN_DISTRIBUTORS.length).toBe(5)
+  it('correctly identifies all 10 distributor profiles and buyer separation', () => {
+    expect(KNOWN_DISTRIBUTORS.length).toBe(10)
     expect(KNOWN_DISTRIBUTORS.map(d => d.name)).toEqual([
       'REBA PHARMACEUTICALS',
       'TIRUPATI PHARMACEUTICALS',
       'AMAR DRUG DISTRIBUTORS',
       'MEDICO AGENCY',
-      'DRUGS LINE AGENCY'
+      'DRUGS LINE AGENCY',
+      'DEY DRUG DISTRIBUTORS',
+      'ASSAM PHARMACEUTICALS',
+      'PRAGATI DRUG DRISTRIBUTOR',
+      'ATISH PHARMACEUTICALS',
+      'SHANTI DRUG DISTRIBUTORS'
     ])
   })
 
@@ -325,6 +330,287 @@ describe('Assam Distributors Real Purchase Bills OCR & Mapping Training', () => 
     expect(xone.qty).toBe(25)
     expect(xone.freeQty).toBe(25)
     expect(xone.batch).toBe('26460798')
+
+    // Map items
+    const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
+    mapped.forEach(item => {
+      expect(['exact', 'high']).toContain(item.matchStatus)
+      expect(item.isConfirmed).toBe(true)
+    })
+  })
+
+  // -------------------------------------------------------------
+  // BILL 6: DEY DRUG DISTRIBUTORS
+  // -------------------------------------------------------------
+  it('parses and maps Dey Drug Distributors invoice G-020462', () => {
+    const rawDeyBill = `
+    CREDIT GST INVOICE
+    DEY DRUG DISTRIBUTORS
+    C.K.DAS ROAD, TEZPUR-784001,
+    Phone : 03712-232690
+    GST NO. : 18AGJPD0188M1Z4
+    Licence No. : STR/1475/1476
+    E-Mail : deydrugdist_tzp2009@yahoo.co.in
+    Buyer's Details:
+    BORGAONG DRUG DISTRIBUTORS.
+    BORGAONG.
+    GST : 18AFMPP9224L1ZQ
+    D.L.No.:STR 4137/4138
+    Invoice No. : G-020462
+    Inv. Date : 10-09-2026
+
+    Qty+D.Qty | Pack | Product Description | COMP. | Mfr. | HSN | Batch | Exp. | M.R.P | RATE | Sch. | Disc | SGST | CGST | AMOUNT
+    3 1X10 VILDAPRIDE-D 100/10 MICRO MICRO 30049079 VDDEX006 7/27 195.00 148.57 0.00 5.00 2.50 2.50 445.71
+
+    SUB TOTAL 445.71
+    Dis 5 % 22.29
+    SGST 2.5 % 10.59
+    CGST 2.5 % 10.59
+    GRAND TOTAL 445.00
+    `
+
+    const parsed = parsePharmaInvoice(rawDeyBill, 'image_ocr')
+
+    expect(parsed.supplierName).toBe('DEY DRUG DISTRIBUTORS')
+    expect(parsed.supplierGstin).toBe('18AGJPD0188M1Z4')
+    expect(parsed.invoiceNo).toBe('G-020462')
+    expect(parsed.invoiceDate).toBe('2026-09-10')
+    expect(parsed.items.length).toBe(1)
+
+    const item = parsed.items[0]
+    expect(item.itemName).toContain('VILDAPRIDE-D')
+    expect(item.qty).toBe(3)
+    expect(item.batch).toBe('VDDEX006')
+    expect(item.expiry).toBe('07/27')
+    expect(item.mrp).toBe(195.00)
+    expect(item.purchaseRate).toBe(148.57)
+
+    const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
+    expect(mapped[0].matchStatus).toBe('exact')
+    expect(mapped[0].mappedItemName).toBe('VILDAPRIDE-D 100/10')
+    expect(mapped[0].isConfirmed).toBe(true)
+  })
+
+  // -------------------------------------------------------------
+  // BILL 7: ASSAM PHARMACEUTICALS
+  // -------------------------------------------------------------
+  it('parses and maps Assam Pharmaceuticals invoice A012341 with schemes and 18% GST item', () => {
+    const rawAssamBill = `
+    CREDIT GST INVOICE
+    ASSAM PHARMACEUTICALS
+    L.L.PATH, AMBAGAN, TEZPUR(SONITPUR), ASSAM
+    Phone : 03712-230470,(M)9864217336,7002501949
+    GSTIN : 18AADFA8829J2Z3
+    D.L.No. : STR-5004/5005
+    E-Mail : ashitpaul70@gmail.com
+    Buyer's Details:
+    BORGANG DRUG DISTRIBUTORS
+    BORGANG
+    GST : 18AFMPP9224L1ZQ
+    D.L.No.:STR-4137/4138
+    Invoice No. : A012341
+    Inv. Date : 10-09-2026
+
+    Qty+D.Qty | Pack | Product Description | COMP. | Mfr. | HSN | Batch | Exp. | M.R.P | RATE | Sch. | Disc | SGST | CGST | AMOUNT
+    10 CBP-AM TAB LIFE V SYMBI 30049011 BJY01AEB 12/27 70.00 55.80 0.00 5.00 2.50 2.50 558.00
+    28+2 110ML IBUCON PLUS SUSP CONCEP 30049063 C21396002 1/29 48.75 39.00 0.00 5.00 2.50 2.50 1092.00
+    30 10S IBUCON 400 PLUS TAB CONCEP 30049063 C211375004 11/28 16.03 12.83 0.00 5.00 2.50 2.50 384.90
+    10 VIFIT TAB 16S LIFE V 300490 HJ001ABB 5/28 305.00 241.81 0.00 5.00 2.50 2.50 2418.10
+    10+2 MOISTE 50GM GENX P RSH 33049910 BAGUF10009 2/28 151.75 102.88 0.00 5.00 9.00 9.00 1028.80
+    10 VIFIT 60K TAB LIFE V 30045036 SOD-2996B 4/28 234.00 186.01 0.00 5.00 2.50 2.50 1860.10
+    10 10S HLV-3 TAB LIFE V 30045039 BJY03ADB 5/28 131.00 104.16 0.00 5.00 2.50 2.50 1041.60
+    11+1 SENSODENT KF CAVITY PROTEC INDICO WARREN 33061020 25250294 10/27 120.75 92.00 0.00 5.00 2.50 2.50 1012.00
+
+    SUB TOTAL 9395.50
+    Discount 5 % 469.79
+    GRAND TOTAL 9499.00
+    `
+
+    const parsed = parsePharmaInvoice(rawAssamBill, 'image_ocr')
+
+    expect(parsed.supplierName).toBe('ASSAM PHARMACEUTICALS')
+    expect(parsed.supplierGstin).toBe('18AADFA8829J2Z3')
+    expect(parsed.invoiceNo).toBe('A012341')
+    expect(parsed.invoiceDate).toBe('2026-09-10')
+    expect(parsed.items.length).toBe(8)
+
+    // Item with 28+2 scheme
+    const ibucon = parsed.items[1]
+    expect(ibucon.itemName).toContain('IBUCON PLUS')
+    expect(ibucon.qty).toBe(28)
+    expect(ibucon.freeQty).toBe(2)
+    expect(ibucon.expiry).toBe('01/29')
+
+    // Item with 18% GST (Moiste: 9+9)
+    const moiste = parsed.items[4]
+    expect(moiste.itemName).toContain('MOISTE')
+    expect(moiste.hsn).toBe('33049910')
+    expect(moiste.gstRate).toBe(18)
+    expect(moiste.qty).toBe(10)
+    expect(moiste.freeQty).toBe(2)
+
+    // Map all items
+    const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
+    mapped.forEach(item => {
+      expect(['exact', 'high']).toContain(item.matchStatus)
+      expect(item.isConfirmed).toBe(true)
+    })
+  })
+
+  // -------------------------------------------------------------
+  // BILL 8: PRAGATI DRUG DRISTRIBUTOR
+  // -------------------------------------------------------------
+  it('parses and maps Pragati Drug Dristributor invoice SA-02198 with decimal schemes', () => {
+    const rawPragatiBill = `
+    GST INVOICE
+    PRAGATI DRUG DRISTRIBUTOR
+    MAIN ROAD, NH - 15, BISWANATH CHARIALI ASSAM - 784176
+    Phone: 9435183666 Email: pragatidrugsbiswanath@gmail.com
+    GSTIN: 18BFHPM0344A1ZX
+    Drg.Lic.: STR-4040/4041
+    M/S BORGANG DRUG DISTRIBUTOR
+    BORGANG
+    GSTIN:18AFMPP9224L1ZQ
+    INV. NO. : SA-02198
+    Date : 11/09/2026
+
+    HSN Code | Item Name | Pack | Mfr | Batch No | Exp | M.R.P | Qty+Fr | Rate | Ds | Amount | GST
+    30045090 GYNEDOL SYP 300ML DWD DGA-2604 03/29 257.00 10.00 195.81 5 1958.10 5.00
+    30049039 COLIZA D SUS 30ML DWD LCD016013 04/28 74.00 30.0+3.0 56.38 5 1691.40 5.00
+    30045039 GOODMORN TAB 30S DWD TGM015006 11/27 225.00 6.00 171.43 5 1028.58 5.00
+    30049029 CUTICARE CREAM 15GM DWD C100 06/28 129.00 10.0+2.0 98.29 5 982.90 5.00
+    30049099 XL-90 PLUS COFGELS 10 DWD 925 11/27 90.94 20.00 69.29 5 1385.80 5.00
+
+    Net Bill Value 7029.00
+    `
+
+    const parsed = parsePharmaInvoice(rawPragatiBill, 'image_ocr')
+
+    expect(parsed.supplierName).toContain('PRAGATI DRUG')
+    expect(parsed.supplierGstin).toBe('18BFHPM0344A1ZX')
+    expect(parsed.invoiceNo).toBe('SA-02198')
+    expect(parsed.invoiceDate).toBe('2026-09-11')
+    expect(parsed.items.length).toBe(5)
+
+    // Coliza D with 30.0+3.0 scheme
+    const coliza = parsed.items[1]
+    expect(coliza.itemName).toContain('COLIZA D')
+    expect(coliza.qty).toBe(30)
+    expect(coliza.freeQty).toBe(3)
+    expect(coliza.batch).toBe('LCD016013')
+
+    // Cuticare with 10.0+2.0 scheme
+    const cuticare = parsed.items[3]
+    expect(cuticare.itemName).toContain('CUTICARE CREAM')
+    expect(cuticare.qty).toBe(10)
+    expect(cuticare.freeQty).toBe(2)
+
+    // Map items
+    const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
+    mapped.forEach(item => {
+      expect(['exact', 'high']).toContain(item.matchStatus)
+      expect(item.isConfirmed).toBe(true)
+    })
+  })
+
+  // -------------------------------------------------------------
+  // BILL 9: ATISH PHARMACEUTICALS
+  // -------------------------------------------------------------
+  it('parses and maps Atish Pharmaceuticals invoice G-001326', () => {
+    const rawAtishBill = `
+    GST INVOICE
+    ATISH PHARMACEUTICALS
+    KABAR KHANA ROAD, BELOW SYNDICATE BANK TEZPUR, Phone : 9678468760/7896141814
+    GSTIN : 18CJQPP4331L1ZL
+    DL No:STR-4814/4815
+    M/S BORGANG DRUG DISTRIBUTORS
+    BORGANG
+    GSTIN NO:18AFMPP9224L1ZQ
+    Bill No. : G-001326
+    Date : 10-09-2026
+
+    QTY+FR | PACK | PARTICULARS | HSN | MFR | BATCH | EXP | MRP | RATE | DISC | GST | AMOUNT
+    15 100ML ALBERT CALAMINE PLU 3304 ALBE LD-172 6/28 205.00 37.38 0.00 18.00 560.70
+    40 10'S MOWIN-S TAB 3004 NOVI 2019 3/28 96.80 9.76 0.00 5.00 390.40
+    10 20GMS LULIGAL CREAM 20G 3004 GALP N346000 12/27 371.81 31.20 0.00 5.00 312.00
+    20 10S RABIROZ-LSR CAP (WAR 3004 WARN AD04550 4/27 260.91 31.01 0.00 5.00 620.20
+
+    Grand Total : 2050.00
+    `
+
+    const parsed = parsePharmaInvoice(rawAtishBill, 'image_ocr')
+
+    expect(parsed.supplierName).toBe('ATISH PHARMACEUTICALS')
+    expect(parsed.supplierGstin).toBe('18CJQPP4331L1ZL')
+    expect(parsed.invoiceNo).toBe('G-001326')
+    expect(parsed.invoiceDate).toBe('2026-09-10')
+    expect(parsed.items.length).toBe(4)
+
+    // Albert Calamine with 18% GST
+    const calamine = parsed.items[0]
+    expect(calamine.itemName).toContain('ALBERT CALAMINE')
+    expect(calamine.hsn).toBe('3304')
+    expect(calamine.batch).toBe('LD-172')
+    expect(calamine.gstRate).toBe(18)
+    expect(calamine.qty).toBe(15)
+
+    // Mowin-S
+    const mowin = parsed.items[1]
+    expect(mowin.itemName).toContain('MOWIN-S TAB')
+    expect(mowin.qty).toBe(40)
+
+    // Map items
+    const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
+    mapped.forEach(item => {
+      expect(['exact', 'high']).toContain(item.matchStatus)
+      expect(item.isConfirmed).toBe(true)
+    })
+  })
+
+  // -------------------------------------------------------------
+  // BILL 10: SHANTI DRUG DISTRIBUTORS
+  // -------------------------------------------------------------
+  it('parses and maps Shanti Drug Distributors invoice T-5507', () => {
+    const rawShantiBill = `
+    TAX INVOICE
+    SHANTI DRUG DISTRIBUTORS
+    DL MARKET, N.C. ROAD, TEZPUR, ASSAM
+    GST NO:18ADAPG3096R1Z1
+    DL.NO:STR-4197/98
+    BORGANG DRUG DISTRIBUTORS
+    GSTIN:18AFMPP9224L1ZQ
+    INVOICE NO:-T5507
+    DATE:-14/09/2026
+
+    SL | QTY+FR | PACK | DESCRIPTION OF GOODS | MFR | BATCH | HSN | EXP | OLD MRP | NEW MRP | RATE | DIS% | CGST% | SGST% | TOTAL
+    1 10 200ml SUCRAL SUS STRA SS350626 30049039 May-29 0.00 230.00 175.24 5 2.5 2.5 1752.40
+    2 15+3 200ml SUCRAFIL O SUSP FOURRT P0177 30049099 Apr-29 0.00 295.00 224.76 5 2.5 2.5 3371.40
+    3 10 10 REKOOL L TAB SIKKIM 2613000385 30049034 Apr-28 0.00 334.31 254.71 5 2.5 2.5 2547.10
+    4 16 30ML AZITHRAL XL 100 ALEMBI 2613000571 30049099 Jun-28 0.00 125.50 95.65 5 2.5 2.5 1530.40
+    5 10+2 10 REJUNURON O D CAP CAPSUL FGROD001 30049099 Apr-28 0.00 219.00 166.90 5 2.5 2.5 1669.00
+
+    NET:10843.00
+    `
+
+    const parsed = parsePharmaInvoice(rawShantiBill, 'image_ocr')
+
+    expect(parsed.supplierName).toBe('SHANTI DRUG DISTRIBUTORS')
+    expect(parsed.supplierGstin).toBe('18ADAPG3096R1Z1')
+    expect(parsed.invoiceNo).toBe('T5507')
+    expect(parsed.invoiceDate).toBe('2026-09-14')
+    expect(parsed.items.length).toBe(5)
+
+    // Sucrafil O with 15+3 scheme
+    const sucrafil = parsed.items[1]
+    expect(sucrafil.itemName).toContain('SUCRAFIL O')
+    expect(sucrafil.qty).toBe(15)
+    expect(sucrafil.freeQty).toBe(3)
+    expect(sucrafil.expiry).toBe('04/29')
+
+    // Rekool L with numeric batch
+    const rekool = parsed.items[2]
+    expect(rekool.itemName).toContain('REKOOL L')
+    expect(rekool.batch).toBe('2613000385')
 
     // Map items
     const mapped = mapExtractedItemsToMaster(parsed.items, PHARMA_MASTER_CATALOG)
