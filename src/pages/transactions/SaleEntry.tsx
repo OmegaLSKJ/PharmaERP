@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
+import { Search, Plus, Save, Printer, Trash2, X, Minus, Pill, ShoppingBag, ArrowLeft, Edit2, ExternalLink, Info, Sparkles } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import PrintHeader from '../../components/layout/PrintHeader'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -13,6 +13,8 @@ import { calculateInvoice } from '../../lib/invoiceCalculations'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
+import { ExtractedInvoice } from '../../lib/ocr/types'
 
 interface LineItem {
   id: string
@@ -246,7 +248,61 @@ export default function SaleEntry() {
   const [prescriptionReference, setPrescriptionReference] = useState(() => initialInvoice?.prescriptionReference || '')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showOcrModal, setShowOcrModal] = useState(false)
   const showToast = useUIStore((s) => s.showToast)
+
+  const handleApplyOcrData = useCallback((ocrData: ExtractedInvoice) => {
+    if (ocrData.supplierName && !customer) {
+      const match = customerOptions.find(
+        (c) =>
+          c.label.toLowerCase().includes(ocrData.supplierName.toLowerCase()) ||
+          ocrData.supplierName.toLowerCase().includes(c.label.toLowerCase())
+      )
+      if (match) setCustomer(match.label)
+    }
+
+    if (ocrData.items && ocrData.items.length > 0) {
+      const newItems: LineItem[] = ocrData.items.map((it, idx) => {
+        const matchedItem =
+          (it.mappedItemId && itemOptions.find((opt) => opt.id === it.mappedItemId || opt.itemId === it.mappedItemId)) ||
+          itemOptions.find(
+            (opt) =>
+              opt.label.toLowerCase().includes(it.itemName.toLowerCase()) ||
+              it.itemName.toLowerCase().includes(opt.label.toLowerCase())
+          )
+
+        const qty = it.qty > 0 ? it.qty : 1
+        const rate = it.saleRate > 0 ? it.saleRate : (matchedItem?.rate || Math.round(it.purchaseRate * 1.25 * 100) / 100)
+        const gst = it.gstRate || matchedItem?.gst || 12
+        const amount = Math.round(qty * rate * 100) / 100
+
+        return {
+          id: `ocr-sale-${Date.now()}-${idx}`,
+          name: matchedItem?.label || it.mappedItemName || it.itemName,
+          batch: it.batch || matchedItem?.batch || 'BAT-01',
+          stock: matchedItem?.stock || 100,
+          qty,
+          free: it.freeQty || 0,
+          rate,
+          disc: it.discount || 0,
+          gst,
+          amount,
+          mrp: it.mrp || matchedItem?.mrp || Math.round(rate * 1.15 * 100) / 100,
+          purchaseRate: it.purchaseRate || matchedItem?.purchaseRate || Math.round(rate * 0.8 * 100) / 100,
+          packing: it.packing || matchedItem?.packing || '10x10',
+          manufacturer: matchedItem?.manufacturer,
+          salt: matchedItem?.salt,
+          hsn: it.hsn || matchedItem?.hsn || '30049099',
+          expiry: it.expiry || matchedItem?.expiry || '12/28',
+          itemId: matchedItem?.id || matchedItem?.itemId,
+          category: matchedItem?.category
+        }
+      })
+
+      setItems((prev) => [...prev, ...newItems])
+      showToast(`Added ${newItems.length} confirmed medicine items from OCR scan`)
+    }
+  }, [customer, customerOptions, itemOptions, showToast])
   const recordedGrandTotal = Math.max(
     0,
     Number(
@@ -791,6 +847,17 @@ export default function SaleEntry() {
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
             {/* Pop Out to New Window */}
+            {/* Scan Prescription or Bill with OCR */}
+            <button
+              type="button"
+              onClick={() => setShowOcrModal(true)}
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-lg text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 shadow-xs transition active:scale-[0.98] cursor-pointer"
+              title="Scan prescription or bill photo/PDF using local free OCR"
+            >
+              <Sparkles size={14} className="text-indigo-500" />
+              <span>Scan Bill / Rx (OCR)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => openTransactionWindow(window.location.pathname)}
@@ -1480,6 +1547,29 @@ export default function SaleEntry() {
       <div className="hidden print:block w-full mx-auto">
         <TaxInvoicePrint data={getPrintData()} />
       </div>
+
+      {/* Free Local OCR Invoice / Prescription Scanner */}
+      <InvoiceOcrModal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        onApply={handleApplyOcrData}
+        masterItems={itemOptions.map((opt) => ({
+          id: opt.id || opt.itemId,
+          itemId: opt.itemId,
+          name: opt.label,
+          label: opt.label,
+          packing: opt.packing,
+          hsn: opt.hsn,
+          mrp: opt.mrp,
+          rate: opt.rate,
+          purchaseRate: opt.purchaseRate,
+          gstRate: opt.gst,
+          stock: opt.stock,
+          manufacturer: opt.manufacturer,
+          salt: opt.salt
+        }))}
+        mode="sale"
+      />
     </div>
   )
 }

@@ -148,11 +148,13 @@ export default function PurchaseEntry() {
 
     if (ocrData.items && ocrData.items.length > 0) {
       const newItems: LineItem[] = ocrData.items.map((it, idx) => {
-        const matchedItem = itemOptions.find(
-          (opt) =>
-            opt.name.toLowerCase().includes(it.itemName.toLowerCase()) ||
-            it.itemName.toLowerCase().includes(opt.name.toLowerCase())
-        )
+        const matchedItem =
+          (it.mappedItemId && itemOptions.find((opt) => opt.id === it.mappedItemId)) ||
+          itemOptions.find(
+            (opt) =>
+              opt.name.toLowerCase().includes(it.itemName.toLowerCase()) ||
+              it.itemName.toLowerCase().includes(opt.name.toLowerCase())
+          )
 
         const qty = it.qty > 0 ? it.qty : 1
         const rate = it.purchaseRate > 0 ? it.purchaseRate : 100
@@ -163,7 +165,7 @@ export default function PurchaseEntry() {
           id: `ocr-${Date.now()}-${idx}`,
           itemId: matchedItem?.id,
           code: matchedItem?.code,
-          itemName: matchedItem?.name || it.itemName,
+          itemName: matchedItem?.name || it.mappedItemName || it.itemName,
           packing: it.packing || matchedItem?.packing || '10x10',
           hsn: it.hsn || matchedItem?.hsn || '30049099',
           batch: it.batch,
@@ -185,7 +187,7 @@ export default function PurchaseEntry() {
       })
 
       setItems((prev) => [...prev, ...newItems])
-      addToast(`Successfully imported ${newItems.length} medicine items from invoice`, 'success')
+      addToast(`Successfully imported ${newItems.length} confirmed medicine items`, 'success')
     }
   }, [supplierOptions, itemOptions, addToast])
 
@@ -1618,6 +1620,8 @@ export default function PurchaseEntry() {
         isOpen={showOcrModal}
         onClose={() => setShowOcrModal(false)}
         onApply={handleApplyOcrData}
+        masterItems={itemOptions}
+        mode="purchase"
       />
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink, Info } from 'lucide-react'
+import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink, Info, Sparkles } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
@@ -11,6 +11,8 @@ import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintButton from '../../components/common/PrintButton'
+import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
+import { ExtractedInvoice } from '../../lib/ocr/types'
 
 interface AvailableItem {
   name: string
@@ -54,10 +56,56 @@ export default function ChallanEntry() {
   const [transport, setTransport] = useState('Surface')
   const [saving, setSaving] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showOcrModal, setShowOcrModal] = useState(false)
   const [savedChallans, setSavedChallans] = useState<SavedChallan[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const showToast = useUIStore((s) => s.showToast)
   const incrementLedgerVersion = useUIStore((s) => s.incrementLedgerVersion)
+
+  const handleApplyOcrData = useCallback((ocrData: ExtractedInvoice) => {
+    if (ocrData.supplierName && !party) {
+      const match = parties.find(
+        (p) =>
+          p.toLowerCase().includes(ocrData.supplierName.toLowerCase()) ||
+          ocrData.supplierName.toLowerCase().includes(p.toLowerCase())
+      )
+      if (match) setParty(match)
+    }
+
+    if (ocrData.items && ocrData.items.length > 0) {
+      const newLines: Line[] = ocrData.items.map((it, idx) => {
+        const matched = availableItems.find(
+          (a) =>
+            (it.mappedItemId && a.name.toLowerCase() === (it.mappedItemName || '').toLowerCase()) ||
+            a.name.toLowerCase().includes(it.itemName.toLowerCase()) ||
+            it.itemName.toLowerCase().includes(a.name.toLowerCase())
+        )
+
+        const qty = it.qty > 0 ? it.qty : 1
+        const rate = it.saleRate > 0 ? it.saleRate : (matched?.rate || it.purchaseRate || 100)
+
+        return {
+          id: `ocr-ch-${Date.now()}-${idx}`,
+          name: matched?.name || it.mappedItemName || it.itemName,
+          batch: it.batch || matched?.batch || 'CH-BAT',
+          qty,
+          rate,
+          gstRate: it.gstRate || matched?.gstRate || 12,
+          stock: matched?.stock || 50,
+          mrp: it.mrp || matched?.mrp || Math.round(rate * 1.2 * 100) / 100,
+          purchaseRate: it.purchaseRate || matched?.purchaseRate || Math.round(rate * 0.8 * 100) / 100,
+          packing: it.packing || matched?.packing || '10x10',
+          manufacturer: matched?.manufacturer,
+          salt: matched?.salt,
+          hsn: it.hsn || matched?.hsn || '30049099',
+          expiry: it.expiry || matched?.expiry || '12/28'
+        }
+      })
+
+      setLines((prev) => [...prev, ...newLines])
+      showToast(`Added ${newLines.length} confirmed medicine items from OCR scan`)
+    }
+  }, [party, parties, availableItems, showToast])
 
   useEffect(() => {
     document.title = editingId ? `Edit Challan ${editingId} · Borgang ERP` : 'Delivery Challan · Borgang ERP'
@@ -218,6 +266,15 @@ export default function ChallanEntry() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
+          <button
+            type="button"
+            onClick={() => setShowOcrModal(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 no-print transition shadow-xs active:scale-[0.98] cursor-pointer"
+            title="Scan physical delivery challan or dispatch slip with free OCR"
+          >
+            <Sparkles size={14} className="text-indigo-500" />
+            <span>Scan Challan (OCR)</span>
+          </button>
           <button
             type="button"
             onClick={() => openTransactionWindow(window.location.pathname)}
@@ -610,6 +667,28 @@ export default function ChallanEntry() {
           }}
         />
       </div>
+
+      {/* Free Local OCR Challan Scanner */}
+      <InvoiceOcrModal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        onApply={handleApplyOcrData}
+        masterItems={availableItems.map((a) => ({
+          name: a.name,
+          label: a.name,
+          batch: a.batch,
+          rate: a.rate,
+          stock: a.stock,
+          mrp: a.mrp,
+          purchaseRate: a.purchaseRate,
+          packing: a.packing,
+          manufacturer: a.manufacturer,
+          salt: a.salt,
+          hsn: a.hsn,
+          gstRate: a.gstRate
+        }))}
+        mode="challan"
+      />
     </div>
   )
 }

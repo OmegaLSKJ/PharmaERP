@@ -14,6 +14,11 @@ export interface ExtractedLineItem {
   gstRate: number
   amount: number
   confidence?: number
+  mappedItemId?: string
+  mappedItemName?: string
+  matchScore?: number
+  matchStatus?: 'exact' | 'high' | 'fuzzy' | 'unmapped'
+  isConfirmed?: boolean
 }
 
 export interface ExtractedInvoice {
