@@ -380,6 +380,95 @@
   }
 }
 
+/*
+ * High-resolution workstation mode
+ *
+ * These breakpoints use available CSS pixels rather than device pixel ratio, so
+ * a 4K display at 100% scaling gains useful canvas and readable controls while
+ * laptop, tablet, and mobile layouts remain unchanged. The ERP stays dense and
+ * scannable instead of simply stretching cards across an empty screen.
+ */
+@media (min-width: 2560px) {
+  html {
+    font-size: 17px;
+  }
+
+  main[aria-label="ERP workspace"] {
+    padding: 2rem 2.5rem;
+  }
+
+  .page-enter {
+    max-width: 2480px;
+    padding-bottom: 2.5rem;
+  }
+
+  .surface-card {
+    padding: 1.4rem;
+  }
+
+  th {
+    padding: 0.9rem 1.1rem;
+    font-size: 0.78rem;
+  }
+
+  td {
+    padding: 0.85rem 1.1rem;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='number'],
+  input[type='search'],
+  input[type='date'],
+  select,
+  textarea {
+    min-height: 2.65rem;
+  }
+}
+
+@media (min-width: 3840px) {
+  html {
+    font-size: 18px;
+  }
+
+  main[aria-label="ERP workspace"] {
+    padding: 2.5rem 3.5rem;
+  }
+
+  .page-enter {
+    max-width: 3520px;
+    padding-bottom: 3rem;
+  }
+
+  .glass-surface,
+  .data-surface,
+  .surface-card {
+    border-radius: 0.65rem;
+  }
+
+  th {
+    padding: 1rem 1.25rem;
+    font-size: 0.82rem;
+  }
+
+  td {
+    padding: 0.95rem 1.25rem;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 2.8rem;
+  }
+
+  svg.lucide {
+    width: 1.15em;
+    height: 1.15em;
+  }
+}
+
 @media print {
   /* ═══════════════════════════════════════════════════════════════
      HIDE: UI chrome, nav, controls
