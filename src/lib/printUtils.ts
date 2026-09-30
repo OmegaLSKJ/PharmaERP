@@ -71,12 +71,41 @@ export function detectOptimalOrientation(target?: HTMLElement | null): 'portrait
     }
   }
 
-  // 2. Table Column Count & Layout Heuristics
   const scope = container || document.body
+
+  // 2. Check Document Title / Header Keywords FIRST
+  const headerEl = scope.querySelector('[data-print-header], h1, .print-title')
+  const titleText = (headerEl?.textContent || '').toUpperCase()
+
+  // Party statements and single ledger accounts are vertical documents designed for Portrait:
+  if (
+    titleText.includes('STATEMENT OF ACCOUNTS') ||
+    titleText.includes('PARTY LEDGER') ||
+    titleText.includes('PARTY STATEMENT') ||
+    titleText.includes('ACCOUNT STATEMENT')
+  ) {
+    return 'portrait'
+  }
+
+  // Multi-entity registers, daybooks, audit journals are designed for Landscape:
+  if (
+    titleText.includes('ALL TRANSACTIONS REGISTER') ||
+    titleText.includes('CHRONOLOGICAL') ||
+    titleText.includes('DAY BOOK') ||
+    titleText.includes('TRANSACTIONS REGISTER') ||
+    titleText.includes('SALES REGISTER') ||
+    titleText.includes('PURCHASE REGISTER') ||
+    titleText.includes('GSTR')
+  ) {
+    return 'landscape'
+  }
+
+  // 3. Table Column Count & Layout Heuristics
   const tables = scope.querySelectorAll('table')
 
   let maxColumns = 0
   let hasWideContent = false
+  let hasCompanyColumn = false
 
   tables.forEach((table) => {
     // Skip small UI tables or sub-tables inside invoices if any
@@ -88,17 +117,17 @@ export function detectOptimalOrientation(target?: HTMLElement | null): 'portrait
       }
     }
 
-    // Inspect headers for wide content
+    // Inspect headers for wide content & company columns
     const headerTexts = Array.from(table.querySelectorAll('th, td')).map((c) =>
       (c.textContent || '').toLowerCase()
     )
+    if (headerTexts.some((t) => t.includes('company') || t.includes('party') || t.includes('customer') || t.includes('supplier'))) {
+      hasCompanyColumn = true
+    }
+
     const wideKeywords = [
       'narration',
       'particulars',
-      'party',
-      'company',
-      'customer',
-      'supplier',
       'running balance',
       'closing balance',
       'sgst',
@@ -116,42 +145,19 @@ export function detectOptimalOrientation(target?: HTMLElement | null): 'portrait
   })
 
   // Multi-column criteria:
-  // - 7 or more columns strictly require Landscape on A4 (297mm width gives ~42mm per column vs ~28mm in portrait)
-  // - 6 columns with wide narration/party/balances also require Landscape for optimal visibility
-  if (maxColumns >= 7) {
+  // Tables with >= 6 columns that include BOTH a separate company/party column AND narration/debit/credit:
+  // e.g. All Transactions Register, Sales Register, Day Book -> Landscape
+  if (maxColumns >= 6 && hasCompanyColumn && hasWideContent) {
     return 'landscape'
   }
-  if (maxColumns === 6 && hasWideContent) {
+  if (maxColumns >= 7 && (hasCompanyColumn || hasWideContent)) {
+    return 'landscape'
+  }
+  if (maxColumns >= 8 && hasCompanyColumn) {
     return 'landscape'
   }
 
-  // 3. Document Title / Header Keywords
-  const headerEl = scope.querySelector('[data-print-header], h1, .print-title')
-  if (headerEl) {
-    const titleText = (headerEl.textContent || '').toUpperCase()
-    const landscapeKeywords = [
-      'ALL TRANSACTIONS REGISTER',
-      'CHRONOLOGICAL',
-      'DAY BOOK',
-      'TRANSACTIONS REGISTER',
-      'SALES REGISTER',
-      'PURCHASE REGISTER',
-      'GSTR',
-      'TRIAL BALANCE',
-      'BALANCE SHEET',
-      'PROFIT & LOSS',
-      'STOCK REGISTER',
-      'STOCK VIEW',
-      'AUDIT LOG',
-      'AGING',
-    ]
-    const matchesLandscapeTitle = landscapeKeywords.some((kw) => titleText.includes(kw))
-    if (matchesLandscapeTitle && maxColumns >= 6) {
-      return 'landscape'
-    }
-  }
-
-  // 4. Default to Portrait for standard invoices, vouchers, and compact tables
+  // 4. Default to Portrait for standard statements, invoices, vouchers, and compact tables
   return 'portrait'
 }
 

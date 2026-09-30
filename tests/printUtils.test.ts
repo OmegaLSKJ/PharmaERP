@@ -137,8 +137,13 @@ describe('printUtils', () => {
   })
 
   describe('detectOptimalOrientation', () => {
-    it('chooses landscape for tables with 7 or more columns (e.g. transactions register, day book)', () => {
+    it('chooses portrait for statement of accounts / party ledger', () => {
       const container = new MockElement('div')
+      const header = new MockElement('div')
+      header.setAttribute('data-print-header', 'true')
+      header.textContent = 'STATEMENT OF ACCOUNTS / PARTY LEDGER'
+      container.appendChild(header)
+
       const table = new MockElement('table')
       const thead = new MockElement('thead')
       const tr = new MockElement('tr')
@@ -148,6 +153,50 @@ describe('printUtils', () => {
         th.textContent = `Col ${i + 1}`
         tr.appendChild(th)
       }
+      thead.appendChild(tr)
+      table.appendChild(thead)
+      container.appendChild(table)
+      mockBody.appendChild(container)
+
+      expect(detectOptimalOrientation(container as any)).toBe('portrait')
+    })
+
+    it('chooses landscape for all transactions register (chronological)', () => {
+      const container = new MockElement('div')
+      const header = new MockElement('div')
+      header.setAttribute('data-print-header', 'true')
+      header.textContent = 'ALL TRANSACTIONS REGISTER (CHRONOLOGICAL)'
+      container.appendChild(header)
+
+      const table = new MockElement('table')
+      const thead = new MockElement('thead')
+      const tr = new MockElement('tr')
+
+      for (let i = 0; i < 8; i++) {
+        const th = new MockElement('th')
+        th.textContent = `Col ${i + 1}`
+        tr.appendChild(th)
+      }
+      thead.appendChild(tr)
+      table.appendChild(thead)
+      container.appendChild(table)
+      mockBody.appendChild(container)
+
+      expect(detectOptimalOrientation(container as any)).toBe('landscape')
+    })
+
+    it('chooses landscape for tables with 7 or more columns with company and narration details', () => {
+      const container = new MockElement('div')
+      const table = new MockElement('table')
+      const thead = new MockElement('thead')
+      const tr = new MockElement('tr')
+
+      const cols = ['#', 'Date', 'Type', 'Voucher No', 'Company Name', 'Narration', 'Debit', 'Credit']
+      cols.forEach((c) => {
+        const th = new MockElement('th')
+        th.textContent = c
+        tr.appendChild(th)
+      })
       thead.appendChild(tr)
       table.appendChild(thead)
       container.appendChild(table)

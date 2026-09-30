@@ -773,19 +773,27 @@ export default function LedgerList() {
               <div className="inline-flex rounded-lg shadow-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden">
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    const targetOrientation =
+                      printOrientation === 'auto'
+                        ? (activeTab === 'all-transactions' ? 'landscape' : 'portrait')
+                        : printOrientation
                     smartPrint({
-                      orientation: printOrientation === 'auto' ? 'landscape' : printOrientation,
+                      orientation: targetOrientation,
                       target: '#audit-print-document',
                     })
-                  }
+                  }}
                   className="flex items-center gap-1.5 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-semibold transition cursor-pointer border-r border-slate-200 dark:border-slate-700"
                   title={`Print ${activeTab === 'all-transactions' ? 'Transactions' : 'Statement'} (Automatically chooses Portrait or Landscape for best visibility)`}
                 >
                   <Printer size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <span>Print {activeTab === 'all-transactions' ? 'Transactions' : 'Statement'}</span>
                   <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-medium">
-                    {printOrientation === 'auto' ? 'Auto (Landscape)' : printOrientation === 'landscape' ? 'Landscape' : 'Portrait'}
+                    {printOrientation === 'auto'
+                      ? (activeTab === 'all-transactions' ? 'Auto (Landscape)' : 'Auto (Portrait)')
+                      : printOrientation === 'landscape'
+                      ? 'Landscape'
+                      : 'Portrait'}
                   </span>
                 </button>
                 <select
@@ -794,9 +802,11 @@ export default function LedgerList() {
                   className="px-2 py-1 bg-transparent text-[11px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                   title="Choose print layout: Auto chooses between Landscape and Portrait for best visibility"
                 >
-                  <option value="auto">Auto (Best Fit)</option>
+                  <option value="auto">
+                    Auto ({activeTab === 'all-transactions' ? 'Landscape' : 'Portrait'})
+                  </option>
+                  <option value="portrait">Portrait (Vertical)</option>
                   <option value="landscape">Landscape (Wide)</option>
-                  <option value="portrait">Portrait</option>
                 </select>
               </div>
               <button
@@ -1688,10 +1698,16 @@ export default function LedgerList() {
       ══════════════════════════════════════════════════════════════════════════ */}
       <div
         id="audit-print-document"
-        data-print-orientation={printOrientation === 'auto' ? 'landscape' : printOrientation}
+        data-print-orientation={
+          printOrientation === 'auto'
+            ? (activeTab === 'all-transactions' ? 'landscape' : 'portrait')
+            : printOrientation
+        }
         className={cn(
           "hidden print:block w-full max-w-full overflow-hidden box-border text-black bg-white select-text",
-          (printOrientation === 'landscape' || printOrientation === 'auto') ? 'print-landscape' : 'print-portrait'
+          (printOrientation === 'landscape' || (printOrientation === 'auto' && activeTab === 'all-transactions'))
+            ? 'print-landscape'
+            : 'print-portrait'
         )}
       >
         {activeTab === 'all-transactions' ? (
@@ -1799,7 +1815,7 @@ export default function LedgerList() {
             <PrintHeader
               title="STATEMENT OF ACCOUNTS / PARTY LEDGER"
               subtitle={`Party: ${selectedLedger || 'All Ledgers'} | Period: ${fromDate || 'Start'} to ${toDate || 'Present'}`}
-              orientation={printOrientation === 'auto' ? 'landscape' : printOrientation}
+              orientation={printOrientation === 'auto' ? 'portrait' : printOrientation}
             />
 
             {/* Party & Financial Summary Box in Borgang Drug Distributors Style */}
@@ -1842,18 +1858,18 @@ export default function LedgerList() {
               <tbody className="divide-y divide-gray-300">
                 {/* Initial Opening Balance Line */}
                 <tr className="bg-gray-50/70 border-b border-gray-300 font-semibold italic text-gray-700">
-                  <td className="border-r border-black p-1 text-center font-mono text-[7.5pt]">0</td>
-                  <td className="border-r border-black p-1 font-mono text-[7.5pt]">{fromDate || 'Opening'}</td>
-                  <td className="border-r border-black p-1 text-center uppercase text-[7.5pt]">OP-BAL</td>
-                  <td className="border-r border-black p-1 font-mono text-[7.5pt]">—</td>
-                  <td className="border-r border-black p-1 break-words text-[7.5pt]">Opening Balance Brought Forward</td>
-                  <td className="border-r border-black p-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
+                  <td className="border-r border-black py-1.5 px-1 text-center font-mono text-[7.5pt]">0</td>
+                  <td className="border-r border-black py-1.5 px-1 font-mono text-[7.5pt]">{fromDate || 'Opening'}</td>
+                  <td className="border-r border-black py-1.5 px-1 text-center uppercase text-[7.5pt]">OP-BAL</td>
+                  <td className="border-r border-black py-1.5 px-1 font-mono text-[7.5pt]">—</td>
+                  <td className="border-r border-black py-1.5 px-1 break-words text-[7.5pt]">Opening Balance Brought Forward</td>
+                  <td className="border-r border-black py-1.5 px-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
                     {selectedLedgerObj?.openingType === 'Dr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
                   </td>
-                  <td className="border-r border-black p-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
+                  <td className="border-r border-black py-1.5 px-1 text-right font-mono text-[7.5pt] whitespace-nowrap">
                     {selectedLedgerObj?.openingType === 'Cr' && Number(selectedLedgerObj.openingBalance) > 0 ? formatCurrency(Number(selectedLedgerObj.openingBalance || 0)) : '-'}
                   </td>
-                  <td className="p-1 text-right font-mono font-bold text-gray-900 text-[7.5pt] whitespace-nowrap">
+                  <td className="py-1.5 px-1 text-right font-mono font-bold text-gray-900 text-[7.5pt] whitespace-nowrap">
                     {formatCurrency(selectedLedgerObj?.openingBalance || 0)} {selectedLedgerObj?.openingType || 'Dr'}
                   </td>
                 </tr>
@@ -1867,18 +1883,18 @@ export default function LedgerList() {
                     const dt = getTxnDateTime(t.date, t.time, t.id || t.vNo)
                     return (
                       <tr key={t.id || idx} className="border-b border-gray-200">
-                        <td className="border-r border-black p-1 text-center font-mono text-[7.5pt]">{idx + 1}</td>
-                        <td className="border-r border-black p-1 font-mono text-[7.5pt] leading-tight">{dt.date} {dt.time}</td>
-                        <td className="border-r border-black p-1 text-center uppercase font-semibold text-[7.5pt]">{t.vType}</td>
-                        <td className="border-r border-black p-1 font-mono font-bold text-[7.5pt] break-all">{t.vNo}</td>
-                        <td className="border-r border-black p-1 break-words text-[7.5pt]">{t.narration || '-'}</td>
-                        <td className="border-r border-black p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
+                        <td className="border-r border-black py-1.5 px-1 text-center font-mono text-[7.5pt]">{idx + 1}</td>
+                        <td className="border-r border-black py-1.5 px-1 font-mono text-[7.5pt] leading-tight">{dt.date} {dt.time}</td>
+                        <td className="border-r border-black py-1.5 px-1 text-center uppercase font-semibold text-[7.5pt]">{t.vType}</td>
+                        <td className="border-r border-black py-1.5 px-1 font-mono font-bold text-[7.5pt] break-all">{t.vNo}</td>
+                        <td className="border-r border-black py-1.5 px-1 break-words text-[7.5pt]">{t.narration || '-'}</td>
+                        <td className="border-r border-black py-1.5 px-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {t.debit > 0 ? formatCurrency(t.debit) : '-'}
                         </td>
-                        <td className="border-r border-black p-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
+                        <td className="border-r border-black py-1.5 px-1 text-right font-mono font-semibold text-[7.5pt] whitespace-nowrap">
                           {t.credit > 0 ? formatCurrency(t.credit) : '-'}
                         </td>
-                        <td className="p-1 text-right font-mono font-bold text-[7.5pt] whitespace-nowrap">
+                        <td className="py-1.5 px-1 text-right font-mono font-bold text-[7.5pt] whitespace-nowrap">
                           {formatCurrency(t.runningBalance)} {t.balanceType}
                         </td>
                       </tr>
