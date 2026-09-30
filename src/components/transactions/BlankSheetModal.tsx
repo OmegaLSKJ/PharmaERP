@@ -26,6 +26,7 @@ export default function BlankSheetModal({
   const [date, setDate] = useState(() => new Date().toLocaleDateString('en-GB'))
   const [sheetNo, setSheetNo] = useState('')
   const [rowCount, setRowCount] = useState<number>(25)
+  const [copies, setCopies] = useState<number>(1)
 
   const printIframeRef = useRef<HTMLIFrameElement>(null)
   const storeCompany = useUIStore((s) => s.company)
@@ -46,26 +47,33 @@ export default function BlankSheetModal({
       repName,
       date,
       sheetNo,
-      rowCount
+      rowCount,
+      copies
     })
 
-    if (printIframeRef.current) {
-      printIframeRef.current.srcdoc = html
-      printIframeRef.current.onload = () => {
+    const iframe = printIframeRef.current
+    if (iframe && iframe.contentWindow) {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document
+        doc.open()
+        doc.write(html)
+        doc.close()
         setTimeout(() => {
           try {
-            printIframeRef.current?.contentWindow?.focus()
-            printIframeRef.current?.contentWindow?.print()
+            iframe.contentWindow?.focus()
+            iframe.contentWindow?.print()
           } catch {
-            const printWindow = window.open('', '_blank')
-            if (printWindow) {
-              printWindow.document.write(html)
-              printWindow.document.close()
-              printWindow.focus()
-              printWindow.print()
-            }
+            window.print()
           }
-        }, 150)
+        }, 250)
+      } catch {
+        iframe.srcdoc = html
+        iframe.onload = () => {
+          setTimeout(() => {
+            iframe.contentWindow?.focus()
+            iframe.contentWindow?.print()
+          }, 250)
+        }
       }
     } else {
       const printWindow = window.open('', '_blank')
@@ -90,7 +98,7 @@ export default function BlankSheetModal({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, mode, partyName, partyGstin, repName, date, sheetNo, rowCount, companyInfo])
+  }, [isOpen, onClose, mode, partyName, partyGstin, repName, date, sheetNo, rowCount, copies, companyInfo])
 
   if (!isOpen || typeof document === 'undefined') return null
 
@@ -99,8 +107,17 @@ export default function BlankSheetModal({
       {/* Hidden print iframe for isolated clean A4 printing without page bleed */}
       <iframe
         ref={printIframeRef}
-        className="hidden"
-        style={{ display: 'none', position: 'fixed', right: 0, bottom: 0, width: 0, height: 0, border: 'none' }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '210mm',
+          height: '297mm',
+          border: 'none',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -9999
+        }}
         title="Print Blank A4 Sheet Frame"
       />
       <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -133,7 +150,7 @@ export default function BlankSheetModal({
         </div>
 
         {/* Configuration Controls Bar (Hidden on Print) */}
-        <div className="px-5 py-3 border-b border-border bg-muted/10 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs no-print">
+        <div className="px-5 py-3 border-b border-border bg-muted/10 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs no-print">
           <div>
             <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Sheet Format</label>
             <select
@@ -181,6 +198,22 @@ export default function BlankSheetModal({
               <option value={25}>25 Rows (Standard A4 fit - Recommended)</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Copies to Print</label>
+            <select
+              value={copies}
+              onChange={(e) => setCopies(Number(e.target.value))}
+              className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer"
+            >
+              <option value={1}>1 Copy (Single A4 Page)</option>
+              <option value={2}>2 Copies</option>
+              <option value={3}>3 Copies</option>
+              <option value={5}>5 Copies</option>
+              <option value={10}>10 Copies</option>
+              <option value={20}>20 Copies</option>
+            </select>
+          </div>
         </div>
 
         {/* Live A4 Sheet Preview Container */}
@@ -216,7 +249,7 @@ export default function BlankSheetModal({
               className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
             >
               <Printer size={15} />
-              <span>Print Blank A4 Sheet (Ctrl+P)</span>
+              <span>Print {copies > 1 ? `${copies} Blank A4 Sheets` : 'Blank A4 Sheet'} (Ctrl+P)</span>
             </button>
           </div>
         </div>

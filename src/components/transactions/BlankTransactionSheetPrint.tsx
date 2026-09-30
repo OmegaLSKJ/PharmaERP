@@ -72,12 +72,13 @@ export default function BlankTransactionSheetPrint({
 
   const config = getSheetConfig()
   const rows = Array.from({ length: rowCount }, (_, i) => i + 1)
+  const rowHeightClass = rowCount <= 15 ? 'h-[26px] min-h-[26px]' : rowCount <= 20 ? 'h-[22px] min-h-[22px]' : 'h-[18.5px] min-h-[18.5px]'
 
   return (
-    <div className="blank-sheet-root w-full max-w-[210mm] mx-auto bg-white text-black font-sans p-6 sm:p-8 text-[11px] leading-tight select-text print:p-4 print:m-0 print:w-full print:max-w-none">
+    <div className="blank-sheet-root w-full max-w-[210mm] mx-auto bg-white text-black font-sans p-4 sm:p-6 text-[11px] leading-tight select-text print:p-2 print:m-0 print:w-full print:max-w-none">
       
       {/* Outer Border Frame with OCR Corner Markers */}
-      <div className="border-2 border-black p-4 sm:p-5 relative bg-white">
+      <div className="border-2 border-black p-3 sm:p-4 relative bg-white">
         
         {/* OCR Corner Calibration Crosshairs */}
         <div className="absolute top-1 left-1 text-[8px] font-mono text-black font-bold select-none">+ OCR-TL +</div>
@@ -186,7 +187,7 @@ export default function BlankTransactionSheetPrint({
             </thead>
             <tbody>
               {rows.map((rowNum) => (
-                <tr key={rowNum} className="border-b border-gray-400 min-h-[23px] h-[23px]">
+                <tr key={rowNum} className={`border-b border-gray-400 ${rowHeightClass}`}>
                   <td className="border-r border-black px-1 text-center font-mono text-gray-600 font-semibold bg-gray-50/50">
                     {rowNum}
                   </td>

@@ -20,6 +20,7 @@ export interface SheetMetadata {
   date?: string
   sheetNo?: string
   rowCount?: number
+  copies?: number
 }
 
 const DEFAULT_COMPANY: TemplateCompanyInfo = {
@@ -31,32 +32,31 @@ const DEFAULT_COMPANY: TemplateCompanyInfo = {
   phone: '+91 6000763703'
 }
 
-function getBaseCss(): string {
+function getBaseCss(rowCount: number = 25): string {
+  const rowHeight = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
   return `
     @page {
       size: A4 portrait;
-      margin: 6mm 8mm 6mm 8mm;
+      margin: 4mm 6mm;
     }
     * {
       box-sizing: border-box;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #f1f5f9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       color: #000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100%;
+      -webkit-font-smoothing: antialiased;
+      width: 100%;
     }
     .top-actions {
       width: 210mm;
       max-width: 100%;
-      margin: 12px 0 16px 0;
+      margin: 12px auto 16px auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -85,9 +85,10 @@ function getBaseCss(): string {
     }
     .sheet {
       width: 210mm;
-      min-height: 297mm;
-      max-height: 297mm;
-      padding: 6mm 10mm 6mm 10mm;
+      max-width: 210mm;
+      height: 290mm;
+      max-height: 290mm;
+      padding: 4mm 6mm;
       background: #fff;
       border: 1px solid #cbd5e1;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
@@ -96,40 +97,70 @@ function getBaseCss(): string {
       display: flex;
       flex-direction: column;
       position: relative;
-      page-break-inside: avoid;
-      break-inside: avoid;
       margin: 12px auto;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: always;
+      break-after: page;
+    }
+    .sheet:last-of-type {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
     }
     @media print {
       html, body {
-        background: #fff;
-        padding: 0;
-        margin: 0;
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
       }
       .top-actions {
         display: none !important;
       }
       .sheet {
-        width: 100%;
-        height: 100%;
-        max-height: 285mm;
-        padding: 2mm 4mm 4mm 4mm;
-        margin: 0;
-        border: none;
-        box-shadow: none;
-        page-break-inside: avoid;
-        break-inside: avoid;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .sheet:last-of-type {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      table.grid {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.grid tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
     .frame {
       border: 1.5px solid #000;
-      padding: 6px 10px 6px 10px;
+      padding: 4px 7px;
       flex: 1;
+      height: 100%;
+      max-height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       box-sizing: border-box;
+      overflow: hidden;
     }
     .ocr-marker {
       position: absolute;
@@ -140,14 +171,14 @@ function getBaseCss(): string {
       line-height: 1;
       z-index: 10;
     }
-    .ocr-tl { top: 3px; left: 5px; }
-    .ocr-tr { top: 3px; right: 5px; }
-    .ocr-bl { bottom: 3px; left: 5px; }
-    .ocr-br { bottom: 3px; right: 5px; }
+    .ocr-tl { top: 2px; left: 4px; }
+    .ocr-tr { top: 2px; right: 4px; }
+    .ocr-bl { bottom: 2px; left: 4px; }
+    .ocr-br { bottom: 2px; right: 4px; }
     
     .header-box {
       border: 1.2px solid #000;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .header-top {
       display: flex;
@@ -155,12 +186,12 @@ function getBaseCss(): string {
     }
     .branding {
       flex: 7;
-      padding: 3px 8px;
+      padding: 2.5px 6px;
       border-right: 1.2px solid #000;
     }
     .branding h1 {
       margin: 0 0 1px 0;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       color: #0c2f66;
       letter-spacing: -0.3px;
@@ -168,20 +199,20 @@ function getBaseCss(): string {
       line-height: 1.1;
     }
     .branding .sub {
-      font-size: 7px;
+      font-size: 6.8px;
       font-weight: 700;
       color: #333;
       line-height: 1.2;
     }
     .branding .meta {
-      font-size: 7px;
+      font-size: 6.8px;
       color: #444;
       margin-top: 1px;
       line-height: 1.2;
     }
     .badge {
       flex: 5;
-      padding: 3px 8px;
+      padding: 2.5px 6px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -189,7 +220,7 @@ function getBaseCss(): string {
       text-align: right;
     }
     .badge .title {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 900;
       text-transform: uppercase;
       color: #111;
@@ -197,44 +228,44 @@ function getBaseCss(): string {
       line-height: 1.1;
     }
     .badge .sub {
-      font-size: 7px;
+      font-size: 6.8px;
       color: #555;
       margin-top: 1px;
       line-height: 1.2;
     }
     .info-grid {
       display: flex;
-      font-size: 8px;
+      font-size: 7.5px;
     }
     .party-col {
       flex: 7;
-      padding: 3px 8px;
+      padding: 2px 6px;
       border-right: 1.2px solid #000;
     }
     .party-col .label {
-      font-size: 7.5px;
+      font-size: 7px;
       font-weight: 800;
       text-transform: uppercase;
       color: #444;
       margin-bottom: 1px;
     }
     .party-col .line {
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-weight: 700;
-      min-height: 14px;
+      min-height: 13px;
       border-bottom: 1px dotted #888;
     }
     .order-col {
       flex: 5;
-      padding: 3px 8px;
+      padding: 2px 6px;
     }
     .order-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 1.5px;
+      margin-bottom: 1px;
     }
     .order-row span.lbl {
-      font-size: 7.5px;
+      font-size: 7px;
       font-weight: 800;
       text-transform: uppercase;
       color: #444;
@@ -242,44 +273,45 @@ function getBaseCss(): string {
     .order-row span.val {
       font-family: monospace;
       font-weight: 700;
-      font-size: 8px;
+      font-size: 7.5px;
     }
     .guide-banner {
       background: #f1f5f9;
       border: 1px solid #000;
-      padding: 2px 6px;
-      margin-bottom: 3px;
-      font-size: 7px;
+      padding: 1.5px 5px;
+      margin-bottom: 2px;
+      font-size: 6.8px;
       font-weight: 600;
       display: flex;
       justify-content: space-between;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     table.grid {
       width: 100%;
       border-collapse: collapse;
-      font-size: 8px;
-      margin-bottom: 3px;
+      font-size: 7.5px;
+      margin-bottom: 2px;
     }
     table.grid th {
       background: #e2e8f0;
       border: 1px solid #000;
-      padding: 2.5px 2px;
-      font-size: 7.5px;
+      padding: 2px 1.5px;
+      font-size: 7px;
       font-weight: 800;
       text-transform: uppercase;
       text-align: center;
       line-height: 1.1;
-      height: 19px;
+      height: 15px;
     }
     table.grid td {
       border: 1px solid #000;
-      padding: 2px 4px;
-      height: 23px;
-      min-height: 23px;
+      padding: 1px 3px;
+      height: ${rowHeight};
+      min-height: ${rowHeight};
+      max-height: ${rowHeight};
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, monospace;
-      font-size: 8.5px;
-      line-height: 1.2;
+      font-size: 8px;
+      line-height: 1.15;
     }
     table.grid tr.even {
       background: #fafafa;
@@ -287,17 +319,17 @@ function getBaseCss(): string {
     .bottom-box {
       border: 1.2px solid #000;
       display: flex;
-      font-size: 7.5px;
-      margin-bottom: 3px;
+      font-size: 7px;
+      margin-bottom: 2px;
     }
     .notes-col {
       flex: 7;
-      padding: 3px 6px;
+      padding: 2px 5px;
       border-right: 1.2px solid #000;
     }
     .totals-col {
       flex: 5;
-      padding: 3px 6px;
+      padding: 2px 5px;
       background: #f8fafc;
       display: flex;
       flex-direction: column;
@@ -307,22 +339,22 @@ function getBaseCss(): string {
       border: 1.2px solid #000;
       display: flex;
       text-align: center;
-      font-size: 7.5px;
+      font-size: 7px;
     }
     .sig-box {
       flex: 1;
-      padding: 3px 6px;
+      padding: 2px 5px;
       border-right: 1px solid #000;
     }
     .sig-box:last-child {
       border-right: none;
     }
     .sig-space {
-      height: 18px;
+      height: 14px;
     }
     .sig-line {
       border-top: 1px dotted #444;
-      padding-top: 2px;
+      padding-top: 1.5px;
       font-weight: 800;
       text-transform: uppercase;
     }
@@ -331,28 +363,15 @@ function getBaseCss(): string {
 
 export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
   const rowCount = meta?.rowCount || 25
+  const copies = Math.max(1, meta?.copies || 1)
+  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
   let rows = ''
   for (let i = 1; i <= rowCount; i++) {
     const isEven = i % 2 === 0 ? ' class="even"' : ''
-    rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+    rows += `<tr${isEven} style="height:${rowH};"><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
   }
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Sales Order Sheet - OCR Template</title>
-  <style>${getBaseCss()}</style>
-</head>
-<body>
-  <div class="top-actions">
-    <div>
-      <strong style="font-size: 13px;">Standard A4 Sales Order Sheet (OCR-Ready)</strong>
-      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">For Field Sales Reps & Chemist Booking</span>
-    </div>
-    <button onclick="window.print()" class="btn">🖨️ Print / Save as PDF (A4)</button>
-  </div>
-
+  const singleSheet = `
   <div class="sheet">
     <div class="frame">
       <div class="ocr-marker ocr-tl">[+ OCR-TL +]</div>
@@ -443,7 +462,7 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY,
             <div style="font-weight: 800; text-transform: uppercase; font-size: 7.5px; color: #444; margin-bottom: 2px;">
               Order Remarks & Terms:
             </div>
-            <div style="min-height: 22px; line-height: 1.3; color: #444;">
+            <div style="min-height: 20px; line-height: 1.3; color: #444;">
               Goods once booked cannot be cancelled. Standard distributor credit policy applies.
             </div>
           </div>
@@ -475,35 +494,37 @@ export function generateSalesSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY,
         </div>
       </div>
     </div>
-  </div>
-</body>
-</html>`
-}
+  </div>`
 
-export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
-  const rowCount = meta?.rowCount || 25
-  let rows = ''
-  for (let i = 1; i <= rowCount; i++) {
-    const isEven = i % 2 === 0 ? ' class="even"' : ''
-    rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+  let allSheets = ''
+  for (let cIdx = 0; cIdx < copies; cIdx++) {
+    allSheets += singleSheet
   }
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Purchase Order Sheet - OCR Template</title>
-  <style>${getBaseCss()}</style>
+  <title>Sales Order Sheet - OCR Template</title>
+  <style>${getBaseCss(rowCount)}</style>
 </head>
 <body>
-  <div class="top-actions">
-    <div>
-      <strong style="font-size: 13px;">Standard A4 Purchase Order Sheet (OCR-Ready)</strong>
-      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">For Supplier / Manufacturer Purchase Orders</span>
-    </div>
-    <button onclick="window.print()" class="btn">🖨️ Print / Save as PDF (A4)</button>
-  </div>
+  ${allSheets}
+</body>
+</html>`
+}
 
+export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
+  const rowCount = meta?.rowCount || 25
+  const copies = Math.max(1, meta?.copies || 1)
+  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  let rows = ''
+  for (let i = 1; i <= rowCount; i++) {
+    const isEven = i % 2 === 0 ? ' class="even"' : ''
+    rows += `<tr${isEven} style="height:${rowH};"><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+  }
+
+  const singleSheet = `
   <div class="sheet">
     <div class="frame">
       <div class="ocr-marker ocr-tl">[+ OCR-TL +]</div>
@@ -525,43 +546,42 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
             <div class="badge">
               <div>
                 <span style="font-size: 7px; font-weight: 900; color: #64748b; letter-spacing: 0.5px;">STANDARD OCR FORM</span>
-                <span class="title">PURCHASE ORDER SHEET</span>
-                <span class="sub">SUPPLIER PROCUREMENT FORM</span>
+                <span class="title">PURCHASE / GOODS INWARD ENTRY SHEET</span>
+                <span class="sub">STANDARD PHARMA INWARD ORDER & STOCK RECEIPT FORM</span>
               </div>
               <div style="font-family: monospace; font-size: 7px; color: #64748b;">
-                REF: OCR-PUR-A4/2026
+                FORM REF: PHARMA-OCR-A4/2026
               </div>
             </div>
           </div>
 
           <div class="info-grid">
             <div class="party-col">
-              <div class="label">Supplier / Manufacturer / Distributor Name *</div>
+              <div class="label">Supplier / Distributor Name *</div>
               ${meta?.partyName ? `<div style="font-weight: 800; font-size: 11px; min-height: 18px; color: #000; padding-top: 2px;">${meta.partyName}</div>` : '<div class="line"></div>'}
               <div style="display: flex; gap: 15px; margin-top: 3px; font-size: 7.5px;">
-                <div><strong>GSTIN:</strong> ${meta?.partyGstin || '________________________'}</div>
-                <div><strong>City / Station:</strong> ________________</div>
+                <div><strong>PARTY GSTIN / DL:</strong> ${meta?.partyGstin || '________________________'}</div>
               </div>
             </div>
             <div class="order-col">
               <div class="order-row">
-                <span class="lbl">PO NUMBER:</span>
-                <span class="val">${meta?.sheetNo || 'PO-2026/______'}</span>
+                <span class="lbl">INWARD / BILL NO:</span>
+                <span class="val">${meta?.sheetNo || '___________________'}</span>
               </div>
               <div class="order-row">
                 <span class="lbl">DATE:</span>
-                <span class="val">${meta?.date || '____/____/2026'}</span>
+                <span class="val">${meta?.date || '30/09/2026'}</span>
               </div>
               <div class="order-row">
-                <span class="lbl">PURCHASE AGENT:</span>
-                <span class="val">${meta?.repName || '__________________'}</span>
+                <span class="lbl">RECEIVED BY / MANAGER:</span>
+                <span class="val">${meta?.repName || '___________________'}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="guide-banner">
-          <span>✍️ <strong>OCR Instructions:</strong> Write medicine descriptions, pack, quantity, and purchase rates clearly in CAPITAL LETTERS.</span>
+          <span>✍️ <strong>OCR Instructions:</strong> Write medicine name, batch, expiry (MM/YY), and quantity clearly in CAPITAL LETTERS. Avoid overlapping cells.</span>
           <span>PAGE 1 OF 1</span>
         </div>
 
@@ -576,7 +596,7 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
               <th style="width: 42px;">Exp</th>
               <th style="width: 28px;">Qty</th>
               <th style="width: 26px;">Free</th>
-              <th style="width: 46px;">Pur Rate (₹)</th>
+              <th style="width: 46px;">Rate (₹)</th>
               <th style="width: 46px;">MRP (₹)</th>
               <th style="width: 28px;">GST%</th>
               <th style="width: 58px;">Amount (₹)</th>
@@ -592,20 +612,20 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
         <div class="bottom-box">
           <div class="notes-col">
             <div style="font-weight: 800; text-transform: uppercase; font-size: 7.5px; color: #444; margin-bottom: 2px;">
-              Payment Terms & Delivery Instructions:
+              Notes / Special Instructions:
             </div>
-            <div style="min-height: 22px; line-height: 1.3; color: #444;">
-              Delivery within ________ days. F.O.R Destination. Standard goods warranty and minimum 70% shelf life required.
+            <div style="min-height: 18px; line-height: 1.3; color: #444; font-size: 6.8px;">
+              [ ] Cold Chain (2°C - 8°C) &nbsp;&nbsp;&nbsp; [ ] Urgent Delivery (Same Day) &nbsp;&nbsp;&nbsp; [ ] Normal Dispatch
             </div>
           </div>
           <div class="totals-col">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-              <span style="font-weight: 800;">ESTIMATED SUB TOTAL:</span>
-              <span style="font-family: monospace; font-weight: 700;">₹ ________________</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1px;">
+              <span style="font-weight: 700;">TOTAL BILLED ITEMS:</span>
+              <span style="font-family: monospace; font-weight: 700;">______ Lines</span>
             </div>
-            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 2px;">
-              <span style="font-weight: 900; font-size: 9px;">ESTIMATED TOTAL (WITH GST):</span>
-              <span style="font-family: monospace; font-weight: 900; font-size: 10px;">₹ ________________</span>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 1px;">
+              <span style="font-weight: 900; font-size: 8.5px;">ESTIMATED TOTAL:</span>
+              <span style="font-family: monospace; font-weight: 900; font-size: 9.5px;">₹ ________________</span>
             </div>
           </div>
         </div>
@@ -613,48 +633,50 @@ export function generatePurchaseSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPA
         <div class="signatures">
           <div class="sig-box">
             <div class="sig-space"></div>
-            <div class="sig-line">ORDERED BY (PURCHASE MANAGER)</div>
+            <div class="sig-line">SALES REP / PREPARED BY</div>
           </div>
           <div class="sig-box">
             <div class="sig-space"></div>
-            <div class="sig-line">VERIFIED & APPROVED BY</div>
+            <div class="sig-line">CHEMIST STAMP & SIGNATURE</div>
           </div>
           <div class="sig-box">
             <div class="sig-space"></div>
-            <div class="sig-line">SUPPLIER ACKNOWLEDGEMENT</div>
+            <div class="sig-line">AUTHORIZED SIGNATORY / WAREHOUSE</div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</body>
-</html>`
-}
+  </div>`
 
-export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
-  const rowCount = meta?.rowCount || 25
-  let rows = ''
-  for (let i = 1; i <= rowCount; i++) {
-    const isEven = i % 2 === 0 ? ' class="even"' : ''
-    rows += `<tr${isEven}><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+  let allSheets = ''
+  for (let cIdx = 0; cIdx < copies; cIdx++) {
+    allSheets += singleSheet
   }
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Delivery Challan Sheet - OCR Template</title>
-  <style>${getBaseCss()}</style>
+  <title>Purchase Order Sheet - OCR Template</title>
+  <style>${getBaseCss(rowCount)}</style>
 </head>
 <body>
-  <div class="top-actions">
-    <div>
-      <strong style="font-size: 13px;">Standard A4 Delivery Challan Sheet (OCR-Ready)</strong>
-      <span style="font-size: 11px; opacity: 0.8; margin-left: 8px;">For Stock Transfer, Branch Dispatches & Delivery Runs</span>
-    </div>
-    <button onclick="window.print()" class="btn">🖨️ Print / Save as PDF (A4)</button>
-  </div>
+  ${allSheets}
+</body>
+</html>`
+}
 
+export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPANY, meta?: SheetMetadata): string {
+  const rowCount = meta?.rowCount || 25
+  const copies = Math.max(1, meta?.copies || 1)
+  const rowH = rowCount <= 15 ? '26px' : rowCount <= 20 ? '22px' : '18.5px'
+  let rows = ''
+  for (let i = 1; i <= rowCount; i++) {
+    const isEven = i % 2 === 0 ? ' class="even"' : ''
+    rows += `<tr${isEven} style="height:${rowH};"><td style="text-align:center;">${i}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+  }
+
+  const singleSheet = `
   <div class="sheet">
     <div class="frame">
       <div class="ocr-marker ocr-tl">[+ OCR-TL +]</div>
@@ -745,18 +767,18 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
             <div style="font-weight: 800; text-transform: uppercase; font-size: 7.5px; color: #444; margin-bottom: 2px;">
               Transport & Dispatch Notes:
             </div>
-            <div style="min-height: 22px; line-height: 1.3; color: #444;">
+            <div style="min-height: 20px; line-height: 1.3; color: #444; font-size: 7px;">
               Total Cases / Corrugated Cartons: _______ Nos. Received goods in sound condition without damage or tampering.
             </div>
           </div>
           <div class="totals-col">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1px;">
               <span style="font-weight: 800;">TOTAL QUANTITY DISPATCHED:</span>
               <span style="font-family: monospace; font-weight: 700;">________________ Units</span>
             </div>
-            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 2px;">
-              <span style="font-weight: 900; font-size: 9px;">ESTIMATED TOTAL VALUE:</span>
-              <span style="font-family: monospace; font-weight: 900; font-size: 10px;">₹ ________________</span>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 1px;">
+              <span style="font-weight: 900; font-size: 8.5px;">ESTIMATED TOTAL VALUE:</span>
+              <span style="font-family: monospace; font-weight: 900; font-size: 9.5px;">₹ ________________</span>
             </div>
           </div>
         </div>
@@ -777,7 +799,22 @@ export function generateChallanSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
         </div>
       </div>
     </div>
-  </div>
+  </div>`
+
+  let allSheets = ''
+  for (let cIdx = 0; cIdx < copies; cIdx++) {
+    allSheets += singleSheet
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Delivery Challan Sheet - OCR Template</title>
+  <style>${getBaseCss(rowCount)}</style>
+</head>
+<body>
+  ${allSheets}
 </body>
 </html>`
 }
@@ -795,7 +832,7 @@ export function generateVoucherSheetHtml(c: TemplateCompanyInfo = DEFAULT_COMPAN
 <head>
   <meta charset="UTF-8">
   <title>Accounting Voucher Sheet - OCR Template</title>
-  <style>${getBaseCss()}</style>
+  <style>${getBaseCss(25)}</style>
 </head>
 <body>
   <div class="top-actions">
@@ -944,7 +981,7 @@ export function generateSampleFilledSheetHtml(c: TemplateCompanyInfo = DEFAULT_C
 <head>
   <meta charset="UTF-8">
   <title>Sample Filled A4 Sales Order Sheet - OCR Test</title>
-  <style>${getBaseCss()}</style>
+  <style>${getBaseCss(25)}</style>
 </head>
 <body>
   <div class="top-actions">
