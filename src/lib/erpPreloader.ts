@@ -92,7 +92,9 @@ export const usePreloaderStore = create<PreloaderState>((set, get) => ({
           set({ currentResource: resource })
 
           try {
-            const res = await getErp(resource, undefined, { forceRefresh: Boolean(options?.force) })
+            // Heavy inventory resources are warmed as their first visible page, never as a full catalog.
+            const query = resource === 'item-batches' ? { page: '1', pageSize: '50', search: '' } : undefined
+            const res = await getErp(resource, query, { forceRefresh: Boolean(options?.force) })
             if (resource === 'organization-profile' && res && typeof res === 'object' && !Array.isArray(res) && Object.keys(res).length > 0) {
               useUIStore.getState().setCompanyProfile(res as Partial<CompanyProfile>)
             }

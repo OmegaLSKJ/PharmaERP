@@ -47,6 +47,7 @@ type Batch = {
   stock: number
 }
 type BatchForm = Omit<Batch, 'id' | 'itemCode' | 'itemName' | 'stock'>
+type Paged<T> = { rows: T[]; total: number; page: number; pageSize: number }
 
 const empty = (): BatchForm => ({
   itemId: '',
@@ -88,6 +89,7 @@ const BATCH_SHORTCUTS = [
 export default function BatchMaster() {
   const [items, setItems] = useState<Item[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
+  const [totalBatches, setTotalBatches] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [form, setForm] = useState<BatchForm>(empty)
@@ -114,10 +116,14 @@ export default function BatchMaster() {
         setRefreshing(true)
       }
 
-      return Promise.all([getErp<Item[]>('items'), getErp<Batch[]>('item-batches')])
-        .then(([itemRows, batchRows]) => {
+      return Promise.all([
+        getErp<Item[]>('items'),
+        getErp<Paged<Batch>>('item-batches', { page: String(currentPage), pageSize: String(pageSize), search }),
+      ])
+        .then(([itemRows, batchPage]) => {
           setItems(itemRows || [])
-          setBatches(batchRows || [])
+          setBatches(batchPage.rows || [])
+          setTotalBatches(batchPage.total || 0)
         })
         .catch((error) => {
           showToast(error instanceof Error ? error.message : 'Could not load batches.')
@@ -127,7 +133,7 @@ export default function BatchMaster() {
           setRefreshing(false)
         })
     },
-    [showToast]
+    [currentPage, pageSize, search, showToast]
   )
 
   useEffect(() => {
@@ -135,51 +141,34 @@ export default function BatchMaster() {
   }, [load])
 
   // Quiet background sync without flashing loading state or wiping existing rows
-  useErpAutoRefresh(['item-batches', 'items'], () => {
+  useErpAutoRefresh(['item-batches'], () => {
     load(true)
   })
 
-  // Memoized filtered batches
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    if (!term) return batches
-    return batches.filter((batch) =>
-      [
-        batch.itemName,
-        batch.itemCode,
-        batch.batchNumber,
-        batch.supplier,
-        batch.rackNumber,
-        batch.supplierInvoiceNumber,
-      ].some((value) => value && value.toLowerCase().includes(term))
-    )
-  }, [batches, search])
+  // Search and pagination run on the server; the browser holds one page only.
+  const filtered = batches
 
   // Reset pagination on search / pageSize change
   useEffect(() => {
     setCurrentPage(1)
   }, [search, pageSize])
 
-  const totalItems = filtered.length
+  const totalItems = totalBatches
   const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize) || 1
 
   // Displayed paginated batches for buttery-smooth rendering
-  const displayedBatches = useMemo(() => {
-    if (pageSize === 0) return filtered
-    const start = (currentPage - 1) * pageSize
-    return filtered.slice(start, start + pageSize)
-  }, [filtered, currentPage, pageSize])
+  const displayedBatches = filtered
 
   const startIdx = totalItems === 0 ? 0 : pageSize === 0 ? 1 : (currentPage - 1) * pageSize + 1
-  const endIdx = pageSize === 0 ? totalItems : Math.min(currentPage * pageSize, totalItems)
+  const endIdx = Math.min(currentPage * pageSize, totalItems)
 
   const activeBatch = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
 
   // Memoize valuation totals to avoid expensive recalculation on render
   const valuationTotals = useMemo(() => {
-    const sum = filtered.reduce((s, b) => s + (b.stock || 0) * (b.purchasePrice || 0), 0)
+    const sum = displayedBatches.reduce((s, b) => s + (b.stock || 0) * (b.purchasePrice || 0), 0)
     return { valueOfGoods: sum, grandTotal: sum }
-  }, [filtered])
+  }, [displayedBatches])
 
   // Memoize item dropdown options so large lists don't re-render on keystrokes
   const itemOptions = useMemo(() => {
@@ -412,7 +401,6 @@ export default function BatchMaster() {
               <option value={50}>50 / page</option>
               <option value={100}>100 / page</option>
               <option value={200}>200 / page</option>
-              <option value={0}>All ({totalItems})</option>
             </select>
           </div>
         </div>
@@ -512,7 +500,7 @@ export default function BatchMaster() {
 
             {(!loading || batches.length > 0) &&
               displayedBatches.map((batch, idx) => {
-                const globalIndex = (currentPage - 1) * (pageSize || 50) + idx
+                const globalIndex = idx
                 const isActive = globalIndex === activeIndex
                 return (
                   <tr

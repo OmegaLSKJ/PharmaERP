@@ -2118,7 +2118,9 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
   return []
 }
 
-export async function list(resource: string, partyName?: string, options?: { manufacturer?: string; manufacturerId?: string }) {
+type ListOptions = { manufacturer?: string; manufacturerId?: string; page?: string; pageSize?: string; search?: string }
+
+export async function list(resource: string, partyName?: string, options?: ListOptions) {
   if (useMockStore()) {
     return listMock(resource, partyName, options)
   }
@@ -2481,6 +2483,39 @@ export async function list(resource: string, partyName?: string, options?: { man
     return dbItems
   }
   if (resource === 'item-batches') {
+    const requestedPage = Number(options?.page)
+    if (Number.isInteger(requestedPage) && requestedPage > 0) {
+      const page = requestedPage
+      const pageSize = Math.min(200, Math.max(25, Number(options?.pageSize) || 50))
+      const search = options?.search?.trim()
+      const cacheKey = `item-batches_${organizationId}_${page}_${pageSize}_${search || ''}`
+      const cached = serverResourceCache.get(cacheKey)
+      if (cached?.expiry && cached.expiry > Date.now()) return cached.data
+
+      let query = client.from('item_batches')
+        .select('id,item_id,batch_number,expiry_on,mrp,received_on,manufactured_on,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,items!inner(code,name,organization_id),parties(legal_name)', { count: 'exact' })
+        .eq('items.organization_id', organizationId)
+        .order('expiry_on')
+      if (search) {
+        const term = `%${search.replace(/[%_,()]/g, '')}%`
+        query = query.or(`batch_number.ilike.${term},rack_number.ilike.${term},supplier_invoice_number.ilike.${term}`)
+      }
+      const { data, error, count } = await query.range((page - 1) * pageSize, page * pageSize - 1)
+      if (error) throw error
+      const batchIds = (data ?? []).map((row: any) => row.id)
+      const { data: stockRows, error: stockError } = batchIds.length
+        ? await client.from('erp_stock_position').select('item_batch_id,quantity').eq('organization_id', organizationId).in('item_batch_id', batchIds)
+        : { data: [], error: null }
+      if (stockError) throw stockError
+      const stockByBatch = new Map<string, number>()
+      for (const row of stockRows ?? []) stockByBatch.set(row.item_batch_id, (stockByBatch.get(row.item_batch_id) ?? 0) + Number(row.quantity || 0))
+      const result = {
+        rows: (data ?? []).map((b: any) => ({ id:b.id,itemId:b.item_id,itemCode:b.items?.code ?? '',itemName:b.items?.name ?? '',batchNumber:b.batch_number,expiryOn:b.expiry_on ?? '',receivedOn:b.received_on ?? '',manufacturedOn:b.manufactured_on ?? '',mrp:Number(b.mrp ?? 0),costPrice:Number(b.cost_price ?? 0),purchasePrice:Number(b.purchase_price ?? 0),salePrice:Number(b.sale_price ?? 0),salesSchemeDeal:Number(b.sales_scheme_deal ?? 0),salesSchemeFree:Number(b.sales_scheme_free ?? 0),purchaseSchemeDeal:Number(b.purchase_scheme_deal ?? 0),purchaseSchemeFree:Number(b.purchase_scheme_free ?? 0),supplier:b.parties?.legal_name ?? '',supplierInvoiceNumber:b.supplier_invoice_number ?? '',supplierInvoiceDate:b.supplier_invoice_date ?? '',rackNumber:b.rack_number ?? '',sourceReportValue:Number(b.source_report_value ?? 0),stock:stockByBatch.get(b.id) ?? 0 })),
+        total: count ?? 0, page, pageSize,
+      }
+      serverResourceCache.set(cacheKey, { data: result, expiry: Date.now() + 30_000 })
+      return result
+    }
     const data = await fetchAll<any>((from, to) => client.from('item_batches').select('id,item_id,batch_number,expiry_on,mrp,received_on,manufactured_on,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,items!inner(code,name,organization_id),parties(legal_name),stock_movements(quantity)').eq('items.organization_id', organizationId).order('expiry_on').range(from, to))
     const rows = (data ?? []).map((b: any) => ({ id:b.id,itemId:b.item_id,itemCode:b.items?.code ?? '',itemName:b.items?.name ?? '',batchNumber:b.batch_number,expiryOn:b.expiry_on ?? '',receivedOn:b.received_on ?? '',manufacturedOn:b.manufactured_on ?? '',mrp:Number(b.mrp ?? 0),costPrice:Number(b.cost_price ?? 0),purchasePrice:Number(b.purchase_price ?? 0),salePrice:Number(b.sale_price ?? 0),salesSchemeDeal:Number(b.sales_scheme_deal ?? 0),salesSchemeFree:Number(b.sales_scheme_free ?? 0),purchaseSchemeDeal:Number(b.purchase_scheme_deal ?? 0),purchaseSchemeFree:Number(b.purchase_scheme_free ?? 0),supplier:b.parties?.legal_name ?? '',supplierInvoiceNumber:b.supplier_invoice_number ?? '',supplierInvoiceDate:b.supplier_invoice_date ?? '',rackNumber:b.rack_number ?? '',sourceReportValue:Number(b.source_report_value ?? 0),stock:(b.stock_movements ?? []).reduce((n:number,m:any)=>n+Number(m.quantity),0) }))
     return rows

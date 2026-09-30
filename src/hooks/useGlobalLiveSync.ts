@@ -12,13 +12,15 @@ const ROUTE_RESOURCE_MAP: Record<string, string[]> = {
   '/masters/parties': ['parties', 'ledgers', 'sales', 'purchases'],
   '/masters/items': ['items', 'item-batches', 'manufacturers', 'salts', 'hsn', 'stock'],
   '/inventory/items': ['items', 'item-batches', 'stock'],
-  '/masters/batches': ['item-batches', 'items', 'stock'],
+  // Batch Master owns its paged query; avoid a competing full-resource sync on navigation.
+  '/masters/batches': ['items'],
   '/masters/manufacturers': ['manufacturers'],
   '/masters/ledgers': ['ledgers', 'accounts'],
   '/masters/hsn': ['hsn'],
   '/masters/salts': ['salts'],
   '/masters/locations': ['warehouses'],
-  '/masters/itemmapping': ['item-mappings', 'items'],
+  // Item Mapping owns its query and refresh lifecycle.
+  '/masters/itemmapping': ['items'],
   '/masters/series': ['series'],
   '/masters/communication': ['communication-blocks', 'parties'],
   '/transactions/sale': ['sales', 'parties', 'series'],

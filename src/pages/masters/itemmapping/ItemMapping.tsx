@@ -187,7 +187,7 @@ export default function ItemMapping() {
     loadMappings(false)
   }, [loadMappings])
 
-  useErpAutoRefresh(['item-mappings', 'items', 'item-batches'], () => {
+  useErpAutoRefresh(['item-mappings'], () => {
     loadMappings(false)
   })
 

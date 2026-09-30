@@ -84,11 +84,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const party = request.nextUrl.searchParams.get('party') ?? undefined;
     const manufacturer = request.nextUrl.searchParams.get('manufacturer') ?? undefined;
     const manufacturerId = request.nextUrl.searchParams.get('manufacturerId') ?? undefined;
+    const page = request.nextUrl.searchParams.get('page') ?? undefined;
+    const pageSize = request.nextUrl.searchParams.get('pageSize') ?? undefined;
+    const search = request.nextUrl.searchParams.get('search') ?? undefined;
     const force = request.nextUrl.searchParams.get('force') === 'true' || request.nextUrl.searchParams.get('fresh') === 'true';
     if (force) {
       invalidateServerCache(resource);
     }
-    return success(await list(resource, party, { manufacturer, manufacturerId }), granted.auth!, requestId)
+    return success(await list(resource, party, { manufacturer, manufacturerId, page, pageSize, search }), granted.auth!, requestId)
   } catch (error) {
     return failure(error, requestId)
   }
