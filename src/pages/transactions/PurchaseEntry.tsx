@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink, Info } from 'lucide-react'
+import { Search, Plus, Trash2, Save, Printer, Minus, Pill, X, ShoppingBag, Hash, ArrowLeft, Edit2, ExternalLink, Info, Sparkles } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp, patchErp, postErp } from '../../lib/erpApi'
 import PurchaseInvoicePrint, { InvoicePrintItem, InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
@@ -10,6 +10,8 @@ import { useUIStore } from '../../store/uiStore'
 import ActiveProductDetailPanel from '../../components/transactions/ActiveProductDetailPanel'
 import { getGstRateForHsn, getAllHsnCodes, registerHsnCodesFromDb } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
+import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
+import { ExtractedInvoice } from '../../lib/ocr/types'
 
 interface LineItem {
   id: string
@@ -112,6 +114,7 @@ export default function PurchaseEntry() {
   const [showItemSearch, setShowItemSearch] = useState(false)
   const [showSupplierSearch, setShowSupplierSearch] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showOcrModal, setShowOcrModal] = useState(false)
   const [itemQuery, setItemQuery] = useState('')
   const [supplierQuery, setSupplierQuery] = useState('')
 
@@ -123,6 +126,68 @@ export default function PurchaseEntry() {
 
   const [saving, setSaving] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
+
+  const handleApplyOcrData = useCallback((ocrData: ExtractedInvoice) => {
+    if (ocrData.supplierName) {
+      const match = supplierOptions.find(
+        (s) =>
+          s.name.toLowerCase().includes(ocrData.supplierName.toLowerCase()) ||
+          ocrData.supplierName.toLowerCase().includes(s.name.toLowerCase()) ||
+          (ocrData.supplierGstin && s.gstin && s.gstin.toUpperCase() === ocrData.supplierGstin.toUpperCase())
+      )
+      setSupplier(match ? match.name : ocrData.supplierName)
+    }
+
+    if (ocrData.invoiceNo) {
+      setInvoiceNo(ocrData.invoiceNo)
+    }
+
+    if (ocrData.invoiceDate) {
+      setInvoiceDate(ocrData.invoiceDate)
+    }
+
+    if (ocrData.items && ocrData.items.length > 0) {
+      const newItems: LineItem[] = ocrData.items.map((it, idx) => {
+        const matchedItem = itemOptions.find(
+          (opt) =>
+            opt.name.toLowerCase().includes(it.itemName.toLowerCase()) ||
+            it.itemName.toLowerCase().includes(opt.name.toLowerCase())
+        )
+
+        const qty = it.qty > 0 ? it.qty : 1
+        const rate = it.purchaseRate > 0 ? it.purchaseRate : 100
+        const mrp = it.mrp > 0 ? it.mrp : Math.round(rate * 1.35 * 100) / 100
+        const saleRate = it.saleRate > 0 ? it.saleRate : Math.round(mrp * 0.9 * 100) / 100
+
+        return {
+          id: `ocr-${Date.now()}-${idx}`,
+          itemId: matchedItem?.id,
+          code: matchedItem?.code,
+          itemName: matchedItem?.name || it.itemName,
+          packing: it.packing || matchedItem?.packing || '10x10',
+          hsn: it.hsn || matchedItem?.hsn || '30049099',
+          batch: it.batch,
+          expiry: it.expiry,
+          qty,
+          freeQty: it.freeQty || 0,
+          purchaseRate: rate,
+          discount: it.discount || 0,
+          scheme: 0,
+          gstRate: it.gstRate || matchedItem?.gstRate || 12,
+          amount: it.amount || Math.round(qty * rate * 100) / 100,
+          saleRate,
+          mrp,
+          stock: matchedItem?.stock || 0,
+          manufacturer: matchedItem?.manufacturer,
+          salt: matchedItem?.salt,
+          category: matchedItem?.category
+        }
+      })
+
+      setItems((prev) => [...prev, ...newItems])
+      addToast(`Successfully imported ${newItems.length} medicine items from invoice`, 'success')
+    }
+  }, [supplierOptions, itemOptions, addToast])
 
   // Fetch initial suppliers, items, and HSN codes
   const loadSuppliersAndItems = useCallback((force = false) => {
@@ -680,6 +745,15 @@ export default function PurchaseEntry() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setShowOcrModal(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 px-3.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm font-semibold shadow-xs border border-indigo-500/30 transition-all active:scale-[0.98] cursor-pointer"
+              title="Upload and scan supplier purchase invoice PDF/image with free local OCR"
+            >
+              <Sparkles size={14} className="text-indigo-500" />
+              <span>Scan Bill (OCR)</span>
+            </button>
             <button
               type="button"
               onClick={() => openTransactionWindow(window.location.pathname)}
@@ -1538,6 +1612,13 @@ export default function PurchaseEntry() {
       <div className="hidden print:block w-full mx-auto">
         <PurchaseInvoicePrint data={getPrintData()} />
       </div>
+
+      {/* Free Local OCR Invoice Scanner Modal */}
+      <InvoiceOcrModal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        onApply={handleApplyOcrData}
+      />
     </div>
   )
 }
