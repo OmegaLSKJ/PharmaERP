@@ -35,6 +35,12 @@ interface Manufacturer {
   status: 'Active' | 'Blocked'
 }
 
+// Imported legacy data used "**" as a placeholder manufacturer. Keep the UI
+// meaningful even while an older browser cache or an unapplied migration still
+// contains that raw source value.
+const displayManufacturerName = (value: unknown) =>
+  String(value ?? '').trim() === '**' ? 'Unassigned Manufacturer' : String(value ?? '')
+
 export default function ManufacturerList() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,18 +76,21 @@ export default function ManufacturerList() {
       .then((rows) => {
         if (Array.isArray(rows)) {
           setManufacturers(
-            rows.map((row) => ({
+            rows.map((row) => {
+              const name = displayManufacturerName(row?.name)
+              return {
               id: String(row?.id || ''),
-              name: String(row?.name || ''),
-              code: String(row?.code || 'MFG'),
+              name,
+              code: String(row?.code || 'MFG') === 'MFG' && name === 'Unassigned Manufacturer' ? 'UNASSIGNED' : String(row?.code || 'MFG'),
               productCount: Number(row?.productCount ?? row?.itemcount ?? 0),
               connectedSuppliers: Array.isArray(row?.connectedSuppliers) && row.connectedSuppliers.length > 0
                 ? row.connectedSuppliers
-                : [row?.primarySupplier || row?.name || 'Self'],
+                : [row?.primarySupplier || name || 'Self'],
               supplierCount: Number(row?.supplierCount || 1),
-              primarySupplier: String(row?.primarySupplier || row?.name || ''),
+              primarySupplier: String(row?.primarySupplier || name || ''),
               status: row?.is_active === false || row?.status === 'inactive' || row?.status === 'Blocked' ? 'Blocked' : 'Active'
-            }))
+              }
+            })
           )
         }
       })
