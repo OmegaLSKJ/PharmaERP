@@ -939,7 +939,9 @@ async function backfillMissingDbItemHsn(
           .insert({
             organization_id: organizationId,
             code: resolved.hsn,
-            description: `Pharmaceutical HSN ${resolved.hsn}`,
+            description: resolved.hsn === '*NOT'
+              ? 'General Pharmaceutical Formulations (HSN Not Applicable)'
+              : `Pharmaceutical HSN ${resolved.hsn}`,
             gst_rate: resolved.gstRate
           })
           .select('id')
@@ -2715,10 +2717,16 @@ export async function list(resource: string, partyName?: string, options?: ListO
     return (data ?? []).map((h: any) => {
       const code = String(h.code || '').trim()
       const rate = Number(h.gst_rate ?? h.gstRate ?? (code.startsWith('3004') ? 5 : 12))
+      let description = h.description || ''
+      if (code === '*NOT' && (!description || description === 'Pharmaceutical HSN *NOT')) {
+        description = 'General Pharmaceutical Formulations (HSN Not Applicable)'
+      } else if (code === '*NOT APPLI' && (!description || description.includes('HSN *NOT APPLI'))) {
+        description = 'Healthcare & Pharmaceutical Formulations (Exempt / Non-GST)'
+      }
       return {
         id: h.id,
         code,
-        description: h.description || '',
+        description,
         gst_rate: rate,
         gstRate: rate,
         type: h.type || (code.startsWith('99') ? 'Services' : 'Goods')

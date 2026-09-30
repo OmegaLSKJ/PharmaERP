@@ -30,9 +30,12 @@ describe('HSN Master Data - 3004 Codes', () => {
     // Food preparations 2106 -> 18%
     expect(getGstRateForHsn('2106')).toBe(18)
 
-    // Truncated *NOT -> 12%
+    // Truncated *NOT & sensible aliases -> 12%
     expect(getGstRateForHsn('*NOT')).toBe(12)
     expect(getGstRateForHsn('*NOT APPLI')).toBe(12)
+    expect(getGstRateForHsn('NOT APPLICABLE')).toBe(12)
+    expect(getGstRateForHsn('NON-GST')).toBe(12)
+    expect(getGstRateForHsn('NON-GST / EXEMPT')).toBe(12)
 
     // Unknown code defaults to 5%
     expect(getGstRateForHsn('UNKNOWN_CODE')).toBe(5)
@@ -94,6 +97,25 @@ describe('HSN Master Data - 3004 Codes', () => {
     }
 
     expect(missingCount).toBe(0)
+  })
+
+  it('normalizes legacy placeholder HSN codes (*NOT and *NOT APPLI) to sensible display values', async () => {
+    const { displayHsnCode, displayHsnDescription } = await import('../src/pages/masters/hsn/HsnList')
+
+    // First line: *NOT
+    expect(displayHsnCode('*NOT')).toBe('NOT APPLICABLE')
+    expect(displayHsnDescription('*NOT', 'Pharmaceutical HSN *NOT')).toBe('General Pharmaceutical Formulations (HSN Not Applicable)')
+    expect(displayHsnDescription('*NOT', '')).toBe('General Pharmaceutical Formulations (HSN Not Applicable)')
+
+    // Second line: *NOT APPLI
+    expect(displayHsnCode('*NOT APPLI')).toBe('NON-GST / EXEMPT')
+    expect(displayHsnDescription('*NOT APPLI', 'Healthcare / Pharmaceutical formulation (HSN *NOT APPLI)')).toBe(
+      'Healthcare & Pharmaceutical Formulations (Exempt / Non-GST)'
+    )
+
+    // Standard codes remain untouched
+    expect(displayHsnCode('30049011')).toBe('30049011')
+    expect(displayHsnDescription('30049011', 'Medicaments')).toBe('Medicaments')
   })
 })
 

@@ -92,8 +92,16 @@ export function getGstRateForHsn(hsn?: string | number | null, defaultRate = 5):
     return exact.gstRate
   }
 
-  // Handle common truncated / variant codes
-  if (cleaned === '*NOT' || cleaned.startsWith('*NOT')) {
+  // Handle common truncated / variant codes & sensible aliases
+  if (
+    cleaned === '*NOT' ||
+    cleaned.startsWith('*NOT') ||
+    cleaned === 'NOT APPLICABLE' ||
+    cleaned === 'NON-GST' ||
+    cleaned.startsWith('NON-GST') ||
+    cleaned === 'EXEMPT' ||
+    cleaned.includes('NOT APPLI')
+  ) {
     const notAppli = hsnMap.get('*NOT APPLI')
     if (notAppli) return notAppli.gstRate
     return 12
@@ -141,7 +149,15 @@ export function getHsnDetails(hsn?: string | number | null): HsnMasterEntry | un
   const cleaned = String(hsn).trim().toUpperCase()
   if (!cleaned) return undefined
 
-  if (cleaned === '*NOT' || cleaned.startsWith('*NOT')) {
+  if (
+    cleaned === '*NOT' ||
+    cleaned.startsWith('*NOT') ||
+    cleaned === 'NOT APPLICABLE' ||
+    cleaned === 'NON-GST' ||
+    cleaned.startsWith('NON-GST') ||
+    cleaned === 'EXEMPT' ||
+    cleaned.includes('NOT APPLI')
+  ) {
     return hsnMap.get('*NOT APPLI')
   }
 

@@ -2,7 +2,7 @@
   {
     "id": "hsn-1",
     "code": "*NOT APPLI",
-    "description": "Healthcare / Pharmaceutical formulation (HSN *NOT APPLI)",
+    "description": "Healthcare & Pharmaceutical Formulations (Exempt / Non-GST)",
     "gstRate": 12,
     "gst_rate": 12,
     "type": "Goods"

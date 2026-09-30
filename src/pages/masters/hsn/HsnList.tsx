@@ -20,6 +20,27 @@ import { useUIStore } from '../../../store/uiStore'
 import { useErpAutoRefresh } from '../../../hooks/useErpAutoRefresh'
 import { cn } from '../../../lib/utils'
 
+// Imported legacy data used "*NOT" and "*NOT APPLI" as placeholders.
+// Keep the UI meaningful, professional and sensible for pharma operations.
+export const displayHsnCode = (value: unknown): string => {
+  const code = String(value ?? '').trim().toUpperCase()
+  if (code === '*NOT') return 'NOT APPLICABLE'
+  if (code === '*NOT APPLI') return 'NON-GST / EXEMPT'
+  return String(value ?? '').trim()
+}
+
+export const displayHsnDescription = (code: unknown, desc: unknown): string => {
+  const c = String(code ?? '').trim().toUpperCase()
+  const d = String(desc ?? '').trim()
+  if (c === '*NOT' || d === 'Pharmaceutical HSN *NOT' || !d) {
+    return 'General Pharmaceutical Formulations (HSN Not Applicable)'
+  }
+  if (c === '*NOT APPLI' || d.includes('HSN *NOT APPLI')) {
+    return 'Healthcare & Pharmaceutical Formulations (Exempt / Non-GST)'
+  }
+  return d
+}
+
 interface HsnItem {
   id: string
   code: string
@@ -57,11 +78,12 @@ export default function HsnList() {
   const [chunkMode, setChunkMode] = useState<'paginated' | 'continuous'>('paginated')
 
   const toHsnItem = (row: any): HsnItem => {
-    const codeValue = String(row.code)
+    const codeValue = String(row.code ?? '').trim()
+    const descriptionValue = displayHsnDescription(codeValue, row.description)
     return {
       id: row.id,
       code: codeValue,
-      description: row.description ?? '',
+      description: descriptionValue,
       gstRate: Number(row.gst_rate ?? row.gstRate ?? 0),
       type: codeValue.startsWith('99') ? 'Services' : 'Goods'
     }
@@ -107,7 +129,7 @@ export default function HsnList() {
   const openEditModal = (item: HsnItem) => {
     setEditingItem(item)
     setEditCode(item.code)
-    setEditDesc(item.description)
+    setEditDesc(displayHsnDescription(item.code, item.description))
     setEditGst(item.gstRate)
     setEditType(item.type)
   }
@@ -171,12 +193,17 @@ export default function HsnList() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return items.filter(
-      (i) =>
-        !q ||
-        (i?.description || '').toLowerCase().includes(q) ||
-        (i?.code || '').toLowerCase().includes(q)
-    )
+    return items.filter((i) => {
+      if (!q) return true
+      const rawCode = (i?.code || '').toLowerCase()
+      const formattedCode = displayHsnCode(i?.code).toLowerCase()
+      const desc = (i?.description || '').toLowerCase()
+      return (
+        rawCode.includes(q) ||
+        formattedCode.includes(q) ||
+        desc.includes(q)
+      )
+    })
   }, [items, search])
 
   // Reset page index on search/pageSize changes
@@ -376,7 +403,25 @@ export default function HsnList() {
           <tbody className="divide-y divide-border text-sm">
             {displayedItems.map((i) => (
               <tr key={i.id} className="hover:bg-muted/40 text-foreground transition-colors">
-                <td className="p-3.5 font-mono font-semibold text-foreground">{i.code}</td>
+                <td className="p-3.5 font-mono text-foreground">
+                  {i.code === '*NOT' ? (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-foreground">NOT APPLICABLE</span>
+                      <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-muted/80 text-muted-foreground border border-border/60">
+                        *NOT
+                      </span>
+                    </div>
+                  ) : i.code === '*NOT APPLI' ? (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-foreground">NON-GST / EXEMPT</span>
+                      <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-muted/80 text-muted-foreground border border-border/60">
+                        *NOT APPLI
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-semibold text-foreground">{i.code}</span>
+                  )}
+                </td>
                 <td className="p-3.5 font-medium text-foreground max-w-md truncate" title={i.description}>
                   {i.description}
                 </td>
@@ -595,7 +640,7 @@ export default function HsnList() {
                   Edit HSN / SAC Code
                 </h3>
                 <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 font-semibold shadow-2xs">
-                  {editingItem.code}
+                  {displayHsnCode(editingItem.code)}
                 </span>
               </div>
               <form onSubmit={handleSaveEdit} className="space-y-4">

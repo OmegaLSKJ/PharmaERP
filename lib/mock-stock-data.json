@@ -770652,7 +770652,7 @@
     {
       "id": "hsn-1",
       "code": "*NOT APPLI",
-      "description": "Healthcare / Pharmaceutical formulation (HSN *NOT APPLI)",
+      "description": "Healthcare & Pharmaceutical Formulations (Exempt / Non-GST)",
       "gst_rate": 12,
       "gstRate": 12,
       "type": "Goods"
