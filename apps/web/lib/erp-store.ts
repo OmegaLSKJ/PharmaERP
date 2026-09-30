@@ -901,8 +901,8 @@ export function resolveItemCategory(name?: string | null, saltName?: string | nu
   if (text.match(/\b(syringe|needle|cannula|scalpel|surgical|infusion set|catheter|bandage|gauze|cotton|dressing|plaster|crepe|glove|iv set|tubing)/i)) {
     return 'Surgical & Medical Devices'
   }
-  if (text.match(/\b(inj|injection|infusion|iv\b|ampoule|vial)/i)) {
-    return 'Injectables & Infusions'
+  if (text.match(/\b(inj|injection|infusion|iv\b|ampoule|vial|vaccine)/i)) {
+    return 'Injectables & Vaccines'
   }
   if (text.match(/\b(cream|oint|ointment|lotion|\bgels?\b|dusting|liniment|emulgel|sunscreen|shampoo|derma|scab|antifungal cream|permethrin)/i)) {
     return 'Topical & Dermatology'
@@ -1864,16 +1864,23 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
       { month: '2026-09', sale: 482000, purchase: 350000 },
     ]
     baselineMonths.forEach((b) => monthly.set(b.month, { ...b }))
+    const daily = new Map<string, { date: string; sale: number; purchase: number }>()
     const addMonth = (value: any, kind: 'sale' | 'purchase') => {
       const rawDate = String(value.date || value.invoice_date || '')
       const key = rawDate.length >= 7 ? rawDate.slice(0, 7) : new Date().toISOString().slice(0, 7)
+      const dayKey = rawDate.length >= 10 ? rawDate.slice(0, 10) : key + '-01'
       const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }
-      row[kind] += Number(value.total ?? value.grandTotal ?? value.grand_total ?? 0)
+      const dRow = daily.get(dayKey) ?? { date: dayKey, sale: 0, purchase: 0 }
+      const amt = Number(value.total ?? value.grandTotal ?? value.grand_total ?? 0)
+      row[kind] += amt
+      dRow[kind] += amt
       monthly.set(key, row)
+      daily.set(dayKey, dRow)
     }
     nonCancelledSales.forEach((row: any) => addMonth(row, 'sale'))
     nonCancelledPurchases.forEach((row: any) => addMonth(row, 'purchase'))
     const salesData = [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12)
+    const dailySalesData = [...daily.values()].sort((a, b) => a.date.localeCompare(b.date))
 
     const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
     nonCancelledSales.flatMap((s: any) => s.lines || []).forEach((line: any) => {
@@ -1902,6 +1909,7 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     return {
       kpis: { sales: salesVal, purchases: purchasesVal, activeItems, pendingInvoices },
       salesData,
+      dailySalesData,
       topItems,
       recentInvoices,
       expiryAlerts
@@ -1912,18 +1920,23 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
   if (resource === 'report-sales') {
     const salesList = mockStore.sales || []
     const months = new Map<string, number>()
+    const days = new Map<string, number>()
     const parties = new Map<string, number>()
     const items = new Map<string, { name: string; qty: number; revenue: number; margin: number }>()
     const categories = new Map<string, number>()
+    const rawInvoices: any[] = []
     let totalUnits = 0
 
     for (const s of salesList) {
-      const month = String(s.date || '').slice(0, 7) || new Date().toISOString().slice(0, 7)
+      const fullDate = String(s.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10)
+      const month = fullDate.slice(0, 7)
       const total = Number(s.total || s.grand_total || 0)
       months.set(month, (months.get(month) || 0) + total)
+      days.set(fullDate, (days.get(fullDate) || 0) + total)
       const party = s.party || 'Customer'
       parties.set(party, (parties.get(party) || 0) + total)
 
+      const lines: any[] = []
       for (const line of (s.lines || [])) {
         const name = line.name || 'Item'
         const qty = Number(line.qty || line.quantity || 0)
@@ -1934,37 +1947,63 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
         current.revenue += revenue
         items.set(name, current)
 
-        const category = line.category || 'Pharmaceuticals'
+        const category = resolveItemCategory(name, line.salt, line.category)
         categories.set(category, (categories.get(category) || 0) + revenue)
+        lines.push({ name, qty, amount: revenue, category })
       }
+
+      rawInvoices.push({
+        id: s.id || s.number,
+        invoiceNumber: s.number || s.id,
+        date: fullDate,
+        party,
+        total,
+        lines
+      })
     }
 
     return {
-      monthlySales: [...months].sort().map(([month, value]) => ({ month, value })),
+      dailySales: [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })),
+      monthlySales: [...months].sort(([a], [b]) => a.localeCompare(b)).map(([month, value]) => ({ month, value })),
       topParties: [...parties].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, sales]) => ({ name, sales, growth: 0 })),
       topItems: [...items.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
       categories: [...categories].map(([name, value]) => ({ name, value })),
-      units: totalUnits
+      units: totalUnits,
+      rawInvoices
     }
   }
 
   if (resource === 'report-purchases') {
     const purchasesList = mockStore.purchases || []
     const months = new Map<string, number>()
+    const days = new Map<string, number>()
     const suppliers = new Map<string, number>()
+    const rawPurchases: any[] = []
 
     for (const p of purchasesList) {
-      const month = String(p.date || '').slice(0, 7) || new Date().toISOString().slice(0, 7)
+      const fullDate = String(p.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10)
+      const month = fullDate.slice(0, 7)
       const total = Number(p.total || p.grand_total || 0)
       months.set(month, (months.get(month) || 0) + total)
+      days.set(fullDate, (days.get(fullDate) || 0) + total)
       const sup = p.party || p.supplier || 'Supplier'
       suppliers.set(sup, (suppliers.get(sup) || 0) + total)
+
+      rawPurchases.push({
+        id: p.id || p.number,
+        invoiceNumber: p.number || p.id,
+        date: fullDate,
+        party: sup,
+        total
+      })
     }
 
     return {
-      monthlyPurchases: [...months].sort().map(([month, value]) => ({ month, value })),
+      dailyPurchases: [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })),
+      monthlyPurchases: [...months].sort(([a], [b]) => a.localeCompare(b)).map(([month, value]) => ({ month, value })),
       topSuppliers: [...suppliers].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, purchases]) => ({ name, purchases, growth: 0 })),
-      activeSuppliers: suppliers.size
+      activeSuppliers: suppliers.size,
+      rawPurchases
     }
   }
   if (resource === 'item-mappings') return mockStore['item-mappings'] || []
@@ -2313,8 +2352,20 @@ export async function list(resource: string, partyName?: string, options?: ListO
     ])
     const error = salesError || purchaseError || itemError || stockError; if (error) throw error
     const monthly = new Map<string, { month: string; sale: number; purchase: number }>()
-    const addMonth = (value: any, kind: 'sale' | 'purchase') => { const key = String(value.invoice_date).slice(0, 7); const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }; row[kind] += Number(value.grand_total); monthly.set(key, row) }
-    ;(sales ?? []).forEach((row: any) => addMonth(row, 'sale')); (purchases ?? []).forEach((row: any) => addMonth(row, 'purchase'))
+    const daily = new Map<string, { date: string; sale: number; purchase: number }>()
+    const addMonth = (value: any, kind: 'sale' | 'purchase') => {
+      const dStr = String(value.invoice_date || '').slice(0, 10)
+      const key = dStr.slice(0, 7)
+      const row = monthly.get(key) ?? { month: key, sale: 0, purchase: 0 }
+      const dRow = daily.get(dStr) ?? { date: dStr, sale: 0, purchase: 0 }
+      const amt = Number(value.grand_total || 0)
+      row[kind] += amt
+      dRow[kind] += amt
+      monthly.set(key, row)
+      if (dStr) daily.set(dStr, dRow)
+    }
+    ;(sales ?? []).forEach((row: any) => addMonth(row, 'sale'))
+    ;(purchases ?? []).forEach((row: any) => addMonth(row, 'purchase'))
     const now = new Date()
     for (let i = 5; i >= 0; i--) {
       const d = new Date(Date.UTC(now.getFullYear(), now.getMonth() - i, 1))
@@ -2324,11 +2375,13 @@ export async function list(resource: string, partyName?: string, options?: ListO
       }
     }
     const salesData = [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12)
+    const dailySalesData = [...daily.values()].sort((a, b) => a.date.localeCompare(b.date))
     const itemTotals = new Map<string, { name: string; qty: number; amount: number }>()
     ;(sales ?? []).flatMap((row: any) => row.sales_invoice_lines ?? []).forEach((line: any) => { const name = line.items?.name ?? 'Unknown'; const current = itemTotals.get(name) ?? { name, qty: 0, amount: 0 }; current.qty += Number(line.quantity); current.amount += Number(line.line_total); itemTotals.set(name, current) })
     return {
       kpis: { sales: (sales ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), purchases: (purchases ?? []).reduce((n: number, x: any) => n + Number(x.grand_total), 0), activeItems: activeItemsCount ?? 0, pendingInvoices: (sales ?? []).filter((x: any) => x.status === 'draft').length },
       salesData,
+      dailySalesData,
       topItems: [...itemTotals.values()].sort((a, b) => b.amount - a.amount).slice(0, 6),
       recentInvoices: (sales ?? []).slice(0, 8).map((x: any) => ({ id: x.invoice_number, party: x.parties?.legal_name ?? '', amount: Number(x.grand_total), date: x.invoice_date, status: x.status })),
       expiryAlerts: (stock ?? []).filter((x: any) => x.expiry_on).sort((a: any, b: any) => String(a.expiry_on).localeCompare(String(b.expiry_on))).slice(0, 8).map((x: any) => ({ item: x.item_name, batch: x.batch_number, expiry: x.expiry_on, qty: Number(x.quantity) })),
@@ -2347,8 +2400,138 @@ export async function list(resource: string, partyName?: string, options?: ListO
     serverResourceCache.set(cacheKey, { data: mapped, expiry: Date.now() + 60_000 })
     return mapped
   }
-  if (resource === 'report-sales') { const { data,error }=await client.from('sales_invoices').select('invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(category)))').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),parties=new Map<string,number>(),items=new Map<string,{name:string;qty:number;revenue:number;margin:number}>(),categories=new Map<string,number>();for(const invoice of data??[]){const month=String(invoice.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(invoice.grand_total));const party=(invoice.parties as any)?.legal_name??'Unknown';parties.set(party,(parties.get(party)??0)+Number(invoice.grand_total));for(const line of (invoice.sales_invoice_lines as any[])??[]){const name=line.items?.name??'Unknown',revenue=Number(line.line_total),current=items.get(name)??{name,qty:0,revenue:0,margin:0};current.qty+=Number(line.quantity);current.revenue+=revenue;items.set(name,current);const category=line.items?.salts?.category??'Uncategorised';categories.set(category,(categories.get(category)??0)+revenue)}}return{monthlySales:[...months].sort().map(([month,value])=>({month,value})),topParties:[...parties].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,sales])=>({name,sales,growth:0})),topItems:[...items.values()].sort((a,b)=>b.revenue-a.revenue).slice(0,10),categories:[...categories].map(([name,value])=>({name,value})),units:[...items.values()].reduce((n,x)=>n+x.qty,0)} }
-  if (resource === 'report-purchases') { const { data,error }=await client.from('purchase_invoices').select('invoice_date,grand_total,parties(legal_name)').eq('organization_id',organizationId).neq('status','cancelled');if(error)throw error;const months=new Map<string,number>(),suppliers=new Map<string,number>();for(const row of data??[]){const month=String(row.invoice_date).slice(0,7);months.set(month,(months.get(month)??0)+Number(row.grand_total));const name=(row.parties as any)?.legal_name??'Unknown';suppliers.set(name,(suppliers.get(name)??0)+Number(row.grand_total))}return{monthlyPurchases:[...months].sort().map(([month,value])=>({month,value})),topSuppliers:[...suppliers].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,purchases])=>({name,purchases,growth:0})),activeSuppliers:suppliers.size} }
+  if (resource === 'report-sales') {
+    const { data, error } = await client
+      .from('sales_invoices')
+      .select('id,invoice_number,invoice_date,grand_total,parties(legal_name),sales_invoice_lines(quantity,line_total,items(name,salts(name,category)))')
+      .eq('organization_id', organizationId)
+      .neq('status', 'cancelled')
+    if (error) throw error
+
+    const months = new Map<string, number>()
+    const days = new Map<string, number>()
+    const parties = new Map<string, number>()
+    const items = new Map<string, { name: string; qty: number; revenue: number; margin: number }>()
+    const categories = new Map<string, number>()
+    const rawInvoices: Array<{
+      id: string
+      invoiceNumber: string
+      date: string
+      party: string
+      total: number
+      lines: Array<{ name: string; qty: number; amount: number; category: string }>
+    }> = []
+
+    for (const invoice of data ?? []) {
+      const dateStr = String(invoice.invoice_date).slice(0, 10)
+      const month = dateStr.slice(0, 7)
+      const total = Number(invoice.grand_total || 0)
+      const party = (invoice.parties as any)?.legal_name ?? 'Unknown'
+
+      months.set(month, (months.get(month) ?? 0) + total)
+      days.set(dateStr, (days.get(dateStr) ?? 0) + total)
+      parties.set(party, (parties.get(party) ?? 0) + total)
+
+      const lines: Array<{ name: string; qty: number; amount: number; category: string }> = []
+      for (const line of (invoice.sales_invoice_lines as any[]) ?? []) {
+        const name = line.items?.name ?? 'Unknown'
+        const saltName = line.items?.salts?.name ?? null
+        const rawCategory = line.items?.salts?.category ?? null
+        const revenue = Number(line.line_total || 0)
+        const qty = Number(line.quantity || 0)
+
+        const current = items.get(name) ?? { name, qty: 0, revenue: 0, margin: 0 }
+        current.qty += qty
+        current.revenue += revenue
+        items.set(name, current)
+
+        const category = resolveItemCategory(name, saltName, rawCategory)
+        categories.set(category, (categories.get(category) ?? 0) + revenue)
+        lines.push({ name, qty, amount: revenue, category })
+      }
+
+      rawInvoices.push({
+        id: invoice.id || invoice.invoice_number,
+        invoiceNumber: invoice.invoice_number,
+        date: dateStr,
+        party,
+        total,
+        lines
+      })
+    }
+
+    return {
+      dailySales: [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })),
+      monthlySales: [...months].sort(([a], [b]) => a.localeCompare(b)).map(([month, value]) => ({ month, value })),
+      topParties: [...parties].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, sales]) => ({ name, sales, growth: 0 })),
+      topItems: [...items.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+      categories: [...categories].map(([name, value]) => ({ name, value })),
+      units: [...items.values()].reduce((n, x) => n + x.qty, 0),
+      rawInvoices
+    }
+  }
+  if (resource === 'report-purchases') {
+    const { data, error } = await client
+      .from('purchase_invoices')
+      .select('id,invoice_number,invoice_date,grand_total,parties(legal_name),purchase_invoice_lines(quantity,line_total,items(name,salts(name,category)))')
+      .eq('organization_id', organizationId)
+      .neq('status', 'cancelled')
+    if (error) throw error
+
+    const months = new Map<string, number>()
+    const days = new Map<string, number>()
+    const suppliers = new Map<string, number>()
+    const rawPurchases: Array<{
+      id: string
+      invoiceNumber: string
+      date: string
+      party: string
+      total: number
+      lines: Array<{ name: string; qty: number; amount: number; category: string }>
+    }> = []
+    const categories = new Map<string, number>()
+
+    for (const row of data ?? []) {
+      const dateStr = String(row.invoice_date).slice(0, 10)
+      const month = dateStr.slice(0, 7)
+      const total = Number(row.grand_total || 0)
+      const name = (row.parties as any)?.legal_name ?? 'Unknown'
+
+      months.set(month, (months.get(month) ?? 0) + total)
+      days.set(dateStr, (days.get(dateStr) ?? 0) + total)
+      suppliers.set(name, (suppliers.get(name) ?? 0) + total)
+
+      const lines: Array<{ name: string; qty: number; amount: number; category: string }> = []
+      for (const line of (row.purchase_invoice_lines as any[]) ?? []) {
+        const itmName = line.items?.name ?? 'Unknown'
+        const saltName = line.items?.salts?.name ?? null
+        const rawCat = line.items?.salts?.category ?? null
+        const revenue = Number(line.line_total || 0)
+        const qty = Number(line.quantity || 0)
+        const category = resolveItemCategory(itmName, saltName, rawCat)
+        categories.set(category, (categories.get(category) ?? 0) + revenue)
+        lines.push({ name: itmName, qty, amount: revenue, category })
+      }
+
+      rawPurchases.push({
+        id: row.id || row.invoice_number,
+        invoiceNumber: row.invoice_number,
+        date: dateStr,
+        party: name,
+        total,
+        lines
+      })
+    }
+
+    return {
+      dailyPurchases: [...days].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })),
+      monthlyPurchases: [...months].sort(([a], [b]) => a.localeCompare(b)).map(([month, value]) => ({ month, value })),
+      topSuppliers: [...suppliers].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, purchases]) => ({ name, purchases, growth: 0 })),
+      activeSuppliers: suppliers.size,
+      categories: [...categories].map(([name, value]) => ({ name, value })),
+      rawPurchases
+    }
+  }
   if (resource === 'parties') {
     const cacheKey = `parties_${organizationId}`
     const cached = serverResourceCache.get(cacheKey)

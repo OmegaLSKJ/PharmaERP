@@ -3,19 +3,21 @@ import { Link } from 'react-router-dom'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area, CartesianGrid } from 'recharts'
 import { formatCurrency, daysUntilExpiry } from '../../lib/utils'
 import { cn } from '../../lib/utils'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
+import { aggregateChartData, type Timeframe } from '../../lib/chartUtils'
 
 type DashboardData = {
   kpis: { sales: number; purchases: number; activeItems: number; pendingInvoices: number }
   salesData: Array<{ month: string; sale: number; purchase: number }>
+  dailySalesData?: Array<{ date: string; sale: number; purchase: number }>
   topItems: Array<{ name: string; qty: number; amount: number }>
   recentInvoices: Array<{ id: string; party: string; amount: number; date: string; status: string }>
   expiryAlerts: Array<{ item: string; batch: string; expiry: string; qty: number }>
 }
-const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
+const emptyDashboard: DashboardData = { kpis: { sales: 0, purchases: 0, activeItems: 0, pendingInvoices: 0 }, salesData: [], dailySalesData: [], topItems: [], recentInvoices: [], expiryAlerts: [] }
 
 function normalizeDashboard(value: unknown): DashboardData {
   if (!value || typeof value !== 'object') {
@@ -36,6 +38,7 @@ function normalizeDashboard(value: unknown): DashboardData {
       pendingInvoices: numberOrZero(sourceKpis.pendingInvoices),
     },
     salesData: Array.isArray(source.salesData) ? source.salesData : [],
+    dailySalesData: Array.isArray(source.dailySalesData) ? source.dailySalesData : [],
     topItems: Array.isArray(source.topItems) ? source.topItems : [],
     recentInvoices: Array.isArray(source.recentInvoices) ? source.recentInvoices : [],
     expiryAlerts: Array.isArray(source.expiryAlerts) ? source.expiryAlerts : [],
@@ -117,13 +120,15 @@ function SalesPurchaseTooltip({ active, payload, label }: any) {
   const purchase = values.purchase || 0
   const netSpread = sale - purchase
   const marginPct = sale > 0 ? ((netSpread / sale) * 100).toFixed(1) : '0'
+  const itemPayload = payload[0]?.payload
+  const headerTitle = itemPayload?.fullLabel || itemPayload?.name || formatChartMonthFull(String(label))
 
   return (
     <div className="rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md p-3 shadow-xl min-w-[210px] text-xs">
       <div className="flex items-center gap-1.5 pb-2 border-b border-border/60">
         <Calendar size={13} className="text-muted-foreground" />
         <span className="font-semibold text-foreground tracking-wide">
-          {formatChartMonthFull(String(label))}
+          {headerTitle}
         </span>
       </div>
       <div className="mt-2 space-y-1.5">
@@ -234,9 +239,50 @@ export default function Dashboard() {
   const expiryAlerts = Array.isArray(currentData.expiryAlerts) ? currentData.expiryAlerts : []
 
   const [chartView, setChartView] = useState<'bars' | 'trend'>('bars')
-  const chartData = processMonthlyChartData(rawSalesData)
-  const totalPeriodSales = chartData.reduce((acc, d) => acc + d.sale, 0)
-  const totalPeriodPurchases = chartData.reduce((acc, d) => acc + d.purchase, 0)
+  const [timeframe, setTimeframe] = useState<Timeframe>('monthly')
+
+  const chartData = useMemo(() => {
+    const rawDaily = Array.isArray(currentData.dailySalesData) ? currentData.dailySalesData : []
+    const points = rawDaily.length > 0
+      ? rawDaily
+      : (rawSalesData && rawSalesData.length > 0)
+      ? rawSalesData.map((r) => ({ date: r.month, sale: r.sale, purchase: r.purchase }))
+      : []
+
+    if (points.length === 0) {
+      return processMonthlyChartData(rawSalesData).map((r) => ({
+        name: formatChartMonth(r.month),
+        fullLabel: formatChartMonthFull(r.month),
+        key: r.month,
+        sale: r.sale,
+        purchase: r.purchase,
+        value: r.sale,
+      }))
+    }
+
+    const aggregated = aggregateChartData(points, timeframe)
+    if (timeframe === 'monthly' && aggregated.length < 3) {
+      const map = new Map<string, any>()
+      BASELINE_MONTHS.forEach((b) =>
+        map.set(b.month, {
+          name: formatChartMonth(b.month),
+          fullLabel: formatChartMonthFull(b.month),
+          key: b.month,
+          sale: b.sale,
+          purchase: b.purchase,
+          value: b.sale,
+        })
+      )
+      aggregated.forEach((a) => map.set(a.key, a))
+      return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key)).slice(-12)
+    }
+
+    const limit = timeframe === 'daily' ? 30 : timeframe === 'weekly' ? 12 : 12
+    return aggregated.slice(-limit)
+  }, [currentData.dailySalesData, rawSalesData, timeframe])
+
+  const totalPeriodSales = chartData.reduce((acc, d) => acc + (d.sale || 0), 0)
+  const totalPeriodPurchases = chartData.reduce((acc, d) => acc + (d.purchase || 0), 0)
   const totalSpread = totalPeriodSales - totalPeriodPurchases
   const totalMargin = totalPeriodSales > 0 ? ((totalSpread / totalPeriodSales) * 100).toFixed(1) : '0'
   return (
@@ -284,16 +330,35 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm sm:text-base font-semibold tracking-tight">Sales vs Purchases Overview</h3>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
-                6-Month Rolling
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 capitalize">
+                {timeframe} Live Trend
               </span>
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Posted revenue and inventory procurement trends with operating margin
+              Posted revenue and inventory procurement trends aggregated by {timeframe}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Timeframe Selector */}
+            <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-muted/40">
+              {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTimeframe(t)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer capitalize',
+                    timeframe === t
+                      ? 'bg-background text-foreground shadow-xs font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {t === 'daily' ? 'Day' : t === 'weekly' ? 'Week' : t === 'monthly' ? 'Month' : 'Year'}
+                </button>
+              ))}
+            </div>
+
             {/* View Mode Switcher */}
             <div className="inline-flex items-center p-0.5 rounded-lg border border-border bg-muted/40">
               <button
@@ -387,7 +452,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border/40" opacity={0.35} />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatChartMonth} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={formatChartValue} />
                 <Tooltip content={<SalesPurchaseTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.35)', radius: 6 }} />
                 <Bar dataKey="sale" name="Sales" fill="url(#salesBarGrad)" radius={[5, 5, 0, 0]} maxBarSize={52} />
@@ -406,7 +471,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border/40" opacity={0.35} />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatChartMonth} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={formatChartValue} />
                 <Tooltip content={<SalesPurchaseTooltip />} />
                 <Area

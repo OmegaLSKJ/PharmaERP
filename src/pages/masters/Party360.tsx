@@ -34,6 +34,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { getErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { getCached } from '../../lib/erpCache'
+import { aggregateChartData, type Timeframe } from '../../lib/chartUtils'
 import VoucherPrint, { VoucherPrintData, VoucherPrintLine } from '../../components/accounting/VoucherPrint'
 import PurchaseInvoicePrint, { InvoicePrintData } from '../../components/transactions/PurchaseInvoicePrint'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -159,6 +160,35 @@ export default function Party360() {
   const [txnSortKey, setTxnSortKey] = useState<'date' | 'amount' | 'debit' | 'credit'>('date')
   const [txnSortDir, setTxnSortDir] = useState<'asc' | 'desc'>('desc')
   const [itemSearch, setItemSearch] = useState('')
+  const [trendTimeframe, setTrendTimeframe] = useState<Timeframe>('monthly')
+
+  const trendChartData = useMemo(() => {
+    const txns = partyData.recentTxns || []
+    if (txns.length === 0) {
+      return (partyData.trendData || []).map((t: any) => ({
+        name: t.month,
+        fullLabel: t.month,
+        key: t.month,
+        value: t.value,
+      }))
+    }
+
+    const points = txns.map((t: any) => ({
+      date: t.date,
+      value: Math.max(Number(t.debit || 0), Number(t.credit || 0), Number(t.amount || 0)),
+    }))
+
+    const aggregated = aggregateChartData(points, trendTimeframe)
+    if (aggregated.length === 0) {
+      return (partyData.trendData || []).map((t: any) => ({
+        name: t.month,
+        fullLabel: t.month,
+        key: t.month,
+        value: t.value,
+      }))
+    }
+    return aggregated.slice(-14)
+  }, [partyData.recentTxns, partyData.trendData, trendTimeframe])
 
   // Modals
   const [selectedTxn, setSelectedTxn] = useState<any | null>(null)
@@ -1334,27 +1364,50 @@ export default function Party360() {
               </div>
             </div>
 
-            {/* 6-Month Real Volume Trend */}
+            {/* Real Volume Trend with Timeframe Switcher */}
             <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <TrendingUp size={16} className="text-primary" />
-                  {partyData.type === 'supplier'
-                    ? 'Monthly Purchase Volume Trend'
-                    : partyData.type === 'customer'
-                    ? 'Monthly Sales Volume Trend'
-                    : 'Monthly Transaction Volume Trend'}
-                </h3>
-                <span className="text-[11px] text-muted-foreground font-mono">₹ Volume (INR)</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <TrendingUp size={16} className="text-primary" />
+                    {partyData.type === 'supplier'
+                      ? 'Purchase Volume Trend'
+                      : partyData.type === 'customer'
+                      ? 'Sales Volume Trend'
+                      : 'Transaction Volume Trend'}
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 capitalize">
+                    {trendTimeframe}
+                  </span>
+                </div>
+
+                {/* Timeframe Selector */}
+                <div className="inline-flex bg-secondary/80 p-0.5 rounded-lg border border-border">
+                  {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTrendTimeframe(t)}
+                      className={cn(
+                        'px-2.5 py-1 text-xs font-semibold rounded-md capitalize transition-all duration-150 cursor-pointer',
+                        trendTimeframe === t
+                          ? 'bg-card text-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {t === 'daily' ? 'Day' : t === 'weekly' ? 'Week' : t === 'monthly' ? 'Month' : 'Year'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="h-52 sm:h-56 min-h-[200px]">
-                {partyData.trendData && partyData.trendData.length > 0 ? (
+                {trendChartData && trendChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={partyData.trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <BarChart data={trendChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                       <XAxis
-                        dataKey="month"
+                        dataKey="name"
                         tick={{ fontSize: 11, fill: 'currentColor' }}
                         className="text-muted-foreground"
                         axisLine={false}
@@ -1365,24 +1418,27 @@ export default function Party360() {
                         className="text-muted-foreground"
                         axisLine={false}
                         tickLine={false}
-                        tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                        tickFormatter={(v) => `₹${v >= 100000 ? `${(v / 100000).toFixed(1)}L` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
                       />
                       <Tooltip
-                        formatter={(val: any) => [formatCurrency(Number(val)), 'Volume']}
+                        formatter={(val: any, _name: any, item: any) => [
+                          formatCurrency(Number(val)),
+                          item?.payload?.fullLabel || 'Volume',
+                        ]}
                         contentStyle={{
-                          backgroundColor: 'var(--card)',
-                          borderColor: 'var(--border)',
+                          backgroundColor: 'hsl(var(--card))',
+                          borderColor: 'hsl(var(--border))',
                           borderRadius: '8px',
                           fontSize: '12px',
-                          color: 'var(--foreground)',
+                          color: 'hsl(var(--foreground))',
                         }}
                       />
-                      <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={26} />
+                      <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={36} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-                    No monthly transaction data available yet.
+                    No transaction data available for the selected view.
                   </div>
                 )}
               </div>

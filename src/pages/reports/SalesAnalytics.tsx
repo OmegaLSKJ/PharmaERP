@@ -1,27 +1,57 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Download, TrendingUp, TrendingDown, FileText, Calendar } from 'lucide-react'
+import { Download, TrendingUp, TrendingDown, Calendar, Layers } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
 import { getErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
 import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
+import { aggregateChartData, type Timeframe, type ChartPoint } from '../../lib/chartUtils'
 
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
-type SalesReport = {
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b']
+
+interface RawInvoiceLine {
+  name: string
+  qty: number
+  amount: number
+  category: string
+}
+
+interface RawInvoice {
+  id: string
+  invoiceNumber?: string
+  date: string
+  party: string
+  total: number
+  lines?: RawInvoiceLine[]
+}
+
+interface SalesReport {
   monthlySales: Array<{ month: string; value: number }>
+  dailySales?: Array<{ date: string; value: number }>
+  rawInvoices?: RawInvoice[]
   categories: Array<{ name: string; value: number }>
   topParties: Array<{ name: string; sales: number; growth: number }>
   topItems: Array<{ name: string; qty: number; revenue: number; margin: number }>
   units: number
 }
 
-const emptySalesReport: SalesReport = { monthlySales: [], categories: [], topParties: [], topItems: [], units: 0 }
+const emptySalesReport: SalesReport = {
+  monthlySales: [],
+  dailySales: [],
+  rawInvoices: [],
+  categories: [],
+  topParties: [],
+  topItems: [],
+  units: 0
+}
 
 function normalizeSalesReport(value: unknown): SalesReport {
-  const source = value && typeof value === 'object' ? value as Partial<SalesReport> : {}
+  const source = value && typeof value === 'object' ? (value as Partial<SalesReport>) : {}
   return {
     monthlySales: Array.isArray(source.monthlySales) ? source.monthlySales : [],
+    dailySales: Array.isArray(source.dailySales) ? source.dailySales : [],
+    rawInvoices: Array.isArray(source.rawInvoices) ? source.rawInvoices : [],
     categories: Array.isArray(source.categories) ? source.categories : [],
     topParties: Array.isArray(source.topParties) ? source.topParties : [],
     topItems: Array.isArray(source.topItems) ? source.topItems : [],
@@ -29,58 +59,197 @@ function normalizeSalesReport(value: unknown): SalesReport {
   }
 }
 
+function ChartCustomTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const data = payload[0].payload as ChartPoint
+  return (
+    <div className="rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md p-3 shadow-xl min-w-[180px] text-xs">
+      <div className="flex items-center gap-1.5 pb-1.5 border-b border-border/60">
+        <Calendar size={13} className="text-muted-foreground" />
+        <span className="font-semibold text-foreground">{data.fullLabel || data.name}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-muted-foreground">Total Sales:</span>
+        <span className="font-semibold text-primary font-mono">{formatCurrency(data.value)}</span>
+      </div>
+      {data.count !== undefined && data.count > 0 && (
+        <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>Invoices:</span>
+          <span>{data.count}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SalesAnalytics() {
-  const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
-  const [startDate, setStartDate] = useState('2026-04-01')
-  const [endDate, setEndDate] = useState('2027-03-31')
+  const [timeframe, setTimeframe] = useState<Timeframe>('monthly')
   const [preset, setPreset] = useState('FY')
 
+  // Default financial year
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    const yr = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+    return `${yr}-04-01`
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date()
+    const yr = now.getMonth() >= 3 ? now.getFullYear() + 1 : now.getFullYear()
+    return `${yr}-03-31`
+  })
+
   const [report, setReport] = useState<SalesReport>(emptySalesReport)
-  
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    getErp<unknown>('report-sales').then((data) => setReport(normalizeSalesReport(data))).catch(() => setReport(emptySalesReport))
+    setLoading(true)
+    getErp<unknown>('report-sales')
+      .then((data) => setReport(normalizeSalesReport(data)))
+      .catch(() => setReport(emptySalesReport))
+      .finally(() => setLoading(false))
   }, [])
 
-  const { monthlySales, topParties, topItems, units } = report
-  const catData = report.categories
+  // Helper to handle date preset selection
+  const handlePresetChange = (val: string) => {
+    setPreset(val)
+    const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+    const yr = now.getFullYear()
+    const m = now.getMonth() // 0-indexed
 
-  // Dynamically calculate stats based on date range selection
-  const dateScaleFactor = useMemo(() => {
-    if (preset === 'Today') return 0.005
-    if (preset === 'Month') return 0.1
-    if (preset === 'Quarter') return 0.3
-    return 1.0
-  }, [preset])
+    if (val === 'Today') {
+      setStartDate(todayStr)
+      setEndDate(todayStr)
+      setTimeframe('daily')
+    } else if (val === 'Month') {
+      const startOfMonth = new Date(yr, m, 1).toISOString().slice(0, 10)
+      const endOfMonth = new Date(yr, m + 1, 0).toISOString().slice(0, 10)
+      setStartDate(startOfMonth)
+      setEndDate(endOfMonth)
+      setTimeframe('daily')
+    } else if (val === 'Quarter') {
+      const qMonth = Math.floor(m / 3) * 3
+      const startOfQ = new Date(yr, qMonth, 1).toISOString().slice(0, 10)
+      const endOfQ = new Date(yr, qMonth + 3, 0).toISOString().slice(0, 10)
+      setStartDate(startOfQ)
+      setEndDate(endOfQ)
+      setTimeframe('weekly')
+    } else if (val === 'FY') {
+      const fyStartYear = m >= 3 ? yr : yr - 1
+      setStartDate(`${fyStartYear}-04-01`)
+      setEndDate(`${fyStartYear + 1}-03-31`)
+      setTimeframe('monthly')
+    }
+  }
 
-  const totalSales = useMemo(() => {
-    const originalTotal = monthlySales.reduce((a, m) => a + m.value, 0)
-    return originalTotal * dateScaleFactor
-  }, [monthlySales, dateScaleFactor])
+  // Filter raw data points by active date range
+  const filteredData = useMemo(() => {
+    const rawInvoices = report.rawInvoices || []
+    if (rawInvoices.length > 0) {
+      const inRange = rawInvoices.filter((inv) => {
+        const d = String(inv.date || '').slice(0, 10)
+        return (!startDate || d >= startDate) && (!endDate || d <= endDate)
+      })
 
-  const avgMonthly = totalSales / (monthlySales.length || 1)
-  const best = monthlySales.reduce((a, m) => m.value > a.value ? m : a, { month: 'No data', value: 0 })
+      const totalSales = inRange.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0)
 
-  // Datasets strictly from software entered sales
+      // Category breakdown from filtered invoices
+      const catMap = new Map<string, number>()
+      let totalUnits = 0
+      const partyMap = new Map<string, number>()
+      const itemMap = new Map<string, { name: string; qty: number; revenue: number; margin: number }>()
+
+      for (const inv of inRange) {
+        partyMap.set(inv.party, (partyMap.get(inv.party) || 0) + inv.total)
+        for (const line of inv.lines || []) {
+          totalUnits += line.qty
+          catMap.set(line.category, (catMap.get(line.category) || 0) + line.amount)
+          const currItem = itemMap.get(line.name) || { name: line.name, qty: 0, revenue: 0, margin: 25 }
+          currItem.qty += line.qty
+          currItem.revenue += line.amount
+          itemMap.set(line.name, currItem)
+        }
+      }
+
+      const categories = Array.from(catMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value }))
+
+      const topParties = Array.from(partyMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, sales]) => ({ name, sales, growth: 0 }))
+
+      const topItems = Array.from(itemMap.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+
+      return {
+        points: inRange.map((inv) => ({ date: inv.date, value: inv.total })),
+        totalSales,
+        categories: categories.length > 0 ? categories : report.categories,
+        topParties: topParties.length > 0 ? topParties : report.topParties,
+        topItems: topItems.length > 0 ? topItems : report.topItems,
+        units: totalUnits || report.units,
+      }
+    }
+
+    // Fallback if rawInvoices isn't loaded yet
+    const sourcePoints = (report.dailySales && report.dailySales.length > 0)
+      ? report.dailySales
+      : report.monthlySales.map((m) => ({ date: m.month, value: m.value }))
+
+    const inRange = sourcePoints.filter((pt) => {
+      const d = String(pt.date).slice(0, 10)
+      return (!startDate || d >= startDate) && (!endDate || d <= endDate)
+    })
+
+    const totalSales = inRange.reduce((acc, p) => acc + (p.value || 0), 0)
+
+    return {
+      points: inRange,
+      totalSales,
+      categories: report.categories,
+      topParties: report.topParties,
+      topItems: report.topItems,
+      units: report.units,
+    }
+  }, [report, startDate, endDate])
+
+  // Dynamic Chart Points aggregated strictly according to selected timeframe
   const chartData = useMemo(() => {
-    if (monthlySales.length === 0) return []
-    return monthlySales.map(m => ({ name: m.month, value: m.value * dateScaleFactor }))
-  }, [monthlySales, dateScaleFactor])
+    return aggregateChartData(filteredData.points, timeframe, {
+      startDate,
+      endDate,
+    })
+  }, [filteredData.points, timeframe, startDate, endDate])
+
+  const totalSales = filteredData.totalSales
+  const avgPeriodSales = chartData.length > 0 ? totalSales / chartData.length : 0
+  const bestPeriod = chartData.reduce(
+    (max, pt) => (pt.value > max.value ? pt : max),
+    { name: '—', value: 0 } as { name: string; value: number }
+  )
+
+  const timeframeLabel = useMemo(() => {
+    if (timeframe === 'daily') return 'Day'
+    if (timeframe === 'weekly') return 'Week'
+    if (timeframe === 'monthly') return 'Month'
+    return 'Year'
+  }, [timeframe])
 
   return (
     <div className="p-3 sm:p-6 space-y-4">
-      <PrintHeader title="Sales Analytics & Intelligence" subtitle="FY 2025-26 | Comprehensive sales intelligence" />
+      <PrintHeader title="Sales Analytics & Intelligence" subtitle="Live ERP Analytics | Comprehensive sales intelligence" />
+
       {/* Title Block */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Sales Analytics</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">FY 2025-26 | Comprehensive sales intelligence</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Live ERP Intelligence · Multi-dimensional sales reporting</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <PrintButton
-            label="Export PDF"
-            autoOrientationHint="portrait"
-            className="no-print"
-          />
+          <PrintButton label="Export PDF" autoOrientationHint="portrait" className="no-print" />
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('sales-analytics', useUIStore.getState().company))}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
@@ -95,29 +264,15 @@ export default function SalesAnalytics() {
         <div className="flex items-center gap-2.5">
           <Calendar className="text-primary animate-pulse" size={16} />
           <span className="text-xs font-semibold text-foreground">Analytics Date Filter</span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">
+            Live Database Data
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <select
             value={preset}
-            onChange={(e) => {
-              const val = e.target.value
-              setPreset(val)
-              const todayStr = new Date().toISOString().slice(0, 10)
-              if (val === 'Today') {
-                setStartDate(todayStr)
-                setEndDate(todayStr)
-              } else if (val === 'Month') {
-                setStartDate('2026-08-01')
-                setEndDate('2026-08-31')
-              } else if (val === 'Quarter') {
-                setStartDate('2026-07-01')
-                setEndDate('2026-09-30')
-              } else if (val === 'FY') {
-                setStartDate('2026-04-01')
-                setEndDate('2027-03-31')
-              }
-            }}
-            className="px-2 py-1.5 text-xs bg-secondary/50 border border-border rounded-md text-foreground w-full sm:w-auto sm:max-w-[140px] focus:outline-none"
+            onChange={(e) => handlePresetChange(e.target.value)}
+            className="px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground w-full sm:w-auto sm:max-w-[150px] focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="FY">Financial Year</option>
             <option value="Today">Today</option>
@@ -133,9 +288,9 @@ export default function SalesAnalytics() {
                 setStartDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="flex-1 min-w-0 max-w-[130px] sm:max-w-none px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[135px] sm:max-w-none px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <span className="text-xs text-muted-foreground shrink-0">to</span>
+            <span className="text-xs text-muted-foreground shrink-0 font-medium">to</span>
             <input
               type="date"
               value={endDate}
@@ -143,7 +298,7 @@ export default function SalesAnalytics() {
                 setEndDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="flex-1 min-w-0 max-w-[130px] sm:max-w-none px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[135px] sm:max-w-none px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
@@ -153,166 +308,239 @@ export default function SalesAnalytics() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="text-[10px] text-muted-foreground uppercase font-semibold">Total Sales</div>
-          <div className="text-xl font-bold text-foreground mt-1">{formatCurrency(totalSales)}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? 'Loading…' : formatCurrency(totalSales)}
+          </div>
           <div className="flex items-center gap-1 mt-1 text-[10px]">
-            <TrendingUp size={10} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-emerald-600 dark:text-emerald-400">0% YoY</span>
+            <TrendingUp size={11} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Live Active</span>
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Monthly</div>
-          <div className="text-xl font-bold text-foreground mt-1">{formatCurrency(avgMonthly)}</div>
+          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Per {timeframeLabel}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? '…' : formatCurrency(avgPeriodSales)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">Across {chartData.length} active periods</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Best Month</div>
-          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{best.month || 'Aug 26'}</div>
-          <div className="text-[10px] text-muted-foreground">{formatCurrency((best.value || 98000) * dateScaleFactor)}</div>
+          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Best {timeframeLabel}</div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+            {bestPeriod.name || '—'}
+          </div>
+          <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+            {bestPeriod.value > 0 ? formatCurrency(bestPeriod.value) : '₹0.00'}
+          </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="text-[10px] text-muted-foreground uppercase font-semibold">Units Sold</div>
-          <div className="text-xl font-bold text-foreground mt-1">{Math.round((units || 1200) * dateScaleFactor).toLocaleString()}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? '…' : filteredData.units.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">Total items transacted</div>
         </div>
       </div>
 
+      {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Time-Segmented Bar Chart */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Sales Trend Analysis</h3>
-            <div className="flex bg-secondary/85 p-0.5 rounded-lg border border-border">
+        {/* Dynamic Trend Bar Chart */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Sales Trend Analysis</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 capitalize">
+                  {timeframe} view
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Aggregated by {timeframe} over selected range
+              </p>
+            </div>
+
+            {/* Timeframe Toggle Buttons */}
+            <div className="inline-flex bg-secondary/80 p-0.5 rounded-lg border border-border self-start sm:self-auto">
               {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((t) => (
                 <button
                   key={t}
+                  type="button"
                   onClick={() => setTimeframe(t)}
                   className={cn(
-                    'px-3 py-1 text-[11px] font-semibold rounded-md capitalize transition-all duration-150',
+                    'px-3 py-1 text-xs font-semibold rounded-md capitalize transition-all duration-150 cursor-pointer',
                     timeframe === t
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <defs>
-                <linearGradient id="salesGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0a6ed1" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.15} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'currentColor' }} className="text-muted-foreground" axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" axisLine={false} tickLine={false} />
-              <Tooltip
-                formatter={(v: number | string) => formatCurrency(Number(v))}
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }}
-              />
-              <Bar dataKey="value" fill="url(#salesGlow)" radius={[4, 4, 0, 0]} barSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-foreground mb-4">By Category</h3>
-        <div className="h-48 sm:h-56 lg:h-64 xl:h-72 min-h-[180px] max-h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={catData.length > 0 ? catData.map(c => ({ name: c.name, value: c.value * dateScaleFactor })) : [{ name: 'Analgesic', value: 24000 * dateScaleFactor }]} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3}>
-                {(catData.length > 0 ? catData : [{ name: 'Analgesic', value: 24000 }]).map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(v: number | string) => formatCurrency(Number(v))}
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="space-y-1 mt-2">
-          {(catData.length > 0 ? catData : [{ name: 'Analgesic', value: 24000 }]).map((c, i) => (
-            <div key={c.name} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                <span className="text-foreground">{c.name}</span>
-              </div>
-              <span className="font-mono text-muted-foreground">{formatCurrency(c.value * dateScaleFactor)}</span>
+                  )}
+                >
+                  {t === 'daily' ? 'Daily' : t === 'weekly' ? 'Weekly' : t === 'monthly' ? 'Monthly' : 'Yearly'}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-border bg-secondary/30">
-            <h3 className="text-sm font-semibold text-foreground">Top Parties by Sales</h3>
           </div>
-          <div className="divide-y divide-border">
-            {topParties.length > 0 ? topParties.map((p, i) => (
-              <div key={p.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
-                  <span className="text-sm font-medium text-foreground">{p.name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono text-foreground">{formatCurrency(p.sales * dateScaleFactor)}</span>
-                  <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', p.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                    {p.growth >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}{Math.abs(p.growth)}%
-                  </span>
-                </div>
-              </div>
-            )) : (
-              <div className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">1</span>
-                  <span className="text-sm font-medium text-foreground">Apollo Pharmacy</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono text-foreground">{formatCurrency(482000 * dateScaleFactor)}</span>
-                  <span className="text-[10px] font-semibold flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-                    <TrendingUp size={10} />5%
-                  </span>
-                </div>
+
+          <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[250px] w-full">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 12, right: 12, left: -4, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="salesGlow" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.25} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                    interval={chartData.length > 15 ? 'preserveStartEnd' : 0}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `₹${v >= 100000 ? `${(v / 100000).toFixed(1)}L` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                  />
+                  <Tooltip content={<ChartCustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.35)', radius: 6 }} />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#salesGlow)"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={chartData.length > 20 ? 22 : 44}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-xs text-muted-foreground">
+                <Calendar size={24} className="mb-2 opacity-50" />
+                No sales recorded in the selected date range.
               </div>
             )}
           </div>
         </div>
 
+        {/* By Category Donut Chart */}
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Layers size={15} className="text-primary" /> By Category
+            </h3>
+            <span className="text-[11px] text-muted-foreground font-mono">
+              {filteredData.categories.length} categories
+            </span>
+          </div>
+
+          <div className="h-48 sm:h-56 min-h-[190px] w-full">
+            {filteredData.categories.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={filteredData.categories}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={74}
+                    paddingAngle={3}
+                  >
+                    {filteredData.categories.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number | string) => [formatCurrency(Number(v)), 'Sales']}
+                    contentStyle={{
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                No category data found.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5 mt-2 max-h-[160px] overflow-y-auto pr-1">
+            {filteredData.categories.map((c, i) => (
+              <div key={c.name} className="flex items-center justify-between text-xs py-0.5">
+                <div className="flex items-center gap-2 truncate pr-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                  <span className="text-foreground truncate">{c.name}</span>
+                </div>
+                <span className="font-mono text-muted-foreground shrink-0 font-medium">
+                  {formatCurrency(c.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Top Parties and Top Items Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top Parties */}
         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-border bg-secondary/30">
-            <h3 className="text-sm font-semibold text-foreground">Top Items by Revenue</h3>
+          <div className="px-4 py-3 border-b border-border bg-secondary/30 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Top Parties by Sales</h3>
+            <span className="text-[11px] text-muted-foreground">In active date range</span>
           </div>
           <div className="divide-y divide-border">
-            {topItems.length > 0 ? topItems.map((item, i) => (
-              <div key={item.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{item.name}</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {Math.round(item.qty * dateScaleFactor).toLocaleString()} units | Margin: {item.margin}%
+            {filteredData.topParties.length > 0 ? (
+              filteredData.topParties.map((p, i) => (
+                <div key={p.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
+                  <div className="flex items-center gap-3 truncate pr-2">
+                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <span className="text-sm font-medium text-foreground truncate">{p.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-mono text-foreground font-medium">{formatCurrency(p.sales)}</span>
+                    <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', p.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                      {p.growth >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}{Math.abs(p.growth)}%
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-xs text-muted-foreground">No party sales data available.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Items */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-border bg-secondary/30 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Top Items by Revenue</h3>
+            <span className="text-[11px] text-muted-foreground">In active date range</span>
+          </div>
+          <div className="divide-y divide-border">
+            {filteredData.topItems.length > 0 ? (
+              filteredData.topItems.map((item, i) => (
+                <div key={item.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
+                  <div className="flex items-center gap-3 truncate pr-2">
+                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <div className="truncate">
+                      <div className="text-sm font-medium text-foreground truncate">{item.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {item.qty.toLocaleString()} units | Margin: {item.margin}%
+                      </div>
                     </div>
                   </div>
+                  <span className="text-sm font-mono text-foreground font-medium shrink-0">
+                    {formatCurrency(item.revenue)}
+                  </span>
                 </div>
-                <span className="text-sm font-mono text-foreground">{formatCurrency(item.revenue * dateScaleFactor)}</span>
-              </div>
-            )) : (
-              <div className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">1</span>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">Paracetamol 650mg</div>
-                    <div className="text-[10px] text-muted-foreground">1,200 units | Margin: 40%</div>
-                  </div>
-                </div>
-                <span className="text-sm font-mono text-foreground">{formatCurrency(24000 * dateScaleFactor)}</span>
-              </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-xs text-muted-foreground">No item sales data available.</div>
             )}
           </div>
         </div>

@@ -1,80 +1,215 @@
-import { Download, TrendingUp, TrendingDown, FileText, Calendar } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Download, TrendingUp, TrendingDown, Calendar, Truck } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn, formatCurrency } from '../../lib/utils'
-import { useEffect, useState, useMemo } from 'react'
 import { getErp } from '../../lib/erpApi'
 import PrintHeader from '../../components/layout/PrintHeader'
 import PrintButton from '../../components/common/PrintButton'
 import { useUIStore } from '../../store/uiStore'
+import { aggregateChartData, type Timeframe, type ChartPoint } from '../../lib/chartUtils'
 
-type PurchaseReport = {
-  monthlyPurchases: Array<{ month: string; value: number }>
-  topSuppliers: Array<{ name: string; purchases: number; growth: number }>
-  activeSuppliers: number
+interface RawPurchase {
+  id: string
+  invoiceNumber?: string
+  date: string
+  party: string
+  total: number
 }
 
-const emptyPurchaseReport: PurchaseReport = { monthlyPurchases: [], topSuppliers: [], activeSuppliers: 0 }
+interface PurchaseReport {
+  monthlyPurchases: Array<{ month: string; value: number }>
+  dailyPurchases?: Array<{ date: string; value: number }>
+  rawPurchases?: RawPurchase[]
+  topSuppliers: Array<{ name: string; purchases: number; growth: number }>
+  activeSuppliers: number
+  categories?: Array<{ name: string; value: number }>
+}
+
+const emptyPurchaseReport: PurchaseReport = {
+  monthlyPurchases: [],
+  dailyPurchases: [],
+  rawPurchases: [],
+  topSuppliers: [],
+  activeSuppliers: 0,
+  categories: [],
+}
 
 function normalizePurchaseReport(value: unknown): PurchaseReport {
-  const source = value && typeof value === 'object' ? value as Partial<PurchaseReport> : {}
+  const source = value && typeof value === 'object' ? (value as Partial<PurchaseReport>) : {}
   return {
     monthlyPurchases: Array.isArray(source.monthlyPurchases) ? source.monthlyPurchases : [],
+    dailyPurchases: Array.isArray(source.dailyPurchases) ? source.dailyPurchases : [],
+    rawPurchases: Array.isArray(source.rawPurchases) ? source.rawPurchases : [],
     topSuppliers: Array.isArray(source.topSuppliers) ? source.topSuppliers : [],
     activeSuppliers: Number.isFinite(Number(source.activeSuppliers)) ? Number(source.activeSuppliers) : 0,
+    categories: Array.isArray(source.categories) ? source.categories : [],
   }
 }
 
+function ChartCustomTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const data = payload[0].payload as ChartPoint
+  return (
+    <div className="rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md p-3 shadow-xl min-w-[180px] text-xs">
+      <div className="flex items-center gap-1.5 pb-1.5 border-b border-border/60">
+        <Calendar size={13} className="text-muted-foreground" />
+        <span className="font-semibold text-foreground">{data.fullLabel || data.name}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-muted-foreground">Total Purchases:</span>
+        <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-mono">
+          {formatCurrency(data.value)}
+        </span>
+      </div>
+      {data.count !== undefined && data.count > 0 && (
+        <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>Invoices:</span>
+          <span>{data.count}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PurchaseAnalytics() {
-  const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
-  const [startDate, setStartDate] = useState('2026-04-01')
-  const [endDate, setEndDate] = useState('2027-03-31')
+  const [timeframe, setTimeframe] = useState<Timeframe>('monthly')
   const [preset, setPreset] = useState('FY')
 
+  // Default financial year
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date()
+    const yr = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+    return `${yr}-04-01`
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date()
+    const yr = now.getMonth() >= 3 ? now.getFullYear() + 1 : now.getFullYear()
+    return `${yr}-03-31`
+  })
+
   const [report, setReport] = useState<PurchaseReport>(emptyPurchaseReport)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getErp<unknown>('report-purchases').then((data) => setReport(normalizePurchaseReport(data))).catch(() => setReport(emptyPurchaseReport))
+    setLoading(true)
+    getErp<unknown>('report-purchases')
+      .then((data) => setReport(normalizePurchaseReport(data)))
+      .catch(() => setReport(emptyPurchaseReport))
+      .finally(() => setLoading(false))
   }, [])
 
-  const { monthlyPurchases, topSuppliers, activeSuppliers } = report
+  const handlePresetChange = (val: string) => {
+    setPreset(val)
+    const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+    const yr = now.getFullYear()
+    const m = now.getMonth()
 
-  // Dynamically calculate stats based on date range selection
-  const dateScaleFactor = useMemo(() => {
-    if (preset === 'Today') return 0.005
-    if (preset === 'Month') return 0.1
-    if (preset === 'Quarter') return 0.3
-    return 1.0
-  }, [preset])
+    if (val === 'Today') {
+      setStartDate(todayStr)
+      setEndDate(todayStr)
+      setTimeframe('daily')
+    } else if (val === 'Month') {
+      const startOfMonth = new Date(yr, m, 1).toISOString().slice(0, 10)
+      const endOfMonth = new Date(yr, m + 1, 0).toISOString().slice(0, 10)
+      setStartDate(startOfMonth)
+      setEndDate(endOfMonth)
+      setTimeframe('daily')
+    } else if (val === 'Quarter') {
+      const qMonth = Math.floor(m / 3) * 3
+      const startOfQ = new Date(yr, qMonth, 1).toISOString().slice(0, 10)
+      const endOfQ = new Date(yr, qMonth + 3, 0).toISOString().slice(0, 10)
+      setStartDate(startOfQ)
+      setEndDate(endOfQ)
+      setTimeframe('weekly')
+    } else if (val === 'FY') {
+      const fyStartYear = m >= 3 ? yr : yr - 1
+      setStartDate(`${fyStartYear}-04-01`)
+      setEndDate(`${fyStartYear + 1}-03-31`)
+      setTimeframe('monthly')
+    }
+  }
 
-  const totalPurchases = useMemo(() => {
-    const originalTotal = monthlyPurchases.reduce((a, m) => a + m.value, 0)
-    return originalTotal * dateScaleFactor
-  }, [monthlyPurchases, dateScaleFactor])
+  // Filter raw data points by active date range
+  const filteredData = useMemo(() => {
+    const rawPurchases = report.rawPurchases || []
+    if (rawPurchases.length > 0) {
+      const inRange = rawPurchases.filter((p) => {
+        const d = String(p.date || '').slice(0, 10)
+        return (!startDate || d >= startDate) && (!endDate || d <= endDate)
+      })
 
-  // Dynamic datasets strictly from software entered purchases
+      const totalPurchases = inRange.reduce((acc, p) => acc + (Number(p.total) || 0), 0)
+      const supMap = new Map<string, number>()
+      for (const p of inRange) {
+        supMap.set(p.party, (supMap.get(p.party) || 0) + p.total)
+      }
+
+      const topSuppliers = Array.from(supMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, purchases]) => ({ name, purchases, growth: 0 }))
+
+      return {
+        points: inRange.map((p) => ({ date: p.date, value: p.total })),
+        totalPurchases,
+        topSuppliers: topSuppliers.length > 0 ? topSuppliers : report.topSuppliers,
+        activeSuppliers: supMap.size || report.activeSuppliers,
+      }
+    }
+
+    // Fallback if rawPurchases not loaded
+    const sourcePoints = (report.dailyPurchases && report.dailyPurchases.length > 0)
+      ? report.dailyPurchases
+      : report.monthlyPurchases.map((m) => ({ date: m.month, value: m.value }))
+
+    const inRange = sourcePoints.filter((pt) => {
+      const d = String(pt.date).slice(0, 10)
+      return (!startDate || d >= startDate) && (!endDate || d <= endDate)
+    })
+
+    const totalPurchases = inRange.reduce((acc, p) => acc + (p.value || 0), 0)
+
+    return {
+      points: inRange,
+      totalPurchases,
+      topSuppliers: report.topSuppliers,
+      activeSuppliers: report.activeSuppliers,
+    }
+  }, [report, startDate, endDate])
+
+  // Chart data points aggregated strictly by active timeframe
   const chartData = useMemo(() => {
-    if (monthlyPurchases.length === 0) return []
-    return monthlyPurchases.map(m => ({ name: m.month, value: m.value * dateScaleFactor }))
-  }, [monthlyPurchases, dateScaleFactor])
+    return aggregateChartData(filteredData.points, timeframe, {
+      startDate,
+      endDate,
+    })
+  }, [filteredData.points, timeframe, startDate, endDate])
+
+  const totalPurchases = filteredData.totalPurchases
+  const avgPeriodPurchases = chartData.length > 0 ? totalPurchases / chartData.length : 0
+  const timeframeLabel = useMemo(() => {
+    if (timeframe === 'daily') return 'Day'
+    if (timeframe === 'weekly') return 'Week'
+    if (timeframe === 'monthly') return 'Month'
+    return 'Year'
+  }, [timeframe])
 
   return (
-    <div className="p-6 space-y-4">
-      <PrintHeader title="Purchase Analytics & Intelligence" subtitle="FY 2025-26 | Supplier and purchase intelligence" />
+    <div className="p-3 sm:p-6 space-y-4">
+      <PrintHeader title="Purchase Analytics & Intelligence" subtitle="Live ERP Procurement Intelligence" />
+
       {/* Title block */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Purchase Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">FY 2025-26 | Supplier and purchase intelligence</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Purchase Analytics</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Live ERP Intelligence · Procurement & supplier analytics</p>
         </div>
-        <div className="flex gap-2">
-          <PrintButton
-            label="Export PDF"
-            autoOrientationHint="portrait"
-            className="no-print"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <PrintButton label="Export PDF" autoOrientationHint="portrait" className="no-print" />
           <button
             onClick={() => import('../../lib/download').then(({ exportVisibleTables }) => exportVisibleTables('purchase-analytics', useUIStore.getState().company))}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-sm font-semibold shadow-md transition border border-primary/20"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-md transition border border-primary/20"
           >
             <Download size={16} /> Export CSV
           </button>
@@ -82,33 +217,19 @@ export default function PurchaseAnalytics() {
       </div>
 
       {/* Date Filter Bar */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Calendar className="text-primary animate-pulse" size={16} />
           <span className="text-xs font-semibold text-foreground">Analytics Date Filter</span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">
+            Live Database Data
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <select
             value={preset}
-            onChange={(e) => {
-              const val = e.target.value
-              setPreset(val)
-              const todayStr = new Date().toISOString().slice(0, 10)
-              if (val === 'Today') {
-                setStartDate(todayStr)
-                setEndDate(todayStr)
-              } else if (val === 'Month') {
-                setStartDate('2026-08-01')
-                setEndDate('2026-08-31')
-              } else if (val === 'Quarter') {
-                setStartDate('2026-07-01')
-                setEndDate('2026-09-30')
-              } else if (val === 'FY') {
-                setStartDate('2026-04-01')
-                setEndDate('2027-03-31')
-              }
-            }}
-            className="px-2 py-1.5 text-xs bg-secondary/50 border border-border rounded-md text-foreground max-w-[140px] focus:outline-none"
+            onChange={(e) => handlePresetChange(e.target.value)}
+            className="px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground w-full sm:w-auto sm:max-w-[150px] focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="FY">Financial Year</option>
             <option value="Today">Today</option>
@@ -116,7 +237,7 @@ export default function PurchaseAnalytics() {
             <option value="Quarter">This Quarter</option>
             <option value="Custom">Custom Range</option>
           </select>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto max-w-full">
             <input
               type="date"
               value={startDate}
@@ -124,9 +245,9 @@ export default function PurchaseAnalytics() {
                 setStartDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[135px] sm:max-w-none px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <span className="text-xs text-muted-foreground">to</span>
+            <span className="text-xs text-muted-foreground shrink-0 font-medium">to</span>
             <input
               type="date"
               value={endDate}
@@ -134,7 +255,7 @@ export default function PurchaseAnalytics() {
                 setEndDate(e.target.value)
                 setPreset('Custom')
               }}
-              className="px-2 py-1 text-xs bg-secondary/50 border border-border rounded-md text-foreground focus:outline-none"
+              className="flex-1 min-w-0 max-w-[135px] sm:max-w-none px-2.5 py-1.5 text-xs bg-secondary/60 border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
@@ -144,96 +265,134 @@ export default function PurchaseAnalytics() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="text-[10px] text-muted-foreground uppercase font-semibold">Total Purchases</div>
-          <div className="text-xl font-bold text-foreground mt-1">{formatCurrency(totalPurchases)}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? 'Loading…' : formatCurrency(totalPurchases)}
+          </div>
           <div className="flex items-center gap-1 mt-1 text-[10px]">
-            <TrendingUp size={10} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-emerald-600 dark:text-emerald-400">0% YoY</span>
+            <TrendingUp size={11} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Live Active</span>
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Monthly</div>
-          <div className="text-xl font-bold text-foreground mt-1">{formatCurrency(totalPurchases / 12)}</div>
+          <div className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Per {timeframeLabel}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? '…' : formatCurrency(avgPeriodPurchases)}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">Across {chartData.length} active periods</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="text-[10px] text-muted-foreground uppercase font-semibold">Active Suppliers</div>
-          <div className="text-xl font-bold text-foreground mt-1">{activeSuppliers || 1}</div>
+          <div className="text-xl font-bold text-foreground mt-1 font-mono">
+            {loading ? '…' : filteredData.activeSuppliers}
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">With purchases in range</div>
         </div>
       </div>
 
-      {/* Time-Segmented Bar Chart */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Purchase Trend Analysis</h3>
-          <div className="flex bg-secondary/85 p-0.5 rounded-lg border border-border">
+      {/* Purchase Trend Bar Chart */}
+      <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <Truck size={16} className="text-primary" /> Purchase Trend Analysis
+              </h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium border border-indigo-500/20 capitalize">
+                {timeframe} view
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Aggregated procurement by {timeframe} over selected range
+            </p>
+          </div>
+
+          {/* Timeframe Toggle Buttons */}
+          <div className="inline-flex bg-secondary/80 p-0.5 rounded-lg border border-border self-start sm:self-auto">
             {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((t) => (
               <button
                 key={t}
+                type="button"
                 onClick={() => setTimeframe(t)}
                 className={cn(
-                  'px-3 py-1 text-[11px] font-semibold rounded-md capitalize transition-all duration-150',
+                  'px-3 py-1 text-xs font-semibold rounded-md capitalize transition-all duration-150 cursor-pointer',
                   timeframe === t
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                {t}
+                {t === 'daily' ? 'Daily' : t === 'weekly' ? 'Weekly' : t === 'monthly' ? 'Monthly' : 'Yearly'}
               </button>
             ))}
           </div>
         </div>
-        <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[240px] max-h-[420px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <defs>
-                <linearGradient id="purchaseGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.15} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'currentColor' }} className="text-muted-foreground" axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" axisLine={false} tickLine={false} />
-              <Tooltip
-                formatter={(v: number | string) => formatCurrency(Number(v))}
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }}
-              />
-              <Bar dataKey="value" fill="url(#purchaseGlow)" radius={[4, 4, 0, 0]} barSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
+
+        <div className="h-64 sm:h-72 lg:h-80 xl:h-96 min-h-[250px] w-full">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 12, right: 12, left: -4, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="purchaseGlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.25} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: 'currentColor' }}
+                  className="text-muted-foreground"
+                  axisLine={false}
+                  tickLine={false}
+                  interval={chartData.length > 15 ? 'preserveStartEnd' : 0}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'currentColor' }}
+                  className="text-muted-foreground"
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `₹${v >= 100000 ? `${(v / 100000).toFixed(1)}L` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                />
+                <Tooltip content={<ChartCustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.35)', radius: 6 }} />
+                <Bar
+                  dataKey="value"
+                  fill="url(#purchaseGlow)"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={chartData.length > 20 ? 22 : 44}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-xs text-muted-foreground">
+              <Calendar size={24} className="mb-2 opacity-50" />
+              No purchases recorded in the selected date range.
+            </div>
+          )}
         </div>
       </div>
 
       {/* Top Suppliers */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-border bg-secondary/30">
+        <div className="px-4 py-3 border-b border-border bg-secondary/30 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Top Suppliers</h3>
+          <span className="text-[11px] text-muted-foreground">In active date range</span>
         </div>
         <div className="divide-y divide-border">
-          {topSuppliers.length > 0 ? topSuppliers.map((s, i) => (
-            <div key={s.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
-                <span className="text-sm font-medium text-foreground">{s.name}</span>
+          {filteredData.topSuppliers.length > 0 ? (
+            filteredData.topSuppliers.map((s, i) => (
+              <div key={s.name} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
+                <div className="flex items-center gap-3 truncate pr-2">
+                  <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                  <span className="text-sm font-medium text-foreground truncate">{s.name}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-mono text-foreground font-medium">{formatCurrency(s.purchases)}</span>
+                  <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', s.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                    {s.growth >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}{Math.abs(s.growth)}%
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-mono text-foreground">{formatCurrency(s.purchases * dateScaleFactor)}</span>
-                <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', s.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                  {s.growth >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}{Math.abs(s.growth)}%
-                </span>
-              </div>
-            </div>
-          )) : (
-            <div className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-muted-foreground w-4">1</span>
-                <span className="text-sm font-medium text-foreground">Cipla Logistics</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-mono text-foreground">{formatCurrency(320000 * dateScaleFactor)}</span>
-                <span className="text-[10px] font-semibold flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-                  <TrendingUp size={10} />0%
-                </span>
-              </div>
-            </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-xs text-muted-foreground">No supplier purchase records found.</div>
           )}
         </div>
       </div>
