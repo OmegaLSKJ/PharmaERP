@@ -67,6 +67,7 @@ import AccountsReports from './pages/reports/AccountsReports'
 import FastSlowMoving from './pages/reports/FastSlowMoving'
 import SettingsPage from './pages/settings/SettingsPage'
 import CrudTablePage from './pages/admin/CrudTablePage'
+import DrugLicensesPage from './pages/compliance/DrugLicensesPage'
 
 const complianceCrud = {
   licenses: [{key:'license_number',label:'License number',required:true},{key:'license_type',label:'License type',required:true},{key:'party_id',label:'Party UUID'},{key:'issued_on',label:'Issued on',type:'date' as const},{key:'expires_on',label:'Expires on',type:'date' as const},{key:'issuing_authority',label:'Issuing authority'},{key:'status',label:'Status',type:'select' as const,options:['active','expired','suspended']},{key:'document_url',label:'Document URL'}],
@@ -161,7 +162,7 @@ export default function App() {
           <Route path="/gst/einvoice" element={<EInvoice />} />
           <Route path="/gst/gstr9" element={<Gstr9 />} />
           <Route path="/gst/tds-tcs" element={<TdsTcs />} />
-          <Route path="/compliance/drug-licenses" element={<CrudTablePage title="Drug Licenses" description="Maintain party licences, authorities, validity and document references." resource="drug-licenses" fields={complianceCrud.licenses} />} />
+          <Route path="/compliance/drug-licenses" element={<DrugLicensesPage />} />
           <Route path="/compliance/recalls" element={<CrudTablePage title="Product Recalls" description="Maintain recall cases, severity, regulatory references and closure." resource="product-recalls" fields={complianceCrud.recalls} />} />
           <Route path="/compliance/controlled-drugs" element={<CrudTablePage title="Controlled Drug Register" description="Maintain patient, prescriber and prescription dispensing records." resource="controlled-drug-register" fields={complianceCrud.controlled} />} />
           <Route path="/reports/sales" element={<SalesAnalytics />} />

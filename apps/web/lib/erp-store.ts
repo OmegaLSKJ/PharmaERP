@@ -435,6 +435,11 @@ const mockStore: Record<string, any> = {
   ],
   'inventory-restrictions': [],
   'pricing-schemes': [],
+  'drug-licenses': [
+    { id: 'dl-1', party_id: 'p1', party_name: 'Apollo Pharmacy', party_code: 'PTY-001', party_type: 'both', license_number: 'STR-4197/4198', license_type: 'drug_license', issued_on: '2020-01-01', expires_on: '2030-12-31', issuing_authority: 'Drugs Control Administration, Assam', status: 'active' },
+    { id: 'dl-2', party_id: 'p2', party_name: 'MedPlus Chemist', party_code: 'PTY-002', party_type: 'both', license_number: 'str-4814/4815', license_type: 'drug_license', issued_on: '2018-01-01', expires_on: '2028-01-01', issuing_authority: 'State Drug Controller, Delhi', status: 'active' },
+    { id: 'dl-3', party_id: 'p3', party_name: 'Cipla Logistics', party_code: 'PTY-003', party_type: 'both', license_number: 'DL-18-2024-00892', license_type: 'drug_license', issued_on: '2024-01-01', expires_on: '2027-09-30', issuing_authority: 'FDA Maharashtra', status: 'active' }
+  ],
   vouchers: [
     { id: 'v1', voucher_type: 'journal', voucher_number: 'VCH-2026-0001', voucher_date: '2026-08-25', status: 'posted', narration: 'Daily sales transfer' }
   ],
@@ -3265,6 +3270,31 @@ export async function list(resource: string, partyName?: string, options?: ListO
 
     return uniqueEntries.filter((v) => !partyName || v.party === partyName)
   }
+  if (resource === 'drug-licenses') {
+    const query = client
+      .from('drug_licenses')
+      .select('id, party_id, license_number, license_type, issued_on, expires_on, issuing_authority, status, document_url, created_at, parties(id, code, legal_name, party_type, phone, email)')
+      .eq('organization_id', organizationId)
+      .order('expires_on', { ascending: true })
+    const rows = await fetchAll<any>((from, to) => query.range(from, to))
+    return (rows ?? []).map((row: any) => ({
+      id: row.id,
+      party_id: row.party_id,
+      party_name: row.parties?.legal_name || '—',
+      party_code: row.parties?.code || '—',
+      party_type: row.parties?.party_type || 'customer',
+      party_phone: row.parties?.phone || '',
+      party_email: row.parties?.email || '',
+      license_number: row.license_number,
+      license_type: row.license_type,
+      issued_on: row.issued_on ?? null,
+      expires_on: row.expires_on,
+      issuing_authority: row.issuing_authority ?? null,
+      status: row.status || 'active',
+      document_url: row.document_url ?? null,
+      created_at: row.created_at,
+    }))
+  }
   if (managedCrud[resource]) { const config=managedCrud[resource]; let query=client.from(config.table).select('*'); if(config.organizationScoped) query=query.eq('organization_id',organizationId); return await fetchAll<any>((from,to)=>query.range(from,to)) }
   throw new Error('Unknown ERP resource.')
   } catch (error) {
@@ -4850,6 +4880,17 @@ export async function create(resource: string, body: any, actor: MutationActor =
         values.purchase_rate = Math.max(0, Number(values.purchase_rate) || 0)
       }
     }
+    if (resource === 'drug-licenses') {
+      if (values.party_id && !isUuid(values.party_id)) {
+        const { data: matchedParty } = await client
+          .from('parties')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .or(`code.eq.${values.party_id},id.eq.${values.party_id},legal_name.ilike.${values.party_id}`)
+          .maybeSingle()
+        if (matchedParty) values.party_id = matchedParty.id
+      }
+    }
     const { data, error } = await client.from(config.table).insert(values).select('*').single()
     if (error) throw error
     return data
@@ -5627,6 +5668,18 @@ export async function update(resource: string, id: string, body: any, actor: Mut
       }
       if (values.quantity !== undefined) {
         values.quantity = Math.max(1, Number(values.quantity) || 1)
+      }
+    }
+    if (resource === 'drug-licenses') {
+      if (values.party_id && !isUuid(values.party_id)) {
+        const { data: matchedParty } = await client
+          .from('parties')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .or(`code.eq.${values.party_id},id.eq.${values.party_id},legal_name.ilike.${values.party_id}`)
+          .maybeSingle()
+        if (matchedParty) values.party_id = matchedParty.id
+        else delete values.party_id
       }
     }
     let query = client.from(config.table).update(values).eq('id', id)

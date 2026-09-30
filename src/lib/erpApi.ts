@@ -35,9 +35,10 @@ function cascadeRelatedEvents(resource: string, id?: string): void {
     vouchers: ['dashboard', 'ledgers', 'day-book', 'report-financial'],
     orders: ['dashboard', 'pendings', 'sales'],
     challans: ['dashboard', 'stock', 'pendings', 'item-mappings'],
-    parties: ['dashboard', 'ledgers', 'sales', 'purchases', 'item-mappings'],
+    parties: ['dashboard', 'ledgers', 'sales', 'purchases', 'item-mappings', 'drug-licenses'],
     'item-mappings': ['items', 'item-batches', 'stock', 'report-stock', 'dashboard'],
     'inventory-restrictions': ['items', 'item-batches', 'stock', 'report-stock', 'dashboard'],
+    'drug-licenses': ['parties', 'dashboard'],
   }
   const related = cascadedMap[resource]
   if (related) {
