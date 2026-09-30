@@ -123,6 +123,11 @@ export default function ManufacturerMedicinesModal({
 
       const mfgId = String(manufacturer.id || '').trim().toLowerCase()
       const mfgName = String(manufacturer.name || '').trim().toLowerCase()
+      const isUnassignedMfg =
+        mfgName === 'unassigned manufacturer' ||
+        mfgName === 'unassigned' ||
+        mfgName === '**' ||
+        String(manufacturer.code || '').trim().toUpperCase() === 'UNASSIGNED'
 
       // Filter to items matching this manufacturer either by ID, company name, or brand title
       const filtered = (allItems || []).filter((item) => {
@@ -130,10 +135,21 @@ export default function ManufacturerMedicinesModal({
         if (mfgId && itemMfgId && itemMfgId === mfgId) return true
 
         const resolved = lookupCatalogManufacturer(item.name, item.code)
-        const itemMfg = String(item.manufacturer || item.company || resolved || '').trim().toLowerCase()
-        if (!itemMfg) return false
-        if (itemMfg === mfgName) return true
-        if (itemMfg.includes(mfgName) || mfgName.includes(itemMfg)) return true
+        const rawMfg = String(item.manufacturer || item.company || resolved || '').trim().toLowerCase()
+
+        if (isUnassignedMfg) {
+          return (
+            (mfgId && itemMfgId === mfgId) ||
+            !rawMfg ||
+            rawMfg === '**' ||
+            rawMfg === 'unassigned' ||
+            rawMfg === 'unassigned manufacturer'
+          )
+        }
+
+        if (!rawMfg) return false
+        if (rawMfg === mfgName) return true
+        if (rawMfg.includes(mfgName) || mfgName.includes(rawMfg)) return true
 
         return false
       })

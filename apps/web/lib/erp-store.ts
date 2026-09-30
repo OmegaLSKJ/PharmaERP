@@ -933,6 +933,63 @@ async function backfillMissingDbItemRates(
   }
 }
 
+let unassignedMfgSyncPromise: Promise<void> | null = null
+
+async function syncUnassignedManufacturer(client: any, organizationId: string) {
+  try {
+    // 1. Rename any placeholder '**' manufacturer to 'Unassigned Manufacturer'
+    await client
+      .from('manufacturers')
+      .update({ name: 'Unassigned Manufacturer', code: 'UNASSIGNED', is_active: true })
+      .eq('organization_id', organizationId)
+      .eq('name', '**')
+
+    // 2. Fetch or find the Unassigned Manufacturer record
+    let { data: unassignedMfr } = await client
+      .from('manufacturers')
+      .select('id,name,code')
+      .eq('organization_id', organizationId)
+      .or('name.eq.Unassigned Manufacturer,code.eq.UNASSIGNED')
+      .limit(1)
+      .maybeSingle()
+
+    if (!unassignedMfr) {
+      const { data: created } = await client
+        .from('manufacturers')
+        .insert({
+          organization_id: organizationId,
+          name: 'Unassigned Manufacturer',
+          code: 'UNASSIGNED',
+          is_active: true
+        })
+        .select('id,name,code')
+        .maybeSingle()
+      unassignedMfr = created
+    }
+
+    if (unassignedMfr?.id) {
+      // 3. Map any items that still have NULL manufacturer_id to Unassigned Manufacturer
+      await client
+        .from('items')
+        .update({ manufacturer_id: unassignedMfr.id })
+        .eq('organization_id', organizationId)
+        .is('manufacturer_id', null)
+    }
+  } catch {
+    // Non-blocking background sync catch
+  }
+}
+
+function triggerUnassignedMfgSync(client: any, organizationId: string) {
+  if (!unassignedMfgSyncPromise) {
+    unassignedMfgSyncPromise = syncUnassignedManufacturer(client, organizationId).finally(() => {
+      setTimeout(() => {
+        unassignedMfgSyncPromise = null
+      }, 300_000)
+    })
+  }
+}
+
 
 // Load persisted transaction data (ledgers, vouchers, sales, purchases, challans)
 try {
@@ -1700,14 +1757,19 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
   if (resource === 'items' && (options?.manufacturerId || options?.manufacturer)) {
     const mfgId = options.manufacturerId
     const mfgName = options.manufacturer?.trim().toLowerCase()
-    return (mockStore.items || []).filter((item: any) =>
-      (mfgId && (item.manufacturer_id === mfgId || item.companyId === mfgId)) ||
-      (mfgName && (
+    const isUnassignedQuery = mfgName === 'unassigned manufacturer' || mfgName === 'unassigned' || mfgName === '**'
+    return (mockStore.items || []).filter((item: any) => {
+      if (mfgId && (item.manufacturer_id === mfgId || item.companyId === mfgId)) return true
+      if (isUnassignedQuery) {
+        const m = (item.manufacturer || item.company || resolveItemManufacturer(item.code, item.name) || '').trim().toLowerCase()
+        return !m || m === '**' || m === 'unassigned' || m === 'unassigned manufacturer'
+      }
+      return mfgName && (
         (item.manufacturer && item.manufacturer.trim().toLowerCase() === mfgName) ||
         (item.company && item.company.trim().toLowerCase() === mfgName) ||
         resolveItemManufacturer(item.code, item.name).toLowerCase() === mfgName
-      ))
-    )
+      )
+    })
   }
   if (resource === 'dashboard') {
     const activeItems = (mockStore.items || []).filter((x: any) => x.status === 'active' || x.status === undefined).length
@@ -2101,6 +2163,30 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     )
   }
 
+  if (resource === 'manufacturers') {
+    const rawList = mockStore.manufacturers || []
+    return rawList.map((m: any) => {
+      const isPlaceholder = String(m.name || '').trim() === '**' || String(m.code || '').trim().toUpperCase() === 'UNASSIGNED'
+      const name = isPlaceholder ? 'Unassigned Manufacturer' : (m.name || '')
+      const code = isPlaceholder && (!m.code || m.code === 'MFG') ? 'UNASSIGNED' : (m.code || 'MFG')
+      const pCount = (mockStore.items || []).filter((i: any) => {
+        if (m.id && (i.manufacturer_id === m.id || i.companyId === m.id)) return true
+        if (isPlaceholder) {
+          const mfg = (i.manufacturer || i.company || resolveItemManufacturer(i.code, i.name) || '').trim().toLowerCase()
+          return !mfg || mfg === '**' || mfg === 'unassigned' || mfg === 'unassigned manufacturer'
+        }
+        return (i.manufacturer || i.company || '').trim().toLowerCase() === name.toLowerCase()
+      }).length
+      return {
+        ...m,
+        name,
+        code,
+        productCount: m.productCount ?? pCount,
+        itemcount: m.itemcount ?? pCount
+      }
+    })
+  }
+
   if (mockStore[resource]) {
     return mockStore[resource]
   }
@@ -2366,6 +2452,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
     return cleanDbParties
   }
   if (resource === 'items') {
+    triggerUnassignedMfgSync(client, organizationId)
     const isFiltered = Boolean(options?.manufacturerId || options?.manufacturer)
     const cacheKey = `items_${organizationId}`
     if (!isFiltered) {
@@ -2374,12 +2461,24 @@ export async function list(resource: string, partyName?: string, options?: ListO
         return cached.data
       }
     }
-    let query = client.from('items').select('id,code,name,packing,unit,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
+    let query = client.from('items').select('id,code,name,packing,unit,manufacturer_id,mrp,sale_rate,purchase_rate,is_active,schedule_class,prescription_required,cold_chain,controlled_substance,is_recalled,manufacturers(id,name,code),salts(name),hsn_codes(code,gst_rate),item_batches(id,batch_number,expiry_on,mrp,cost_price,purchase_price,sale_price,sales_scheme_deal,sales_scheme_free,purchase_scheme_deal,purchase_scheme_free,supplier_invoice_number,supplier_invoice_date,rack_number,source_report_value,parties(legal_name),stock_movements(quantity,warehouses(name)))').eq('organization_id', organizationId)
     const isUuid = (val?: string | null): boolean =>
       Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim()))
 
+    const mfgOptionClean = options?.manufacturer?.trim().toLowerCase()
+    const isUnassignedQuery =
+      mfgOptionClean === 'unassigned manufacturer' ||
+      mfgOptionClean === 'unassigned' ||
+      mfgOptionClean === '**'
+
     if (options?.manufacturerId && isUuid(options.manufacturerId)) {
-      query = query.eq('manufacturer_id', options.manufacturerId.trim())
+      if (isUnassignedQuery) {
+        query = query.or(`manufacturer_id.eq.${options.manufacturerId.trim()},manufacturer_id.is.null`)
+      } else {
+        query = query.eq('manufacturer_id', options.manufacturerId.trim())
+      }
+    } else if (isUnassignedQuery) {
+      query = query.or('manufacturer_id.is.null,manufacturers.name.eq.**,manufacturers.name.eq.Unassigned Manufacturer')
     }
     const data = await fetchAll<any>((from, to) => query.order('name').range(from, to))
     const unmappedToBackfill: Array<{ id: string; code?: string; name: string }> = []
@@ -2410,15 +2509,19 @@ export async function list(resource: string, partyName?: string, options?: ListO
         })
       }
 
+      const rawMfg = i.manufacturers?.name || ''
+      const isPlaceholderMfg = rawMfg.trim() === '**' || String(i.manufacturers?.code || '').toUpperCase() === 'UNASSIGNED'
+      const mfgDisplayName = isPlaceholderMfg ? 'Unassigned Manufacturer' : (rawMfg || resolveItemManufacturer(i.code, i.name) || '')
+
       return {
         id: i.id,
         code: i.code,
         name: i.name,
         packing: i.packing ?? '',
         unit: i.unit ?? '',
-        manufacturer: i.manufacturers?.name || resolveItemManufacturer(i.code, i.name) || '',
-        company: i.manufacturers?.name || resolveItemManufacturer(i.code, i.name) || '',
-        manufacturer_id: i.manufacturers?.id ?? '',
+        manufacturer: mfgDisplayName,
+        company: mfgDisplayName,
+        manufacturer_id: i.manufacturers?.id || i.manufacturer_id || '',
         salt: i.salts?.name ?? '',
         hsn,
         gstRate,
@@ -2483,7 +2586,13 @@ export async function list(resource: string, partyName?: string, options?: ListO
     if (options?.manufacturer) {
       const mfgClean = options.manufacturer.trim().toLowerCase()
       dbItems = dbItems.filter((i: any) => {
+        if (options?.manufacturerId && isUuid(options.manufacturerId)) {
+          return true
+        }
         const m = ((i.manufacturer || i.company || resolveItemManufacturer(i.code, i.name) || '') as string).trim().toLowerCase()
+        if (isUnassignedQuery) {
+          return !m || m === '**' || m === 'unassigned' || m === 'unassigned manufacturer'
+        }
         return m === mfgClean || m.includes(mfgClean) || mfgClean.includes(m)
       })
     }
@@ -2555,15 +2664,23 @@ export async function list(resource: string, partyName?: string, options?: ListO
     })
   }
   if (resource === 'manufacturers') {
+    triggerUnassignedMfgSync(client, organizationId)
     const data = await fetchAll<any>((from, to) =>
       client.from('manufacturers').select('id,name,code,is_active,items(count)').eq('organization_id', organizationId).order('name').range(from, to)
     )
-    const dbMfgs = (data ?? []).map((m: any) => ({
-      ...m,
-      productCount: Number(m.items?.[0]?.count ?? 0),
-      itemcount: Number(m.items?.[0]?.count ?? 0),
-      items: undefined
-    }))
+    const dbMfgs = (data ?? []).map((m: any) => {
+      const isPlaceholder = String(m.name || '').trim() === '**' || String(m.code || '').trim().toUpperCase() === 'UNASSIGNED'
+      const name = isPlaceholder ? 'Unassigned Manufacturer' : (m.name || '')
+      const code = isPlaceholder && (!m.code || m.code === 'MFG') ? 'UNASSIGNED' : (m.code || 'MFG')
+      return {
+        ...m,
+        name,
+        code,
+        productCount: Number(m.items?.[0]?.count ?? 0),
+        itemcount: Number(m.items?.[0]?.count ?? 0),
+        items: undefined
+      }
+    })
     return dbMfgs
   }
   if (resource === 'salts') { const data = await fetchAll<any>((from, to) => client.from('salts').select('id,code,name,composition,category,items(count)').eq('organization_id', organizationId).order('name').range(from, to)); return (data ?? []).map((s: any) => ({ ...s, itemcount: Number(s.items?.[0]?.count ?? 0), items: undefined })) }
@@ -3152,19 +3269,26 @@ async function importDataset(type: string, rows: ImportRow[], actor: MutationAct
  * rather than saving the name without a manufacturer_id.
  */
 async function resolveManufacturer(client: any, organizationId: string, value: unknown) {
-  const name = String(value ?? '').trim()
+  let name = String(value ?? '').trim()
   if (!name) return null
+  const isUnassigned = name === '**' || name.toLowerCase() === 'unassigned' || name.toLowerCase() === 'unassigned manufacturer'
+  if (isUnassigned) {
+    name = 'Unassigned Manufacturer'
+  }
 
-  const { data: existing, error: lookupError } = await client
+  const query = client
     .from('manufacturers')
     .select('id')
     .eq('organization_id', organizationId)
-    .ilike('name', name)
-    .maybeSingle()
+
+  const { data: existing, error: lookupError } = isUnassigned
+    ? await query.or('name.eq.Unassigned Manufacturer,name.eq.**,code.eq.UNASSIGNED').limit(1).maybeSingle()
+    : await query.ilike('name', name).maybeSingle()
+
   if (lookupError) throw lookupError
   if (existing) return existing.id as string
 
-  const code = name.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12) || 'MFR'
+  const code = isUnassigned ? 'UNASSIGNED' : (name.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12) || 'MFR')
   const { data: created, error: createError } = await client
     .from('manufacturers')
     .insert({ organization_id: organizationId, name, code, is_active: true })
