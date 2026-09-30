@@ -4,17 +4,17 @@ import {
   Download,
   Eye,
   Sparkles,
-  FileText,
   CheckCircle2,
   ScanLine,
-  ArrowRight,
   ExternalLink,
-  Check
+  X
 } from 'lucide-react'
-import BlankTransactionSheetPrint, { BlankSheetMode } from '../../components/transactions/BlankTransactionSheetPrint'
+import { BlankSheetMode } from '../../components/transactions/BlankTransactionSheetPrint'
 import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
 import { MasterItemOption } from '../../lib/ocr/medicineMapper'
 import { getCached } from '../../lib/erpCache'
+import { useUIStore } from '../../store/uiStore'
+import { getTemplateHtmlById } from '../../lib/ocr/templatesContent'
 
 interface TemplateInfo {
   id: string
@@ -25,7 +25,6 @@ interface TemplateInfo {
   mode: BlankSheetMode | 'sample'
   description: string
   columns: string[]
-  htmlUrl: string
   downloadName: string
 }
 
@@ -39,7 +38,6 @@ const TEMPLATES: TemplateInfo[] = [
     mode: 'sale',
     description: 'Formatted for sales representatives visiting retail chemist shops. High-contrast grid with 18 writable rows, corner calibration markers, and GST/MRP columns.',
     columns: ['S.No', 'Medicine Description', 'Pack', 'HSN', 'Batch No', 'Exp (MM/YY)', 'Qty', 'Free', 'Rate (₹)', 'MRP (₹)', 'GST%', 'Amount'],
-    htmlUrl: '/blank_sales_order_sheet_a4.html',
     downloadName: 'PharmaERP_Sales_Order_Sheet_A4.html'
   },
   {
@@ -51,7 +49,6 @@ const TEMPLATES: TemplateInfo[] = [
     mode: 'purchase',
     description: 'Purchase requisition sheet for pharmaceutical suppliers and C&F distributors with purchase rate, taxable value, GST slab, and credit payment terms.',
     columns: ['S.No', 'Medicine / Product', 'Pack', 'HSN', 'Batch No', 'Exp', 'Order Qty', 'Free', 'Pur Rate', 'MRP', 'GST%', 'Amount'],
-    htmlUrl: '/blank_purchase_order_sheet_a4.html',
     downloadName: 'PharmaERP_Purchase_Order_Sheet_A4.html'
   },
   {
@@ -63,7 +60,6 @@ const TEMPLATES: TemplateInfo[] = [
     mode: 'challan',
     description: 'Dispatch challan for branch stock transfers, delivery van runs, and chemist shipments with vehicle number, case count, and receiver sign-off.',
     columns: ['S.No', 'Item Description', 'Pack', 'HSN', 'Batch', 'Exp', 'Disp Qty', 'Free', 'Rate', 'MRP', 'Boxes/Pkgs', 'Remarks'],
-    htmlUrl: '/blank_delivery_challan_sheet_a4.html',
     downloadName: 'PharmaERP_Delivery_Challan_Sheet_A4.html'
   },
   {
@@ -75,7 +71,6 @@ const TEMPLATES: TemplateInfo[] = [
     mode: 'sale',
     description: 'Universal accounting slip for payment, receipt, contra, and journal entries with Debit/Credit columns, UTR/Cheque reference, and audit sign-off.',
     columns: ['S.No', 'Dr/Cr', 'Particulars / Account Head', 'Bill/Inv Ref', 'Narration / Remarks', 'Debit (₹)', 'Credit (₹)'],
-    htmlUrl: '/blank_accounting_voucher_sheet_a4.html',
     downloadName: 'PharmaERP_Accounting_Voucher_Sheet_A4.html'
   },
   {
@@ -87,7 +82,6 @@ const TEMPLATES: TemplateInfo[] = [
     mode: 'sample',
     description: 'Pre-populated sample with 4 standard pharma medicines (PAN 40MG, MOXIKIND CV 625, TELMA 40MG, AUGMENTIN 625) to test OCR immediately without handwriting.',
     columns: ['PAN 40MG TAB', 'MOXIKIND CV 625 TAB', 'TELMA 40MG TAB', 'AUGMENTIN 625 DUO TAB'],
-    htmlUrl: '/sample_filled_order_sheet.html',
     downloadName: 'PharmaERP_Sample_Test_Sheet_A4.html'
   }
 ]
@@ -96,32 +90,65 @@ export default function OcrTemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateInfo>(TEMPLATES[0])
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [showOcrModal, setShowOcrModal] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [ocrSuccess, setOcrSuccess] = useState(false)
 
   const printIframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Direct 1-Click Print Handler
+  // Load custom company profile if configured
+  const storeCompany = useUIStore((s) => s.company)
+  const companyInfo = {
+    name: storeCompany.companyName || 'BORGANG DRUG DISTRIBUTORS',
+    sub: 'WHOLESALE PHARMACEUTICAL DISTRIBUTORS & C&F AGENTS',
+    address: `${storeCompany.city || 'Borgang'}, ${storeCompany.state || 'Assam'} - ${storeCompany.pincode || '784167'}`,
+    gstin: storeCompany.gstin || '18AKWPP4417G1ZN',
+    dlNo: storeCompany.dlNo || 'DNG/622/623',
+    phone: storeCompany.phone || '+91 6000763703'
+  }
+
+  // Direct 1-Click Print Handler using embedded HTML
   const handleDirectPrint = (template: TemplateInfo) => {
+    const html = getTemplateHtmlById(template.id, companyInfo)
     if (printIframeRef.current) {
-      printIframeRef.current.src = template.htmlUrl
+      printIframeRef.current.srcdoc = html
       printIframeRef.current.onload = () => {
         setTimeout(() => {
           try {
             printIframeRef.current?.contentWindow?.focus()
             printIframeRef.current?.contentWindow?.print()
-          } catch (err) {
-            // Fallback: open in new tab and print
-            const w = window.open(template.htmlUrl, '_blank')
-            w?.focus()
-            w?.print()
+          } catch {
+            const printWindow = window.open('', '_blank')
+            if (printWindow) {
+              printWindow.document.write(html)
+              printWindow.document.close()
+              printWindow.focus()
+              printWindow.print()
+            }
           }
-        }, 200)
+        }, 150)
       }
     } else {
-      const w = window.open(template.htmlUrl, '_blank')
-      w?.focus()
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(html)
+        printWindow.document.close()
+        printWindow.focus()
+        printWindow.print()
+      }
     }
+  }
+
+  // Direct In-Memory HTML File Download (Zero Network latency / Zero 404s)
+  const handleDownload = (template: TemplateInfo) => {
+    const html = getTemplateHtmlById(template.id, companyInfo)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = template.downloadName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   // Master Items for OCR matching
@@ -150,7 +177,7 @@ export default function OcrTemplatesPage() {
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
       
-      {/* Hidden iframe for seamless 1-click printing without opening tabs */}
+      {/* Hidden print iframe for background 1-click printing */}
       <iframe
         ref={printIframeRef}
         title="Print Frame"
@@ -271,13 +298,12 @@ export default function OcrTemplatesPage() {
                 </button>
 
                 {/* Direct Download HTML Button */}
-                <a
-                  href={tmpl.htmlUrl}
-                  download={tmpl.downloadName}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition"
+                <button
+                  onClick={() => handleDownload(tmpl)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer"
                 >
                   <Download size={13} /> Download
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -309,10 +335,10 @@ export default function OcrTemplatesPage() {
         </div>
       </div>
 
-      {/* Full Sheet Preview Modal */}
+      {/* Full Sheet Preview Modal - Instant in-memory rendering via srcDoc */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-          <div className="bg-card text-foreground border border-border w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between bg-muted/30">
@@ -332,21 +358,30 @@ export default function OcrTemplatesPage() {
                   <Printer size={13} /> Print This Sheet (A4)
                 </button>
                 <button
+                  onClick={() => handleDownload(selectedTemplate)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer"
+                >
+                  <Download size={13} /> Download HTML
+                </button>
+                <button
                   onClick={() => setShowPreviewModal(false)}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition cursor-pointer"
+                  title="Close preview"
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
             </div>
 
-            {/* Modal Iframe View */}
-            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-4 overflow-y-auto flex justify-center">
-              <iframe
-                src={selectedTemplate.htmlUrl}
-                title={selectedTemplate.title}
-                className="w-[210mm] min-h-[297mm] bg-white shadow-xl rounded border border-slate-300"
-              />
+            {/* Modal Iframe View with srcDoc (Zero 404s, renders instantly) */}
+            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-4 sm:p-6 overflow-y-auto flex justify-center">
+              <div className="w-[210mm] max-w-full bg-white shadow-2xl rounded-sm overflow-hidden flex justify-center">
+                <iframe
+                  srcDoc={getTemplateHtmlById(selectedTemplate.id, companyInfo)}
+                  title={selectedTemplate.title}
+                  className="w-[210mm] min-h-[305mm] border-none bg-white"
+                />
+              </div>
             </div>
           </div>
         </div>
