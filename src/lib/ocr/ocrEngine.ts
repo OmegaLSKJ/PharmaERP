@@ -58,8 +58,8 @@ export async function preprocessImage(imageFile: File | Blob): Promise<string> {
 async function loadTesseractModule(): Promise<any> {
   // 1. Try bundler dynamic import
   try {
-    const mod = await import('tesseract.js')
-    if (mod && (typeof mod.createWorker === 'function' || typeof (mod as any).default?.createWorker === 'function')) {
+    const mod: any = await import('tesseract.js')
+    if (mod && (typeof mod.createWorker === 'function' || typeof mod.default?.createWorker === 'function')) {
       return mod
     }
   } catch (err) {
@@ -100,8 +100,8 @@ async function loadTesseractModule(): Promise<any> {
 async function loadPdfJsModule(): Promise<any> {
   // 1. Try bundler dynamic import
   try {
-    const mod = await import('pdfjs-dist')
-    const lib = mod.getDocument ? mod : (mod as any).default
+    const mod: any = await import('pdfjs-dist')
+    const lib = mod && typeof mod.getDocument === 'function' ? mod : mod?.default
     if (lib && typeof lib.getDocument === 'function') {
       if (typeof window !== 'undefined' && !lib.GlobalWorkerOptions?.workerSrc) {
         lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${lib.version || '3.11.174'}/pdf.worker.min.js`
