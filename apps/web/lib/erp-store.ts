@@ -6210,6 +6210,11 @@ export async function remove(resource: string, id: string, actor: MutationActor 
       const { data: batchesToDelete } = await client.from('item_batches').select('id').eq('item_id', id)
       if (batchesToDelete && batchesToDelete.length > 0) {
         const batchIds = batchesToDelete.map((b: any) => b.id)
+        try { await client.from('stock_reservations').delete().in('item_batch_id', batchIds) } catch {}
+        try { await client.from('inventory_adjustment_lines').delete().in('item_batch_id', batchIds) } catch {}
+        try { await client.from('product_recall_batches').delete().in('item_batch_id', batchIds) } catch {}
+        try { await client.from('stock_import_rows').update({ item_batch_id: null }).in('item_batch_id', batchIds) } catch {}
+        try { await client.from('stock_movements').delete().in('item_batch_id', batchIds).lte('quantity', 0) } catch {}
         await client.from('stock_movements').delete().in('item_batch_id', batchIds)
         await client.from('item_batches').delete().eq('item_id', id)
       }
@@ -6302,8 +6307,20 @@ export async function remove(resource: string, id: string, actor: MutationActor 
     try { await client.from('inventory_adjustment_lines').delete().eq('item_batch_id', id) } catch {}
     try { await client.from('product_recall_batches').delete().eq('item_batch_id', id) } catch {}
     try { await client.from('stock_import_rows').update({ item_batch_id: null }).eq('item_batch_id', id) } catch {}
+    // Step 1: Delete negative & zero movements first (quantity <= 0).
+    // Deleting -quantity increases the projected stock balance (+quantity), which
+    // guarantees the database trigger stock_balance_guard will NOT trigger 'Negative stock is not allowed'.
+    try {
+      await client.from('stock_movements').delete().eq('item_batch_id', id).lte('quantity', 0)
+    } catch (err) {
+      console.warn('Could not delete non-positive movements first:', err)
+    }
+
+    // Step 2: Now that offsetting negative rows are removed, deleting the remaining positive
+    // movements brings the projected balance down to exactly 0 (which is >= 0 and allowed by the trigger).
     const { error: smError } = await client.from('stock_movements').delete().eq('item_batch_id', id)
     if (smError) throw smError
+
     const { error } = await client.from('item_batches').delete().eq('id', id)
     if (error) throw error
     return { id }
