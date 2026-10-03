@@ -6296,8 +6296,12 @@ export async function remove(resource: string, id: string, actor: MutationActor 
     if ((salesCount ?? 0) + (purchaseCount ?? 0) + (challanCount ?? 0) > 0) {
       throw new Error('This batch has sales, purchase, or delivery history and cannot be deleted.')
     }
-    // No invoice/challan history — safe to wipe all stock movements for this batch
-    // (FK constraint on stock_movements.item_batch_id must be cleared before batch deletion)
+    // No invoice/challan history — safe to wipe all stock movements and batch-dependent records
+    // (FK constraints on stock_movements, reservations, adjustment lines, recalls, imports)
+    try { await client.from('stock_reservations').delete().eq('item_batch_id', id) } catch {}
+    try { await client.from('inventory_adjustment_lines').delete().eq('item_batch_id', id) } catch {}
+    try { await client.from('product_recall_batches').delete().eq('item_batch_id', id) } catch {}
+    try { await client.from('stock_import_rows').update({ item_batch_id: null }).eq('item_batch_id', id) } catch {}
     const { error: smError } = await client.from('stock_movements').delete().eq('item_batch_id', id)
     if (smError) throw smError
     const { error } = await client.from('item_batches').delete().eq('id', id)
