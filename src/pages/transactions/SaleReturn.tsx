@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Eye, RotateCcw, Printer, X, Info } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
+import { cn, formatCurrency, extractDocSequence } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
@@ -71,9 +71,18 @@ export default function SaleReturn() {
     void load()
   })
 
-  const filtered = returns.filter(
-    (s) => s.party.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = returns
+    .filter(
+      (s) => s.party.toLowerCase().includes(search.toLowerCase()) || s.returnNo.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const diff = (b.date || '').localeCompare(a.date || '')
+      if (diff !== 0) return diff
+      const seqA = extractDocSequence(a.returnNo || '').sequence
+      const seqB = extractDocSequence(b.returnNo || '').sequence
+      if (seqA !== seqB) return seqB - seqA
+      return (b.returnNo || '').localeCompare(a.returnNo || '')
+    })
   const activeReturn = filtered[activeIndex] || (filtered.length > 0 ? filtered[0] : null)
   const totalVal = filtered.reduce((a, s) => a + s.total, 0)
 

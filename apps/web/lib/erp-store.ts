@@ -267,9 +267,22 @@ async function cascadeSeriesUpdateDb(
           if (oldNo !== newNo) {
             await client.from('sales_invoices').update({ invoice_number: newNo }).eq('id', inv.id)
             if (inv.voucher_id) {
-              const { data: v } = await client.from('vouchers').select('id, narration').eq('id', inv.voucher_id).maybeSingle()
-              if (v && v.narration && v.narration.includes(oldNo)) {
-                await client.from('vouchers').update({ narration: v.narration.replaceAll(oldNo, newNo) }).eq('id', v.id)
+              const { data: v } = await client.from('vouchers').select('id, voucher_number, narration').eq('id', inv.voucher_id).maybeSingle()
+              if (v) {
+                const vUp: any = {}
+                if (v.narration && v.narration.includes(oldNo)) vUp.narration = v.narration.replaceAll(oldNo, newNo)
+                if (v.voucher_number && v.voucher_number.includes(oldNo)) vUp.voucher_number = v.voucher_number.replaceAll(oldNo, newNo)
+                if (Object.keys(vUp).length > 0) {
+                  await client.from('vouchers').update(vUp).eq('id', v.id)
+                }
+                const { data: vLines } = await client.from('voucher_lines').select('id, narration').eq('voucher_id', v.id)
+                if (vLines) {
+                  for (const vl of vLines) {
+                    if (vl.narration && vl.narration.includes(oldNo)) {
+                      await client.from('voucher_lines').update({ narration: vl.narration.replaceAll(oldNo, newNo) }).eq('id', vl.id)
+                    }
+                  }
+                }
               }
             }
           }
@@ -284,9 +297,22 @@ async function cascadeSeriesUpdateDb(
           if (oldNo !== newNo) {
             await client.from('purchase_invoices').update({ invoice_number: newNo }).eq('id', inv.id)
             if (inv.voucher_id) {
-              const { data: v } = await client.from('vouchers').select('id, narration').eq('id', inv.voucher_id).maybeSingle()
-              if (v && v.narration && v.narration.includes(oldNo)) {
-                await client.from('vouchers').update({ narration: v.narration.replaceAll(oldNo, newNo) }).eq('id', v.id)
+              const { data: v } = await client.from('vouchers').select('id, voucher_number, narration').eq('id', inv.voucher_id).maybeSingle()
+              if (v) {
+                const vUp: any = {}
+                if (v.narration && v.narration.includes(oldNo)) vUp.narration = v.narration.replaceAll(oldNo, newNo)
+                if (v.voucher_number && v.voucher_number.includes(oldNo)) vUp.voucher_number = v.voucher_number.replaceAll(oldNo, newNo)
+                if (Object.keys(vUp).length > 0) {
+                  await client.from('vouchers').update(vUp).eq('id', v.id)
+                }
+                const { data: vLines } = await client.from('voucher_lines').select('id, narration').eq('voucher_id', v.id)
+                if (vLines) {
+                  for (const vl of vLines) {
+                    if (vl.narration && vl.narration.includes(oldNo)) {
+                      await client.from('voucher_lines').update({ narration: vl.narration.replaceAll(oldNo, newNo) }).eq('id', vl.id)
+                    }
+                  }
+                }
               }
             }
             await client.from('item_batches').update({ supplier_invoice_number: newNo }).eq('supplier_invoice_number', oldNo)
@@ -332,6 +358,18 @@ async function cascadeSeriesUpdateDb(
   }
 }
 
+const DEFAULT_SERIES_CONFIG: Record<string, { doc: string; prefix: string; padding: number; nextNo: number }> = {
+  'sale invoice': { doc: 'Sale Invoice', prefix: 'G-', padding: 4, nextNo: 1940 },
+  'purchase bill': { doc: 'Purchase Bill', prefix: 'PB-', padding: 4, nextNo: 1 },
+  'challan': { doc: 'Challan', prefix: 'CH-', padding: 4, nextNo: 1 },
+  'credit note': { doc: 'Credit Note', prefix: 'CN-', padding: 3, nextNo: 1 },
+  'debit note': { doc: 'Debit Note', prefix: 'DN-', padding: 3, nextNo: 1 },
+  'sales order': { doc: 'Sales Order', prefix: 'SO-', padding: 3, nextNo: 1 },
+  'purchase order': { doc: 'Purchase Order', prefix: 'PO-', padding: 3, nextNo: 1 },
+  'sale return': { doc: 'Sale Return', prefix: 'SR-', padding: 3, nextNo: 1 },
+  'purchase return': { doc: 'Purchase Return', prefix: 'PR-', padding: 3, nextNo: 1 }
+}
+
 function getNextSeriesNumberMock(docType: string): string {
   const normType = docType.toLowerCase().trim()
   const s = (mockStore.series || []).find((x: any) => (x.doc || '').toLowerCase().trim() === normType && x.active !== false)
@@ -341,30 +379,66 @@ function getNextSeriesNumberMock(docType: string): string {
     s.nextNo = nextNo + 1
     return formatted
   }
-  return number(docType.slice(0, 2).toUpperCase())
+  const def = DEFAULT_SERIES_CONFIG[normType] || { doc: docType, prefix: `${docType.slice(0, 2).toUpperCase()}-`, padding: 4, nextNo: 1 }
+  const formatted = formatDocNumber(def.nextNo, def.prefix, '', def.padding)
+  if (!mockStore.series) mockStore.series = []
+  mockStore.series.push({
+    id: `se-${Date.now()}`,
+    doc: def.doc,
+    prefix: def.prefix,
+    suffix: '',
+    nextNo: def.nextNo + 1,
+    padding: def.padding,
+    fyReset: true,
+    active: true
+  })
+  return formatted
 }
 
 async function getNextSeriesNumberDb(docType: string, client: any, organizationId: string): Promise<string> {
+  const normType = docType.toLowerCase().trim()
+  const def = DEFAULT_SERIES_CONFIG[normType] || { doc: docType, prefix: `${docType.slice(0, 2).toUpperCase()}-`, padding: 4, nextNo: 1 }
   try {
-    // Atomic read-and-increment: a single UPDATE...RETURNING prevents duplicate numbers
-    // under concurrent requests (eliminates the read-then-write race condition).
     const { data: s, error } = await client
       .from('document_series')
-      .update({ next_number: client.sql`next_number + 1` })
+      .select('id,prefix,suffix,padding,next_number')
       .eq('organization_id', organizationId)
       .ilike('document_type', docType)
       .eq('is_active', true)
+      .maybeSingle()
+
+    if (!error && s) {
+      const current = Number(s.next_number || 1)
+      await client
+        .from('document_series')
+        .update({ next_number: current + 1 })
+        .eq('id', s.id)
+      return formatDocNumber(current, s.prefix ?? def.prefix, s.suffix || '', Number(s.padding || def.padding))
+    }
+
+    // Auto-seed series if missing in document_series
+    const { data: created } = await client
+      .from('document_series')
+      .insert({
+        organization_id: organizationId,
+        document_type: def.doc,
+        prefix: def.prefix,
+        suffix: '',
+        next_number: def.nextNo + 1,
+        padding: def.padding,
+        financial_year_reset: true,
+        is_active: true
+      })
       .select('prefix,suffix,padding,next_number')
       .maybeSingle()
-    if (!error && s) {
-      // next_number now holds the already-incremented value; the issued number is next_number - 1
-      const issued = Number(s.next_number) - 1
-      return formatDocNumber(issued, s.prefix || '', s.suffix || '', Number(s.padding || 4))
+
+    if (created) {
+      return formatDocNumber(def.nextNo, created.prefix ?? def.prefix, created.suffix || '', Number(created.padding || def.padding))
     }
   } catch (err) {
     console.warn('getNextSeriesNumberDb non-fatal warning:', err)
   }
-  return number(docType.slice(0, 2).toUpperCase())
+  return formatDocNumber(def.nextNo, def.prefix, '', def.padding)
 }
 
 // OPTION B: In-memory mock database state for local offline development
@@ -426,7 +500,7 @@ const mockStore: Record<string, any> = {
     { id: 'se-pb', doc: 'Purchase Bill', prefix: 'PB-', suffix: '', nextNo: 1, padding: 4, fyReset: true, active: true },
     { id: 'se-po', doc: 'Purchase Order', prefix: 'PO-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
     { id: 'se-pr', doc: 'Purchase Return', prefix: 'PR-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
-    { id: 'se-si', doc: 'Sale Invoice', prefix: 'G', suffix: '', nextNo: 5, padding: 4, fyReset: true, active: true },
+    { id: 'se-si', doc: 'Sale Invoice', prefix: 'G-', suffix: '', nextNo: 1940, padding: 4, fyReset: true, active: true },
     { id: 'se-sr', doc: 'Sale Return', prefix: 'SR-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
     { id: 'se-so', doc: 'Sales Order', prefix: 'SO-', suffix: '', nextNo: 1, padding: 3, fyReset: true, active: true },
   ],
@@ -509,7 +583,9 @@ const mockStore: Record<string, any> = {
   ],
   orders: [],
   'credit-notes': [],
-  'debit-notes': []
+  'debit-notes': [],
+  'sale-returns': [],
+  'purchase-returns': []
 }
 
 // Load dynamic mock stock data from Excel backup if it exists
@@ -2309,19 +2385,31 @@ function listMock(resource: string, partyName?: string, options?: { manufacturer
     return mapped
   }
 
-  if (mockStore[resource]) {
-    return mockStore[resource]
-  }
-
   const specialKeys: Record<string, string> = {
-    'sale-returns': 'sales',
-    'purchase-returns': 'purchases',
+    'sale-returns': 'sale-returns',
+    'purchase-returns': 'purchase-returns',
     'communication-blocks': 'communication-blocks',
     'credit-note-book': 'credit-notes',
     'debit-note-book': 'debit-notes'
   }
-  if (specialKeys[resource] && mockStore[specialKeys[resource]]) {
-    return mockStore[specialKeys[resource]]
+  const targetKey = specialKeys[resource] || resource
+  if (mockStore[targetKey]) {
+    const arr = [...mockStore[targetKey]]
+    if (['sales', 'purchases', 'challans', 'orders', 'vouchers', 'sale-returns', 'purchase-returns', 'credit-notes', 'debit-notes'].includes(targetKey)) {
+      arr.sort((a: any, b: any) => {
+        const dateA = a.date || a.invoice_date || a.challan_date || a.voucher_date || ''
+        const dateB = b.date || b.invoice_date || b.challan_date || b.voucher_date || ''
+        const diff = dateB.localeCompare(dateA)
+        if (diff !== 0) return diff
+        const noA = a.number || a.invoiceNo || a.voucher_number || a.id || ''
+        const noB = b.number || b.invoiceNo || b.voucher_number || b.id || ''
+        const seqA = extractDocSequence(noA).sequence
+        const seqB = extractDocSequence(noB).sequence
+        if (seqA !== seqB) return seqB - seqA
+        return noB.localeCompare(noA)
+      })
+    }
+    return arr
   }
   return []
 }
@@ -3234,7 +3322,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
   if (resource === 'series') { const data = await fetchAll<any>((from, to) => client.from('document_series').select('*').eq('organization_id', organizationId).order('document_type').range(from, to)); return (data ?? []).map((s: any) => ({ id: s.id, doc: s.document_type, prefix: s.prefix, suffix: s.suffix, nextNo: Number(s.next_number), padding: s.padding, fyReset: s.financial_year_reset, active: s.is_active })) }
   if (resource === 'communication-blocks') { const data = await fetchAll<any>((from, to) => client.from('communication_blocks').select('*').eq('organization_id', organizationId).order('blocked_on', { ascending: false }).range(from, to)); return (data ?? []).map((b: any) => ({ id: b.id, type: b.channel, value: b.destination, reason: b.reason ?? '', blockedOn: b.blocked_on })) }
   const documentResources: Record<string, string> = { 'sale-returns': 'sale_return', 'purchase-returns': 'purchase_return', orders: 'order', breakages: 'breakage', replacements: 'replacement', 'counter-sales': 'counter_sale', pendings: 'pending', 'price-differences': 'price_difference' }
-  if (documentResources[resource]) { const data = await fetchAll<any>((from, to) => client.from('business_documents').select('id,document_number,document_date,status,total,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', documentResources[resource]).order('document_date', { ascending: false }).range(from, to)); return (data ?? []).map((row: any) => ({ id: row.id, number: row.document_number, date: row.document_date, status: row.status, total: Number(row.total), party: row.parties?.legal_name ?? '', ...row.details })) }
+  if (documentResources[resource]) { const data = await fetchAll<any>((from, to) => client.from('business_documents').select('id,document_number,document_date,status,total,details,parties(legal_name)').eq('organization_id', organizationId).eq('document_type', documentResources[resource]).order('document_date', { ascending: false }).order('document_number', { ascending: false }).range(from, to)); return (data ?? []).map((row: any) => ({ id: row.id, number: row.document_number, date: row.document_date, status: row.status, total: Number(row.total), party: row.parties?.legal_name ?? '', ...row.details })) }
   if (resource === 'sales') {
     const data = await fetchAll<any>((from, to) =>
       client
@@ -3244,6 +3332,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
+        .order('invoice_number', { ascending: false })
         .range(from, to)
     )
     return (data ?? []).map((v: any) => ({
@@ -3296,6 +3385,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
         )
         .eq('organization_id', organizationId)
         .order('invoice_date', { ascending: false })
+        .order('invoice_number', { ascending: false })
         .range(from, to)
     )
     return (data ?? []).map((v: any) => ({
@@ -3347,6 +3437,7 @@ export async function list(resource: string, partyName?: string, options?: ListO
         .select('id,challan_number,challan_date,transport_name,status,parties(legal_name),delivery_challan_lines(id,quantity,item_batches(id,batch_number,expiry_on,mrp,rack_number,stock_movements(quantity),items(id,name,code,sale_rate,mrp,purchase_rate,packing,manufacturers(name,code),hsn_codes(code),salts(name))))')
         .eq('organization_id', organizationId)
         .order('challan_date', { ascending: false })
+        .order('challan_number', { ascending: false })
         .range(from, to)
     )
     return (data ?? []).map((v: any) => ({
@@ -4030,27 +4121,39 @@ export async function create(resource: string, body: any, actor: MutationActor =
       'credit-notes': 'credit-notes',
     }
     const storeKey = specialKeys[resource] || resource
+    if (!mockStore[storeKey] && specialKeys[resource]) {
+      mockStore[storeKey] = []
+    }
     if (mockStore[storeKey]) {
       const docTotal = Number(body.total ?? body.grandTotal ?? body.grand_total ?? 0)
       const docItems = Number(body.items ?? body.lines?.length ?? 1)
       const docParty = body.party || body.customer || body.supplier || 'Cash Customer'
-      const docTypeForResource = resource === 'sales' ? 'Sale Invoice' : resource === 'purchases' ? 'Purchase Bill' : resource === 'challans' ? 'Challan' : ''
+      let docTypeForResource = ''
+      if (resource === 'sales') docTypeForResource = 'Sale Invoice'
+      else if (resource === 'purchases') docTypeForResource = 'Purchase Bill'
+      else if (resource === 'challans') docTypeForResource = 'Challan'
+      else if (resource === 'credit-notes') docTypeForResource = 'Credit Note'
+      else if (resource === 'debit-notes') docTypeForResource = 'Debit Note'
+      else if (resource === 'sale-returns') docTypeForResource = 'Sale Return'
+      else if (resource === 'purchase-returns') docTypeForResource = 'Purchase Return'
+      else if (resource === 'orders') docTypeForResource = (body.type?.toLowerCase().includes('purchase') || body.partyType === 'supplier') ? 'Purchase Order' : 'Sales Order'
+
       let generatedDocNumber = ''
       if (docTypeForResource) {
-        const ms = (mockStore.series || []).find((s: any) => s.doc?.toLowerCase() === docTypeForResource.toLowerCase() && s.active !== false)
-        if (ms) {
-          const nextNo = Number(ms.nextNo || 1)
-          generatedDocNumber = formatDocNumber(nextNo, ms.prefix || '', ms.suffix || '', Number(ms.padding || 4))
-          ms.nextNo = nextNo + 1
-        }
+        generatedDocNumber = getNextSeriesNumberMock(docTypeForResource)
       }
-      const docNumber = body.number || body.invoiceNo || (body.id && !body.id.startsWith('s') && !body.id.startsWith('pu') ? body.id : '') || generatedDocNumber || (resource === 'sales' ? number('SI') : resource === 'purchases' ? number('PB') : number('MOCK'))
+      const docNumber = body.number || body.invoiceNo || (body.id && !body.id.startsWith('s') && !body.id.startsWith('pu') && !body.id.startsWith('ch') && !body.id.startsWith('cn') && !body.id.startsWith('dn') && !body.id.startsWith('ord') ? body.id : '') || generatedDocNumber || number('DOC')
       const docDate = body.date || date()
       const docTime = new Date().toTimeString().slice(0, 8) // "HH:MM:SS"
+      const isBillDoc = ['sales', 'purchases', 'challans', 'credit-notes', 'debit-notes', 'orders', 'sale-returns', 'purchase-returns'].includes(resource)
       const doc = {
         ...body,
-        id,
+        id: isBillDoc ? docNumber : id,
+        dbId: id,
         number: docNumber,
+        invoiceNo: docNumber,
+        orderNo: resource === 'orders' ? docNumber : body.orderNo,
+        returnNo: (resource === 'sale-returns' || resource === 'purchase-returns') ? docNumber : body.returnNo,
         party: docParty,
         date: docDate,
         time: docTime,
@@ -4290,9 +4393,9 @@ export async function create(resource: string, body: any, actor: MutationActor =
     for (const row of prepared) { const { error } = await client.from('stock_movements').insert({ organization_id: organizationId, item_batch_id: row.batchId, warehouse_id: row.warehouseId, movement_type: body.entryType === 'expiry' ? 'expiry' : 'breakage', quantity: -Math.abs(row.qty), source_type: 'breakage', source_id: document.id }); if (error) throw error }
     return { ...body, id: document.id, number: documentNumber, date: body.date || date() }
   }
-  const documentResources: Record<string, { type: string; prefix: string }> = {
-    'sale-returns': { type: 'sale_return', prefix: 'SR' },
-    'purchase-returns': { type: 'purchase_return', prefix: 'PR' },
+  const documentResources: Record<string, { type: string; prefix: string; seriesDoc?: string }> = {
+    'sale-returns': { type: 'sale_return', prefix: 'SR', seriesDoc: 'Sale Return' },
+    'purchase-returns': { type: 'purchase_return', prefix: 'PR', seriesDoc: 'Purchase Return' },
     orders: { type: 'order', prefix: 'ORD' },
     replacements: { type: 'replacement', prefix: 'REP' },
     'counter-sales': { type: 'counter_sale', prefix: 'CS' },
@@ -4393,7 +4496,18 @@ export async function create(resource: string, body: any, actor: MutationActor =
   if (documentResources[resource]) {
     const config = documentResources[resource]
     const partyId = body.party ? await party(client, organizationId, body.party, body.partyType === 'supplier' ? 'supplier' : 'customer') : null
-    const documentNumber = body.number || number(config.prefix)
+    let documentNumber = body.number
+    if (!documentNumber) {
+      let seriesDoc = config.seriesDoc
+      if (resource === 'orders') {
+        seriesDoc = (body.type?.toLowerCase().includes('purchase') || body.partyType === 'supplier') ? 'Purchase Order' : 'Sales Order'
+      }
+      if (seriesDoc) {
+        documentNumber = await getNextSeriesNumberDb(seriesDoc, client, organizationId)
+      } else {
+        documentNumber = number(config.prefix)
+      }
+    }
     const { data, error } = await client
       .from('business_documents')
       .insert({
@@ -4858,10 +4972,11 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
   if (resource === 'debit-notes' || resource === 'credit-notes') {
     const noteKind = resource === 'credit-notes' ? 'credit_note' : 'debit_note'
-    const notePrefix = resource === 'credit-notes' ? 'CN' : 'DN'
+    const seriesDoc = resource === 'credit-notes' ? 'Credit Note' : 'Debit Note'
+    const generatedId = body.id || (await getNextSeriesNumberDb(seriesDoc, client, organizationId))
     const noteDoc = {
       ...body,
-      id: body.id || number(notePrefix),
+      id: generatedId,
       date: body.date || date(),
     }
     try {
@@ -4918,7 +5033,9 @@ export async function create(resource: string, body: any, actor: MutationActor =
   }
   if (resource === 'challans') {
     if (!body.party || !body.lines?.length) throw new Error('Party and at least one challan line are required.')
-    const challanNumber = body.id || number('CH'), challanDate = body.date || date(), partyId = await party(client, organizationId, body.party)
+    const challanNumber = body.id || (await getNextSeriesNumberDb('Challan', client, organizationId))
+    const challanDate = body.date || date()
+    const partyId = await party(client, organizationId, body.party)
     const { data: challan, error } = await client.from('delivery_challans').insert({ organization_id: organizationId, financial_year_id: financialYearId, party_id: partyId, challan_number: challanNumber, challan_date: challanDate, transport_name: body.transport ?? null, status: 'posted' }).select('id').single(); if (error) throw error
     for (const line of body.lines as Line[]) { const s = await stock(client, organizationId, line); const { error: lineError } = await client.from('delivery_challan_lines').insert({ challan_id: challan.id, item_batch_id: s.batchId, quantity: +line.qty }); if (lineError) throw lineError }
     return { id: challanNumber, party: body.party, transport: body.transport ?? '', date: challanDate, lines: body.lines }

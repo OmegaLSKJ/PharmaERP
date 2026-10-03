@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { Search, Plus, Eye, Printer, X, Edit3, Trash2, Save, ExternalLink, PlusCircle, CheckCircle2, Pill } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
+import { cn, formatCurrency, extractDocSequence } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
@@ -196,18 +196,31 @@ export default function PurchaseRegister() {
     cancelled: purchases.filter((p) => p.status === 'cancelled').length,
   }
 
-  const filtered = purchases.filter((s) => {
-    const matchesSearch =
-      s.supplier.toLowerCase().includes(search.toLowerCase()) ||
-      s.challanNo.toLowerCase().includes(search.toLowerCase()) ||
-      s.invoiceNo.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'received' ? (s.status === 'received' || s.status === 'posted') :
-       statusFilter === 'pending' ? (s.status === 'pending' || s.status === 'draft') :
-       s.status === statusFilter)
-    return matchesSearch && matchesStatus
-  })
+  const filtered = useMemo(() => {
+    return purchases
+      .filter((s) => {
+        const matchesSearch =
+          s.supplier.toLowerCase().includes(search.toLowerCase()) ||
+          s.challanNo.toLowerCase().includes(search.toLowerCase()) ||
+          s.invoiceNo.toLowerCase().includes(search.toLowerCase())
+        const matchesStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'received' ? (s.status === 'received' || s.status === 'posted') :
+           statusFilter === 'pending' ? (s.status === 'pending' || s.status === 'draft') :
+           s.status === statusFilter)
+        return matchesSearch && matchesStatus
+      })
+      .sort((a, b) => {
+        const dateA = a.date || ''
+        const dateB = b.date || ''
+        const diff = dateB.localeCompare(dateA)
+        if (diff !== 0) return diff
+        const seqA = extractDocSequence(a.invoiceNo || a.challanNo || '').sequence
+        const seqB = extractDocSequence(b.invoiceNo || b.challanNo || '').sequence
+        if (seqA !== seqB) return seqB - seqA
+        return (b.invoiceNo || b.challanNo).localeCompare(a.invoiceNo || a.challanNo)
+      })
+  }, [purchases, search, statusFilter])
   const totalVal = filtered.reduce((a, s) => a + s.total, 0)
 
   const handlePrint = (inv: PurchaseInv) => {

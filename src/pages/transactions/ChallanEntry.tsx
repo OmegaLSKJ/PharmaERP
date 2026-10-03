@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Save, Truck, Trash2, Printer, Plus, Minus, X, Edit3, ExternalLink, Info, Sparkles } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
+import { cn, formatCurrency, extractDocSequence } from '../../lib/utils'
 import { deleteErp, getErp, patchErp, postErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -145,7 +145,17 @@ export default function ChallanEntry() {
             })
           )
         )
-        setSavedChallans(challanRows || [])
+        const sortedChallans = [...(challanRows || [])].sort((a, b) => {
+          const dateA = a.date || ''
+          const dateB = b.date || ''
+          const diff = dateB.localeCompare(dateA)
+          if (diff !== 0) return diff
+          const seqA = extractDocSequence(a.id || '').sequence
+          const seqB = extractDocSequence(b.id || '').sequence
+          if (seqA !== seqB) return seqB - seqA
+          return (b.id || '').localeCompare(a.id || '')
+        })
+        setSavedChallans(sortedChallans)
       })
       .catch((e) => showToast(e.message))
   }, [showToast])

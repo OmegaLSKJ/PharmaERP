@@ -19,7 +19,7 @@ import {
   RotateCcw,
   ExternalLink
 } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
+import { cn, formatCurrency, extractDocSequence } from '../../lib/utils'
 import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
@@ -151,14 +151,25 @@ export default function SaleRegister() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return sales.filter((s) => {
-      const cust = (s.customer || '').toLowerCase()
-      const inv = (s.invoiceNo || '').toLowerCase()
-      const ms = !q || cust.includes(q) || inv.includes(q)
-      const st = (s.status || '').toLowerCase()
-      const mf = statusFilter === 'all' || st === statusFilter.toLowerCase()
-      return ms && mf
-    })
+    return sales
+      .filter((s) => {
+        const cust = (s.customer || '').toLowerCase()
+        const inv = (s.invoiceNo || '').toLowerCase()
+        const ms = !q || cust.includes(q) || inv.includes(q)
+        const st = (s.status || '').toLowerCase()
+        const mf = statusFilter === 'all' || st === statusFilter.toLowerCase()
+        return ms && mf
+      })
+      .sort((a, b) => {
+        const dateA = a.date || ''
+        const dateB = b.date || ''
+        const diff = dateB.localeCompare(dateA)
+        if (diff !== 0) return diff
+        const seqA = extractDocSequence(a.invoiceNo).sequence
+        const seqB = extractDocSequence(b.invoiceNo).sequence
+        if (seqA !== seqB) return seqB - seqA
+        return (b.invoiceNo || '').localeCompare(a.invoiceNo || '')
+      })
   }, [sales, search, statusFilter])
 
   const totalVal = useMemo(() => filtered.reduce((a, s) => a + (Number(s.total) || 0), 0), [filtered])

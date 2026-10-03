@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Printer, Eye, X, CheckCircle2 } from 'lucide-react'
-import { cn, formatCurrency } from '../../lib/utils'
+import { cn, formatCurrency, extractDocSequence } from '../../lib/utils'
 import { getErp, postErp, patchErp } from '../../lib/erpApi'
 import { useUIStore } from '../../store/uiStore'
 import TaxInvoicePrint, { TaxInvoicePrintData } from '../../components/transactions/TaxInvoicePrint'
@@ -34,14 +34,23 @@ export default function Orders() {
   const load = () => getErp<any[]>('orders', undefined, { forceRefresh: true }).then((rows) => setOrders(rows.map((row) => ({ id:row.id, orderNo:row.number, date:row.date, party:row.party, type:row.type ?? 'Sale', items:Number(row.items ?? 0), total:Number(row.total), deliveryDate:row.deliveryDate ?? '', status:row.status })))).catch((e) => showToast(e.message))
   useEffect(() => { void load() }, [showToast])
   useErpAutoRefresh(['orders', 'sales'], () => load())
-  const filtered = orders.filter(o => {
-    const ms = o.party.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase())
-    const matchesType = typeFilter === 'all' || o.type === typeFilter
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'delivered' ? (o.status === 'delivered' || o.status === 'completed') : o.status === statusFilter)
-    return ms && matchesType && matchesStatus
-  })
+  const filtered = orders
+    .filter((o) => {
+      const ms = o.party.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase())
+      const matchesType = typeFilter === 'all' || o.type === typeFilter
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'delivered' ? (o.status === 'delivered' || o.status === 'completed') : o.status === statusFilter)
+      return ms && matchesType && matchesStatus
+    })
+    .sort((a, b) => {
+      const diff = (b.date || '').localeCompare(a.date || '')
+      if (diff !== 0) return diff
+      const seqA = extractDocSequence(a.orderNo || '').sequence
+      const seqB = extractDocSequence(b.orderNo || '').sequence
+      if (seqA !== seqB) return seqB - seqA
+      return (b.orderNo || '').localeCompare(a.orderNo || '')
+    })
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {

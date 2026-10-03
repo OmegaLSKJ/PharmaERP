@@ -119,4 +119,94 @@ describe('Series Number Formatting and Suffix Cascade', () => {
       }
     })
   })
+
+  describe('Strict 9 Document Numbering and Consistent Ordering', () => {
+    it('creates bills with exact series numbering matching Series Master screenshot', async () => {
+      // 1. Reset Series Master to exact user screenshot specifications
+      const seriesConfigs = [
+        { doc: 'Challan', prefix: 'CH-', nextNo: 1, padding: 4 },
+        { doc: 'Credit Note', prefix: 'CN-', nextNo: 1, padding: 3 },
+        { doc: 'Debit Note', prefix: 'DN-', nextNo: 1, padding: 3 },
+        { doc: 'Purchase Bill', prefix: 'PB-', nextNo: 1, padding: 4 },
+        { doc: 'Purchase Order', prefix: 'PO-', nextNo: 1, padding: 3 },
+        { doc: 'Purchase Return', prefix: 'PR-', nextNo: 1, padding: 3 },
+        { doc: 'Sale Invoice', prefix: 'G-', nextNo: 1940, padding: 4 },
+        { doc: 'Sale Return', prefix: 'SR-', nextNo: 1, padding: 3 },
+        { doc: 'Sales Order', prefix: 'SO-', nextNo: 1, padding: 3 },
+      ]
+
+      const currentSeries: any = await list('series')
+      for (const cfg of seriesConfigs) {
+        const found = currentSeries.find((s: any) => s.doc.toLowerCase() === cfg.doc.toLowerCase())
+        if (found) {
+          await update('series', found.id, {
+            ...found,
+            prefix: cfg.prefix,
+            suffix: '',
+            nextNo: cfg.nextNo,
+            padding: cfg.padding,
+            active: true
+          })
+        }
+      }
+
+      // 2. Test Sale Invoices strictly starts at G-1940, then G-1941
+      const sale1: any = await create('sales', { party: 'Test Pharmacy', lines: [{ name: 'Paracetamol', qty: 10, rate: 50 }] })
+      expect(sale1.id || sale1.invoiceNo || sale1.number).toBe('G-1940')
+
+      const sale2: any = await create('sales', { party: 'Test Pharmacy 2', lines: [{ name: 'Amoxicillin', qty: 5, rate: 100 }] })
+      expect(sale2.id || sale2.invoiceNo || sale2.number).toBe('G-1941')
+
+      // 3. Test Purchase Bill strictly starts at PB-0001
+      const pb1: any = await create('purchases', { party: 'Sun Pharma', lines: [{ name: 'Paracetamol', qty: 100, rate: 30 }] })
+      expect(pb1.id || pb1.invoiceNo || pb1.number).toBe('PB-0001')
+
+      // 4. Test Challan strictly starts at CH-0001
+      const ch1: any = await create('challans', { party: 'City Hospital', lines: [{ name: 'Paracetamol', qty: 20, rate: 50 }] })
+      expect(ch1.id || ch1.number).toBe('CH-0001')
+
+      // 5. Test Sales Order starts at SO-001
+      const so1: any = await create('orders', { party: 'City Hospital', type: 'Sale', items: 2, total: 1000 })
+      expect(so1.orderNo || so1.number).toBe('SO-001')
+
+      // 6. Test Purchase Order starts at PO-001
+      const po1: any = await create('orders', { party: 'Sun Pharma', type: 'Purchase', items: 5, total: 5000 })
+      expect(po1.orderNo || po1.number).toBe('PO-001')
+
+      // 7. Test Credit Note starts at CN-001
+      const cn1: any = await create('credit-notes', { party: 'City Hospital', total: 200 })
+      expect(cn1.id || cn1.number).toBe('CN-001')
+
+      // 8. Test Debit Note starts at DN-001
+      const dn1: any = await create('debit-notes', { party: 'Sun Pharma', total: 300 })
+      expect(dn1.id || dn1.number).toBe('DN-001')
+
+      // 9. Test Sale Return starts at SR-001
+      const sr1: any = await create('sale-returns', { party: 'City Hospital', total: 150 })
+      expect(sr1.number || sr1.returnNo || sr1.id).toBe('SR-001')
+
+      // 10. Test Purchase Return starts at PR-001
+      const pr1: any = await create('purchase-returns', { party: 'Sun Pharma', total: 250 })
+      expect(pr1.number || pr1.returnNo || pr1.id).toBe('PR-001')
+    })
+
+    it('returns lists sorted strictly in descending order throughout the system', async () => {
+      const sales: any = await list('sales')
+      expect(sales.length).toBeGreaterThan(1)
+      for (let i = 0; i < sales.length - 1; i++) {
+        const curr = sales[i]
+        const next = sales[i + 1]
+        const dateA = curr.date || curr.invoice_date || ''
+        const dateB = next.date || next.invoice_date || ''
+        if (dateA === dateB) {
+          const seqA = extractDocSequence(curr.number || curr.invoiceNo || curr.id).sequence
+          const seqB = extractDocSequence(next.number || next.invoiceNo || next.id).sequence
+          expect(seqA).toBeGreaterThanOrEqual(seqB)
+        } else {
+          expect(dateA >= dateB).toBe(true)
+        }
+      }
+    })
+  })
 })
+

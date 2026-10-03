@@ -78,3 +78,44 @@ export function getTxnDateTime(
   return { date: dStr, time: tStr, full: `${dStr} • ${tStr}` }
 }
 
+export function extractDocSequence(
+  docNumber: string,
+  knownPrefix?: string,
+  knownSuffix?: string
+): { sequence: number; rawCore: string } {
+  let str = (docNumber || '').trim()
+  if (!str) return { sequence: 1, rawCore: '1' }
+
+  // 1. Strip known suffix if provided
+  if (knownSuffix && knownSuffix.trim() && str.endsWith(knownSuffix.trim())) {
+    str = str.slice(0, str.length - knownSuffix.trim().length)
+  } else {
+    const suffixMatch = str.match(/([/-](?:FY\d{2,4}|\d{2,4}[/-]\d{2,4}|\d{2,4}|[A-Za-z][A-Za-z0-9_-]*))$/i)
+    if (suffixMatch && suffixMatch.index && suffixMatch.index > 0) {
+      const before = str.slice(0, suffixMatch.index)
+      if (/\d/.test(before)) {
+        str = before
+      }
+    }
+  }
+
+  // 2. Strip known prefix if provided
+  if (knownPrefix && knownPrefix.trim() && str.startsWith(knownPrefix.trim())) {
+    str = str.slice(knownPrefix.trim().length)
+  } else {
+    const prefixMatch = str.match(/^([A-Za-z]+[-_]?)/)
+    if (prefixMatch && str.length > prefixMatch[1].length) {
+      str = str.slice(prefixMatch[1].length)
+    }
+  }
+
+  // 3. Extract the trailing numeric block
+  const numMatch = str.match(/(\d+)$/)
+  if (numMatch) {
+    const seq = parseInt(numMatch[1], 10)
+    return { sequence: isNaN(seq) ? 1 : seq, rawCore: numMatch[1] }
+  }
+
+  return { sequence: 1, rawCore: str || '1' }
+}
+

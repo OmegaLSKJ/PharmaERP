@@ -503,13 +503,19 @@ export default function SaleEntry() {
     const buyerPan = partyInfo.pan || existingInvoice?.partyPan || ''
     const stateCode = partyInfo.stateCode || (buyerState.toLowerCase().includes('assam') ? '18' : '')
 
+    const seriesList = getCached<any[]>('series') || []
+    const saleSeries = seriesList.find((s: any) => s.doc?.toLowerCase() === 'sale invoice')
+    const nextPreviewNo = saleSeries
+      ? `${saleSeries.prefix || 'G-'}${String(saleSeries.nextNo || 1940).padStart(saleSeries.padding || 4, '0')}${saleSeries.suffix || ''}`
+      : 'G-1940'
+
     return {
       title: 'TAX INVOICE',
       copyType: 'Original for Recipient',
       invoiceNo:
         existingInvoice?.invoiceNo ||
         existingInvoice?.number ||
-        `SI-${new Date().getFullYear()}/${String(Math.floor(100 + Math.random() * 900))}`,
+        nextPreviewNo,
       invoiceDate: existingInvoice?.date || new Date().toISOString().split('T')[0],
       dueDate: existingInvoice?.dueDate || '',
       paymentMode: existingInvoice?.paymentMode || 'Credit',
