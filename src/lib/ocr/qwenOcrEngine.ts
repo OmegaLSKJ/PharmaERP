@@ -238,17 +238,19 @@ function cleanAndParseJson(text: string): any {
   }
   const firstBrace = cleaned.indexOf('{')
   const lastBrace = cleaned.lastIndexOf('}')
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    const candidate = cleaned.substring(firstBrace, lastBrace + 1)
-    try {
-      return JSON.parse(candidate)
-    } catch {
-      // If candidate was truncated mid-array or lastBrace was an inner object, fall through to repair
-    }
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error(`No JSON object found in response: "${cleaned.slice(0, 100)}"`)
+  }
+
+  const candidate = cleaned.substring(firstBrace, lastBrace + 1)
+  try {
+    return JSON.parse(candidate)
+  } catch {
+    // If candidate was truncated mid-array or lastBrace was an inner object, fall through to repair
   }
 
   try {
-    const repaired = repairTruncatedJson(cleaned)
+    const repaired = repairTruncatedJson(candidate)
     return JSON.parse(repaired)
   } catch (err: any) {
     throw new Error(`JSON could not be parsed: ${err.message}`)
@@ -293,8 +295,8 @@ export async function processInvoiceWithQwenCloud(
   if (openRouterKey) {
     onProgress?.(35, 'Connecting directly to OpenRouter cloud GPU (no timeout limit)…')
     const freeModels = [
-      'qwen/qwen3.8-27b:free',
       'google/gemma-4-26b-a4b-it:free',
+      'qwen/qwen3.8-27b:free',
       'dots-studio/dots-3-note-preview:free',
       'thinkingmachines/inkling-small:free',
       'google/gemma-4-31b-it:free'
@@ -346,9 +348,9 @@ export async function processInvoiceWithQwenCloud(
         const data = await directRes.json()
         const content = data?.choices?.[0]?.message?.content || ''
         if (content.trim()) {
-          // Reject safety moderation verdicts (e.g. "User Safety: safe") or plain non-JSON refusals
-          if (content.trim().startsWith('User Safety:') || !content.includes('{')) {
-            console.warn(`Direct OpenRouter [${model}] returned non-invoice content: "${content.slice(0, 60)}". Trying next candidate model…`)
+          // Reject safety moderation verdicts, plain non-JSON refusals, or responses lacking invoice items
+          if (content.includes('User Safety:') || !content.includes('{') || (!content.includes('items') && !content.includes('supplierName'))) {
+            console.warn(`Direct OpenRouter [${model}] returned non-invoice content: "${content.slice(0, 80)}". Trying next candidate model…`)
             continue
           }
 
@@ -358,7 +360,7 @@ export async function processInvoiceWithQwenCloud(
             resolvedModel = model
             break
           } catch (parseErr) {
-            console.warn(`Direct OpenRouter [${model}] returned unparseable JSON: "${content.slice(0, 60)}". Trying next candidate model…`)
+            console.warn(`Direct OpenRouter [${model}] returned unparseable JSON: "${content.slice(0, 80)}". Trying next candidate model…`)
             continue
           }
         }

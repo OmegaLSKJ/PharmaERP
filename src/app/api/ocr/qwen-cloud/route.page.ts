@@ -231,8 +231,8 @@ export async function POST(req: NextRequest) {
         const data = await res.json()
         const content = provider.extractContent(data)
 
-        if (!content.trim() || content.trim().startsWith('User Safety:') || !content.includes('{')) {
-          const msg = `${provider.name}[${model}] returned invalid or non-JSON content: ${content.slice(0, 80)}`
+        if (!content.trim() || content.includes('User Safety:') || !content.includes('{') || (!content.includes('items') && !content.includes('supplierName'))) {
+          const msg = `${provider.name}[${model}] returned invalid or non-invoice content: ${content.slice(0, 80)}`
           errors.push(msg)
           console.warn('[qwen-cloud]', msg)
           continue
