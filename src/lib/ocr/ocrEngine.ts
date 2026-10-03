@@ -418,12 +418,34 @@ export async function scanInvoice(
   const chosenEngine = options?.engine || 'auto'
   const explicitKey = options?.apiKey || getStoredGeminiApiKey()
   const explicitModel = options?.model
-  // 1. OpenRouter cloud engine.
-  if (chosenEngine === 'openrouter') {
-    return processInvoiceWithQwenCloud(file, onProgress, options?.model)
+  const runLocalFallback = () => {
+    onProgress?.(20, 'Running Local Offline OCR (Tesseract / PDF.js)…')
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    return isPdf ? scanInvoicePdf(file, onProgress) : scanInvoiceImage(file, onProgress)
   }
 
-  // 3. Gemini AI Vision engine (unchanged)
+  // 1. OpenRouter cloud engine with seamless fallback
+  if (chosenEngine === 'openrouter') {
+    try {
+      return await processInvoiceWithQwenCloud(file, onProgress, options?.model)
+    } catch (err: any) {
+      console.warn('Cloud AI Vision failed, cascading to fallback engine:', err)
+      // Check if Gemini key is available
+      if (hasGeminiApiKey() || Boolean(explicitKey)) {
+        try {
+          onProgress?.(30, 'Cloud AI Vision queue unavailable. Falling back to Gemini AI Vision…')
+          return await processInvoiceWithGemini(file, onProgress, explicitKey, explicitModel)
+        } catch (gemErr) {
+          console.warn('Gemini fallback also failed:', gemErr)
+        }
+      }
+      // Always fall back to local offline OCR so user never gets blocked!
+      onProgress?.(30, 'Cloud AI Vision busy. Falling back to Local Offline OCR…')
+      return runLocalFallback()
+    }
+  }
+
+  // 2. Gemini AI Vision engine (unchanged)
   const canUseGemini = chosenEngine === 'gemini' || (chosenEngine === 'auto' && (hasGeminiApiKey() || Boolean(explicitKey)))
   if (canUseGemini) {
     try {
@@ -438,9 +460,5 @@ export async function scanInvoice(
   }
 
   // 3. Local fallback (Tesseract / PDF.js)
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-  if (isPdf) {
-    return scanInvoicePdf(file, onProgress)
-  }
-  return scanInvoiceImage(file, onProgress)
+  return runLocalFallback()
 }

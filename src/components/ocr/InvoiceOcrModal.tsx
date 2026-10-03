@@ -675,29 +675,44 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2 flex-wrap">
                 {getModeTitle()}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {ocrEngine === 'gemini' ? (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      <span>✨ Gemini AI Vision {geminiModel && geminiModel !== 'auto' ? `(${geminiModel.replace(/^gemini-/, '')})` : ''}</span>
-                      <button
-                        type="button"
+                <div className="inline-flex items-center gap-1 bg-secondary/80 p-0.5 rounded-lg border border-border text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setOcrEngine('gemini')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                      ocrEngine === 'gemini'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title="Google Gemini 1.5/2.0 Flash (Fastest, ~1.5s)"
+                  >
+                    ✨ Gemini AI
+                    {ocrEngine === 'gemini' && (
+                      <span
                         onClick={(e) => {
                           e.stopPropagation()
                           setShowSettingsModal(true)
                         }}
+                        className="hover:text-blue-200 transition p-0.5 ml-0.5"
                         title="Configure Gemini API Key & Vision Model"
-                        className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
                       >
-                        <Settings size={12} />
-                      </button>
-                    </div>
-                  ) : ocrEngine === 'openrouter' ? (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <span>🌐 Cloud AI Vision</span>
-                      <button
-                        type="button"
+                        <Settings size={11} />
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOcrEngine('openrouter')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                      ocrEngine === 'openrouter'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title="Cloud AI Vision via OpenRouter (Qwen / Gemma)"
+                  >
+                    🌐 Cloud Vision
+                    {ocrEngine === 'openrouter' && (
+                      <span
                         onClick={(e) => {
                           e.stopPropagation()
                           const current = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
@@ -707,41 +722,24 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                             setStatusMessage('Cloud API key saved!')
                           }
                         }}
+                        className="hover:text-emerald-200 transition p-0.5 ml-0.5"
                         title="Configure Cloud AI API Key"
-                        className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
                       >
-                        <Settings size={12} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <span>Local Tesseract (LSTM tessdata_best)</span>
-                    </div>
-                  )}
-
-                  {/* Engine toggle buttons */}
-                  <button type="button" onClick={() => setOcrEngine(ocrEngine === 'gemini' ? 'tesseract' : 'gemini')} className="text-[10px] text-muted-foreground hover:text-foreground underline transition ml-0.5 cursor-pointer font-normal">
-                    {ocrEngine === 'gemini' ? 'Use Local Tesseract' : 'Use Gemini AI Vision'}
+                        <Settings size={11} />
+                      </span>
+                    )}
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => setOcrEngine(ocrEngine === 'openrouter' ? 'gemini' : 'openrouter')}
-                    className="text-[10px] text-muted-foreground hover:text-green-500 transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
-                    title="Use cloud-based multimodal AI vision OCR"
+                    onClick={() => setOcrEngine('tesseract')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                      ocrEngine === 'tesseract'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title="Offline WebAssembly OCR (No internet / API key needed)"
                   >
-                    {ocrEngine === 'openrouter' ? '(Use Gemini AI Vision)' : '(Use Cloud AI Vision)'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOcrEngine(ocrEngine === 'tesseract' ? 'gemini' : 'tesseract')
-                    }}
-                    className="text-[10px] text-muted-foreground hover:text-foreground transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
-                    title="Toggle legacy browser-based Tesseract"
-                  >
-                    {ocrEngine === 'tesseract' ? '(Use Gemini AI Vision)' : '(Use Tesseract)'}
+                    ⚡ Offline OCR
                   </button>
                 </div>
               </h2>
