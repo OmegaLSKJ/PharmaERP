@@ -48,8 +48,9 @@ describe('Gemini AI Vision OCR Engine', () => {
   })
 
   it('resolves best model from available models list', () => {
-    const models = ['models/gemini-1.0-pro', 'gemini-1.5-flash-002', 'gemini-2.5-flash', 'text-embedding-004']
-    expect(resolveBestGeminiModel(models)).toBe('gemini-2.5-flash')
+    const models = ['models/gemini-1.0-pro', 'gemini-1.5-flash-002', 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'text-embedding-004']
+    expect(resolveBestGeminiModel(models)).toBe('gemini-3.5-flash')
+    expect(resolveBestGeminiModel(models, 'gemini-3.1-flash-lite')).toBe('gemini-3.1-flash-lite')
     expect(resolveBestGeminiModel(models, 'gemini-1.5-flash-002')).toBe('gemini-1.5-flash-002')
   })
 
