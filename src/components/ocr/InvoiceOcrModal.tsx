@@ -28,6 +28,78 @@ import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
 
+interface RawTextModalProps {
+  isOpen: boolean
+  initialText: string
+  onClose: () => void
+  onReparse: (text: string) => void
+}
+
+function RawTextModal({ isOpen, initialText, onClose, onReparse }: RawTextModalProps) {
+  const [text, setText] = useState(initialText)
+
+  useEffect(() => {
+    setText(initialText)
+  }, [initialText])
+
+  if (!isOpen) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText size={18} className="text-blue-500" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Scanned Document Text & Manual Input</h3>
+              <p className="text-[11px] text-muted-foreground">
+                Review OCR text, correct any characters, or paste invoice lines directly.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-4 flex-1 overflow-y-auto space-y-3">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={14}
+            className="w-full p-3 font-mono text-xs bg-muted/20 border border-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 leading-relaxed"
+            placeholder="No text scanned yet. Paste invoice lines here (e.g. DOLO 650 10 30.00, PAN 40 20 146.90)..."
+          />
+          <p className="text-[11px] text-muted-foreground">
+            💡 <strong>Format Tip:</strong> Each line should contain the medicine name followed by quantity and optional rate/MRP. E.g. <code className="bg-muted px-1 py-0.5 rounded font-mono text-[10px]">PAN 40MG TAB 10 38.50</code>
+          </p>
+        </div>
+
+        <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-secondary cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onReparse(text)}
+            disabled={!text.trim()}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition shadow-xs cursor-pointer"
+          >
+            <Sparkles size={13} />
+            <span>Re-parse & Auto-Map to Inventory</span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export interface InvoiceOcrModalProps {
   isOpen: boolean
   onClose: () => void
@@ -43,12 +115,15 @@ export default function InvoiceOcrModal({
   masterItems = [],
   mode = 'purchase'
 }: InvoiceOcrModalProps) {
-  const [activeTab, setActiveTab] = useState<'upload' | 'camera'>('upload')
+  const [activeTab, setActiveTab] = useState<'upload' | 'camera' | 'paste'>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState(0)
   const [statusMessage, setStatusMessage] = useState('')
   const [extractedData, setExtractedData] = useState<ExtractedInvoice | null>(null)
+  const [rawOcrText, setRawOcrText] = useState('')
+  const [showRawTextModal, setShowRawTextModal] = useState(false)
+  const [pasteInputText, setPasteInputText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
   const [filterText, setFilterText] = useState('')
@@ -187,12 +262,42 @@ export default function InvoiceOcrModal({
       }
 
       setExtractedData(result)
+      setRawOcrText(result.rawText || '')
     } catch (err: any) {
       console.error('OCR Scanning Error:', err)
       setError(err?.message || 'Failed to scan document. Please check the file clarity and try again.')
     } finally {
       setScanning(false)
     }
+  }
+
+  const handleReparseCustomText = (textToParse: string) => {
+    if (!textToParse.trim()) return
+    setError(null)
+    setScanning(true)
+    setProgress(40)
+    setStatusMessage('Parsing invoice text and running Pharma NLP matching…')
+
+    setTimeout(() => {
+      try {
+        const reparsed = parsePharmaInvoice(textToParse, 'image_ocr')
+        if (effectiveMasterItems.length > 0 && reparsed.items.length > 0) {
+          reparsed.items = mapExtractedItemsToMaster(reparsed.items, effectiveMasterItems)
+        }
+        setExtractedData(reparsed)
+        setRawOcrText(reparsed.rawText || textToParse)
+        setShowRawTextModal(false)
+      } catch (err: any) {
+        setError(err?.message || 'Failed to parse invoice text.')
+      } finally {
+        setScanning(false)
+      }
+    }, 50)
+  }
+
+  const handleParsePastedText = (text: string) => {
+    if (!text.trim()) return
+    handleReparseCustomText(text)
   }
 
   const handleLoadSampleA4Sheet = async () => {
@@ -535,6 +640,16 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
             >
               <Camera size={14} /> Take Photo Immediately
             </button>
+            <button
+              onClick={() => setActiveTab('paste')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer ${
+                activeTab === 'paste'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileText size={14} /> Paste / Type Invoice Text
+            </button>
           </div>
         )}
 
@@ -645,6 +760,46 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-secondary text-foreground text-xs font-semibold border border-border shadow-xs active:scale-95 transition cursor-pointer"
                 >
                   <Upload size={14} /> Open Native Mobile Camera
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Paste Invoice Text */}
+          {!extractedData && !scanning && activeTab === 'paste' && (
+            <div className="border border-border bg-card rounded-2xl p-5 space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <FileText size={16} className="text-blue-500" /> Paste Invoice Text / Order Message
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Paste copied text from digital PDFs, Marg/Tally bills, WhatsApp orders, or physical sheets. The NLP Engine will auto-detect medicines, pack sizes, quantities, and rates.
+                </p>
+              </div>
+
+              <textarea
+                value={pasteInputText}
+                onChange={(e) => setPasteInputText(e.target.value)}
+                placeholder="Example:&#10;1 25 10's PENTAB 40 TAB 3004 REE EV260080 Mar-28 168.09 38.50 962.50&#10;2 20 10'S PENTAB-DSR CAP 3004 ALEM EV6232003 Feb-28 145.21 38.50 770.00&#10;DOLO 650 TAB 50 30.00&#10;TELMA 40 TAB 20 45.00"
+                rows={10}
+                className="w-full p-3 font-mono text-xs bg-muted/20 border border-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/30"
+              />
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setPasteInputText('')}
+                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  disabled={!pasteInputText.trim()}
+                  onClick={() => handleParsePastedText(pasteInputText)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md transition cursor-pointer"
+                >
+                  <Sparkles size={14} /> Parse & Auto-Map to Inventory
                 </button>
               </div>
             </div>
@@ -808,6 +963,15 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     <span>Re-run NLP Match</span>
                   </button>
                   <button
+                    type="button"
+                    onClick={() => setShowRawTextModal(true)}
+                    title="View, edit, or re-parse the raw text extracted by OCR"
+                    className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-card border border-border hover:bg-secondary font-semibold transition cursor-pointer"
+                  >
+                    <FileText size={12} className="text-muted-foreground" />
+                    <span>Raw Text</span>
+                  </button>
+                  <button
                     onClick={() => {
                       setExtractedData(null)
                       setFile(null)
@@ -824,6 +988,37 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   </button>
                 </div>
               </div>
+
+              {/* Alert when 0 items were extracted */}
+              {totalItemsCount === 0 && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                    <div>
+                      <p className="font-bold">No medicine line items were auto-detected from this document</p>
+                      <p className="text-[11px] opacity-90 mt-0.5">
+                        The header was read, but the table items could not be parsed automatically. Click below to view the raw OCR text, paste invoice lines directly, or add items manually.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowRawTextModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                    >
+                      View / Edit OCR Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="px-3 py-1.5 rounded-lg bg-card border border-border text-foreground font-semibold text-xs hover:bg-secondary transition cursor-pointer"
+                    >
+                      + Add Row Manually
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Auto-Enrichment Notification Banner */}
               <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-transparent border border-emerald-500/20 text-xs flex items-center justify-between gap-3">
@@ -1144,6 +1339,15 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
           isOpen={showBlankSheetModal}
           onClose={() => setShowBlankSheetModal(false)}
           initialMode={mode}
+        />
+      )}
+
+      {showRawTextModal && (
+        <RawTextModal
+          isOpen={showRawTextModal}
+          initialText={rawOcrText}
+          onClose={() => setShowRawTextModal(false)}
+          onReparse={handleReparseCustomText}
         />
       )}
     </div>,

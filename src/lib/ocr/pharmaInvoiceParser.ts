@@ -122,7 +122,7 @@ export function extractSupplierName(lines: string[]): string {
 
     const upper = line.toUpperCase()
     if (businessKeywords.some(keyword => upper.includes(keyword))) {
-      return line
+      return line.replace(/^[A-Za-z0-9\-\.\s\/]{2,15}\s*[-–:]\s*/, '').trim()
     }
   }
 
@@ -162,7 +162,7 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
 
     // 1. Skip standard metadata, address, contact, tax & buyer lines
     if (
-      /\b(?:GSTIN|GST\s*NO|PAN\s*[:#]\s*[A-Z0-9]{10}\b|PAN\s*NO\b|DL[\s\.:\/-]*NO|D\.?L\.?[\s\.:\/-]+|DRUG\s*LIC|PHONE|MOB|TEL|EMAIL|FAX|WEBSITE)\b/i.test(line) ||
+      /\b(?:GSTIN|GST\s*NO|PAN\s*[:#]\s*[A-Z0-9]{10}\b|PAN\s*NO\b|D\.?\s*L\.?(?:[\s\.:\/-]*NO)?|DRUG\s*LIC|LICEN[CS]E(?:\s*NO)?|PHONE|MOB|TEL|EMAIL|FAX|WEBSITE)\b/i.test(line) ||
       /\b(?:STATE\s*CODE|STATE\s*:|STATE\s*ASSAM|PLACE\s*OF\s*SUPPLY|JURISDICTION|ROAD|NEAR|OPP|MARKET|C\.K\.|SONITPUR|TEZPUR|ASSAM\s*\(\d+\)|ASSAM:\d+)\b/i.test(line) ||
       /\b(?:M\/S|M\/s|BUYER(?:'S)?\s*DETAILS|CONSIGNEE|DELIVERY\s*AT|BILLED\s*TO|SHIPPED\s*TO|SALES\s*REP|CUSTOMER\s*:|SUPPLIER\s*:)\b/i.test(line) ||
       /\b(?:BORGANG|BISWANATH|BANK\s*NAME|BANK\s*DETAILS|A\/C\s*NO|IFSC|BRANCH)\b/i.test(line) ||
@@ -199,7 +199,9 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
 
     // 4. Skip summary / footer totals and extract totalAmount
     if (
-      /\b(?:SUB\s*TOTAL|GRAND\s*TOTAL|ESTIMATED(?:\s*TOTAL)?|TOTAL(?:\s*AMOUNT)?|GROSS\s*AMOUNT|ROUND\s*OFF|TAXABLE\s*(?:VALUE|AMT)|NET\s*(?:AMOUNT|AMT)|NET\s*:|TOTAL\s*ITEM\s*QTY|ITEMS\s*:|LESS\s*DISCOUNT|LESS\s*RET|ADD\s*(?:CGST|SGST|GST)|OTHER\s*ADJ|#PAGE#|CRN\b)/i.test(line)
+      /^\s*(?:SUB\s*TOTAL|GRAND\s*TOTAL|ESTIMATED(?:\s*TOTAL)?|TOTAL(?:\s*AMOUNT)?|GROSS\s*AMOUNT|ROUND\s*OFF|TAXABLE\s*(?:VALUE|AMT)|NET\s*(?:AMOUNT|AMT)|NET\s*:|TOTAL\s*ITEM\s*QTY|ITEMS\s*:|LESS\s*DISCOUNT|LESS\s*RET|OTHER\s*ADJ|#PAGE#|CRN\b)/i.test(line) ||
+      /^\s*(?:SGST|CGST|IGST|GST|DIS(?:C|COUNT)?|CASH\s*DISC|TRADE\s*DISC|ROUND|R\/O)\b/i.test(line) ||
+      /\b(?:SUB\s*TOTAL|GRAND\s*TOTAL|TAXABLE\s*(?:VALUE|AMT)|NET\s*AMOUNT)\b/i.test(line)
     ) {
       const amounts = line.match(/\d+[\.,]\d{2}/g)
       if (amounts && amounts.length > 0) {
@@ -225,14 +227,19 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
       continue
     }
 
-    // Must be either pharma keyword, HSN, expiry, scheme, pipe line, or valid serial item
+    const numericTokens = line.match(/\b\d+(?:\.\d+)?\b/g) || []
+    const hasMultipleNumbers = numericTokens.length >= 2
+    const hasKnownStrength = /\b(?:1000|650|625|500|400|300|250|200|150|125|100|75|50|40|25|20|16|15|10|5|2\.5|1\.25)\b/i.test(line)
+
+    // Must be either pharma keyword, HSN, expiry, scheme, pipe line, valid serial item, or known strength with pricing
     const isLineCandidate =
       hasHsn ||
       hasExpiry ||
       hasScheme ||
-      (hasPharmaKeyword && (hasPricePattern || startsWithSerial || hasScheme)) ||
-      (hasPipe && (hasPricePattern || hasScheme)) ||
-      (startsWithSerial && (hasPricePattern || /\b\d{1,4}\b/.test(line)))
+      (hasPharmaKeyword && (hasPricePattern || startsWithSerial || hasScheme || hasMultipleNumbers)) ||
+      (hasPipe && (hasPricePattern || hasScheme || hasMultipleNumbers)) ||
+      (startsWithSerial && (hasPricePattern || hasMultipleNumbers || /\b\d{1,4}\b/.test(line))) ||
+      (hasKnownStrength && (hasPricePattern || hasMultipleNumbers))
 
     if (!isLineCandidate) {
       continue

@@ -15,39 +15,31 @@ export async function preprocessImage(imageFile: File | Blob): Promise<string> {
     const url = URL.createObjectURL(imageFile)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        resolve(url)
+
+      // If image is already high resolution, preserve original pixels for Tesseract's built-in Leptonica Otsu binarizer
+      if (img.width >= 1200 && img.height >= 1200) {
+        resolve(URL.createObjectURL(imageFile))
         return
       }
 
-      // Upscale if too small (e.g. low-res phone camera)
-      const scale = Math.max(1, Math.min(2, 2000 / Math.max(img.width, img.height)))
+      // Upscale if too small (e.g. low-res phone camera) to ensure character strokes are distinct
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(URL.createObjectURL(imageFile))
+        return
+      }
+
+      const scale = Math.max(1, Math.min(2.5, 2000 / Math.max(img.width, img.height)))
       canvas.width = Math.round(img.width * scale)
       canvas.height = Math.round(img.height * scale)
 
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-      // Apply Grayscale & High-Contrast filter
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const d = imgData.data
-      for (let i = 0; i < d.length; i += 4) {
-        // Luminance
-        const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]
-        // Increase contrast: threshold slightly around midpoint
-        const contrast = 1.2
-        const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100))
-        const newVal = Math.min(255, Math.max(0, factor * (v - 128) + 128))
-
-        d[i] = newVal
-        d[i + 1] = newVal
-        d[i + 2] = newVal
-      }
-      ctx.putImageData(imgData, 0, 0)
       resolve(canvas.toDataURL('image/png'))
     }
-    img.onerror = () => resolve(url)
+    img.onerror = () => resolve(URL.createObjectURL(imageFile))
     img.src = url
   })
 }
