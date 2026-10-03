@@ -53,6 +53,7 @@ import {
 import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
+import { useUIStore } from '../../store/uiStore'
 
 interface RawTextModalProps {
   isOpen: boolean
@@ -618,6 +619,7 @@ export default function InvoiceOcrModal({
   masterItems = [],
   mode = 'purchase'
 }: InvoiceOcrModalProps) {
+  const addToast = useUIStore((s) => s.addToast)
   const [activeTab, setActiveTab] = useState<'upload' | 'camera' | 'paste'>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [scanning, setScanning] = useState(false)
