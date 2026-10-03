@@ -192,16 +192,34 @@ export default function SaleRegister() {
   const revertCancellation = async (sale: SaleInv, e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (sale.status !== 'cancelled') return
-    if (!window.confirm(
-      `Revert cancellation of ${sale.invoiceNo}?\n\nThis will restore the invoice to Posted/Sold status. You may need to re-post stock movements manually.`
-    )) return
     try {
-      await patchErp('sales', sale.id, { status: 'posted', cancellation_reason: null, cancelled_at: null })
+      addToast(`Restoring ${sale.invoiceNo}...`, 'info')
+      await patchErp('sales', sale.id, { status: 'posted', restore: true })
       setSales((rows) => rows.map((row) => row.id === sale.id ? { ...row, status: 'posted' } : row))
       setSelected((current) => current?.id === sale.id ? { ...current, status: 'posted' } : current)
-      addToast(`${sale.invoiceNo} restored to Posted.`, 'success')
+      addToast(`${sale.invoiceNo} directly restored to Posted with stock movements.`, 'success')
     } catch (error) {
-      addToast(error instanceof Error ? error.message : 'Could not revert cancellation.', 'error')
+      addToast(error instanceof Error ? error.message : 'Could not restore invoice.', 'error')
+    }
+  }
+
+  const restoreAllCancelled = async () => {
+    const cancelled = sales.filter((s) => s.status === 'cancelled')
+    if (cancelled.length === 0) return
+    try {
+      addToast(`Directly restoring ${cancelled.length} invoice(s)...`, 'info')
+      await patchErp('sales', 'restore-all', { status: 'posted' })
+      setSales((rows) => rows.map((row) => row.status === 'cancelled' ? { ...row, status: 'posted' } : row))
+      setSelected((current) => current?.status === 'cancelled' ? { ...current, status: 'posted' } : current)
+      addToast(`All ${cancelled.length} invoice(s) directly restored to Posted!`, 'success')
+    } catch (error) {
+      try {
+        await Promise.all(cancelled.map((c) => patchErp('sales', c.id, { status: 'posted', restore: true })))
+        setSales((rows) => rows.map((row) => row.status === 'cancelled' ? { ...row, status: 'posted' } : row))
+        addToast(`All ${cancelled.length} invoice(s) restored to Posted.`, 'success')
+      } catch (err) {
+        addToast(err instanceof Error ? err.message : 'Could not restore all invoices.', 'error')
+      }
     }
   }
 
@@ -311,16 +329,28 @@ export default function SaleRegister() {
             <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatCurrency(totalVal)}</span>
           </p>
         </div>
-        <a
-          href="/transactions/sale/new"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="New Sale (opens in new window)"
-          className="inline-flex h-9 items-center justify-center text-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
-        >
-          <Plus size={15} className="shrink-0" />
-          <span className="leading-none text-center">New Sale</span>
-        </a>
+        <div className="flex items-center gap-2">
+          {sales.some((s) => s.status === 'cancelled') && (
+            <button
+              onClick={restoreAllCancelled}
+              className="inline-flex h-9 items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Directly restore all cancelled invoices to Posted with stock movements"
+            >
+              <RotateCcw size={14} className="shrink-0" />
+              <span>Restore Cancelled ({sales.filter((s) => s.status === 'cancelled').length})</span>
+            </button>
+          )}
+          <a
+            href="/transactions/sale/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="New Sale (opens in new window)"
+            className="inline-flex h-9 items-center justify-center text-center gap-2 w-full sm:w-auto px-3.5 sm:px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-lg text-xs sm:text-sm font-semibold shadow-xs active:scale-[0.98] transition-all duration-150"
+          >
+            <Plus size={15} className="shrink-0" />
+            <span className="leading-none text-center">New Sale</span>
+          </a>
+        </div>
       </div>
 
       {/* Filters Toolbar */}
@@ -338,7 +368,7 @@ export default function SaleRegister() {
 
         {/* Status Filter Tabs */}
         <div className="flex rounded-lg border border-border overflow-x-auto text-xs bg-muted/50 p-0.5 max-w-full">
-          {['all', 'paid', 'posted', 'pending', 'overdue', 'partial', 'draft'].map((t) => (
+          {['all', 'paid', 'posted', 'pending', 'overdue', 'partial', 'draft', 'cancelled'].map((t) => (
             <button
               key={t}
               onClick={() => setStatusFilter(t)}
@@ -435,10 +465,10 @@ export default function SaleRegister() {
                       </button>
                       {s.status === 'cancelled' ? (
                         <button
-                          aria-label={`Revert cancellation of ${s.invoiceNo}`}
+                          aria-label={`Directly restore ${s.invoiceNo}`}
                           onClick={(e) => revertCancellation(s, e)}
-                          title="Revert cancellation — restore to Posted"
-                          className="p-1.5 text-rose-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-muted rounded transition"
+                          title="Directly restore invoice and stock to Posted"
+                          className="p-1.5 text-rose-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded transition"
                         >
                           <RotateCcw size={14} />
                         </button>

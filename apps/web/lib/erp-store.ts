@@ -5126,8 +5126,24 @@ export async function update(resource: string, id: string, body: any, actor: Mut
     const storeKey = specialKeys[resource] || resource
     const list = mockStore[storeKey]
     if (list) {
+      if ((resource === 'sales' || resource === 'purchases') && (id === 'restore-all' || id === 'restore-cancelled')) {
+        let count = 0
+        for (const item of list) {
+          if (item.status === 'cancelled') {
+            item.status = 'posted'
+            delete item.cancellation_reason
+            delete item.cancelled_at
+            count++
+          }
+        }
+        return { restoredCount: count, status: 'posted' }
+      }
       const idx = list.findIndex((x: any) => x.id === id || x.number === id || x.code === id || (x.name && x.name.toLowerCase() === id.toLowerCase()))
       if (idx !== -1) {
+        if ((resource === 'sales' || resource === 'purchases') && (body.status === 'posted' || body.restore)) {
+          delete list[idx].cancellation_reason
+          delete list[idx].cancelled_at
+        }
         const oldSeries = resource === 'series' ? { ...list[idx] } : undefined
         list[idx] = { ...list[idx], ...body }
         if (resource === 'series') {
@@ -5238,6 +5254,48 @@ export async function update(resource: string, id: string, body: any, actor: Mut
 
   const { client, organizationId, financialYearId } = await context()
   if (resource === 'purchases') {
+    if (id === 'restore-all' || id === 'restore-cancelled') {
+      const { data: cancelledList, error: listErr } = await client
+        .from('purchase_invoices')
+        .select('id, voucher_id')
+        .eq('organization_id', organizationId)
+        .eq('status', 'cancelled')
+      if (listErr) throw listErr
+
+      if (cancelledList && cancelledList.length > 0) {
+        const ids = cancelledList.map((c: any) => c.id)
+        const voucherIds = cancelledList.map((c: any) => c.voucher_id).filter(Boolean)
+
+        await client
+          .from('stock_movements')
+          .delete()
+          .eq('organization_id', organizationId)
+          .in('source_id', ids)
+          .eq('source_type', 'invoice_cancellation')
+
+        if (voucherIds.length > 0) {
+          await client
+            .from('vouchers')
+            .update({ status: 'posted' })
+            .in('id', voucherIds)
+            .eq('organization_id', organizationId)
+        }
+
+        const { error: updErr } = await client
+          .from('purchase_invoices')
+          .update({
+            status: 'posted',
+            cancellation_reason: null,
+            cancelled_at: null
+          })
+          .in('id', ids)
+          .eq('organization_id', organizationId)
+        if (updErr) throw updErr
+      }
+
+      return { restoredCount: cancelledList?.length || 0, status: 'posted' }
+    }
+
     let invoiceId = id
     let invoice: any = null
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
@@ -5455,13 +5513,141 @@ export async function update(resource: string, id: string, body: any, actor: Mut
   }
   if (resource === 'sales') {
     const table = 'sales_invoices'
-    let invoiceId = id
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
-      const { data: invoice, error: lookupError } = await client.from(table).select('id').eq('organization_id', organizationId).eq('invoice_number', id).maybeSingle()
-      if (lookupError) throw lookupError
-      if (!invoice) throw new Error('Invoice was not found.')
-      invoiceId = invoice.id
+
+    // Handle bulk restore of cancelled invoices directly
+    if (id === 'restore-all' || id === 'restore-cancelled') {
+      const { data: cancelledList, error: listErr } = await client
+        .from(table)
+        .select('id, voucher_id')
+        .eq('organization_id', organizationId)
+        .eq('status', 'cancelled')
+      if (listErr) throw listErr
+
+      if (cancelledList && cancelledList.length > 0) {
+        const ids = cancelledList.map((c: any) => c.id)
+        const voucherIds = cancelledList.map((c: any) => c.voucher_id).filter(Boolean)
+
+        // 1. Remove cancellation reverse stock movements so inventory is restored
+        await client
+          .from('stock_movements')
+          .delete()
+          .eq('organization_id', organizationId)
+          .in('source_id', ids)
+          .eq('source_type', 'invoice_cancellation')
+
+        // 2. Restore vouchers to posted
+        if (voucherIds.length > 0) {
+          await client
+            .from('vouchers')
+            .update({ status: 'posted' })
+            .in('id', voucherIds)
+            .eq('organization_id', organizationId)
+        }
+
+        // 3. Restore all cancelled sales invoices to posted
+        const { error: updErr } = await client
+          .from(table)
+          .update({
+            status: 'posted',
+            cancellation_reason: null,
+            cancelled_at: null
+          })
+          .in('id', ids)
+          .eq('organization_id', organizationId)
+        if (updErr) throw updErr
+      }
+
+      return { restoredCount: cancelledList?.length || 0, status: 'posted' }
     }
+
+    // Lookup individual invoice
+    const isIdUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    const { data: invoice, error: lookupError } = await client
+      .from(table)
+      .select('id, status, voucher_id, invoice_number')
+      .eq('organization_id', organizationId)
+      .eq(isIdUuid ? 'id' : 'invoice_number', id)
+      .maybeSingle()
+    if (lookupError) throw lookupError
+    if (!invoice) throw new Error('Invoice was not found.')
+    const invoiceId = invoice.id
+
+    // Direct restoration of cancelled invoice (status -> 'posted')
+    if (invoice.status === 'cancelled' && (body.status === 'posted' || body.restore)) {
+      // 1. Try RPC erp_restore_invoice if present
+      try {
+        const { error: rpcErr } = await client.rpc('erp_restore_invoice', {
+          p_kind: 'sales',
+          p_organization_id: organizationId,
+          p_invoice_id: invoiceId,
+          p_actor_auth_id: actor.id ?? null,
+          p_actor_email: actor.email ?? null,
+          p_request_id: actor.requestId ?? null
+        })
+        if (!rpcErr) return { id: invoiceId, status: 'posted' }
+      } catch {}
+
+      // 2. Fallback: remove reversal stock movements to restore original stock
+      await client
+        .from('stock_movements')
+        .delete()
+        .eq('organization_id', organizationId)
+        .eq('source_id', invoiceId)
+        .eq('source_type', 'invoice_cancellation')
+
+      // 3. Restore linked voucher
+      if (invoice.voucher_id) {
+        await client
+          .from('vouchers')
+          .update({ status: 'posted' })
+          .eq('id', invoice.voucher_id)
+          .eq('organization_id', organizationId)
+      }
+
+      // 4. Restore invoice status to posted
+      const { data: restored, error: restErr } = await client
+        .from(table)
+        .update({
+          status: 'posted',
+          cancellation_reason: null,
+          cancelled_at: null
+        })
+        .eq('id', invoiceId)
+        .eq('organization_id', organizationId)
+        .select('*')
+        .single()
+      if (restErr) throw restErr
+      return { ...restored, status: 'posted' }
+    }
+
+    // Direct property update if lines are not being amended
+    if (!Array.isArray(body.lines) || body.lines.length === 0) {
+      const allowedFields = ['status', 'cancellation_reason', 'cancelled_at', 'irn', 'notes', 'remarks', 'payment_mode', 'due_date']
+      const updatePayload: any = {}
+      for (const f of allowedFields) {
+        if (f in body) updatePayload[f] = body[f]
+      }
+      if (body.paymentMode) updatePayload.payment_mode = body.paymentMode
+      if (body.dueDate) updatePayload.due_date = body.dueDate
+      if (body.cancellationReason !== undefined) updatePayload.cancellation_reason = body.cancellationReason
+      if (body.cancelledAt !== undefined) updatePayload.cancelled_at = body.cancelledAt
+      if (body.status) updatePayload.status = body.status
+      if (body.status === 'posted') {
+        updatePayload.cancellation_reason = null
+        updatePayload.cancelled_at = null
+      }
+      const { data: updated, error: updErr } = await client
+        .from(table)
+        .update(updatePayload)
+        .eq('id', invoiceId)
+        .eq('organization_id', organizationId)
+        .select('*')
+        .single()
+      if (updErr) throw updErr
+      return updated
+    }
+
+    // Full amendment workflow when lines are present
     const document = {
       party: body.party || body.customer || body.supplier,
       date: body.date,
