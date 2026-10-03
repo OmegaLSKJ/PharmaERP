@@ -53,6 +53,100 @@ export async function preprocessImage(imageFile: File | Blob): Promise<string> {
 }
 
 /**
+ * Dynamically loads Tesseract.js using bundler import, window global, or CDN fallback
+ */
+async function loadTesseractModule(): Promise<any> {
+  // 1. Try bundler dynamic import
+  try {
+    const mod = await import('tesseract.js')
+    if (mod && (typeof mod.createWorker === 'function' || typeof (mod as any).default?.createWorker === 'function')) {
+      return mod
+    }
+  } catch (err) {
+    console.warn('Direct tesseract.js import not resolved, checking browser globals/CDN...', err)
+  }
+
+  // 2. Check if window.Tesseract is already loaded
+  if (typeof window !== 'undefined' && (window as any).Tesseract) {
+    return (window as any).Tesseract
+  }
+
+  // 3. Fallback: dynamically load via CDN in the browser
+  if (typeof window !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-tesseract-cdn]')
+      if (existing) {
+        if ((window as any).Tesseract) return resolve((window as any).Tesseract)
+        existing.addEventListener('load', () => resolve((window as any).Tesseract))
+        existing.addEventListener('error', () => reject(new Error('Failed to load Tesseract from CDN.')))
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
+      script.setAttribute('data-tesseract-cdn', 'true')
+      script.onload = () => resolve((window as any).Tesseract)
+      script.onerror = () => reject(new Error('Failed to load Tesseract OCR engine from CDN.'))
+      document.head.appendChild(script)
+    })
+  }
+
+  throw new Error('Tesseract OCR engine could not be initialized.')
+}
+
+/**
+ * Dynamically loads PDF.js using bundler import, window global, or CDN fallback
+ */
+async function loadPdfJsModule(): Promise<any> {
+  // 1. Try bundler dynamic import
+  try {
+    const mod = await import('pdfjs-dist')
+    const lib = mod.getDocument ? mod : (mod as any).default
+    if (lib && typeof lib.getDocument === 'function') {
+      if (typeof window !== 'undefined' && !lib.GlobalWorkerOptions?.workerSrc) {
+        lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${lib.version || '3.11.174'}/pdf.worker.min.js`
+      }
+      return lib
+    }
+  } catch (err) {
+    console.warn('Direct pdfjs-dist import not resolved, checking browser globals/CDN...', err)
+  }
+
+  // 2. Check if window.pdfjsLib is already loaded
+  if (typeof window !== 'undefined' && (window as any).pdfjsLib) {
+    return (window as any).pdfjsLib
+  }
+
+  // 3. Fallback: dynamically load via CDN in the browser
+  if (typeof window !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-pdfjs-cdn]')
+      if (existing) {
+        if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib)
+        existing.addEventListener('load', () => resolve((window as any).pdfjsLib))
+        existing.addEventListener('error', () => reject(new Error('Failed to load PDF.js from CDN.')))
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+      script.setAttribute('data-pdfjs-cdn', 'true')
+      script.onload = () => {
+        const lib = (window as any).pdfjsLib
+        if (lib && !lib.GlobalWorkerOptions?.workerSrc) {
+          lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+        }
+        resolve(lib)
+      }
+      script.onerror = () => reject(new Error('Failed to load PDF engine from CDN.'))
+      document.head.appendChild(script)
+    })
+  }
+
+  throw new Error('PDF engine could not be initialized.')
+}
+
+/**
  * Scans an invoice image using local in-browser WebAssembly Tesseract OCR
  */
 export async function scanInvoiceImage(
@@ -65,19 +159,12 @@ export async function scanInvoiceImage(
   onProgress?.(25, 'Enhancing image contrast & clarity…')
 
   // Dynamically load Tesseract worker
-  let tesseractModule: any
-  try {
-    // @ts-ignore
-    tesseractModule = await import(/* webpackIgnore: true */ 'tesseract.js')
-  } catch {
-    if (typeof window !== 'undefined' && (window as any).Tesseract) {
-      tesseractModule = (window as any).Tesseract
-    } else {
-      throw new Error('Tesseract OCR engine is not installed. Please run `npm install tesseract.js`.')
-    }
+  const tesseractModule = await loadTesseractModule()
+  const createWorkerFn = tesseractModule.createWorker || tesseractModule.default?.createWorker
+  if (typeof createWorkerFn !== 'function') {
+    throw new Error('Tesseract createWorker function is unavailable.')
   }
 
-  const createWorkerFn = tesseractModule.createWorker || tesseractModule.default?.createWorker
   const worker = await createWorkerFn('eng', 1, {
     logger: (m: any) => {
       if (m.status === 'recognizing text') {
@@ -112,12 +199,7 @@ export async function scanInvoicePdf(
   onProgress?.(10, 'Reading PDF structure…')
 
   try {
-    // @ts-ignore
-    const pdfjsLib = await import(/* webpackIgnore: true */ 'pdfjs-dist')
-    if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
-    }
-
+    const pdfjsLib = await loadPdfJsModule()
     const arrayBuffer = await pdfFile.arrayBuffer()
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
     const pdfDoc = await loadingTask.promise
