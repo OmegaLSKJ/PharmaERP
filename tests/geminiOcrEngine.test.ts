@@ -11,6 +11,20 @@ import {
 } from '../src/lib/ocr/geminiOcrEngine'
 import { scanInvoice } from '../src/lib/ocr/ocrEngine'
 
+vi.mock('tesseract.js', () => ({
+  createWorker: vi.fn(async () => ({
+    setParameters: vi.fn(async () => undefined),
+    recognize: vi.fn(async () => ({ data: { text: '', confidence: 0 } })),
+    terminate: vi.fn(async () => undefined)
+  }))
+}))
+
+vi.mock('../src/lib/ocr/qwenOcrEngine', () => ({
+  checkOllamaStatus: vi.fn(async () => ({ online: false, models: [] })),
+  processInvoiceWithQwen: vi.fn(),
+  processInvoiceWithQwenCloud: vi.fn()
+}))
+
 describe('Gemini AI Vision OCR Engine', () => {
   const storage: Record<string, string> = {}
 
