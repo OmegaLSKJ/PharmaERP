@@ -281,7 +281,9 @@ export async function processInvoiceWithQwenCloud(
 
   onProgress?.(40, 'Sending optimized document to cloud vision GPU…')
 
-  const openRouterKey = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
+  const openRouterKey = typeof localStorage !== 'undefined'
+    ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '')
+    : ''
 
   let rawJsonText = ''
   let resolvedModel = overrideModel || 'OpenRouter / Cloud AI'
@@ -291,9 +293,8 @@ export async function processInvoiceWithQwenCloud(
   if (openRouterKey) {
     onProgress?.(35, 'Connecting directly to OpenRouter cloud GPU (no timeout limit)…')
     const freeModels = [
-      'openrouter/free',
-      'google/gemma-4-26b-a4b-it:free',
       'qwen/qwen3.8-27b:free',
+      'google/gemma-4-26b-a4b-it:free',
       'dots-studio/dots-3-note-preview:free',
       'thinkingmachines/inkling-small:free',
       'google/gemma-4-31b-it:free'
@@ -339,13 +340,25 @@ export async function processInvoiceWithQwenCloud(
         const data = await directRes.json()
         const content = data?.choices?.[0]?.message?.content || ''
         if (content.trim()) {
-          rawJsonText = content
-          resolvedModel = model
-          break
+          // Reject safety moderation verdicts (e.g. "User Safety: safe") or plain non-JSON refusals
+          if (content.trim().startsWith('User Safety:') || !content.includes('{')) {
+            console.warn(`Direct OpenRouter [${model}] returned non-invoice content: "${content.slice(0, 60)}". Trying next candidate model…`)
+            continue
+          }
+
+          try {
+            cleanAndParseJson(content)
+            rawJsonText = content
+            resolvedModel = model
+            break
+          } catch (parseErr) {
+            console.warn(`Direct OpenRouter [${model}] returned unparseable JSON: "${content.slice(0, 60)}". Trying next candidate model…`)
+            continue
+          }
         }
       } catch (err: any) {
         const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError'
-        console.warn(`Direct OpenRouter [${model}] ${isTimeout ? 'timed out after 35s' : 'failed'}:`, err)
+        console.warn(`Direct OpenRouter [${model}] ${isTimeout ? 'timed out after 45s' : 'failed'}:`, err)
       }
     }
   }

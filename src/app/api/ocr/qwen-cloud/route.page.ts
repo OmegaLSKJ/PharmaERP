@@ -39,12 +39,10 @@ const PROVIDERS: Provider[] = [
     envKey: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: [
-      // 0. OpenRouter free auto-router (picks lowest queue, fastest available free vision model)
-      'openrouter/free',
-      // 1. Fast MoE (only 3.8B active params/token) — fastest inference (~3-5s), avoids 10s Vercel timeout
-      'google/gemma-4-26b-a4b-it:free',
-      // 2. High-precision tabular/invoice vision
+      // 1. Dedicated high-precision tabular/invoice vision
       'qwen/qwen3.8-27b:free',
+      // 2. Fast MoE (only 3.8B active params/token) — fastest inference (~3-5s), avoids 10s Vercel timeout
+      'google/gemma-4-26b-a4b-it:free',
       // 3. Document preview model
       'dots-studio/dots-3-note-preview:free',
       // 4. Compact multimodal model
@@ -233,8 +231,8 @@ export async function POST(req: NextRequest) {
         const data = await res.json()
         const content = provider.extractContent(data)
 
-        if (!content.trim()) {
-          const msg = `${provider.name}[${model}] returned empty content`
+        if (!content.trim() || content.trim().startsWith('User Safety:') || !content.includes('{')) {
+          const msg = `${provider.name}[${model}] returned invalid or non-JSON content: ${content.slice(0, 80)}`
           errors.push(msg)
           console.warn('[qwen-cloud]', msg)
           continue
