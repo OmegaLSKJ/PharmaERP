@@ -868,7 +868,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
   return createPortal(
     <div className="fixed inset-0 z-[99990] bg-black/75 backdrop-blur-sm flex justify-center items-start sm:items-center p-3 sm:p-6 overflow-y-auto no-print">
-      <div className="bg-card text-foreground border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card text-foreground border border-border w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/30">
@@ -1400,40 +1400,40 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
               </div>
 
               {/* Items Mapping Review Table */}
-              <div className="border border-border rounded-xl overflow-x-auto max-h-[420px] overflow-y-auto shadow-inner">
-                <table className="w-full text-left text-xs">
+              <div className="border border-border rounded-xl overflow-x-auto max-h-[440px] overflow-y-auto shadow-inner">
+                <table className="w-full min-w-[1180px] text-left text-xs">
                   <thead className="sticky top-0 z-10 select-none">
                     {/* Dual Super Header Row */}
                     <tr className="border-b border-border bg-muted text-[10px] uppercase font-bold tracking-wider">
-                      <th className="p-1 text-center w-10">Select</th>
+                      <th className="p-1 text-center w-12 min-w-[48px]">Select</th>
                       <th colSpan={3} className="p-1.5 text-center bg-blue-500/10 text-blue-700 dark:text-blue-300 border-x border-blue-500/20">
                         ✍️ Written on Sheet (OCR Read)
                       </th>
                       <th colSpan={8} className="p-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-r border-emerald-500/20">
                         📦 Matched in All Items (ERP Master Catalog)
                       </th>
-                      <th className="p-1 w-8"></th>
+                      <th className="p-1 w-10 min-w-[40px]"></th>
                     </tr>
                     {/* Detailed Columns Header Row */}
                     <tr className="border-b border-border bg-muted/80 text-[11px] font-semibold text-muted-foreground divide-x divide-border/60">
-                      <th className="p-2 w-10 text-center">Confirm</th>
+                      <th className="p-2 w-12 min-w-[48px] text-center">Confirm</th>
                       
                       {/* Written Columns */}
-                      <th className="p-2 min-w-[170px] bg-blue-500/5 text-blue-900 dark:text-blue-200">Written Medicine Name</th>
-                      <th className="p-2 w-16 text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Qty</th>
-                      <th className="p-2 w-14 text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Free</th>
+                      <th className="p-2 w-52 min-w-[180px] bg-blue-500/5 text-blue-900 dark:text-blue-200">Written Medicine Name</th>
+                      <th className="p-2 w-20 min-w-[70px] text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Qty</th>
+                      <th className="p-2 w-18 min-w-[65px] text-right bg-blue-500/5 text-blue-900 dark:text-blue-200">Free</th>
 
                       {/* Master Catalog Columns */}
-                      <th className="p-2 min-w-[210px] bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">ERP Item (All Items)</th>
-                      <th className="p-2 w-16 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Stock</th>
-                      <th className="p-2 w-14 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Pack</th>
-                      <th className="p-2 w-20 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">HSN</th>
-                      <th className="p-2 w-20 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">Rate (₹)</th>
-                      <th className="p-2 w-20 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">MRP (₹)</th>
-                      <th className="p-2 w-14 text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">GST %</th>
-                      <th className="p-2 w-24 text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 font-bold">Total (₹)</th>
+                      <th className="p-2 min-w-[240px] bg-emerald-500/5 text-emerald-900 dark:text-emerald-200">ERP Item (All Items)</th>
+                      <th className="p-2 w-16 min-w-[58px] text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">Stock</th>
+                      <th className="p-2 w-16 min-w-[62px] text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">Pack</th>
+                      <th className="p-2 w-24 min-w-[85px] text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">HSN</th>
+                      <th className="p-2 w-24 min-w-[85px] text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">Rate (₹)</th>
+                      <th className="p-2 w-24 min-w-[85px] text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">MRP (₹)</th>
+                      <th className="p-2 w-16 min-w-[55px] text-center bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 whitespace-nowrap">GST %</th>
+                      <th className="p-2 w-28 min-w-[100px] text-right bg-emerald-500/5 text-emerald-900 dark:text-emerald-200 font-bold whitespace-nowrap">Total (₹)</th>
 
-                      <th className="p-2 w-8 text-center"></th>
+                      <th className="p-2 w-10 min-w-[40px] text-center"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1459,7 +1459,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                             }`}
                           >
                             {/* 1. Confirm Checkbox */}
-                            <td className="p-2 text-center">
+                            <td className="p-2 text-center w-12 min-w-[48px]">
                               <button
                                 type="button"
                                 onClick={() => handleToggleConfirm(idx)}
@@ -1484,29 +1484,29 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                 type="text"
                                 value={item.itemName}
                                 onChange={(e) => handleUpdateItem(idx, 'itemName', e.target.value)}
-                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-2 py-1 text-xs font-semibold text-foreground focus:ring-1 focus:ring-blue-500"
+                                className="w-full min-w-[160px] bg-card border border-blue-200 dark:border-blue-900/50 rounded px-2 py-1 text-xs font-semibold text-foreground focus:ring-1 focus:ring-blue-500"
                                 title="Original handwriting extracted by OCR"
                               />
                             </td>
 
                             {/* 3. Written Qty */}
-                            <td className="p-2 bg-blue-500/[0.02]">
+                            <td className="p-2 bg-blue-500/[0.02] text-right">
                               <input
                                 type="number"
                                 value={item.qty}
                                 onChange={(e) => handleUpdateItem(idx, 'qty', e.target.value)}
-                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-1.5 py-1 text-xs text-right font-bold text-blue-700 dark:text-blue-300"
+                                className="w-full min-w-[56px] bg-card border border-blue-200 dark:border-blue-900/50 rounded px-2 py-1 text-xs text-right font-bold text-blue-700 dark:text-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 title="Quantity read from sheet"
                               />
                             </td>
 
                             {/* 4. Written Free Qty */}
-                            <td className="p-2 bg-blue-500/[0.02]">
+                            <td className="p-2 bg-blue-500/[0.02] text-right">
                               <input
                                 type="number"
                                 value={item.freeQty}
                                 onChange={(e) => handleUpdateItem(idx, 'freeQty', e.target.value)}
-                                className="w-full bg-card border border-blue-200 dark:border-blue-900/50 rounded px-1.5 py-1 text-xs text-right font-bold text-emerald-600 dark:text-emerald-400"
+                                className="w-full min-w-[50px] bg-card border border-blue-200 dark:border-blue-900/50 rounded px-2 py-1 text-xs text-right font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 title="Free scheme read from sheet"
                               />
                             </td>
@@ -1517,7 +1517,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                 <select
                                   value={item.mappedItemId || 'unmapped'}
                                   onChange={(e) => handleUpdateItem(idx, 'mappedItemId', e.target.value)}
-                                  className="w-full bg-card border border-emerald-300 dark:border-emerald-800/60 rounded px-2 py-1 text-xs font-medium cursor-pointer focus:ring-1 focus:ring-emerald-500"
+                                  className="w-full min-w-[210px] bg-card border border-emerald-300 dark:border-emerald-800/60 rounded px-2 py-1 text-xs font-medium cursor-pointer focus:ring-1 focus:ring-emerald-500"
                                 >
                                   {item.mappedItemId && item.mappedItemName ? (
                                     <option value={item.mappedItemId}>{item.mappedItemName}</option>
@@ -1585,7 +1585,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                             </td>
 
                             {/* 6. Stock in Hand */}
-                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                            <td className="p-2 text-center bg-emerald-500/[0.02] whitespace-nowrap">
                               <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
                                 (item.stock ?? 0) > 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-muted text-muted-foreground'
                               }`}>
@@ -1594,14 +1594,14 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                             </td>
 
                             {/* 7. Pack */}
-                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                            <td className="p-2 text-center bg-emerald-500/[0.02] whitespace-nowrap">
                               <span className="text-[11px] font-mono font-medium text-foreground">
                                 {item.packing || '10x10'}
                               </span>
                             </td>
 
                             {/* 8. HSN */}
-                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                            <td className="p-2 text-center bg-emerald-500/[0.02] whitespace-nowrap">
                               <span className="text-[10px] font-mono text-muted-foreground">
                                 {item.hsn || '30049099'}
                               </span>
@@ -1614,7 +1614,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                 step="0.01"
                                 value={mode === 'purchase' ? item.purchaseRate : (item.saleRate || item.purchaseRate)}
                                 onChange={(e) => handleUpdateItem(idx, mode === 'purchase' ? 'purchaseRate' : 'saleRate', e.target.value)}
-                                className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
+                                className="w-full min-w-[76px] bg-card border border-border rounded px-2 py-1 text-xs text-right font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </td>
 
@@ -1625,24 +1625,24 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                 step="0.01"
                                 value={item.mrp}
                                 onChange={(e) => handleUpdateItem(idx, 'mrp', e.target.value)}
-                                className="w-full bg-card border border-border rounded px-1.5 py-1 text-xs text-right font-medium"
+                                className="w-full min-w-[76px] bg-card border border-border rounded px-2 py-1 text-xs text-right font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </td>
 
                             {/* 11. GST % */}
-                            <td className="p-2 text-center bg-emerald-500/[0.02]">
+                            <td className="p-2 text-center bg-emerald-500/[0.02] whitespace-nowrap">
                               <span className="text-[11px] font-medium text-foreground">
                                 {item.gstRate || 12}%
                               </span>
                             </td>
 
                             {/* 12. Amount (₹) */}
-                            <td className="p-2 text-right font-bold text-foreground bg-emerald-500/[0.02]">
+                            <td className="p-2 text-right font-bold text-foreground bg-emerald-500/[0.02] whitespace-nowrap">
                               {formatCurrency(item.amount)}
                             </td>
 
                             {/* 13. Delete Action */}
-                            <td className="p-2 text-center">
+                            <td className="p-2 text-center w-10 min-w-[40px]">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteItem(idx)}
