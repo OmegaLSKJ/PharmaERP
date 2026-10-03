@@ -246,7 +246,7 @@ export default function ManufacturerMedicinesModal({
     })
   }
 
-  const handleSaveEditBatch = async (med: MedicineItem, batch: MedicineBatch, idx: number) => {
+  const handleSaveEditBatch = (med: MedicineItem, batch: MedicineBatch, idx: number) => {
     const key = `${med.id}::${batch.id || `idx-${idx}`}`
     const cleanBatchNo = (batchDraft.batch || '').trim().toUpperCase()
     if (!cleanBatchNo) {
@@ -261,37 +261,56 @@ export default function ManufacturerMedicinesModal({
     const numSale = Math.max(0, Number(batchDraft.salePrice) || 0)
     const cleanRack = (batchDraft.rackNumber || '').trim()
 
-    setSavingBatchKey(key)
-    try {
-      const updatedBatch: MedicineBatch = {
-        ...batch,
-        id: batch.id || `b-${Date.now()}-${idx}`,
-        batch: cleanBatchNo,
-        batchNumber: cleanBatchNo,
-        expiry: cleanExpiry,
-        expiryOn: cleanExpiry,
-        stock: numStock,
-        purchasePrice: numPurchase,
-        costPrice: numPurchase,
-        mrp: numMrp,
-        salePrice: numSale,
-        rackNumber: cleanRack,
-        location: cleanRack,
-        supplier: batch.supplier || manufacturer?.primarySupplier || manufacturer?.name
-      }
+    const updatedBatch: MedicineBatch = {
+      ...batch,
+      id: batch.id || `b-${Date.now()}-${idx}`,
+      batch: cleanBatchNo,
+      batchNumber: cleanBatchNo,
+      expiry: cleanExpiry,
+      expiryOn: cleanExpiry,
+      stock: numStock,
+      purchasePrice: numPurchase,
+      costPrice: numPurchase,
+      mrp: numMrp,
+      salePrice: numSale,
+      rackNumber: cleanRack,
+      location: cleanRack,
+      supplier: batch.supplier || manufacturer?.primarySupplier || manufacturer?.name
+    }
 
-      const currentBatches = [...(med.batches || [])]
-      if (idx >= 0 && idx < currentBatches.length) {
-        currentBatches[idx] = updatedBatch
-      } else {
-        currentBatches.push(updatedBatch)
-      }
+    const currentBatches = [...(med.batches || [])]
+    if (idx >= 0 && idx < currentBatches.length) {
+      currentBatches[idx] = updatedBatch
+    } else {
+      currentBatches.push(updatedBatch)
+    }
+    const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
 
-      const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
+    // ─── OPTIMISTIC UPDATE: reflect changes instantly, no waiting ───
+    setMedicines((prev) =>
+      prev.map((item) =>
+        item.id === med.id
+          ? {
+              ...item,
+              stock: newTotalStock,
+              batches: currentBatches,
+              batchCount: currentBatches.length,
+              mrp: numMrp || item.mrp,
+              saleRate: numSale || item.saleRate,
+              purchaseRate: numPurchase || item.purchaseRate,
+              costPrice: numPurchase || item.costPrice
+            }
+          : item
+      )
+    )
+    setEditingBatchKey(null)
+    showToast(`Batch "${cleanBatchNo}" saved.`)
 
-      // Direct patch if batch has persisted id
-      if (batch.id) {
-        try {
+    // ─── BACKGROUND PERSISTENCE: fire-and-forget, don't block UI ───
+    const snapshot = med.batches ? [...med.batches] : []
+    ;(async () => {
+      try {
+        if (batch.id) {
           await patchErp('item-batches', batch.id, {
             itemId: med.id,
             batchNumber: cleanBatchNo,
@@ -303,47 +322,28 @@ export default function ManufacturerMedicinesModal({
             mrp: numMrp,
             rackNumber: cleanRack || null
           })
-        } catch (e) {
-          console.warn('Batch direct update fallback to item sync:', e)
+        } else {
+          await patchErp('items', med.id, {
+            stock: newTotalStock,
+            batches: currentBatches,
+            batchCount: currentBatches.length,
+            mrp: numMrp || med.mrp,
+            saleRate: numSale || med.saleRate,
+            purchaseRate: numPurchase || med.purchaseRate,
+            costPrice: numPurchase || med.costPrice
+          })
         }
-      }
-
-      // Sync via parent item
-      await patchErp('items', med.id, {
-        ...med,
-        stock: newTotalStock,
-        batches: currentBatches,
-        batchCount: currentBatches.length,
-        mrp: numMrp || med.mrp,
-        saleRate: numSale || med.saleRate,
-        purchaseRate: numPurchase || med.purchaseRate,
-        costPrice: numPurchase || med.costPrice
-      })
-
-      setMedicines((prev) =>
-        prev.map((item) =>
-          item.id === med.id
-            ? {
-                ...item,
-                stock: newTotalStock,
-                batches: currentBatches,
-                batchCount: currentBatches.length,
-                mrp: numMrp || item.mrp,
-                saleRate: numSale || item.saleRate,
-                purchaseRate: numPurchase || item.purchaseRate,
-                costPrice: numPurchase || item.costPrice
-              }
-            : item
+      } catch (err: any) {
+        // Rollback optimistic state on failure
+        console.error('Batch update failed, rolling back:', err)
+        setMedicines((prev) =>
+          prev.map((item) =>
+            item.id === med.id ? { ...item, batches: snapshot, stock: snapshot.reduce((s, b) => s + (Number(b.stock) || 0), 0) } : item
+          )
         )
-      )
-
-      setEditingBatchKey(null)
-      showToast(`Batch "${cleanBatchNo}" updated successfully for ${med.name}.`)
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to update batch.')
-    } finally {
-      setSavingBatchKey(null)
-    }
+        showToast(`Sync failed: ${err?.message || 'Could not save batch to server.'}`)
+      }
+    })()
   }
 
   const handleStartAddBatch = (med: MedicineItem) => {
@@ -360,7 +360,7 @@ export default function ManufacturerMedicinesModal({
     })
   }
 
-  const handleSaveNewBatch = async (med: MedicineItem) => {
+  const handleSaveNewBatch = (med: MedicineItem) => {
     const cleanBatchNo = (newBatchDraft.batch || '').trim().toUpperCase()
     if (!cleanBatchNo) {
       showToast('Batch number cannot be empty.')
@@ -374,9 +374,49 @@ export default function ManufacturerMedicinesModal({
     const numSale = Math.max(0, Number(newBatchDraft.salePrice) || 0)
     const cleanRack = (newBatchDraft.rackNumber || '').trim()
 
-    setSavingBatchKey(`new-${med.id}`)
-    try {
-      let createdBatchId = `b-${Date.now()}`
+    const tempBatchId = `b-opt-${Date.now()}`
+    const createdBatch: MedicineBatch = {
+      id: tempBatchId,
+      batch: cleanBatchNo,
+      batchNumber: cleanBatchNo,
+      expiry: cleanExpiry,
+      expiryOn: cleanExpiry,
+      stock: numStock,
+      purchasePrice: numPurchase,
+      costPrice: numPurchase,
+      mrp: numMrp,
+      salePrice: numSale,
+      rackNumber: cleanRack,
+      location: cleanRack,
+      supplier: manufacturer?.primarySupplier || manufacturer?.name
+    }
+
+    const currentBatches = [...(med.batches || []), createdBatch]
+    const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
+
+    // ─── OPTIMISTIC UPDATE: reflect instantly ───
+    setMedicines((prev) =>
+      prev.map((item) =>
+        item.id === med.id
+          ? {
+              ...item,
+              stock: newTotalStock,
+              batches: currentBatches,
+              batchCount: currentBatches.length,
+              mrp: numMrp || item.mrp,
+              saleRate: numSale || item.saleRate,
+              purchaseRate: numPurchase || item.purchaseRate,
+              costPrice: numPurchase || item.costPrice
+            }
+          : item
+      )
+    )
+    setAddingBatchForItemId(null)
+    showToast(`Batch "${cleanBatchNo}" added — ${numStock} units.`)
+
+    // ─── BACKGROUND PERSISTENCE ───
+    const snapshotBatches = med.batches ? [...med.batches] : []
+    ;(async () => {
       try {
         const created = await postErp<any>('item-batches', {
           itemId: med.id,
@@ -392,114 +432,71 @@ export default function ManufacturerMedicinesModal({
           rackNumber: cleanRack || null,
           supplier: manufacturer?.primarySupplier || manufacturer?.name
         })
-        if (created?.id) createdBatchId = created.id
-      } catch (e) {
-        console.warn('Batch post fallback to item sync:', e)
-      }
-
-      const createdBatch: MedicineBatch = {
-        id: createdBatchId,
-        batch: cleanBatchNo,
-        batchNumber: cleanBatchNo,
-        expiry: cleanExpiry,
-        expiryOn: cleanExpiry,
-        stock: numStock,
-        purchasePrice: numPurchase,
-        costPrice: numPurchase,
-        mrp: numMrp,
-        salePrice: numSale,
-        rackNumber: cleanRack,
-        location: cleanRack,
-        supplier: manufacturer?.primarySupplier || manufacturer?.name
-      }
-
-      const currentBatches = [...(med.batches || []), createdBatch]
-      const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
-
-      await patchErp('items', med.id, {
-        ...med,
-        stock: newTotalStock,
-        batches: currentBatches,
-        batchCount: currentBatches.length,
-        mrp: numMrp || med.mrp,
-        saleRate: numSale || med.saleRate,
-        purchaseRate: numPurchase || med.purchaseRate,
-        costPrice: numPurchase || med.costPrice
-      })
-
-      setMedicines((prev) =>
-        prev.map((item) =>
-          item.id === med.id
-            ? {
-                ...item,
-                stock: newTotalStock,
-                batches: currentBatches,
-                batchCount: currentBatches.length,
-                mrp: numMrp || item.mrp,
-                saleRate: numSale || item.saleRate,
-                purchaseRate: numPurchase || item.purchaseRate,
-                costPrice: numPurchase || item.costPrice
-              }
-            : item
+        // Swap temp id with real persisted id if returned
+        if (created?.id && created.id !== tempBatchId) {
+          setMedicines((prev) =>
+            prev.map((item) =>
+              item.id === med.id
+                ? {
+                    ...item,
+                    batches: (item.batches || []).map((b) =>
+                      b.id === tempBatchId ? { ...b, id: created.id } : b
+                    )
+                  }
+                : item
+            )
+          )
+        }
+      } catch (err: any) {
+        console.error('New batch persist failed, rolling back:', err)
+        setMedicines((prev) =>
+          prev.map((item) =>
+            item.id === med.id
+              ? { ...item, batches: snapshotBatches, stock: snapshotBatches.reduce((s, b) => s + (Number(b.stock) || 0), 0) }
+              : item
+          )
         )
-      )
-
-      setAddingBatchForItemId(null)
-      showToast(`Batch "${cleanBatchNo}" added with ${numStock} units for ${med.name}.`)
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to create new batch.')
-    } finally {
-      setSavingBatchKey(null)
-    }
+        showToast(`Sync failed: ${err?.message || 'Could not save new batch to server.'}`)
+      }
+    })()
   }
 
-  const handleDeleteBatch = async (med: MedicineItem, batch: MedicineBatch, idx: number) => {
+  const handleDeleteBatch = (med: MedicineItem, batch: MedicineBatch, idx: number) => {
     const bName = batch.batch || batch.batchNumber || 'DEFAULT'
-    if (!window.confirm(`Are you sure you want to delete batch "${bName}" from ${med.name}?`)) {
-      return
-    }
+    if (!window.confirm(`Delete batch "${bName}" from ${med.name}?`)) return
 
     const key = `${med.id}::${batch.id || `idx-${idx}`}`
-    setSavingBatchKey(key)
-    try {
-      if (batch.id) {
-        try {
-          await deleteErp('item-batches', batch.id)
-        } catch (e) {
-          console.warn('Batch delete direct fallback:', e)
-        }
-      }
+    const snapshotBatches = [...(med.batches || [])]
+    const updatedBatches = snapshotBatches.filter((_, i) => i !== idx)
+    const newTotalStock = updatedBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
 
-      const updatedBatches = (med.batches || []).filter((_, i) => i !== idx)
-      const newTotalStock = updatedBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
-
-      await patchErp('items', med.id, {
-        ...med,
-        stock: newTotalStock,
-        batches: updatedBatches,
-        batchCount: updatedBatches.length
-      })
-
-      setMedicines((prev) =>
-        prev.map((item) =>
-          item.id === med.id
-            ? {
-                ...item,
-                stock: newTotalStock,
-                batches: updatedBatches,
-                batchCount: updatedBatches.length
-              }
-            : item
-        )
+    // ─── OPTIMISTIC UPDATE: remove instantly ───
+    setMedicines((prev) =>
+      prev.map((item) =>
+        item.id === med.id
+          ? { ...item, stock: newTotalStock, batches: updatedBatches, batchCount: updatedBatches.length }
+          : item
       )
+    )
+    if (editingBatchKey === key) setEditingBatchKey(null)
+    showToast(`Batch "${bName}" deleted.`)
 
-      if (editingBatchKey === key) setEditingBatchKey(null)
-      showToast(`Batch "${bName}" removed from ${med.name}.`)
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to delete batch.')
-    } finally {
-      setSavingBatchKey(null)
-    }
+    // ─── BACKGROUND PERSISTENCE ───
+    ;(async () => {
+      try {
+        if (batch.id) await deleteErp('item-batches', batch.id)
+      } catch (err: any) {
+        console.error('Batch delete failed, rolling back:', err)
+        setMedicines((prev) =>
+          prev.map((item) =>
+            item.id === med.id
+              ? { ...item, batches: snapshotBatches, stock: snapshotBatches.reduce((s, b) => s + (Number(b.stock) || 0), 0) }
+              : item
+          )
+        )
+        showToast(`Sync failed: ${err?.message || 'Could not delete batch from server.'}`)
+      }
+    })()
   }
 
   // Filtered & Sorted medicines
