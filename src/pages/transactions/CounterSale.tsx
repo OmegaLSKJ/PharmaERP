@@ -33,6 +33,7 @@ import ActiveProductDetailPanel from '../../components/transactions/ActiveProduc
 import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import PrintButton from '../../components/common/PrintButton'
+import BelowCostAlertModal from '../../components/transactions/BelowCostAlertModal'
 
 interface CounterItem {
   id?: string
@@ -49,6 +50,7 @@ interface CounterItem {
   hsn?: string
   expiry?: string
   category?: string
+  belowCostReason?: string
 }
 
 export default function CounterSale() {
@@ -294,6 +296,62 @@ export default function CounterSale() {
   const numericTendered = typeof cashTendered === 'number' ? cashTendered : 0
   const changeDue = numericTendered > total ? numericTendered - total : 0
 
+  const [belowCostModal, setBelowCostModal] = useState<{
+    open: boolean
+    itemName: string
+    batch: string
+    sellPrice: number
+    purchasePrice: number
+    currentReason?: string
+  } | null>(null)
+
+  const openBelowCostDialog = (item: CounterItem) => {
+    const cost = Number(item.purchaseRate || 0)
+    setBelowCostModal({
+      open: true,
+      itemName: item.name,
+      batch: item.batch,
+      sellPrice: Number(item.rate || 0),
+      purchasePrice: cost,
+      currentReason: item.belowCostReason || '',
+    })
+  }
+
+  const handleAuthorizeBelowCost = (reason: string) => {
+    if (!belowCostModal) return
+    setCart((prev) =>
+      prev.map((c) =>
+        c.name === belowCostModal.itemName && c.batch === belowCostModal.batch
+          ? { ...c, belowCostReason: reason }
+          : c
+      )
+    )
+    showToast(`Authorized selling "${belowCostModal.itemName}" below cost: ${reason}`)
+  }
+
+  const handleRevertBelowCost = () => {
+    if (!belowCostModal) return
+    updateRate(belowCostModal.itemName, belowCostModal.batch, belowCostModal.purchasePrice)
+    showToast(`Reverted "${belowCostModal.itemName}" rate to cost price (${formatCurrency(belowCostModal.purchasePrice)})`)
+  }
+
+  const updateRate = (name: string, batch: string, newRate: number) => {
+    const validRate = isNaN(newRate) ? 0 : Math.max(0, newRate)
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.name === name && item.batch === batch) {
+          const cost = Number(item.purchaseRate || 0)
+          return {
+            ...item,
+            rate: validRate,
+            belowCostReason: cost > 0 && validRate >= cost ? undefined : item.belowCostReason,
+          }
+        }
+        return item
+      })
+    )
+  }
+
   const complete = async () => {
     if (cart.length === 0) {
       showToast('Cart is empty. Please add items first.')
@@ -304,6 +362,20 @@ export default function CounterSale() {
       showToast('All items in the cart have 0 quantity. Please set a quantity before checkout.')
       return
     }
+
+    // Universal Law 1: sell price should never be lower than purchase price without authorized reason
+    const unauthBelowCost = billableLines.find((line) => {
+      const cost = Number(line.purchaseRate || 0)
+      const enteredRate = Number(line.rate || 0)
+      return enteredRate > 0 && cost > 0 && enteredRate < cost && !line.belowCostReason
+    })
+
+    if (unauthBelowCost) {
+      openBelowCostDialog(unauthBelowCost)
+      showToast(`Sell price for "${unauthBelowCost.name}" is lower than purchase price. Please provide a reason to authorize.`)
+      return
+    }
+
     setSaving(true)
     try {
       const invoice = await postErp<{ id: string }>('sales', {
@@ -856,12 +928,49 @@ export default function CounterSale() {
 
                           {/* Line Rate & Amount */}
                           <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block font-mono">
-                              {formatCurrency(item.rate)} / u
-                            </span>
-                            <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(lineTotal)}
-                            </span>
+                            {(() => {
+                              const cost = Number(item.purchaseRate || 0)
+                              const isBelowCost = Number(item.rate || 0) > 0 && cost > 0 && Number(item.rate || 0) < cost
+                              return (
+                                <>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={item.rate === 0 ? '' : item.rate}
+                                      onChange={(e) => updateRate(item.name, item.batch, Number(e.target.value) || 0)}
+                                      onBlur={() => {
+                                        if (isBelowCost && !item.belowCostReason) openBelowCostDialog(item)
+                                      }}
+                                      className={cn(
+                                        "w-16 text-right bg-white dark:bg-slate-900 border rounded px-1 py-0.5 text-xs font-mono outline-none",
+                                        isBelowCost ? "border-rose-500 text-rose-600 dark:text-rose-400 font-bold" : "border-slate-200 dark:border-slate-700"
+                                      )}
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Edit sell rate"
+                                    />
+                                    <span className="text-[10px] text-slate-400 font-mono">/u</span>
+                                  </div>
+                                  <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                                    {formatCurrency(lineTotal)}
+                                  </span>
+                                  {isBelowCost && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openBelowCostDialog(item)
+                                      }}
+                                      className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold underline block text-right mt-0.5 cursor-pointer"
+                                      title={item.belowCostReason ? `Authorized: ${item.belowCostReason}` : `Cost: ₹${cost}. Click to authorize.`}
+                                    >
+                                      {item.belowCostReason ? `Auth: ${item.belowCostReason}` : `⚠️ Below Cost (₹${cost})`}
+                                    </button>
+                                  )}
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1054,6 +1163,21 @@ export default function CounterSale() {
             }}
           />
         </div>
+      )}
+
+      {/* Universal Law 1: Below Purchase Cost Alert & Reason Authorization Modal */}
+      {belowCostModal && (
+        <BelowCostAlertModal
+          open={belowCostModal.open}
+          itemName={belowCostModal.itemName}
+          batch={belowCostModal.batch}
+          sellPrice={belowCostModal.sellPrice}
+          purchasePrice={belowCostModal.purchasePrice}
+          currentReason={belowCostModal.currentReason}
+          onAuthorize={handleAuthorizeBelowCost}
+          onRevert={handleRevertBelowCost}
+          onClose={() => setBelowCostModal(null)}
+        />
       )}
     </div>
   )

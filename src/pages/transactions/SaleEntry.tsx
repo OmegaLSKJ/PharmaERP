@@ -15,6 +15,7 @@ import { getGstRateForHsn } from '../../lib/hsnUtils'
 import { openTransactionWindow } from '../../lib/windowUtils'
 import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
 import { ExtractedInvoice } from '../../lib/ocr/types'
+import BelowCostAlertModal from '../../components/transactions/BelowCostAlertModal'
 
 interface LineItem {
   id: string
@@ -39,6 +40,7 @@ interface LineItem {
   code?: string
   category?: string
   costPrice?: number
+  belowCostReason?: string
 }
 type CustomerOption = { label: string; value: string; sub?: string; right?: string }
 type ItemOption = {
@@ -657,6 +659,51 @@ export default function SaleEntry() {
     })
   }
 
+  const [belowCostModal, setBelowCostModal] = useState<{
+    open: boolean
+    lineId: string
+    itemName: string
+    batch: string
+    sellPrice: number
+    purchasePrice: number
+    currentReason?: string
+  } | null>(null)
+
+  const openBelowCostDialog = (item: LineItem) => {
+    const cost = Number(item.purchaseRate || item.costPrice || 0)
+    setBelowCostModal({
+      open: true,
+      lineId: item.id,
+      itemName: item.name,
+      batch: item.batch,
+      sellPrice: Number(item.rate || 0),
+      purchasePrice: cost,
+      currentReason: item.belowCostReason || '',
+    })
+  }
+
+  const handleRateBlur = (item: LineItem) => {
+    const cost = Number(item.purchaseRate || item.costPrice || 0)
+    const enteredRate = Number(item.rate || 0)
+    if (enteredRate > 0 && cost > 0 && enteredRate < cost && !item.belowCostReason) {
+      openBelowCostDialog(item)
+    }
+  }
+
+  const handleAuthorizeBelowCost = (reason: string) => {
+    if (!belowCostModal) return
+    setItems((rows) =>
+      rows.map((row) => (row.id === belowCostModal.lineId ? { ...row, belowCostReason: reason } : row))
+    )
+    showToast(`Authorized selling below purchase cost for "${belowCostModal.itemName}" (${reason}).`)
+  }
+
+  const handleRevertBelowCost = () => {
+    if (!belowCostModal) return
+    updateLine(belowCostModal.lineId, 'rate', belowCostModal.purchasePrice)
+    showToast(`Reverted "${belowCostModal.itemName}" rate to purchase cost (${formatCurrency(belowCostModal.purchasePrice)}).`)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent, row: number, field: string) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -682,6 +729,20 @@ export default function SaleEntry() {
         showToast('Please enter quantity for at least one item before saving.')
         return
       }
+
+      // Universal Law 1 Enforcement: sell price should never be lower than purchase price without authorized reason
+      const unauthBelowCost = items.find((i) => {
+        const cost = Number(i.purchaseRate || i.costPrice || 0)
+        const enteredRate = Number(i.rate || 0)
+        return enteredRate > 0 && cost > 0 && enteredRate < cost && !i.belowCostReason
+      })
+
+      if (unauthBelowCost) {
+        openBelowCostDialog(unauthBelowCost)
+        showToast(`Sell price for "${unauthBelowCost.name}" is lower than purchase price. Please provide a reason to authorize.`)
+        return
+      }
+
       setSaving(true)
       const lines = items.map((item) => ({ ...item, freeQty: item.free, discount: item.disc, gstRate: item.gst }))
       const invoiceIdentifier = existingInvoice?.invoiceNo || existingInvoice?.number || editInvoiceId
@@ -749,6 +810,13 @@ export default function SaleEntry() {
         // If rate is 0 or unassigned and MRP is given, auto take MRP as rate
         if (field !== 'rate' && (Number(next.rate) || 0) <= 0 && (Number(next.mrp) || 0) > 0) {
           next.rate = Number(next.mrp)
+        }
+        // If rate is updated to equal or greater than cost, clear the belowCostReason
+        if (field === 'rate') {
+          const cost = Number(next.purchaseRate || next.costPrice || 0)
+          if (cost > 0 && val >= cost) {
+            next.belowCostReason = undefined
+          }
         }
         try {
           next.amount = calculateInvoice([
@@ -1099,18 +1167,46 @@ export default function SaleEntry() {
 
                         {/* Rate */}
                         <div>
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Rate (₹)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate === 0 ? '' : item.rate}
-                            placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
-                            onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
-                            onFocus={() => setActiveIndex(idx)}
-                            className="w-full bg-background border border-border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary"
-                            inputMode="decimal"
-                          />
+                          {(() => {
+                            const cost = Number(item.purchaseRate || item.costPrice || 0)
+                            const isBelowCost = Number(item.rate || 0) > 0 && cost > 0 && Number(item.rate || 0) < cost
+                            return (
+                              <>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center justify-between mb-1">
+                                  <span>Rate (₹)</span>
+                                  {cost > 0 && (
+                                    <span className="text-[9px] text-muted-foreground font-mono">Cost: {formatCurrency(cost)}</span>
+                                  )}
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.rate === 0 ? '' : item.rate}
+                                  placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
+                                  onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                                  onBlur={() => handleRateBlur(item)}
+                                  onFocus={() => setActiveIndex(idx)}
+                                  className={cn(
+                                    "w-full bg-background border rounded-lg px-2.5 py-2 text-sm text-right font-mono text-foreground outline-none focus:border-primary",
+                                    isBelowCost
+                                      ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold focus:border-rose-600"
+                                      : "border-border"
+                                  )}
+                                  inputMode="decimal"
+                                />
+                                {isBelowCost && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openBelowCostDialog(item)}
+                                    className="mt-1 text-[10px] text-rose-600 dark:text-rose-400 font-semibold underline flex items-center gap-1 cursor-pointer"
+                                  >
+                                    {item.belowCostReason ? `Auth: ${item.belowCostReason}` : `⚠️ Below Cost (Reason Required)`}
+                                  </button>
+                                )}
+                              </>
+                            )
+                          })()}
                         </div>
 
                         {/* Discount */}
@@ -1221,19 +1317,43 @@ export default function SaleEntry() {
                               onKeyDown={(e) => handleKeyDown(e, i, 'free')}
                             />
                           </td>
-                          <td className="p-2 text-right min-w-[100px]">
-                            <input
-                              id={`row-${i}-rate`}
-                              min="0"
-                              type="number"
-                              step="0.01"
-                              value={item.rate === 0 ? '' : item.rate}
-                              onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
-                              onFocus={() => setActiveIndex(i)}
-                              placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
-                              className="w-full min-w-[95px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1.5 text-right text-foreground dark:text-white font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
-                            />
+                          <td className="p-2 text-right min-w-[110px]">
+                            {(() => {
+                              const cost = Number(item.purchaseRate || item.costPrice || 0)
+                              const isBelowCost = Number(item.rate || 0) > 0 && cost > 0 && Number(item.rate || 0) < cost
+                              return (
+                                <>
+                                  <input
+                                    id={`row-${i}-rate`}
+                                    min="0"
+                                    type="number"
+                                    step="0.01"
+                                    value={item.rate === 0 ? '' : item.rate}
+                                    onChange={(e) => updateLine(item.id, 'rate', Number(e.target.value) || 0)}
+                                    onBlur={() => handleRateBlur(item)}
+                                    onFocus={() => setActiveIndex(i)}
+                                    placeholder={item.mrp ? item.mrp.toFixed(2) : "0.00"}
+                                    className={cn(
+                                      "w-full min-w-[95px] bg-white dark:bg-slate-950 border rounded px-2.5 py-1.5 text-right font-mono font-semibold text-xs outline-none focus:border-indigo-500 shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                                      isBelowCost
+                                        ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold focus:border-rose-600"
+                                        : "border-slate-300 dark:border-slate-800 text-foreground dark:text-white"
+                                    )}
+                                    onKeyDown={(e) => handleKeyDown(e, i, 'rate')}
+                                  />
+                                  {isBelowCost && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openBelowCostDialog(item)}
+                                      className="mt-0.5 text-[10px] text-rose-600 dark:text-rose-400 font-semibold hover:underline block text-right w-full truncate cursor-pointer"
+                                      title={item.belowCostReason ? `Authorized: ${item.belowCostReason}` : `Cost: ₹${cost}. Click to provide reason.`}
+                                    >
+                                      {item.belowCostReason ? `Auth: ${item.belowCostReason}` : `⚠️ Below Cost (₹${cost})`}
+                                    </button>
+                                  )}
+                                </>
+                              )
+                            })()}
                           </td>
                           <td className="p-2 text-right min-w-[85px]">
                             <input
@@ -1590,6 +1710,21 @@ export default function SaleEntry() {
         }))}
         mode="sale"
       />
+
+      {/* Universal Law 1: Below Purchase Cost Alert & Reason Authorization Modal */}
+      {belowCostModal && (
+        <BelowCostAlertModal
+          open={belowCostModal.open}
+          itemName={belowCostModal.itemName}
+          batch={belowCostModal.batch}
+          sellPrice={belowCostModal.sellPrice}
+          purchasePrice={belowCostModal.purchasePrice}
+          currentReason={belowCostModal.currentReason}
+          onAuthorize={handleAuthorizeBelowCost}
+          onRevert={handleRevertBelowCost}
+          onClose={() => setBelowCostModal(null)}
+        />
+      )}
     </div>
   )
 }

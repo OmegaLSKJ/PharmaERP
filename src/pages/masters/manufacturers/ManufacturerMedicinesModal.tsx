@@ -261,6 +261,12 @@ export default function ManufacturerMedicinesModal({
     const numSale = Math.max(0, Number(batchDraft.salePrice) || 0)
     const cleanRack = (batchDraft.rackNumber || '').trim()
 
+    // Universal Law 2: purchase price should not be higher than sale price but can be equal
+    if (numSale > 0 && numPurchase > numSale) {
+      showToast(`Universal Law: Purchase price (₹${numPurchase}) cannot be higher than sale price (₹${numSale}).`)
+      return
+    }
+
     const updatedBatch: MedicineBatch = {
       ...batch,
       id: batch.id || `b-${Date.now()}-${idx}`,
@@ -373,6 +379,12 @@ export default function ManufacturerMedicinesModal({
     const numMrp = Math.max(0, Number(newBatchDraft.mrp) || 0)
     const numSale = Math.max(0, Number(newBatchDraft.salePrice) || 0)
     const cleanRack = (newBatchDraft.rackNumber || '').trim()
+
+    // Universal Law 2: purchase price should not be higher than sale price but can be equal
+    if (numSale > 0 && numPurchase > numSale) {
+      showToast(`Universal Law: Purchase price (₹${numPurchase}) cannot be higher than sale price (₹${numSale}).`)
+      return
+    }
 
     const tempBatchId = `b-opt-${Date.now()}`
     const createdBatch: MedicineBatch = {

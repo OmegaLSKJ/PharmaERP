@@ -173,6 +173,12 @@ export default function ItemForm() {
     const receivedOn = new Date().toISOString().slice(0, 10)
     const expiry = newBatch.expiry || ''
 
+    // Universal Law 2: for purchase always the purchase price should not be higher than sale price but can be equal
+    if (salePrice > 0 && purchasePrice > salePrice) {
+      showToast(`Universal Law: Purchase price (₹${purchasePrice}) cannot be higher than sale price (₹${salePrice}).`)
+      return
+    }
+
     if (targetItemId) {
       setSubmittingBatch(true)
       try {
@@ -248,6 +254,12 @@ export default function ItemForm() {
     event.preventDefault()
     if (!form.name.trim()) {
       showToast('Item name is required.')
+      return
+    }
+
+    // Universal Law 2: for purchase always the purchase price should not be higher than sale price but can be equal
+    if (Number(form.saleRate || 0) > 0 && Number(form.purchaseRate || 0) > Number(form.saleRate || 0)) {
+      showToast(`Universal Law: Purchase rate (₹${form.purchaseRate}) cannot be higher than sale rate (₹${form.saleRate}).`)
       return
     }
 

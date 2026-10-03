@@ -265,7 +265,9 @@ export default function PurchaseEntry() {
         const qty = it.qty > 0 ? it.qty : 1
         const rate = it.purchaseRate > 0 ? it.purchaseRate : (matchedItem?.purchaseRate || matchedItem?.saleRate || 100)
         const mrp = it.mrp > 0 ? it.mrp : (matchedItem?.mrp || Math.round(rate * 1.35 * 100) / 100)
-        const saleRate = it.saleRate > 0 ? it.saleRate : (matchedItem?.saleRate || Math.round(mrp * 0.9 * 100) / 100)
+        const rawSaleRate = it.saleRate > 0 ? it.saleRate : (matchedItem?.saleRate || Math.round(mrp * 0.9 * 100) / 100)
+        // Universal Law 2: for purchase always the purchase price should not be higher than sale price but can be equal
+        const saleRate = Math.max(rawSaleRate, rate)
 
         return {
           id: `ocr-${Date.now()}-${idx}`,
@@ -506,7 +508,7 @@ export default function PurchaseEntry() {
           scheme: 0,
           gstRate: initialGstRate,
           amount: item.purchaseRate,
-          saleRate: item.saleRate,
+          saleRate: Math.max(item.saleRate || 0, item.purchaseRate || 0),
           mrp: item.mrp,
           stock: item.stock,
           manufacturer: item.manufacturer,
@@ -544,6 +546,23 @@ export default function PurchaseEntry() {
           const matchedHsn = hsnList.find((h) => h.code.toUpperCase() === cleanCode)
           const resolvedRate = matchedHsn ? matchedHsn.gstRate : getGstRateForHsn(cleanCode)
           updated.gstRate = resolvedRate
+        }
+
+        // Universal Law 2: for purchase always the purchase price should not be higher than sale price but can be equal
+        if (field === 'purchaseRate') {
+          const newPurc = Number(value) || 0
+          const curSale = Number(updated.saleRate) || 0
+          if (newPurc > 0 && curSale > 0 && newPurc > curSale) {
+            updated.saleRate = newPurc
+          }
+        }
+        if (field === 'saleRate') {
+          const newSale = Number(value) || 0
+          const curPurc = Number(updated.purchaseRate) || 0
+          if (newSale > 0 && curPurc > 0 && newSale < curPurc) {
+            addToast(`Universal Law: Sale price (₹${newSale}) cannot be lower than purchase price (₹${curPurc}).`, 'error')
+            updated.saleRate = curPurc
+          }
         }
 
         const rate = Number(updated.purchaseRate) || 0
@@ -628,6 +647,19 @@ export default function PurchaseEntry() {
       addToast('Batch, expiry and a positive quantity are required for every item.', 'error')
       return
     }
+
+    // Universal Law 2: for purchase always the purchase price should not be higher than sale price but can be equal
+    const invalidPriceItems = items.filter(
+      (item) => (Number(item.purchaseRate) || 0) > (Number(item.saleRate) || 0) && (Number(item.saleRate) || 0) > 0
+    )
+    if (invalidPriceItems.length > 0) {
+      addToast(
+        `Purchase price cannot be higher than sale price for: ${invalidPriceItems.map((i) => `"${i.itemName}" (Purchase: ₹${i.purchaseRate} > Sale: ₹${i.saleRate})`).join(', ')}. Please adjust before saving.`,
+        'error'
+      )
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -1194,7 +1226,12 @@ export default function PurchaseEntry() {
                         value={item.purchaseRate === 0 ? '' : item.purchaseRate}
                         onChange={(e) => updateItem(item.id, 'purchaseRate', e.target.value === '' ? '' : Number(e.target.value))}
                         placeholder="0.00"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
+                        className={cn(
+                          "w-full bg-white dark:bg-slate-900 border rounded-lg px-2 py-1.5 text-xs text-right font-mono font-semibold outline-none focus:border-primary",
+                          Number(item.purchaseRate || 0) > Number(item.saleRate || 0) && Number(item.saleRate || 0) > 0
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400 font-bold"
+                            : "border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                        )}
                         inputMode="decimal"
                       />
                     </div>
@@ -1207,7 +1244,12 @@ export default function PurchaseEntry() {
                         value={item.saleRate === 0 ? '' : item.saleRate}
                         onChange={(e) => updateItem(item.id, 'saleRate', e.target.value === '' ? '' : Number(e.target.value))}
                         placeholder="0.00"
-                        className="w-full bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-500/60 rounded-lg px-2 py-1.5 text-xs text-right font-mono text-slate-900 dark:text-white font-semibold outline-none focus:border-primary"
+                        className={cn(
+                          "w-full bg-white dark:bg-slate-900 border rounded-lg px-2 py-1.5 text-xs text-right font-mono font-semibold outline-none focus:border-primary",
+                          Number(item.purchaseRate || 0) > Number(item.saleRate || 0) && Number(item.saleRate || 0) > 0
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400 font-bold"
+                            : "border-indigo-400 dark:border-indigo-500/60 text-slate-900 dark:text-white"
+                        )}
                         inputMode="decimal"
                       />
                     </div>
@@ -1421,7 +1463,13 @@ export default function PurchaseEntry() {
                             onFocus={() => setActiveIndex(idx)}
                             onKeyDown={handleRowKeyDown}
                             placeholder="0.00"
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className={cn(
+                              "w-full bg-white dark:bg-slate-900 border rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:ring-2 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                              Number(item.purchaseRate || 0) > Number(item.saleRate || 0) && Number(item.saleRate || 0) > 0
+                                ? "border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-600 focus:ring-rose-500/20"
+                                : "border-slate-300 dark:border-slate-600 focus:border-indigo-600 focus:ring-indigo-500/20"
+                            )}
+                            title="Purchase Rate / Cost Price"
                           />
                         </td>
                         {/* Sale Price */}
@@ -1435,8 +1483,13 @@ export default function PurchaseEntry() {
                             onFocus={() => setActiveIndex(idx)}
                             onKeyDown={handleRowKeyDown}
                             placeholder="0.00"
-                            className="w-full bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/70 rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            title="Selling Price / Rate to customer"
+                            className={cn(
+                              "w-full bg-white dark:bg-slate-900 border rounded-lg px-2 py-1.5 text-right text-slate-900 dark:text-white font-mono text-xs font-bold outline-none focus:ring-2 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                              Number(item.purchaseRate || 0) > Number(item.saleRate || 0) && Number(item.saleRate || 0) > 0
+                                ? "border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-600 focus:ring-rose-500/20"
+                                : "border-indigo-300 dark:border-indigo-500/70 focus:border-indigo-600 focus:ring-indigo-500/20"
+                            )}
+                            title="Selling Price / Rate to customer (Universal Law: Must be >= Purchase Rate)"
                           />
                         </td>
                         {/* MRP */}

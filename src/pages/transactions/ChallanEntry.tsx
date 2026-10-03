@@ -13,6 +13,7 @@ import { useErpAutoRefresh } from '../../hooks/useErpAutoRefresh'
 import PrintButton, { ModifyButton } from '../../components/common/PrintButton'
 import InvoiceOcrModal from '../../components/ocr/InvoiceOcrModal'
 import { ExtractedInvoice } from '../../lib/ocr/types'
+import BelowCostAlertModal from '../../components/transactions/BelowCostAlertModal'
 
 interface AvailableItem {
   name: string
@@ -43,6 +44,7 @@ interface Line {
   salt?: string
   hsn?: string
   expiry?: string
+  belowCostReason?: string
 }
 interface SavedChallan { id: string; dbId: string; party: string; date: string; transport: string; status: string; lines: Line[] }
 
@@ -185,6 +187,57 @@ export default function ChallanEntry() {
     }
   }
 
+  const [belowCostModal, setBelowCostModal] = useState<{
+    open: boolean
+    lineId: string
+    itemName: string
+    batch: string
+    sellPrice: number
+    purchasePrice: number
+    currentReason?: string
+  } | null>(null)
+
+  const openBelowCostDialog = (line: Line) => {
+    const cost = Number(line.purchaseRate || 0)
+    setBelowCostModal({
+      open: true,
+      lineId: line.id,
+      itemName: line.name,
+      batch: line.batch,
+      sellPrice: Number(line.rate || 0),
+      purchasePrice: cost,
+      currentReason: line.belowCostReason || '',
+    })
+  }
+
+  const handleRateBlur = (line: Line) => {
+    const cost = Number(line.purchaseRate || 0)
+    const enteredRate = Number(line.rate || 0)
+    if (enteredRate > 0 && cost > 0 && enteredRate < cost && !line.belowCostReason) {
+      openBelowCostDialog(line)
+    }
+  }
+
+  const handleAuthorizeBelowCost = (reason: string) => {
+    if (!belowCostModal) return
+    setLines((prev) =>
+      prev.map((l) => (l.id === belowCostModal.lineId ? { ...l, belowCostReason: reason } : l))
+    )
+    showToast(`Authorized dispatching "${belowCostModal.itemName}" below cost: ${reason}`)
+  }
+
+  const handleRevertBelowCost = () => {
+    if (!belowCostModal) return
+    setLines((prev) =>
+      prev.map((l) =>
+        l.id === belowCostModal.lineId
+          ? { ...l, rate: belowCostModal.purchasePrice, belowCostReason: undefined }
+          : l
+      )
+    )
+    showToast(`Reverted "${belowCostModal.itemName}" rate to cost price (${formatCurrency(belowCostModal.purchasePrice)})`)
+  }
+
   const removeLine = (id: string) => {
     setLines((prev) => {
       const next = prev.filter((l) => l.id !== id)
@@ -199,9 +252,46 @@ export default function ChallanEntry() {
     setLines(lines.map((l) => (l.id === id ? { ...l, qty: Math.max(1, qty) } : l)))
   }
 
+  const updateRate = (id: string, rate: number) => {
+    const validRate = isNaN(rate) ? 0 : Math.max(0, rate)
+    setLines(
+      lines.map((l) => {
+        if (l.id !== id) return l
+        const cost = Number(l.purchaseRate || 0)
+        return {
+          ...l,
+          rate: validRate,
+          belowCostReason: cost > 0 && validRate >= cost ? undefined : l.belowCostReason,
+        }
+      })
+    )
+  }
+
   const totalQty = lines.reduce((a, l) => a + l.qty, 0)
   const saveChallan = async () => {
     try {
+      if (!party) {
+        showToast('Please select a recipient / customer.')
+        return
+      }
+      if (!lines.length) {
+        showToast('Please add at least one item.')
+        return
+      }
+
+      // Universal Law 1: sell price should never be lower than purchase price without authorized reason
+      const unauthBelowCost = lines.find((l) => {
+        const cost = Number(l.purchaseRate || 0)
+        const enteredRate = Number(l.rate || 0)
+        return enteredRate > 0 && cost > 0 && enteredRate < cost && !l.belowCostReason
+      })
+
+      if (unauthBelowCost) {
+        openBelowCostDialog(unauthBelowCost)
+        showToast(`Rate for "${unauthBelowCost.name}" is lower than purchase price. Please provide a reason to authorize.`)
+        return
+      }
+
       setSaving(true)
       const payload = { party, transport, lines, date: new Date().toISOString().split('T')[0] }
       if (editingId) {
@@ -366,8 +456,39 @@ export default function ChallanEntry() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-foreground truncate">{l.name}</div>
                     <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400 mt-0.5">Batch: {l.batch}</div>
+                    {(() => {
+                      const cost = Number(l.purchaseRate || 0)
+                      const isBelowCost = Number(l.rate || 0) > 0 && cost > 0 && Number(l.rate || 0) < cost
+                      return isBelowCost ? (
+                        <button
+                          type="button"
+                          onClick={() => openBelowCostDialog(l)}
+                          className="mt-1 text-[10px] text-rose-600 dark:text-rose-400 font-semibold underline block cursor-pointer"
+                        >
+                          {l.belowCostReason ? `Auth: ${l.belowCostReason}` : `⚠️ Below Cost (${formatCurrency(cost)})`}
+                        </button>
+                      ) : null
+                    })()}
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Rate Input */}
+                    <div className="w-20">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={l.rate === 0 ? '' : l.rate}
+                        onChange={(e) => updateRate(l.id, Number(e.target.value) || 0)}
+                        onBlur={() => handleRateBlur(l)}
+                        placeholder="Rate"
+                        className={cn(
+                          "w-full bg-background border rounded px-2 py-1 text-right text-xs font-mono text-foreground outline-none",
+                          Number(l.rate || 0) > 0 && Number(l.purchaseRate || 0) > 0 && Number(l.rate || 0) < Number(l.purchaseRate || 0)
+                            ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold"
+                            : "border-border"
+                        )}
+                      />
+                    </div>
                     <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
                       <button
                         type="button"
@@ -427,12 +548,15 @@ export default function ChallanEntry() {
                   <th className="text-left px-4 py-3 font-medium min-w-[240px]">Item</th>
                   <th className="text-left px-4 py-3 font-medium w-36 min-w-[130px]">Batch</th>
                   <th className="text-right px-4 py-3 font-medium w-28 min-w-[100px]">Qty</th>
+                  <th className="text-right px-4 py-3 font-medium w-32 min-w-[110px]">Rate (₹)</th>
                   <th className="px-4 py-3 w-16 min-w-[60px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-foreground">
                 {lines.map((l, idx) => {
                   const isActive = idx === activeIndex
+                  const cost = Number(l.purchaseRate || 0)
+                  const isBelowCost = Number(l.rate || 0) > 0 && cost > 0 && Number(l.rate || 0) < cost
                   return (
                     <tr
                       key={l.id}
@@ -462,6 +586,39 @@ export default function ChallanEntry() {
                           }}
                           className="w-full min-w-[80px] bg-background border border-border rounded px-2.5 py-1.5 text-right text-foreground font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
+                      </td>
+                      <td className="px-4 py-3 text-right min-w-[110px]">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={l.rate === 0 ? '' : l.rate}
+                          onChange={(e) => updateRate(l.id, Number(e.target.value) || 0)}
+                          onBlur={() => handleRateBlur(l)}
+                          onFocus={(e) => {
+                            e.target.select()
+                            setActiveIndex(idx)
+                          }}
+                          className={cn(
+                            "w-full min-w-[90px] bg-background border rounded px-2.5 py-1.5 text-right text-foreground font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                            isBelowCost
+                              ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold"
+                              : "border-border"
+                          )}
+                        />
+                        {isBelowCost && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openBelowCostDialog(l)
+                            }}
+                            className="mt-0.5 text-[10px] text-rose-600 dark:text-rose-400 font-semibold hover:underline block text-right w-full truncate cursor-pointer"
+                            title={l.belowCostReason ? `Authorized: ${l.belowCostReason}` : `Cost: ₹${cost}. Click to authorize.`}
+                          >
+                            {l.belowCostReason ? `Auth: ${l.belowCostReason}` : `⚠️ Below Cost (₹${cost})`}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button
@@ -694,6 +851,21 @@ export default function ChallanEntry() {
         }))}
         mode="challan"
       />
+
+      {/* Universal Law 1: Below Purchase Cost Alert & Reason Authorization Modal */}
+      {belowCostModal && (
+        <BelowCostAlertModal
+          open={belowCostModal.open}
+          itemName={belowCostModal.itemName}
+          batch={belowCostModal.batch}
+          sellPrice={belowCostModal.sellPrice}
+          purchasePrice={belowCostModal.purchasePrice}
+          currentReason={belowCostModal.currentReason}
+          onAuthorize={handleAuthorizeBelowCost}
+          onRevert={handleRevertBelowCost}
+          onClose={() => setBelowCostModal(null)}
+        />
+      )}
     </div>
   )
 }
