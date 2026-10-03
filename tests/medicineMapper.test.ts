@@ -99,5 +99,86 @@ describe('medicineMapper', () => {
     expect(res.matchStatus).not.toBe('exact')
     expect(res.score).toBeLessThan(0.40)
   })
+
+  it('for purchases: extracts uploaded invoice info and adds as new medicine if not in master', () => {
+    const newOcrItem: ExtractedLineItem = {
+      id: 'new-1',
+      itemName: 'GLIMEPIRIDE 2MG TAB',
+      packing: '10x15',
+      hsn: '30049080',
+      batch: 'GLM-202',
+      expiry: '05/29',
+      qty: 50,
+      freeQty: 5,
+      purchaseRate: 45.5,
+      mrp: 75.0,
+      saleRate: 60.0,
+      discount: 0,
+      gstRate: 12,
+      amount: 2275
+    }
+
+    const mapped = mapExtractedItemsToMaster([newOcrItem], masterCatalog, { mode: 'purchase' })
+    expect(mapped[0].isNewMedicine).toBe(true)
+    expect(mapped[0].matchStatus).toBe('new_item')
+    expect(mapped[0].isConfirmed).toBe(true) // Ready to add to purchases as new medicine
+    expect(mapped[0].itemName).toBe('GLIMEPIRIDE 2MG TAB')
+    expect(mapped[0].packing).toBe('10x15')
+    expect(mapped[0].hsn).toBe('30049080')
+    expect(mapped[0].purchaseRate).toBe(45.5)
+    expect(mapped[0].mrp).toBe(75.0)
+    expect(mapped[0].saleRate).toBe(60.0)
+    expect(mapped[0].gstRate).toBe(12)
+    expect(mapped[0].amount).toBe(2275)
+    expect(mapped[0].mappedItemId).toBeUndefined()
+  })
+
+  it('for sales: strictly maps only if present in all items list, rejecting unmapped items', () => {
+    const items: ExtractedLineItem[] = [
+      {
+        id: 'sale-1',
+        itemName: 'PAN 40MG TABLET', // in catalog
+        hsn: '',
+        batch: 'B1',
+        expiry: '10/27',
+        qty: 10,
+        freeQty: 0,
+        purchaseRate: 0,
+        mrp: 0,
+        saleRate: 0,
+        discount: 0,
+        gstRate: 0,
+        amount: 0
+      },
+      {
+        id: 'sale-2',
+        itemName: 'BRAND NEW UNKNOWN MEDICINE 100MG', // NOT in catalog
+        hsn: '30049099',
+        batch: 'B2',
+        expiry: '10/27',
+        qty: 5,
+        freeQty: 0,
+        purchaseRate: 20,
+        mrp: 40,
+        saleRate: 35,
+        discount: 0,
+        gstRate: 12,
+        amount: 175
+      }
+    ]
+
+    const mapped = mapExtractedItemsToMaster(items, masterCatalog, { mode: 'sale' })
+    // Item 1 is present in master catalog -> mapped and confirmed
+    expect(mapped[0].mappedItemId).toBe('item-1')
+    expect(mapped[0].isConfirmed).toBe(true)
+    expect(mapped[0].isNewMedicine).toBe(false)
+
+    // Item 2 is NOT present in master catalog -> strictly unmapped and unconfirmed
+    expect(mapped[1].mappedItemId).toBeUndefined()
+    expect(mapped[1].matchStatus).toBe('unmapped')
+    expect(mapped[1].isConfirmed).toBe(false)
+    expect(mapped[1].isNewMedicine).toBe(false)
+  })
 })
+
 

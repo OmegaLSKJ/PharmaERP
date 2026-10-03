@@ -262,45 +262,65 @@ export default function SaleEntry() {
     }
 
     if (ocrData.items && ocrData.items.length > 0) {
-      const newItems: LineItem[] = ocrData.items.map((it, idx) => {
+      const validItems: LineItem[] = []
+      let skippedCount = 0
+
+      ocrData.items.forEach((it, idx) => {
+        // Strictly map only if present in All Items list (itemOptions)
         const matchedItem =
           (it.mappedItemId && itemOptions.find((opt) => opt.id === it.mappedItemId || opt.itemId === it.mappedItemId)) ||
           itemOptions.find(
             (opt) =>
-              opt.label.toLowerCase().includes(it.itemName.toLowerCase()) ||
-              it.itemName.toLowerCase().includes(opt.label.toLowerCase())
+              opt.label.toLowerCase().trim() === it.itemName.toLowerCase().trim() ||
+              (opt as any).name?.toLowerCase().trim() === it.itemName.toLowerCase().trim()
           )
 
+        if (!matchedItem) {
+          skippedCount++
+          return
+        }
+
         const qty = it.qty > 0 ? it.qty : 1
-        const rate = it.saleRate > 0 ? it.saleRate : (matchedItem?.rate || Math.round(it.purchaseRate * 1.25 * 100) / 100)
-        const gst = it.gstRate || matchedItem?.gst || 12
+        const rate = it.saleRate > 0 ? it.saleRate : (matchedItem.rate || Math.round(it.purchaseRate * 1.25 * 100) / 100)
+        const gst = it.gstRate || matchedItem.gst || 12
         const amount = Math.round(qty * rate * 100) / 100
 
-        return {
+        validItems.push({
           id: `ocr-sale-${Date.now()}-${idx}`,
-          name: matchedItem?.label || it.mappedItemName || it.itemName,
-          batch: it.batch || matchedItem?.batch || 'BAT-01',
-          stock: matchedItem?.stock || 100,
+          name: matchedItem.label || (matchedItem as any).name || it.itemName,
+          batch: it.batch || matchedItem.batch || 'BAT-01',
+          stock: matchedItem.stock ?? 100,
           qty,
           free: it.freeQty || 0,
           rate,
           disc: it.discount || 0,
           gst,
           amount,
-          mrp: it.mrp || matchedItem?.mrp || Math.round(rate * 1.15 * 100) / 100,
-          purchaseRate: it.purchaseRate || matchedItem?.purchaseRate || Math.round(rate * 0.8 * 100) / 100,
-          packing: it.packing || matchedItem?.packing || '10x10',
-          manufacturer: matchedItem?.manufacturer,
-          salt: matchedItem?.salt,
-          hsn: it.hsn || matchedItem?.hsn || '30049099',
-          expiry: it.expiry || matchedItem?.expiry || '12/28',
-          itemId: matchedItem?.id || matchedItem?.itemId,
-          category: matchedItem?.category
-        }
+          mrp: it.mrp || matchedItem.mrp || Math.round(rate * 1.15 * 100) / 100,
+          purchaseRate: it.purchaseRate || matchedItem.purchaseRate || Math.round(rate * 0.8 * 100) / 100,
+          packing: it.packing || matchedItem.packing || '10x10',
+          manufacturer: matchedItem.manufacturer,
+          salt: matchedItem.salt,
+          hsn: it.hsn || matchedItem.hsn || '30049099',
+          expiry: it.expiry || matchedItem.expiry || '12/28',
+          itemId: matchedItem.id || matchedItem.itemId,
+          category: matchedItem.category
+        })
       })
 
-      setItems((prev) => [...prev, ...newItems])
-      showToast(`Added ${newItems.length} confirmed medicine items from OCR scan`)
+      if (validItems.length > 0) {
+        setItems((prev) => [...prev, ...validItems])
+      }
+
+      if (skippedCount > 0 && validItems.length > 0) {
+        showToast(
+          `Added ${validItems.length} items. Skipped ${skippedCount} item(s) not found in All Items list (Sales strictly requires existing items).`
+        )
+      } else if (validItems.length > 0) {
+        showToast(`Added ${validItems.length} confirmed medicine items from OCR scan`)
+      } else {
+        showToast(`No items added. Sales strictly requires items to be present in the All Items list.`)
+      }
     }
   }, [customer, customerOptions, itemOptions, showToast])
   const recordedGrandTotal = Math.max(

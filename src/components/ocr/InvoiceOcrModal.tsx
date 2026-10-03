@@ -164,8 +164,6 @@ export default function InvoiceOcrModal({
 
   // Load cached ERP items or provide rich defaults for comprehensive master mapping
   const effectiveMasterItems: MasterItemOption[] = useMemo(() => {
-    const baseCatalog: MasterItemOption[] = [...PHARMA_MASTER_CATALOG]
-
     let combined: MasterItemOption[] = []
     if (masterItems && masterItems.length > 0) {
       combined = [...masterItems]
@@ -190,17 +188,21 @@ export default function InvoiceOcrModal({
       }
     }
 
-    const existingNames = new Set(combined.map(c => (c.name || c.label || '').toLowerCase().trim()))
-    for (const b of baseCatalog) {
-      const nameKey = (b.name || b.label || '').toLowerCase().trim()
-      if (!existingNames.has(nameKey)) {
-        combined.push(b)
-        existingNames.add(nameKey)
+    // For sales: strictly use only items present in the All Items list.
+    // For purchases: if combined is empty, provide the base catalog as fallback.
+    if (mode !== 'sale') {
+      const existingNames = new Set(combined.map(c => (c.name || c.label || '').toLowerCase().trim()))
+      for (const b of PHARMA_MASTER_CATALOG) {
+        const nameKey = (b.name || b.label || '').toLowerCase().trim()
+        if (!existingNames.has(nameKey)) {
+          combined.push(b)
+          existingNames.add(nameKey)
+        }
       }
     }
 
     return combined
-  }, [masterItems])
+  }, [masterItems, mode])
 
   // Camera State
   const [cameraActive, setCameraActive] = useState(false)
@@ -316,7 +318,9 @@ export default function InvoiceOcrModal({
 
       // Auto-map extracted medicines against master catalog
       if (effectiveMasterItems.length > 0 && result.items.length > 0) {
-        result.items = mapExtractedItemsToMaster(result.items, effectiveMasterItems)
+        result.items = mapExtractedItemsToMaster(result.items, effectiveMasterItems, { mode })
+      } else if (mode === 'purchase' && result.items.length > 0) {
+        result.items = mapExtractedItemsToMaster(result.items, [], { mode: 'purchase' })
       }
 
       setExtractedData(result)
@@ -358,7 +362,9 @@ export default function InvoiceOcrModal({
       try {
         const reparsed = parsePharmaInvoice(textToParse, 'image_ocr')
         if (effectiveMasterItems.length > 0 && reparsed.items.length > 0) {
-          reparsed.items = mapExtractedItemsToMaster(reparsed.items, effectiveMasterItems)
+          reparsed.items = mapExtractedItemsToMaster(reparsed.items, effectiveMasterItems, { mode })
+        } else if (mode === 'purchase' && reparsed.items.length > 0) {
+          reparsed.items = mapExtractedItemsToMaster(reparsed.items, [], { mode: 'purchase' })
         }
         setExtractedData(reparsed)
         setRawOcrText(reparsed.rawText || textToParse)
@@ -413,7 +419,7 @@ ESTIMATED SUB TOTAL: 19210.00 | ESTIMATED TOTAL (WITH GST): 21515.20
 [+ OCR-BL +]                                                                          [+ OCR-BR +]
 `
     const parsed = parsePharmaInvoice(sampleA4SheetText, 'image_ocr')
-    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems)
+    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems, { mode })
 
     setProgress(100)
     setStatusMessage('Sample A4 Sheet successfully processed!')
@@ -460,7 +466,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 [+ OCR-BL +]                                                                          [+ OCR-BR +]
 `
     const parsed = parsePharmaInvoice(minimalA4SheetText, 'image_ocr')
-    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems)
+    const mapped = mapExtractedItemsToMaster(parsed.items, effectiveMasterItems, { mode })
 
     const lineTotal = mapped.reduce((sum, item) => sum + item.amount, 0)
     const taxTotal = mapped.reduce((sum, item) => sum + (item.amount * item.gstRate) / 100, 0)
@@ -505,6 +511,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
         item.mappedItemId = matched.id || matched.itemId
         item.mappedItemName = matched.name || matched.label
         item.isConfirmed = true
+        item.isNewMedicine = false
         if (matched.hsn) item.hsn = matched.hsn
         if (matched.packing) item.packing = matched.packing
         if (matched.gstRate) item.gstRate = matched.gstRate
@@ -514,12 +521,28 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
         if (matched.mrp) item.mrp = matched.mrp
         item.stock = matched.stock ?? 0
 
-        const effRate = item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100))
+        const effRate = mode === 'purchase'
+          ? (item.purchaseRate > 0 ? item.purchaseRate : (item.saleRate > 0 ? item.saleRate : (item.mrp || 100)))
+          : (item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100)))
         item.amount = Math.round((item.qty || 1) * effRate * 100) / 100
       } else if (!matched) {
-        item.mappedItemId = undefined
-        item.mappedItemName = undefined
-        item.matchStatus = 'unmapped'
+        if (mode === 'purchase') {
+          // For purchases: unrecognized item is treated as new medicine extracted from invoice
+          item.isNewMedicine = true
+          item.matchStatus = 'new_item'
+          item.mappedItemId = undefined
+          item.mappedItemName = value
+          item.isConfirmed = true
+          item.matchReasons = ['New medicine from invoice (will be added to Item Master for purchases)']
+        } else {
+          // For sales: strictly require item to be present in All Items list
+          item.isNewMedicine = false
+          item.mappedItemId = undefined
+          item.mappedItemName = undefined
+          item.matchStatus = 'unmapped'
+          item.isConfirmed = false
+          item.matchReasons = ['Strictly requires item to be present in All Items list for sales']
+        }
       }
     }
 
@@ -532,6 +555,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
         item.matchStatus = 'exact'
         item.matchScore = 1.0
         item.isConfirmed = true
+        item.isNewMedicine = false
         if (selectedMaster.hsn) item.hsn = selectedMaster.hsn
         if (selectedMaster.packing) item.packing = selectedMaster.packing
         if (selectedMaster.gstRate) item.gstRate = selectedMaster.gstRate
@@ -541,13 +565,34 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
         if (selectedMaster.mrp) item.mrp = selectedMaster.mrp
         item.stock = selectedMaster.stock ?? 0
 
-        const effRate = item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100))
+        const effRate = mode === 'purchase'
+          ? (item.purchaseRate > 0 ? item.purchaseRate : (item.saleRate > 0 ? item.saleRate : (item.mrp || 100)))
+          : (item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100)))
         item.amount = Math.round((item.qty || 1) * effRate * 100) / 100
+      } else if (value === 'new_medicine') {
+        item.mappedItemId = undefined
+        item.mappedItemName = item.itemName
+        item.matchStatus = 'new_item'
+        item.matchScore = 0
+        item.isNewMedicine = true
+        item.isConfirmed = true
+        item.matchReasons = ['New medicine from invoice (will be added to Item Master for purchases)']
       } else if (value === 'unmapped') {
         item.mappedItemId = undefined
         item.mappedItemName = undefined
-        item.matchStatus = 'unmapped'
         item.matchScore = 0
+        if (mode === 'purchase') {
+          item.isNewMedicine = true
+          item.matchStatus = 'new_item'
+          item.mappedItemName = item.itemName
+          item.isConfirmed = true
+          item.matchReasons = ['New medicine from invoice (will be added to Item Master for purchases)']
+        } else {
+          item.isNewMedicine = false
+          item.matchStatus = 'unmapped'
+          item.isConfirmed = false
+          item.matchReasons = ['Strictly requires item to be present in All Items list for sales']
+        }
       }
     }
 
@@ -556,7 +601,9 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
       const q = field === 'qty' ? Number(value) : item.qty
       const r = field === 'saleRate' || field === 'purchaseRate'
         ? Number(value)
-        : (item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : item.mrp))
+        : (mode === 'purchase'
+            ? (item.purchaseRate > 0 ? item.purchaseRate : (item.saleRate > 0 ? item.saleRate : item.mrp))
+            : (item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : item.mrp)))
       item.amount = Math.round(q * r * 100) / 100
     }
 
@@ -571,7 +618,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
   const handleReRunNlpMapping = () => {
     if (!extractedData) return
-    const remapped = mapExtractedItemsToMaster(extractedData.items, effectiveMasterItems)
+    const remapped = mapExtractedItemsToMaster(extractedData.items, effectiveMasterItems, { mode })
     setExtractedData({
       ...extractedData,
       items: remapped
@@ -580,6 +627,11 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
   const handleToggleConfirm = (index: number) => {
     if (!extractedData) return
+    const current = extractedData.items[index]
+    if (mode === 'sale' && !current.mappedItemId && !current.isConfirmed) {
+      setError('Cannot confirm: Sales strictly requires items to be mapped to an existing product in the All Items list.')
+      return
+    }
     const updated = [...extractedData.items]
     updated[index] = { ...updated[index], isConfirmed: !updated[index].isConfirmed }
     setExtractedData({ ...extractedData, items: updated })
@@ -587,6 +639,20 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
   const handleToggleConfirmAll = () => {
     if (!extractedData) return
+    if (mode === 'sale') {
+      // In sales mode, only items that are mapped to existing All Items can be confirmed
+      const mappableItems = extractedData.items.filter((it) => Boolean(it.mappedItemId))
+      const allMappableConfirmed = mappableItems.length > 0 && mappableItems.every((it) => it.isConfirmed)
+      const updated = extractedData.items.map((it) => {
+        if (!it.mappedItemId) return { ...it, isConfirmed: false }
+        return { ...it, isConfirmed: !allMappableConfirmed }
+      })
+      setExtractedData({ ...extractedData, items: updated })
+      if (mappableItems.length < extractedData.items.length) {
+        setError('Note: Unmapped items cannot be confirmed for sales. Please select an existing item from All Items first.')
+      }
+      return
+    }
     const allConfirmed = extractedData.items.every((it) => it.isConfirmed)
     const updated = extractedData.items.map((it) => ({ ...it, isConfirmed: !allConfirmed }))
     setExtractedData({ ...extractedData, items: updated })
@@ -605,6 +671,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
   const handleAddItem = () => {
     if (!extractedData) return
+    const isPurchase = mode === 'purchase'
     const newItem: ExtractedLineItem = {
       id: `manual-${Date.now()}`,
       itemName: 'NEW MEDICINE',
@@ -620,8 +687,9 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
       discount: 0,
       gstRate: 12,
       amount: 1000,
-      matchStatus: 'unmapped',
-      isConfirmed: true
+      matchStatus: isPurchase ? 'new_item' : 'unmapped',
+      isNewMedicine: isPurchase,
+      isConfirmed: isPurchase
     }
     setExtractedData({
       ...extractedData,
@@ -636,11 +704,28 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
   const handleApply = () => {
     if (extractedData) {
       // Transfer only confirmed items
-      const confirmedItems = extractedData.items.filter((it) => it.isConfirmed)
+      let confirmedItems = extractedData.items.filter((it) => it.isConfirmed)
       if (confirmedItems.length === 0) {
         setError('Please confirm at least one medicine item before applying.')
         return
       }
+
+      if (mode === 'sale') {
+        // Strictly verify that for sales, all applied items are mapped to existing items in All Items list
+        const strictlyMapped = confirmedItems.filter((it) => Boolean(it.mappedItemId))
+        if (strictlyMapped.length === 0) {
+          setError('For sales, items must strictly be present in the All Items list. Please map items before proceeding.')
+          return
+        }
+        if (strictlyMapped.length < confirmedItems.length) {
+          addToast(
+            `Excluded ${confirmedItems.length - strictlyMapped.length} unmapped item(s). Sales strictly allows only items in All Items list.`,
+            'info'
+          )
+        }
+        confirmedItems = strictlyMapped
+      }
+
       onApply({
         ...extractedData,
         items: confirmedItems
@@ -1246,6 +1331,25 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                 </div>
               </div>
 
+              {/* Mode-Specific Information Banner */}
+              {mode === 'sale' && extractedData.items.some((it) => !it.mappedItemId) && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>
+                    <strong>Sales Policy:</strong> Unmapped medicines cannot be sold. All sales items strictly require matching an existing product in your All Items list.
+                  </span>
+                </div>
+              )}
+
+              {mode === 'purchase' && extractedData.items.some((it) => it.isNewMedicine || it.matchStatus === 'new_item') && (
+                <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-800 dark:text-cyan-300 text-xs flex items-center gap-2">
+                  <Sparkles size={15} className="shrink-0 text-cyan-600 dark:text-cyan-400" />
+                  <span>
+                    <strong>New Medicines Detected:</strong> Items marked with ✨ New Medicine are not in your catalog yet. Their info (rates, MRP, packing, HSN) is extracted from the uploaded invoice and will be added as new medicines in your Item Master.
+                  </span>
+                </div>
+              )}
+
               {/* Items Mapping Review Table */}
               <div className="border border-border rounded-xl overflow-x-auto max-h-[440px] overflow-y-auto shadow-inner">
                 <table className="w-full min-w-[1180px] text-left text-xs">
@@ -1257,7 +1361,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                         ✍️ Written on Sheet (OCR Read)
                       </th>
                       <th colSpan={8} className="p-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-r border-emerald-500/20">
-                        📦 Matched in All Items (ERP Master Catalog)
+                        {mode === 'sale' ? '📦 Strictly Matched in All Items (ERP Catalog)' : '📦 Matched in All Items / New Medicine to Add'}
                       </th>
                       <th className="p-1 w-10 min-w-[40px]"></th>
                     </tr>
@@ -1362,13 +1466,33 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                             <td className="p-2 bg-emerald-500/[0.02]">
                               <div className="space-y-1">
                                 <select
-                                  value={item.mappedItemId || 'unmapped'}
+                                  value={
+                                    item.mappedItemId
+                                      ? item.mappedItemId
+                                      : (item.isNewMedicine || status === 'new_item')
+                                      ? 'new_medicine'
+                                      : 'unmapped'
+                                  }
                                   onChange={(e) => handleUpdateItem(idx, 'mappedItemId', e.target.value)}
-                                  className="w-full min-w-[210px] bg-card border border-emerald-300 dark:border-emerald-800/60 rounded px-2 py-1 text-xs font-medium cursor-pointer focus:ring-1 focus:ring-emerald-500"
+                                  className={`w-full min-w-[210px] bg-card border rounded px-2 py-1 text-xs font-medium cursor-pointer focus:ring-1 ${
+                                    item.isNewMedicine || status === 'new_item'
+                                      ? 'border-cyan-400 dark:border-cyan-700 focus:ring-cyan-500 text-cyan-900 dark:text-cyan-200'
+                                      : status === 'unmapped'
+                                      ? 'border-rose-400 dark:border-rose-700 focus:ring-rose-500 text-rose-900 dark:text-rose-200'
+                                      : 'border-emerald-300 dark:border-emerald-800/60 focus:ring-emerald-500'
+                                  }`}
                                 >
                                   {item.mappedItemId && item.mappedItemName ? (
                                     <option value={item.mappedItemId}>{item.mappedItemName}</option>
+                                  ) : mode === 'purchase' ? (
+                                    <option value="new_medicine">✨ [+ New Medicine] {item.itemName} (Add to Item Master)</option>
                                   ) : (
+                                    <option value="unmapped">⚠️ Not Mapped - Strictly Select from All Items</option>
+                                  )}
+                                  {mode === 'purchase' && item.mappedItemId && (
+                                    <option value="new_medicine">✨ Add as New Medicine instead: &quot;{item.itemName}&quot;</option>
+                                  )}
+                                  {mode !== 'purchase' && !item.mappedItemId && (
                                     <option value="unmapped">⚠️ Not Mapped - Select Master Item</option>
                                   )}
                                   <optgroup label="Select from All Items Catalog">
@@ -1397,13 +1521,19 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                       Fuzzy ({Math.round((item.matchScore || 0.5) * 100)}%)
                                     </span>
                                   )}
-                                  {status === 'unmapped' && (
+                                  {(status === 'new_item' || item.isNewMedicine) && (
+                                    <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20 flex items-center gap-1">
+                                      <Sparkles size={10} />
+                                      New Medicine (From Invoice)
+                                    </span>
+                                  )}
+                                  {status === 'unmapped' && !item.isNewMedicine && (
                                     <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
-                                      ⚠️ Select from All Items
+                                      {mode === 'sale' ? '⚠️ Not in All Items (Required for Sales)' : '⚠️ Select from All Items'}
                                     </span>
                                   )}
                                   {item.matchReasons && item.matchReasons.length > 0 && (
-                                    <span className="text-[9px] text-muted-foreground italic truncate max-w-[130px]" title={item.matchReasons.join(' • ')}>
+                                    <span className="text-[9px] text-muted-foreground italic truncate max-w-[140px]" title={item.matchReasons.join(' • ')}>
                                       ({item.matchReasons[0]})
                                     </span>
                                   )}

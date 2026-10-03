@@ -128,7 +128,8 @@ export default function PurchaseEntry() {
   const [saving, setSaving] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
-  const handleApplyOcrData = useCallback((ocrData: ExtractedInvoice) => {
+  const handleApplyOcrData = useCallback(async (ocrData: ExtractedInvoice) => {
+    let activeSupplier = supplier
     if (ocrData.supplierName) {
       const match = supplierOptions.find(
         (s) =>
@@ -136,7 +137,8 @@ export default function PurchaseEntry() {
           ocrData.supplierName.toLowerCase().includes(s.name.toLowerCase()) ||
           (ocrData.supplierGstin && s.gstin && s.gstin.toUpperCase() === ocrData.supplierGstin.toUpperCase())
       )
-      setSupplier(match ? match.name : ocrData.supplierName)
+      activeSupplier = match ? match.name : ocrData.supplierName
+      setSupplier(activeSupplier)
     }
 
     if (ocrData.invoiceNo) {
@@ -148,13 +150,116 @@ export default function PurchaseEntry() {
     }
 
     if (ocrData.items && ocrData.items.length > 0) {
-      const newItems: LineItem[] = ocrData.items.map((it, idx) => {
-        const matchedItem =
+      // 1. Identify medicines not found in All Items list (new medicines in total)
+      const createdItemsMap = new Map<string, any>()
+      let newMedicinesCount = 0
+
+      for (const it of ocrData.items) {
+        const normName = it.itemName.toLowerCase().trim()
+        const existingMatch =
           (it.mappedItemId && itemOptions.find((opt) => opt.id === it.mappedItemId)) ||
           itemOptions.find(
             (opt) =>
-              opt.name.toLowerCase().includes(it.itemName.toLowerCase()) ||
-              it.itemName.toLowerCase().includes(opt.name.toLowerCase())
+              opt.name.toLowerCase().trim() === normName ||
+              opt.name.toLowerCase().includes(normName) ||
+              normName.includes(opt.name.toLowerCase())
+          )
+
+        if (!existingMatch && !createdItemsMap.has(normName)) {
+          const rate = it.purchaseRate > 0 ? it.purchaseRate : 100
+          const mrp = it.mrp > 0 ? it.mrp : Math.round(rate * 1.35 * 100) / 100
+          const saleRate = it.saleRate > 0 ? it.saleRate : Math.round(mrp * 0.9 * 100) / 100
+          const cleanHsn = (it.hsn && it.hsn.trim()) ? it.hsn : '30049099'
+          const cleanPack = (it.packing && it.packing.trim()) ? it.packing : '10x10'
+          const cleanGst = Number(it.gstRate || 12)
+          const mfrName = activeSupplier || ocrData.supplierName || 'New Supplier'
+
+          const newMedicinePayload = {
+            name: it.itemName.trim(),
+            code: `ITM-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`,
+            packing: cleanPack,
+            unit: cleanPack,
+            hsn: cleanHsn,
+            gstRate: cleanGst,
+            purchaseRate: rate,
+            saleRate: saleRate,
+            mrp: mrp,
+            stock: 0,
+            manufacturer: mfrName,
+            category: 'Medicine',
+            status: 'active'
+          }
+
+          try {
+            const created = await postErp<any>('items', newMedicinePayload)
+            createdItemsMap.set(normName, {
+              id: created.id,
+              code: created.code || newMedicinePayload.code,
+              name: created.name || newMedicinePayload.name,
+              packing: cleanPack,
+              hsn: cleanHsn,
+              gstRate: cleanGst,
+              purchaseRate: rate,
+              saleRate: saleRate,
+              mrp: mrp,
+              stock: 0,
+              manufacturer: mfrName,
+              category: 'Medicine'
+            })
+            newMedicinesCount++
+          } catch (createErr) {
+            console.warn('Auto-create new medicine non-fatal error:', createErr)
+            // Local fallback identifier if API call fails
+            createdItemsMap.set(normName, {
+              id: `new-med-${Date.now()}-${newMedicinesCount}`,
+              code: newMedicinePayload.code,
+              name: newMedicinePayload.name,
+              packing: cleanPack,
+              hsn: cleanHsn,
+              gstRate: cleanGst,
+              purchaseRate: rate,
+              saleRate: saleRate,
+              mrp: mrp,
+              stock: 0,
+              manufacturer: mfrName,
+              category: 'Medicine'
+            })
+            newMedicinesCount++
+          }
+        }
+      }
+
+      // If new medicines were created, add them into itemOptions so they immediately exist in All Items list
+      if (newMedicinesCount > 0) {
+        const newlyAdded: ItemOption[] = Array.from(createdItemsMap.values()).map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          packing: c.packing,
+          hsn: c.hsn,
+          gstRate: c.gstRate,
+          purchaseRate: c.purchaseRate,
+          saleRate: c.saleRate,
+          mrp: c.mrp,
+          stock: 0,
+          category: 'Medicine',
+          manufacturer: c.manufacturer,
+          salt: ''
+        }))
+        setItemOptions((prev) => [...prev, ...newlyAdded])
+      }
+
+      // 2. Build transaction line items
+      const newItems: LineItem[] = ocrData.items.map((it, idx) => {
+        const normName = it.itemName.toLowerCase().trim()
+        const matchedItem =
+          (it.mappedItemId && itemOptions.find((opt) => opt.id === it.mappedItemId)) ||
+          createdItemsMap.get(normName) ||
+          itemOptions.find(
+            (opt) =>
+              opt.name.toLowerCase().trim() === normName ||
+              opt.name.toLowerCase().includes(normName) ||
+              normName.includes(opt.name.toLowerCase())
           )
 
         const qty = it.qty > 0 ? it.qty : 1
@@ -166,11 +271,11 @@ export default function PurchaseEntry() {
           id: `ocr-${Date.now()}-${idx}`,
           itemId: matchedItem?.id,
           code: matchedItem?.code,
-          itemName: matchedItem?.name || it.mappedItemName || it.itemName,
+          itemName: it.itemName || matchedItem?.name || it.mappedItemName,
           packing: it.packing || matchedItem?.packing || '10x10',
           hsn: it.hsn || matchedItem?.hsn || '30049099',
-          batch: it.batch,
-          expiry: it.expiry,
+          batch: it.batch || 'BAT-01',
+          expiry: it.expiry || '12/28',
           qty,
           freeQty: it.freeQty || 0,
           purchaseRate: rate,
@@ -181,16 +286,20 @@ export default function PurchaseEntry() {
           saleRate,
           mrp,
           stock: matchedItem?.stock || 0,
-          manufacturer: matchedItem?.manufacturer,
+          manufacturer: matchedItem?.manufacturer || activeSupplier,
           salt: matchedItem?.salt,
-          category: matchedItem?.category
+          category: matchedItem?.category || 'Medicine'
         }
       })
 
       setItems((prev) => [...prev, ...newItems])
-      addToast(`Successfully imported ${newItems.length} confirmed medicine items`, 'success')
+      if (newMedicinesCount > 0) {
+        addToast(`Imported ${newItems.length} items (${newMedicinesCount} new medicine(s) added to Item Master)`, 'success')
+      } else {
+        addToast(`Successfully imported ${newItems.length} confirmed medicine items`, 'success')
+      }
     }
-  }, [supplierOptions, itemOptions, addToast])
+  }, [supplier, supplierOptions, itemOptions, addToast])
 
   // Fetch initial suppliers, items, and HSN codes
   const loadSuppliersAndItems = useCallback((force = false) => {

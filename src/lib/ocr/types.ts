@@ -17,8 +17,9 @@ export interface ExtractedLineItem {
   mappedItemId?: string
   mappedItemName?: string
   matchScore?: number
-  matchStatus?: 'exact' | 'high' | 'fuzzy' | 'unmapped'
+  matchStatus?: 'exact' | 'high' | 'fuzzy' | 'unmapped' | 'new_item'
   isConfirmed?: boolean
+  isNewMedicine?: boolean
   stock?: number
   suggestions?: any[]
   matchReasons?: string[]
