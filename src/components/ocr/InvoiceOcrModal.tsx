@@ -1188,7 +1188,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   ) : ocrEngine === 'openrouter' ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <span>🌐 OpenRouter Cloud (Gemma-4-31B — Free)</span>
+                      <span>🌐 OpenRouter Cloud (Free AI Vision)</span>
                       <button
                         type="button"
                         onClick={(e) => {

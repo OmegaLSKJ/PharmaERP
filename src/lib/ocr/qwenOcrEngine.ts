@@ -537,37 +537,112 @@ export async function processInvoiceWithQwenCloud(
 
   const openRouterKey = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
 
-  const res = await fetch('/api/ocr/qwen-cloud', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      base64,
-      mimeType,
-      prompt: PHARMA_INVOICE_PROMPT,
-      apiKey: openRouterKey || undefined,
-      ...(overrideModel ? { model: overrideModel } : {})
-    })
-  })
+  let rawJsonText = ''
+  let resolvedModel = overrideModel || 'OpenRouter / Cloud AI'
 
-  const rawText = await res.text()
-  let result: any = null
-  try {
-    result = JSON.parse(rawText)
-  } catch {
-    if (!res.ok) {
-      throw new Error(`Cloud OCR route returned status ${res.status}. Check OPENROUTER_API_KEY in Vercel.`)
+  // 1. Direct browser call to OpenRouter if API key is stored in browser
+  // This completely bypasses Vercel's 10-second serverless execution limit!
+  if (openRouterKey) {
+    onProgress?.(35, 'Connecting directly to OpenRouter cloud GPU (no timeout limit)…')
+    const freeModels = [
+      'google/gemma-4-26b-a4b-it:free',
+      'qwen/qwen3.8-27b:free',
+      'dots-studio/dots-3-note-preview:free',
+      'thinkingmachines/inkling-small:free',
+      'google/gemma-4-31b-it:free'
+    ]
+    if (overrideModel && !freeModels.includes(overrideModel)) {
+      freeModels.unshift(overrideModel)
     }
-    throw new Error(`Could not parse OCR response: ${rawText.slice(0, 120)}`)
+
+    for (const model of freeModels) {
+      try {
+        onProgress?.(50, `Analyzing invoice with ${model.split('/')[1] || model}…`)
+        const directRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openRouterKey}`,
+            'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://pharama-erp.vercel.app',
+            'X-Title': 'PharmaERP Invoice OCR'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
+                  { type: 'text', text: PHARMA_INVOICE_PROMPT }
+                ]
+              }
+            ],
+            max_tokens: 4096,
+            temperature: 0.1
+          })
+        })
+
+        if (!directRes.ok) {
+          const errText = await directRes.text()
+          console.warn(`Direct OpenRouter [${model}] error: ${directRes.status} ${errText.slice(0, 150)}`)
+          continue
+        }
+
+        const data = await directRes.json()
+        const content = data?.choices?.[0]?.message?.content || ''
+        if (content.trim()) {
+          rawJsonText = content
+          resolvedModel = model
+          break
+        }
+      } catch (err: any) {
+        console.warn(`Direct OpenRouter [${model}] failed:`, err)
+      }
+    }
   }
 
-  if (!res.ok) {
-    throw new Error(
-      result?.error ||
-      `Cloud OCR route returned ${res.status}. Check OPENROUTER_API_KEY in Vercel env vars.`
-    )
-  }
+  // 2. If direct call was not used or failed, fall back to /api/ocr/qwen-cloud
+  if (!rawJsonText) {
+    onProgress?.(45, 'Sending to cloud vision serverless route…')
+    const res = await fetch('/api/ocr/qwen-cloud', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base64,
+        mimeType,
+        prompt: PHARMA_INVOICE_PROMPT,
+        apiKey: openRouterKey || undefined,
+        ...(overrideModel ? { model: overrideModel } : {})
+      })
+    })
 
-  const rawJsonText: string = result?.content || ''
+    if (res.status === 504) {
+      throw new Error(
+        'Vercel serverless timed out (10s limit). Click "Set / Change OpenRouter Key" to connect directly from your browser without any timeouts!'
+      )
+    }
+
+    const rawText = await res.text()
+    let result: any = null
+    try {
+      result = JSON.parse(rawText)
+    } catch {
+      if (!res.ok) {
+        throw new Error(`Cloud OCR route returned status ${res.status}. Check OPENROUTER_API_KEY in Vercel.`)
+      }
+      throw new Error(`Could not parse OCR response: ${rawText.slice(0, 120)}`)
+    }
+
+    if (!res.ok) {
+      throw new Error(
+        result?.error ||
+        `Cloud OCR route returned ${res.status}. Check OPENROUTER_API_KEY in Vercel env vars.`
+      )
+    }
+
+    rawJsonText = result?.content || ''
+    if (result?.model) resolvedModel = result.model
+  }
 
   if (!rawJsonText.trim()) {
     throw new Error('Cloud AI vision returned an empty response. Check your API key and model availability.')
@@ -619,7 +694,7 @@ export async function processInvoiceWithQwenCloud(
   const totalAmount = Number(parsed.totalAmount) || Math.round(calculatedTotal * 100) / 100
   const taxAmount = Number(parsed.taxAmount) || Math.round(totalAmount * 0.12 * 100) / 100
 
-  onProgress?.(100, `Invoice mapped via Cloud Qwen2-VL (${result.model || 'Together AI'})!`)
+  onProgress?.(100, `Invoice mapped via Cloud AI Vision (${resolvedModel})!`)
 
   return {
     supplierName: String(parsed.supplierName || 'Wholesale Pharma Distributor').trim(),

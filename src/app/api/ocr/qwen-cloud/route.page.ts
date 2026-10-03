@@ -39,18 +39,16 @@ const PROVIDERS: Provider[] = [
     envKey: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: [
-      // Dense 31B vision/reasoning
-      'google/gemma-4-31b-it:free',
-      // High-precision tabular/invoice vision
-      'qwen/qwen3.8-27b:free',
-      'qwen/qwen-2.5-vl-72b-instruct:free',
-      'qwen/qwen2-vl-7b-instruct:free',
-      'meta-llama/llama-3.2-11b-vision-instruct:free',
-      // Fast MoE
+      // 1. Fast MoE (only 3.8B active params/token) — fastest inference (~3-5s), avoids 10s Vercel timeout
       'google/gemma-4-26b-a4b-it:free',
-      'thinkingmachines/inkling:free',
-      'thinkingmachines/inkling-small:free',
+      // 2. High-precision tabular/invoice vision
+      'qwen/qwen3.8-27b:free',
+      // 3. Document preview model
       'dots-studio/dots-3-note-preview:free',
+      // 4. Compact multimodal model
+      'thinkingmachines/inkling-small:free',
+      // 5. Dense 31B vision/reasoning
+      'google/gemma-4-31b-it:free',
     ],
     buildHeaders: (key) => ({
       'Content-Type': 'application/json',
@@ -201,7 +199,7 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: provider.buildHeaders(apiKey),
           body: JSON.stringify(provider.buildBody(model, imageUrl, prompt)),
-          signal: AbortSignal.timeout(55_000),
+          signal: AbortSignal.timeout(8_000),
         })
 
         if (!res.ok) {
