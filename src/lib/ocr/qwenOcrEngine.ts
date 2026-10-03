@@ -190,7 +190,8 @@ export async function processInvoiceWithQwenCloud(
             ],
             max_tokens: 4096,
             temperature: 0.1
-          })
+          }),
+          signal: AbortSignal.timeout(35_000)
         })
 
         if (!directRes.ok) {
@@ -207,7 +208,8 @@ export async function processInvoiceWithQwenCloud(
           break
         }
       } catch (err: any) {
-        console.warn(`Direct OpenRouter [${model}] failed:`, err)
+        const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError'
+        console.warn(`Direct OpenRouter [${model}] ${isTimeout ? 'timed out after 35s' : 'failed'}:`, err)
       }
     }
   }

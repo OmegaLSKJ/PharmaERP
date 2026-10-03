@@ -296,7 +296,7 @@ export default function InvoiceOcrModal({
       ocrEngine === 'gemini'
         ? 'Analyzing invoice with Gemini AI Vision…'
         : ocrEngine === 'openrouter'
-        ? 'Sending invoice to OpenRouter cloud (Gemma-4 / Qwen3.8 — Free)…'
+        ? 'Sending invoice to Cloud AI Vision…'
         : 'Preparing image for local OCR scan…'
     )
 
@@ -695,19 +695,19 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   ) : ocrEngine === 'openrouter' ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <span>🌐 OpenRouter Cloud (Free AI Vision)</span>
+                      <span>🌐 Cloud AI Vision</span>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           const current = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
-                          const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
+                          const key = window.prompt('Enter your Cloud AI Vision API Key (sk-...):', current)
                           if (key !== null) {
                             localStorage.setItem('openrouter_api_key', key.trim())
-                            setStatusMessage('OpenRouter API key saved!')
+                            setStatusMessage('Cloud API key saved!')
                           }
                         }}
-                        title="Set / Change OpenRouter API Key"
+                        title="Configure Cloud AI API Key"
                         className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
                       >
                         <Settings size={12} />
@@ -728,9 +728,9 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     type="button"
                     onClick={() => setOcrEngine(ocrEngine === 'openrouter' ? 'gemini' : 'openrouter')}
                     className="text-[10px] text-muted-foreground hover:text-green-500 transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
-                    title="Use free cloud OCR via OpenRouter (Gemma-4-31B, Qwen3.8-27B)"
+                    title="Use cloud-based multimodal AI vision OCR"
                   >
-                    {ocrEngine === 'openrouter' ? '(Use Gemini AI Vision)' : '(OpenRouter — Free Cloud)'}
+                    {ocrEngine === 'openrouter' ? '(Use Gemini AI Vision)' : '(Use Cloud AI Vision)'}
                   </button>
 
                   <button
@@ -1059,17 +1059,17 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     type="button"
                     onClick={() => {
                       const current = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
-                      const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
+                      const key = window.prompt('Enter your Cloud AI Vision API Key (sk-...):', current)
                       if (key !== null) {
                         localStorage.setItem('openrouter_api_key', key.trim())
-                        setStatusMessage('OpenRouter API key saved!')
+                        setStatusMessage('Cloud API key saved!')
                         if (file) void handleFileSelect(file)
                       }
                     }}
                     className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
                   >
                     <Settings size={13} />
-                    Set / Change OpenRouter Key
+                    Set / Change Cloud API Key
                   </button>
                 )}
                 {ocrEngine === 'gemini' && (

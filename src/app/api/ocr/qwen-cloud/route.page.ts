@@ -136,9 +136,16 @@ const PROVIDERS: Provider[] = [
   },
 ]
 
+const FUNCTION_DURATION_SEC = typeof maxDuration === 'number' ? maxDuration : 60
+const EXPECTED_OCR_LATENCY_MS = 25_000
+const SAFETY_BUFFER_MS = 2_500
+
 // ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+  const totalBudgetMs = FUNCTION_DURATION_SEC * 1000 - SAFETY_BUFFER_MS
+
   let body: any
   try {
     body = await req.json()
@@ -192,14 +199,23 @@ export async function POST(req: NextRequest) {
     const apiKey = (provider.name === 'OpenRouter' && clientKey) ? clientKey : process.env[provider.envKey]!
 
     for (const model of provider.models) {
+      const elapsed = Date.now() - startTime
+      const remainingBudgetMs = totalBudgetMs - elapsed
+      if (remainingBudgetMs < 3_000) {
+        errors.push(`Function execution deadline approaching (${remainingBudgetMs}ms left)`)
+        break
+      }
+
+      const attemptTimeoutMs = Math.min(remainingBudgetMs, EXPECTED_OCR_LATENCY_MS)
+
       try {
-        console.log(`[qwen-cloud] Trying ${provider.name} / ${model}`)
+        console.log(`[qwen-cloud] Trying ${provider.name} / ${model} (${attemptTimeoutMs}ms budget)`)
 
         const res = await fetch(`${provider.baseUrl}/chat/completions`, {
           method: 'POST',
           headers: provider.buildHeaders(apiKey),
           body: JSON.stringify(provider.buildBody(model, imageUrl, prompt)),
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(attemptTimeoutMs),
         })
 
         if (!res.ok) {
