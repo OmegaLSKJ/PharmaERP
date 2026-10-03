@@ -266,8 +266,8 @@ export async function scanInvoiceImage(
   }
 
   // 1. Resolve local offline model or fallback to tessdata_best CDN
-  const localOrigin = typeof window !== 'undefined' && window.location ? window.location.origin : ''
-  const langPath = localOrigin ? `${localOrigin}/tessdata` : 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_best@main'
+  const localOrigin = '' // Bundled tessdata is not shipped; use the maintained CDN package.
+  const langPath = localOrigin ? `${localOrigin}/tessdata` : 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int'
 
   const worker = await createWorkerFn('eng', 1, {
     langPath,
