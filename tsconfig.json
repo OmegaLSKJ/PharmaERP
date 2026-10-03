@@ -26,7 +26,11 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "next": ["./node_modules/next"],
+      "next/*": ["./node_modules/next/*"]
+    }
   },
   "include": [
     "src",
