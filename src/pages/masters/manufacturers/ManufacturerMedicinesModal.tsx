@@ -484,17 +484,19 @@ export default function ManufacturerMedicinesModal({
     // ─── BACKGROUND PERSISTENCE ───
     ;(async () => {
       try {
-        if (batch.id) await deleteErp('item-batches', batch.id)
+        if (!batch.id) throw new Error('Batch has no server ID — it may not have been saved yet.')
+        await deleteErp('item-batches', batch.id)
       } catch (err: any) {
         console.error('Batch delete failed, rolling back:', err)
+        // Rollback the optimistic update
         setMedicines((prev) =>
           prev.map((item) =>
             item.id === med.id
-              ? { ...item, batches: snapshotBatches, stock: snapshotBatches.reduce((s, b) => s + (Number(b.stock) || 0), 0) }
+              ? { ...item, batches: snapshotBatches, stock: snapshotBatches.reduce((s, b) => s + (Number(b.stock) || 0), 0), batchCount: snapshotBatches.length }
               : item
           )
         )
-        showToast(`Sync failed: ${err?.message || 'Could not delete batch from server.'}`)
+        showToast(`Delete failed: ${err?.message || 'Could not delete batch from server.'}`)
       }
     })()
   }

@@ -6288,15 +6288,16 @@ export async function remove(resource: string, id: string, actor: MutationActor 
     const { data: batch, error: batchError } = await client.from('item_batches').select('id,items!inner(organization_id)').eq('id', id).eq('items.organization_id', organizationId).maybeSingle()
     if (batchError) throw batchError
     if (!batch) throw new Error('Batch not found.')
-    const [{ count: stockCount }, { count: salesCount }, { count: purchaseCount }, { count: challanCount }] = await Promise.all([
-      client.from('stock_movements').select('*', { count: 'exact', head: true }).eq('item_batch_id', id),
+    const [{ count: salesCount }, { count: purchaseCount }, { count: challanCount }] = await Promise.all([
       client.from('sales_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_batch_id', id),
       client.from('purchase_invoice_lines').select('*', { count: 'exact', head: true }).eq('item_batch_id', id),
       client.from('delivery_challan_lines').select('*', { count: 'exact', head: true }).eq('item_batch_id', id)
     ])
-    if ((stockCount ?? 0) + (salesCount ?? 0) + (purchaseCount ?? 0) + (challanCount ?? 0) > 0) {
-      throw new Error('This batch has inventory or document history and cannot be deleted.')
+    if ((salesCount ?? 0) + (purchaseCount ?? 0) + (challanCount ?? 0) > 0) {
+      throw new Error('This batch has sales, purchase, or delivery history and cannot be deleted.')
     }
+    // Remove opening/manual stock movements (not transactional history — safe to clear)
+    await client.from('stock_movements').delete().eq('item_batch_id', id).in('movement_type', ['opening', 'manual_entry'])
     const { error } = await client.from('item_batches').delete().eq('id', id)
     if (error) throw error
     return { id }
