@@ -299,13 +299,19 @@ export async function processInvoiceWithQwenCloud(
       'thinkingmachines/inkling-small:free',
       'google/gemma-4-31b-it:free'
     ]
-    if (overrideModel && !freeModels.includes(overrideModel)) {
-      freeModels.unshift(overrideModel)
+    const validOverride = overrideModel && overrideModel !== 'auto' && overrideModel.includes('/') && !overrideModel.startsWith('gemini') ? overrideModel : null
+    if (validOverride && !freeModels.includes(validOverride)) {
+      freeModels.unshift(validOverride)
     }
 
     for (const model of freeModels) {
       try {
-        onProgress?.(50, `Analyzing invoice with ${model.split('/')[1] || model}…`)
+        const displayModelName = model
+          .replace(/^.*\//, '')
+          .replace(/:free$/, '')
+          .replace(/[-_]/g, ' ')
+          .toUpperCase()
+        onProgress?.(50, `Analyzing invoice with ${displayModelName}…`)
         const directRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {

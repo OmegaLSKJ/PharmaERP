@@ -309,8 +309,8 @@ export default function InvoiceOcrModal({
         },
         {
           engine: ocrEngine,
-          apiKey: activeKey,
-          model: activeModel
+          apiKey: ocrEngine === 'gemini' ? activeKey : undefined,
+          model: ocrEngine === 'gemini' ? (activeModel === 'auto' ? undefined : activeModel) : undefined
         }
       )
 
