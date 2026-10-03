@@ -19,12 +19,6 @@ vi.mock('tesseract.js', () => ({
   }))
 }))
 
-vi.mock('../src/lib/ocr/qwenOcrEngine', () => ({
-  checkOllamaStatus: vi.fn(async () => ({ online: false, models: [] })),
-  processInvoiceWithQwen: vi.fn(),
-  processInvoiceWithQwenCloud: vi.fn()
-}))
-
 describe('Gemini AI Vision OCR Engine', () => {
   const storage: Record<string, string> = {}
 

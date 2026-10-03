@@ -1,16 +1,14 @@
 import { ExtractedInvoice, OcrProgressCallback } from './types'
 import { parsePharmaInvoice } from './pharmaInvoiceParser'
 import { processInvoiceWithGemini, hasGeminiApiKey, getStoredGeminiApiKey } from './geminiOcrEngine'
-import { processInvoiceWithQwen, processInvoiceWithQwenCloud, checkOllamaStatus } from './qwenOcrEngine'
+import { processInvoiceWithQwenCloud } from './qwenOcrEngine'
 
-export type OcrEngineChoice = 'gemini' | 'qwen' | 'openrouter' | 'tesseract' | 'auto'
+export type OcrEngineChoice = 'gemini' | 'openrouter' | 'tesseract' | 'auto'
 
 export interface ScanInvoiceOptions {
   engine?: OcrEngineChoice
   apiKey?: string
   model?: string
-  endpoint?: string
-  ollamaModel?: string
 }
 
 /**
@@ -420,15 +418,7 @@ export async function scanInvoice(
   const chosenEngine = options?.engine || 'auto'
   const explicitKey = options?.apiKey || getStoredGeminiApiKey()
   const explicitModel = options?.model
-  const endpoint = options?.endpoint
-  const ollamaModel = options?.ollamaModel
-
-  // 1. Explicit Qwen2-VL local engine (Ollama)
-  if (chosenEngine === 'qwen') {
-    return processInvoiceWithQwen(file, onProgress, endpoint, ollamaModel)
-  }
-
-  // 2. OpenRouter cloud engine (free — Gemma-4-31B, Qwen3.8-27B, etc.)
+  // 1. OpenRouter cloud engine.
   if (chosenEngine === 'openrouter') {
     return processInvoiceWithQwenCloud(file, onProgress, options?.model)
   }
@@ -442,25 +432,12 @@ export async function scanInvoice(
       if (chosenEngine === 'gemini') {
         throw err
       }
-      console.warn('Gemini OCR unavailable, attempting local Qwen2-VL or Tesseract:', err)
+      console.warn('Gemini OCR unavailable, attempting Tesseract:', err)
       onProgress?.(20, 'Switching to local offline OCR engine…')
     }
   }
 
-  // 3. Auto engine: Check if local Qwen2-VL / Ollama is running
-  if (chosenEngine === 'auto') {
-    try {
-      const ollamaCheck = await checkOllamaStatus(endpoint)
-      if (ollamaCheck.online && ollamaCheck.models.length > 0) {
-        onProgress?.(25, 'Local Ollama vision model detected, processing offline…')
-        return await processInvoiceWithQwen(file, onProgress, endpoint, ollamaModel)
-      }
-    } catch {
-      // Continue to local Tesseract fallback
-    }
-  }
-
-  // 4. Local fallback (Tesseract / PDF.js)
+  // 3. Local fallback (Tesseract / PDF.js)
   const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
   if (isPdf) {
     return scanInvoicePdf(file, onProgress)

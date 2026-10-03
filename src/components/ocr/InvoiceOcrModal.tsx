@@ -20,11 +20,6 @@ import {
   Printer,
   Settings,
   Key,
-  Cpu,
-  Copy,
-  Terminal,
-  ExternalLink,
-  Server
 } from 'lucide-react'
 import { scanInvoice } from '../../lib/ocr/ocrEngine'
 import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
@@ -36,20 +31,8 @@ import {
   setStoredGeminiApiKey,
   hasGeminiApiKey,
   getStoredGeminiModel,
-  setStoredGeminiModel,
-  fetchAvailableGeminiModels,
-  DEFAULT_GEMINI_CANDIDATE_MODELS
+  setStoredGeminiModel
 } from '../../lib/ocr/geminiOcrEngine'
-import {
-  getStoredOllamaEndpoint,
-  setStoredOllamaEndpoint,
-  getStoredOllamaModel,
-  setStoredOllamaModel,
-  checkOllamaStatus,
-  DEFAULT_OLLAMA_ENDPOINT,
-  DEFAULT_QWEN_MODELS,
-  OllamaStatus
-} from '../../lib/ocr/qwenOcrEngine'
 import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
@@ -129,479 +112,18 @@ function RawTextModal({ isOpen, initialText, onClose, onReparse }: RawTextModalP
 
 interface OcrSettingsModalProps {
   isOpen: boolean
-  initialTab?: 'qwen' | 'gemini'
   currentKey: string
   currentModel: string
-  currentEndpoint: string
-  currentOllamaModel: string
   onClose: () => void
   onSaveGemini: (key: string, model: string) => void
-  onSaveQwen: (endpoint: string, model: string) => void
-  onSwitchToTesseract: () => void
 }
 
-function OcrSettingsModal({
-  isOpen,
-  initialTab = 'qwen',
-  currentKey,
-  currentModel,
-  currentEndpoint,
-  currentOllamaModel,
-  onClose,
-  onSaveGemini,
-  onSaveQwen,
-  onSwitchToTesseract
-}: OcrSettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'qwen' | 'gemini'>(initialTab)
-
-  // Local Qwen2-VL / Ollama State
-  const [endpoint, setEndpoint] = useState(currentEndpoint || DEFAULT_OLLAMA_ENDPOINT)
-  const [ollamaModel, setOllamaModel] = useState(currentOllamaModel || 'qwen2-vl:7b')
-  const [customOllamaModel, setCustomOllamaModel] = useState('')
-  const [isCheckingOllama, setIsCheckingOllama] = useState(false)
-  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
-  const [copiedCmd, setCopiedCmd] = useState(false)
-
-  // Gemini State
+function OcrSettingsModal({ isOpen, currentKey, currentModel, onClose, onSaveGemini }: OcrSettingsModalProps) {
   const [key, setKey] = useState(currentKey)
   const [model, setModel] = useState(currentModel || 'auto')
-  const [customModel, setCustomModel] = useState('')
-  const [showKey, setShowKey] = useState(false)
-  const [isTestingKey, setIsTestingKey] = useState(false)
-  const [testResult, setTestResult] = useState<{ status: 'success' | 'error'; message: string; models?: string[] } | null>(null)
-
-  useEffect(() => {
-    setActiveTab(initialTab)
-  }, [initialTab, isOpen])
-
-  useEffect(() => {
-    setEndpoint(currentEndpoint || DEFAULT_OLLAMA_ENDPOINT)
-    const knownQwen = ['qwen2-vl:7b', 'qwen2-vl:2b', 'qwen2-vl:latest', 'qwen2.5-vl:7b', 'qwen2.5-vl:3b', 'llama3.2-vision:11b', 'llama3.2-vision:latest']
-    if (knownQwen.includes(currentOllamaModel)) {
-      setOllamaModel(currentOllamaModel)
-    } else if (currentOllamaModel) {
-      setOllamaModel('custom')
-      setCustomOllamaModel(currentOllamaModel)
-    } else {
-      setOllamaModel('qwen2-vl:7b')
-    }
-  }, [currentEndpoint, currentOllamaModel])
-
-  useEffect(() => {
-    setKey(currentKey)
-    const knownCandidates: string[] = ['auto', ...DEFAULT_GEMINI_CANDIDATE_MODELS]
-    if (knownCandidates.includes(currentModel)) {
-      setModel(currentModel)
-    } else if (currentModel) {
-      setModel('custom')
-      setCustomModel(currentModel)
-    } else {
-      setModel('auto')
-    }
-  }, [currentKey, currentModel])
-
-  // Probe Ollama status on open if on Qwen tab
-  useEffect(() => {
-    if (isOpen && activeTab === 'qwen' && !ollamaStatus) {
-      void handleCheckOllama()
-    }
-  }, [isOpen, activeTab])
-
+  useEffect(() => { setKey(currentKey); setModel(currentModel || 'auto') }, [currentKey, currentModel])
   if (!isOpen) return null
-
-  const handleCheckOllama = async () => {
-    setIsCheckingOllama(true)
-    try {
-      const status = await checkOllamaStatus(endpoint)
-      setOllamaStatus(status)
-      if (status.online && status.detectedVisionModel && ollamaModel !== 'custom') {
-        setOllamaModel(status.detectedVisionModel)
-      }
-    } finally {
-      setIsCheckingOllama(false)
-    }
-  }
-
-  const handleCopyCommand = (cmd: string) => {
-    if (navigator?.clipboard?.writeText) {
-      void navigator.clipboard.writeText(cmd)
-      setCopiedCmd(true)
-      setTimeout(() => setCopiedCmd(false), 2000)
-    }
-  }
-
-  const handleTestKey = async () => {
-    if (!key.trim()) {
-      setTestResult({ status: 'error', message: 'Please enter an API key first.' })
-      return
-    }
-
-    setIsTestingKey(true)
-    setTestResult(null)
-
-    try {
-      const models = await fetchAvailableGeminiModels(key.trim())
-      if (models && models.length > 0) {
-        setTestResult({
-          status: 'success',
-          message: `Connected successfully! Found ${models.length} supported models (e.g. ${models.slice(0, 3).join(', ')}).`,
-          models
-        })
-      } else {
-        setTestResult({
-          status: 'error',
-          message: 'API key responded, but no models supporting generateContent were found for this key/region.'
-        })
-      }
-    } catch (err: any) {
-      setTestResult({
-        status: 'error',
-        message: err?.message || 'Failed to connect to Google Gemini API. Please check your network and API key.'
-      })
-    } finally {
-      setIsTestingKey(false)
-    }
-  }
-
-  const effectiveGeminiModelToSave = model === 'custom' ? (customModel.trim() || 'auto') : model
-  const effectiveOllamaModelToSave = ollamaModel === 'custom' ? (customOllamaModel.trim() || 'qwen2-vl:7b') : ollamaModel
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-        
-        {/* Header with Navigation Tabs */}
-        <div className="border-b border-border bg-muted/30">
-          <div className="p-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-foreground">AI OCR Vision Engine Configuration</h3>
-              <p className="text-[11px] text-muted-foreground">Select local offline neural vision or cloud vision for bill reading</p>
-            </div>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground cursor-pointer">
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="flex border-t border-border/70 px-4 gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('qwen')}
-              className={`py-2 px-3 text-xs font-semibold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'qwen'
-                  ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Cpu size={14} />
-              <span>🧠 Local Qwen2-VL (Offline AI)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('gemini')}
-              className={`py-2 px-3 text-xs font-semibold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'gemini'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Sparkles size={14} />
-              <span>✨ Gemini AI Vision (Cloud)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab 1: Local Qwen2-VL / Ollama */}
-        {activeTab === 'qwen' && (
-          <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-            <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
-              <p className="font-semibold text-purple-700 dark:text-purple-300">
-                100% Offline & Private AI Vision Engine
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                Qwen2-VL runs on your local machine using Ollama. Zero internet required, zero API costs, and understands complex medicine table layouts, handwriting, rates, and batches.
-              </p>
-            </div>
-
-            {/* Ollama Endpoint */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Server size={13} className="text-purple-500" />
-                  <span>Local Ollama Service URL</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={handleCheckOllama}
-                  disabled={isCheckingOllama}
-                  className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  {isCheckingOllama ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                  <span>{isCheckingOllama ? 'Testing…' : 'Test Connection'}</span>
-                </button>
-              </div>
-              <input
-                type="text"
-                value={endpoint}
-                onChange={(e) => setEndpoint(e.target.value)}
-                placeholder="http://localhost:11434"
-                className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-purple-500/30"
-              />
-            </div>
-
-            {/* Qwen2-VL Model Selector */}
-            <div>
-              <label className="text-xs font-semibold text-foreground block mb-1.5">
-                Vision Model
-              </label>
-              <select
-                value={ollamaModel}
-                onChange={(e) => setOllamaModel(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-purple-500/30 font-medium"
-              >
-                <option value="qwen2-vl:7b">Qwen2-VL 7B (Recommended — High Accuracy, ~4.5 GB)</option>
-                <option value="qwen2-vl:2b">Qwen2-VL 2B (Ultra-Fast / Low VRAM, ~1.5 GB)</option>
-                <option value="qwen2.5-vl:7b">Qwen2.5-VL 7B (Latest Generation Vision)</option>
-                <option value="qwen2.5-vl:3b">Qwen2.5-VL 3B</option>
-                <option value="llama3.2-vision:11b">Llama 3.2 Vision 11B</option>
-                <option value="custom">Custom Installed Model Name…</option>
-              </select>
-
-              {ollamaModel === 'custom' && (
-                <input
-                  type="text"
-                  placeholder="e.g. qwen2-vl:latest or my-custom-model"
-                  value={customOllamaModel}
-                  onChange={(e) => setCustomOllamaModel(e.target.value)}
-                  className="w-full mt-2 px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-purple-500/30"
-                />
-              )}
-            </div>
-
-            {/* Connection Status Card */}
-            {ollamaStatus && (
-              <div
-                className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${
-                  ollamaStatus.online
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300'
-                }`}
-              >
-                {ollamaStatus.online ? (
-                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                )}
-                <div className="space-y-1.5 flex-1">
-                  <p className="font-semibold">
-                    {ollamaStatus.online ? '✓ Local Ollama Service is Running!' : 'Ollama Service Not Reachable'}
-                  </p>
-                  {ollamaStatus.online ? (
-                    <p className="text-[11px] opacity-90">
-                      Installed models detected:{' '}
-                      <span className="font-mono font-bold">
-                        {ollamaStatus.models.length > 0 ? ollamaStatus.models.join(', ') : 'None yet'}
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-[11px] opacity-90 leading-relaxed">
-                      Could not reach Ollama at <code className="font-mono">{endpoint}</code>. Make sure Ollama is downloaded and running on this machine.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Terminal Command to Download & Run */}
-            <div className="p-3.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-black/40 border border-border text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Terminal size={13} className="text-purple-400" />
-                  <span>One-Command Setup in Terminal:</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleCopyCommand(`ollama run ${effectiveOllamaModelToSave}`)}
-                  className="text-[10px] text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold cursor-pointer"
-                >
-                  {copiedCmd ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                  <span>{copiedCmd ? 'Copied!' : 'Copy Command'}</span>
-                </button>
-              </div>
-              <div className="bg-black/60 rounded-lg p-2 font-mono text-[11px] text-purple-300 select-all overflow-x-auto">
-                ollama run {effectiveOllamaModelToSave}
-              </div>
-              <p className="text-[10px] text-slate-400">
-                This downloads Qwen2-VL locally (once) and starts the offline vision daemon immediately.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Gemini AI Vision */}
-        {activeTab === 'gemini' && (
-          <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Google Gemini AI Vision runs in the cloud and provides near 100% accuracy on Indian pharmacy bills, handwriting, and medicine catalog extraction.
-            </p>
-
-            <div>
-              <label className="text-xs font-semibold text-foreground block mb-1.5">
-                Google Gemini API Key
-              </label>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={key}
-                  onChange={(e) => setKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 pr-16"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded cursor-pointer"
-                >
-                  {showKey ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  Gemini Vision Model
-                </label>
-                <button
-                  type="button"
-                  disabled={isTestingKey || !key.trim()}
-                  onClick={handleTestKey}
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isTestingKey ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                  <span>{isTestingKey ? 'Testing Key…' : 'Test Key & Detect Models'}</span>
-                </button>
-              </div>
-
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 font-medium"
-              >
-                <option value="auto">✨ Auto-detect Best Available Model (Recommended)</option>
-                <option value="gemini-3.5-flash">Gemini 3.5 Flash (GenAI Document AI - Latest & Recommended)</option>
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fastest Layout Parsing)</option>
-                <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
-                <option value="gemini-1.5-flash-002">Gemini 1.5 Flash (002)</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Legacy)</option>
-                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
-                <option value="gemini-3.1-pro">Gemini 3.1 Pro (Flagship Reasoning)</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                <option value="custom">Custom Model Name...</option>
-              </select>
-
-              {model === 'custom' && (
-                <input
-                  type="text"
-                  value={customModel}
-                  onChange={(e) => setCustomModel(e.target.value)}
-                  placeholder="e.g. gemini-2.5-flash"
-                  className="mt-2 w-full px-3 py-1.5 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500/30"
-                />
-              )}
-            </div>
-
-            {testResult && (
-              <div
-                className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
-                  testResult.status === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-destructive/10 border-destructive/20 text-destructive'
-                }`}
-              >
-                {testResult.status === 'success' ? (
-                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                )}
-                <div className="leading-relaxed">{testResult.message}</div>
-              </div>
-            )}
-
-            <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] text-muted-foreground space-y-1.5">
-              <div className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                <Sparkles size={13} />
-                <span>Free Tier: 15 Scans / Minute</span>
-              </div>
-              <p>
-                Get your free key from Google AI Studio without needing a credit card:{' '}
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-blue-500 hover:underline font-semibold inline-flex items-center gap-0.5"
-                >
-                  Get Free API Key →
-                </a>
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10">
-          <button
-            type="button"
-            onClick={() => {
-              onSwitchToTesseract()
-              onClose()
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer"
-          >
-            Use Local Tesseract (Offline)
-          </button>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-secondary cursor-pointer"
-            >
-              Cancel
-            </button>
-            {activeTab === 'qwen' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onSaveQwen(endpoint, effectiveOllamaModelToSave)
-                  onClose()
-                }}
-                className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Cpu size={14} />
-                <span>Save & Use Local Qwen2-VL</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  onSaveGemini(key, effectiveGeminiModelToSave)
-                  onClose()
-                }}
-                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Sparkles size={14} />
-                <span>Save & Use Gemini</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  )
+  return createPortal(<div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl"><h3 className="text-base font-bold">Gemini AI Vision settings</h3><p className="mt-1 text-xs text-muted-foreground">Configure the cloud AI key and model.</p><label className="mt-4 grid gap-1 text-xs font-semibold">API key<input value={key} onChange={(event) => setKey(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" /></label><label className="mt-3 grid gap-1 text-xs font-semibold">Model<input value={model} onChange={(event) => setModel(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-lg border border-border px-3 py-2 text-xs">Cancel</button><button type="button" onClick={() => { onSaveGemini(key, model); onClose() }} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Save</button></div></div></div>, document.body)
 }
 
 export interface InvoiceOcrModalProps {
@@ -632,14 +154,11 @@ export default function InvoiceOcrModal({
   const [error, setError] = useState<string | null>(null)
   const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
   const [filterText, setFilterText] = useState('')
-  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'qwen' | 'openrouter' | 'tesseract'>('qwen')
+  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'openrouter' | 'tesseract'>('gemini')
   const [geminiApiKey, setGeminiApiKey] = useState(() => getStoredGeminiApiKey())
   const [geminiModel, setGeminiModel] = useState(() => getStoredGeminiModel() || 'auto')
-  const [ollamaEndpoint, setOllamaEndpoint] = useState(() => getStoredOllamaEndpoint())
-  const [ollamaModel, setOllamaModel] = useState(() => getStoredOllamaModel() || 'qwen2-vl:7b')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'qwen' | 'gemini'>('qwen')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
 
 
@@ -765,7 +284,6 @@ export default function InvoiceOcrModal({
     // If Gemini selected but no key is available anywhere, open configuration modal
     if (ocrEngine === 'gemini' && !activeKey && !hasGeminiApiKey()) {
       setPendingFile(selectedFile)
-      setSettingsTab('gemini')
       setShowSettingsModal(true)
       return
     }
@@ -777,8 +295,6 @@ export default function InvoiceOcrModal({
     setStatusMessage(
       ocrEngine === 'gemini'
         ? 'Analyzing invoice with Gemini AI Vision…'
-        : ocrEngine === 'qwen'
-        ? `Processing invoice with Local Qwen2-VL (${ollamaModel}) offline…`
         : ocrEngine === 'openrouter'
         ? 'Sending invoice to OpenRouter cloud (Gemma-4 / Qwen3.8 — Free)…'
         : 'Preparing image for local OCR scan…'
@@ -794,9 +310,7 @@ export default function InvoiceOcrModal({
         {
           engine: ocrEngine,
           apiKey: activeKey,
-          model: activeModel,
-          endpoint: ollamaEndpoint,
-          ollamaModel
+          model: activeModel
         }
       )
 
@@ -811,14 +325,8 @@ export default function InvoiceOcrModal({
       console.error('OCR Scanning Error:', err)
       if (err?.message === 'GEMINI_API_KEY_REQUIRED' || err?.message === 'INVALID_GEMINI_API_KEY') {
         setPendingFile(selectedFile)
-        setSettingsTab('gemini')
         setShowSettingsModal(true)
         setError(err?.message === 'INVALID_GEMINI_API_KEY' ? 'Invalid Gemini API Key. Please verify your key.' : 'Please enter your Gemini API Key to use AI Vision.')
-      } else if (err?.message?.includes('Cannot reach local Ollama') || err?.message?.includes('Failed to communicate with Local Qwen2-VL')) {
-        setPendingFile(selectedFile)
-        setSettingsTab('qwen')
-        setShowSettingsModal(true)
-        setError(err.message)
       } else {
         setError(err?.message || 'Failed to scan document. Please check the file clarity and try again.')
       }
@@ -1176,7 +684,6 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setSettingsTab('gemini')
                           setShowSettingsModal(true)
                         }}
                         title="Configure Gemini API Key & Vision Model"
@@ -1206,23 +713,6 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                         <Settings size={12} />
                       </button>
                     </div>
-                  ) : ocrEngine === 'qwen' ? (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shadow-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-                      <span>🧠 Local Qwen2-VL ({ollamaModel.replace(/^qwen2-vl:/, '') || '7b'} Offline AI)</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSettingsTab('qwen')
-                          setShowSettingsModal(true)
-                        }}
-                        title="Configure Local Ollama / Qwen2-VL Model"
-                        className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
-                      >
-                        <Settings size={12} />
-                      </button>
-                    </div>
                   ) : (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       <span>Local Tesseract (LSTM tessdata_best)</span>
@@ -1230,38 +720,28 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   )}
 
                   {/* Engine toggle buttons */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (ocrEngine === 'gemini') {
-                        setOcrEngine('qwen')
-                      } else {
-                        setOcrEngine('gemini')
-                      }
-                    }}
-                    className="text-[10px] text-muted-foreground hover:text-foreground underline transition ml-0.5 cursor-pointer font-normal"
-                  >
-                    Switch to {ocrEngine === 'gemini' ? 'Local Qwen2-VL (Offline AI)' : 'Gemini AI Vision'}
+                  <button type="button" onClick={() => setOcrEngine(ocrEngine === 'gemini' ? 'tesseract' : 'gemini')} className="text-[10px] text-muted-foreground hover:text-foreground underline transition ml-0.5 cursor-pointer font-normal">
+                    {ocrEngine === 'gemini' ? 'Use Local Tesseract' : 'Use Gemini AI Vision'}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setOcrEngine(ocrEngine === 'openrouter' ? 'qwen' : 'openrouter')}
+                    onClick={() => setOcrEngine(ocrEngine === 'openrouter' ? 'gemini' : 'openrouter')}
                     className="text-[10px] text-muted-foreground hover:text-green-500 transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
                     title="Use free cloud OCR via OpenRouter (Gemma-4-31B, Qwen3.8-27B)"
                   >
-                    {ocrEngine === 'openrouter' ? '(Use Local Qwen2-VL)' : '(OpenRouter — Free Cloud)'}
+                    {ocrEngine === 'openrouter' ? '(Use Gemini AI Vision)' : '(OpenRouter — Free Cloud)'}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => {
-                      setOcrEngine(ocrEngine === 'tesseract' ? 'qwen' : 'tesseract')
+                      setOcrEngine(ocrEngine === 'tesseract' ? 'gemini' : 'tesseract')
                     }}
                     className="text-[10px] text-muted-foreground hover:text-foreground transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
                     title="Toggle legacy browser-based Tesseract"
                   >
-                    {ocrEngine === 'tesseract' ? '(Use Qwen2-VL)' : '(Use Tesseract)'}
+                    {ocrEngine === 'tesseract' ? '(Use Gemini AI Vision)' : '(Use Tesseract)'}
                   </button>
                 </div>
               </h2>
@@ -2080,29 +1560,13 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
       {showSettingsModal && (
         <OcrSettingsModal
           isOpen={showSettingsModal}
-          initialTab={settingsTab}
           currentKey={geminiApiKey}
           currentModel={geminiModel}
-          currentEndpoint={ollamaEndpoint}
-          currentOllamaModel={ollamaModel}
           onClose={() => setShowSettingsModal(false)}
           onSaveGemini={(key, model) => {
             handleSaveApiKey(key, model)
             setOcrEngine('gemini')
           }}
-          onSaveQwen={(endpoint, model) => {
-            setStoredOllamaEndpoint(endpoint)
-            setOllamaEndpoint(endpoint)
-            setStoredOllamaModel(model)
-            setOllamaModel(model)
-            setOcrEngine('qwen')
-            if (pendingFile) {
-              const f = pendingFile
-              setPendingFile(null)
-              void handleFileSelect(f)
-            }
-          }}
-          onSwitchToTesseract={() => setOcrEngine('tesseract')}
         />
       )}
     </div>,
