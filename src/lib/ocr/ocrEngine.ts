@@ -1,9 +1,9 @@
 import { ExtractedInvoice, OcrProgressCallback } from './types'
 import { parsePharmaInvoice } from './pharmaInvoiceParser'
 import { processInvoiceWithGemini, hasGeminiApiKey, getStoredGeminiApiKey } from './geminiOcrEngine'
-import { processInvoiceWithQwen, checkOllamaStatus } from './qwenOcrEngine'
+import { processInvoiceWithQwen, processInvoiceWithQwenCloud, checkOllamaStatus } from './qwenOcrEngine'
 
-export type OcrEngineChoice = 'gemini' | 'qwen' | 'tesseract' | 'auto'
+export type OcrEngineChoice = 'gemini' | 'qwen' | 'openrouter' | 'tesseract' | 'auto'
 
 export interface ScanInvoiceOptions {
   engine?: OcrEngineChoice
@@ -423,12 +423,17 @@ export async function scanInvoice(
   const endpoint = options?.endpoint
   const ollamaModel = options?.ollamaModel
 
-  // 1. Explicit Qwen2-VL local engine
+  // 1. Explicit Qwen2-VL local engine (Ollama)
   if (chosenEngine === 'qwen') {
     return processInvoiceWithQwen(file, onProgress, endpoint, ollamaModel)
   }
 
-  // 2. Gemini AI Vision engine
+  // 2. OpenRouter cloud engine (free — Gemma-4-31B, Qwen3.8-27B, etc.)
+  if (chosenEngine === 'openrouter') {
+    return processInvoiceWithQwenCloud(file, onProgress, options?.model)
+  }
+
+  // 3. Gemini AI Vision engine (unchanged)
   const canUseGemini = chosenEngine === 'gemini' || (chosenEngine === 'auto' && (hasGeminiApiKey() || Boolean(explicitKey)))
   if (canUseGemini) {
     try {

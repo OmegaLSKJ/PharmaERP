@@ -630,14 +630,16 @@ export default function InvoiceOcrModal({
   const [error, setError] = useState<string | null>(null)
   const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
   const [filterText, setFilterText] = useState('')
-  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'qwen' | 'tesseract'>('qwen')
+  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'qwen' | 'openrouter' | 'tesseract'>('qwen')
   const [geminiApiKey, setGeminiApiKey] = useState(() => getStoredGeminiApiKey())
   const [geminiModel, setGeminiModel] = useState(() => getStoredGeminiModel() || 'auto')
   const [ollamaEndpoint, setOllamaEndpoint] = useState(() => getStoredOllamaEndpoint())
   const [ollamaModel, setOllamaModel] = useState(() => getStoredOllamaModel() || 'qwen2-vl:7b')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'qwen' | 'gemini'>('qwen')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+
 
   // Load cached ERP items or provide rich defaults for comprehensive master mapping
   const effectiveMasterItems: MasterItemOption[] = useMemo(() => {
@@ -775,6 +777,8 @@ export default function InvoiceOcrModal({
         ? 'Analyzing invoice with Gemini AI Vision…'
         : ocrEngine === 'qwen'
         ? `Processing invoice with Local Qwen2-VL (${ollamaModel}) offline…`
+        : ocrEngine === 'openrouter'
+        ? 'Sending invoice to OpenRouter cloud (Gemma-4 / Qwen3.8 — Free)…'
         : 'Preparing image for local OCR scan…'
     )
 
@@ -1179,6 +1183,11 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                         <Settings size={12} />
                       </button>
                     </div>
+                  ) : ocrEngine === 'openrouter' ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      <span>🌐 OpenRouter Cloud (Gemma-4-31B — Free)</span>
+                    </div>
                   ) : ocrEngine === 'qwen' ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
@@ -1202,6 +1211,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     </div>
                   )}
 
+                  {/* Engine toggle buttons */}
                   <button
                     type="button"
                     onClick={() => {
@@ -1214,6 +1224,15 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     className="text-[10px] text-muted-foreground hover:text-foreground underline transition ml-0.5 cursor-pointer font-normal"
                   >
                     Switch to {ocrEngine === 'gemini' ? 'Local Qwen2-VL (Offline AI)' : 'Gemini AI Vision'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOcrEngine(ocrEngine === 'openrouter' ? 'qwen' : 'openrouter')}
+                    className="text-[10px] text-muted-foreground hover:text-green-500 transition ml-1 cursor-pointer opacity-70 hover:opacity-100"
+                    title="Use free cloud OCR via OpenRouter (Gemma-4-31B, Qwen3.8-27B)"
+                  >
+                    {ocrEngine === 'openrouter' ? '(Use Local Qwen2-VL)' : '(OpenRouter — Free Cloud)'}
                   </button>
 
                   <button

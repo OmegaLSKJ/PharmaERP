@@ -264,6 +264,21 @@ export async function processInvoiceWithQwen(
   overrideEndpoint?: string,
   overrideModel?: string
 ): Promise<ExtractedInvoice> {
+  // ─── Auto-detect environment ────────────────────────────────────────────────
+  // On Vercel (or any non-localhost deployment) we cannot reach a local Ollama
+  // daemon. Route to our serverless Vercel API route that proxies to Together AI.
+  const isVercel =
+    typeof window !== 'undefined'
+      ? !['localhost', '127.0.0.1', '0.0.0.0'].some((h) =>
+          window.location.hostname.includes(h)
+        )
+      : process.env.VERCEL === '1'
+
+  if (isVercel && !overrideEndpoint) {
+    return processInvoiceWithQwenCloud(file, onProgress, overrideModel)
+  }
+
+  // ─── Local Ollama path ──────────────────────────────────────────────────────
   const endpoint = (overrideEndpoint || getStoredOllamaEndpoint() || DEFAULT_OLLAMA_ENDPOINT).replace(/\/+$/, '')
   let targetModel = overrideModel || getStoredOllamaModel() || 'qwen2-vl:7b'
 
@@ -280,7 +295,7 @@ export async function processInvoiceWithQwen(
     }
   }
 
-  const { base64 } = await fileToBase64(imageFile)
+  const { base64, mimeType } = await fileToBase64(imageFile)
 
   onProgress?.(30, `Checking local Ollama connection on ${endpoint}…`)
 
@@ -306,43 +321,92 @@ export async function processInvoiceWithQwen(
 
   onProgress?.(45, `Processing invoice with ${targetModel} (100% offline & private)…`)
 
-  const payload = {
+
+  // Ollama /api/chat multimodal format: images go inside message content as array
+  // Using /api/generate as it has broader vision model support than /api/chat for some models
+  const chatPayload = {
     model: targetModel,
     messages: [
       {
         role: 'user',
-        content: PHARMA_INVOICE_PROMPT,
-        images: [base64]
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${base64}` }
+          },
+          {
+            type: 'text',
+            text: PHARMA_INVOICE_PROMPT
+          }
+        ]
       }
     ],
-    format: 'json',
     stream: false,
     options: {
-      temperature: 0.1
+      temperature: 0.1,
+      num_predict: 4096
+    }
+  }
+
+  // Fallback /api/generate payload (for models like llava that prefer this endpoint)
+  const generatePayload = {
+    model: targetModel,
+    prompt: PHARMA_INVOICE_PROMPT,
+    images: [base64],
+    stream: false,
+    options: {
+      temperature: 0.1,
+      num_predict: 4096
     }
   }
 
   let rawJsonText = ''
 
-  // 1. Try direct fetch to Ollama
-  try {
-    const res = await fetch(`${endpoint}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (res.ok) {
-      const data = await res.json()
-      rawJsonText = data?.message?.content || ''
-    } else {
-      const errorText = await res.text()
-      throw new Error(`Ollama returned status ${res.status}: ${errorText}`)
+  /**
+   * Try Ollama endpoints in order:
+   * 1. /api/chat with content-array multimodal format (OpenAI-compatible)
+   * 2. /api/generate with top-level images array (legacy llava-style)
+   * 3. Server proxy route (if CORS blocks browser→localhost)
+   */
+  const tryOllamaDirect = async (): Promise<string> => {
+    // Attempt 1: /api/chat with content array format
+    try {
+      const res = await fetch(`${endpoint}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(chatPayload)
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const content = data?.message?.content || ''
+        if (content.trim()) return content
+        // Empty content → model didn't understand content-array format, try generate
+        console.warn('[Qwen OCR] /api/chat returned empty content, falling back to /api/generate')
+      }
+    } catch {
+      // CORS or network error → fall through
     }
+
+    // Attempt 2: /api/generate with top-level images (llava / older qwen2-vl)
+    const genRes = await fetch(`${endpoint}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(generatePayload)
+    })
+    if (genRes.ok) {
+      const data = await genRes.json()
+      const content = data?.response || ''
+      if (content.trim()) return content
+      throw new Error('Ollama model returned an empty response. Make sure the model is a vision-capable model (e.g. qwen2-vl:7b, llava:latest).')
+    }
+    const errText = await genRes.text()
+    throw new Error(`Ollama /api/generate returned ${genRes.status}: ${errText}`)
+  }
+
+  try {
+    rawJsonText = await tryOllamaDirect()
   } catch (fetchErr: any) {
-    // 2. Fallback: Try server proxy route if browser CORS blocked localhost
+    // 3. Fallback: proxy route (handles CORS-blocked localhost calls from browser)
     onProgress?.(55, 'Retrying via local ERP gateway proxy…')
     try {
       const proxyRes = await fetch('/api/ocr/qwen', {
@@ -350,23 +414,32 @@ export async function processInvoiceWithQwen(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint,
-          payload
+          chatPayload,
+          generatePayload
         })
       })
 
       if (proxyRes.ok) {
         const data = await proxyRes.json()
-        rawJsonText = data?.content || (data?.message?.content) || ''
+        rawJsonText = data?.content || data?.message?.content || data?.response || ''
       } else {
         const proxyErrText = await proxyRes.text()
         throw new Error(proxyErrText || fetchErr.message)
       }
     } catch (proxyErr: any) {
       throw new Error(
-        `Failed to communicate with Local Qwen2-VL on ${endpoint}. ` +
-        `Please ensure Ollama is running ('ollama run ${targetModel}'). Error: ${proxyErr.message || fetchErr.message}`
+        `Failed to communicate with Local Vision Model on ${endpoint}. ` +
+        `Please ensure Ollama is running ('ollama run ${targetModel}'). ` +
+        `Error: ${proxyErr.message || fetchErr.message}`
       )
     }
+  }
+
+  if (!rawJsonText?.trim()) {
+    throw new Error(
+      `The model "${targetModel}" returned an empty response. ` +
+      'Verify it is a vision-capable model. Try: ollama run qwen2-vl:7b'
+    )
   }
 
   onProgress?.(80, 'Parsing structured invoice data…')
@@ -430,6 +503,122 @@ export async function processInvoiceWithQwen(
     items: mappedItems,
     rawText: parsed.rawText || rawJsonText,
     confidence: 0.95,
+    sourceType: 'image_ocr',
+    pageCount: 1
+  }
+}
+
+/**
+ * Cloud path: sends the invoice image to /api/ocr/qwen-cloud (Vercel serverless)
+ * which proxies to Together AI's hosted Qwen2-VL-7B-Instruct.
+ * Used automatically when the app is deployed on Vercel / any non-localhost host.
+ */
+export async function processInvoiceWithQwenCloud(
+  file: File,
+  onProgress?: OcrProgressCallback,
+  overrideModel?: string
+): Promise<ExtractedInvoice> {
+  onProgress?.(10, 'Preparing document for Cloud Qwen2-VL (Together AI)…')
+
+  // If PDF, render first page to image
+  let imageFile: File | Blob = file
+  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    try {
+      onProgress?.(20, 'Rendering PDF page to image…')
+      imageFile = await renderPdfPageToBlob(file)
+    } catch (pdfErr) {
+      console.warn('Could not render PDF for cloud, using raw file:', pdfErr)
+    }
+  }
+
+  const { base64, mimeType } = await fileToBase64(imageFile)
+
+  onProgress?.(40, 'Sending to Qwen2-VL on Together AI cloud GPU…')
+
+  const res = await fetch('/api/ocr/qwen-cloud', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      base64,
+      mimeType,
+      prompt: PHARMA_INVOICE_PROMPT,
+      ...(overrideModel ? { model: overrideModel } : {})
+    })
+  })
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error(
+      errData.error ||
+      `Cloud OCR route returned ${res.status}. Check TOGETHER_API_KEY in Vercel env vars.`
+    )
+  }
+
+  const result = await res.json()
+  const rawJsonText: string = result.content || ''
+
+  if (!rawJsonText.trim()) {
+    throw new Error('Together AI Qwen2-VL returned an empty response. Check your API key and model availability.')
+  }
+
+  onProgress?.(80, 'Parsing structured invoice data from cloud response…')
+
+  let parsed: any
+  try {
+    parsed = cleanAndParseJson(rawJsonText)
+  } catch (parseErr) {
+    console.error('Failed to parse cloud Qwen JSON:', rawJsonText)
+    throw new Error('Cloud Qwen2-VL responded but JSON could not be parsed: ' + String(parseErr))
+  }
+
+  const normalizedItems: ExtractedLineItem[] = (parsed.items || []).map((it: any, idx: number) => {
+    const qty = Number(it.qty) || 1
+    const freeQty = Number(it.freeQty) || 0
+    const rate = Number(it.purchaseRate) || Number(it.rate) || 0
+    const mrp = Number(it.mrp) || rate * 1.2
+    const saleRate = Number(it.saleRate) || mrp * 0.9
+    const gstRate = Number(it.gstRate) || 12
+    const amount = Number(it.amount) || Math.round(qty * rate * 100) / 100
+
+    return {
+      id: `item-${Date.now()}-${idx}`,
+      itemName: String(it.itemName || `Item ${idx + 1}`).trim(),
+      packing: it.packing || '10x10',
+      hsn: String(it.hsn || '30049099').trim(),
+      batch: String(it.batch || 'BATCH01').trim(),
+      expiry: String(it.expiry || '12/28').trim(),
+      qty,
+      freeQty,
+      purchaseRate: rate,
+      mrp,
+      saleRate,
+      discount: Number(it.discount) || 0,
+      gstRate,
+      amount,
+      confidence: 0.93,
+      isConfirmed: true
+    }
+  })
+
+  onProgress?.(90, 'Auto-mapping medicines to Master Catalog…')
+  const mappedItems = mapExtractedItemsToMaster(normalizedItems, PHARMA_MASTER_CATALOG)
+
+  const calculatedTotal = mappedItems.reduce((acc, it) => acc + (it.amount || 0), 0)
+  const totalAmount = Number(parsed.totalAmount) || Math.round(calculatedTotal * 100) / 100
+  const taxAmount = Number(parsed.taxAmount) || Math.round(totalAmount * 0.12 * 100) / 100
+
+  onProgress?.(100, `Invoice mapped via Cloud Qwen2-VL (${result.model || 'Together AI'})!`)
+
+  return {
+    supplierName: String(parsed.supplierName || 'Wholesale Pharma Distributor').trim(),
+    supplierGstin: String(parsed.supplierGstin || '').trim(),
+    invoiceNo: String(parsed.invoiceNo || 'INV-' + Math.floor(1000 + Math.random() * 9000)).trim(),
+    invoiceDate: String(parsed.invoiceDate || new Date().toISOString().split('T')[0]).trim(),
+    totalAmount,
+    taxAmount,
+    items: mappedItems,
+    rawText: parsed.rawText || rawJsonText,
+    confidence: 0.93,
     sourceType: 'image_ocr',
     pageCount: 1
   }

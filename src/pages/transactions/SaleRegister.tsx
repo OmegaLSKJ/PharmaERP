@@ -16,10 +16,11 @@ import {
   Download,
   ArrowRight,
   Trash2,
+  RotateCcw,
   ExternalLink
 } from 'lucide-react'
 import { cn, formatCurrency } from '../../lib/utils'
-import { deleteErp, getErp } from '../../lib/erpApi'
+import { deleteErp, getErp, patchErp } from '../../lib/erpApi'
 import { getCached } from '../../lib/erpCache'
 import { useUIStore } from '../../store/uiStore'
 import PrintHeader from '../../components/layout/PrintHeader'
@@ -174,14 +175,33 @@ export default function SaleRegister() {
   const cancelInvoice = async (sale: SaleInv, e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (sale.status === 'cancelled') return
-    if (!window.confirm(`Cancel ${sale.invoiceNo}? Stock and accounting postings will be reversed and the audit record retained.`)) return
+    if (!window.confirm(
+      `Cancel invoice ${sale.invoiceNo}?\n\nThis will reverse stock and accounting entries for this invoice only. The audit record will be retained.`
+    )) return
     try {
+      // Use DELETE which calls erp_cancel_invoice RPC (correctly scoped to this id)
       await deleteErp('sales', sale.id)
       setSales((rows) => rows.map((row) => row.id === sale.id ? { ...row, status: 'cancelled' } : row))
       setSelected((current) => current?.id === sale.id ? { ...current, status: 'cancelled' } : current)
-      addToast(`${sale.invoiceNo} cancelled and reversed.`, 'success')
+      addToast(`${sale.invoiceNo} cancelled and stock reversed.`, 'success')
     } catch (error) {
       addToast(error instanceof Error ? error.message : 'Could not cancel invoice.', 'error')
+    }
+  }
+
+  const revertCancellation = async (sale: SaleInv, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (sale.status !== 'cancelled') return
+    if (!window.confirm(
+      `Revert cancellation of ${sale.invoiceNo}?\n\nThis will restore the invoice to Posted/Sold status. You may need to re-post stock movements manually.`
+    )) return
+    try {
+      await patchErp('sales', sale.id, { status: 'posted', cancellation_reason: null, cancelled_at: null })
+      setSales((rows) => rows.map((row) => row.id === sale.id ? { ...row, status: 'posted' } : row))
+      setSelected((current) => current?.id === sale.id ? { ...current, status: 'posted' } : current)
+      addToast(`${sale.invoiceNo} restored to Posted.`, 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Could not revert cancellation.', 'error')
     }
   }
 
@@ -413,15 +433,25 @@ export default function SaleRegister() {
                       >
                         <Printer size={14} />
                       </button>
-                      <button
-                        aria-label={`Cancel ${s.invoiceNo}`}
-                        onClick={(e) => cancelInvoice(s, e)}
-                        disabled={s.status === 'cancelled'}
-                        title="Cancel and reverse invoice"
-                        className="p-1.5 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-muted rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {s.status === 'cancelled' ? (
+                        <button
+                          aria-label={`Revert cancellation of ${s.invoiceNo}`}
+                          onClick={(e) => revertCancellation(s, e)}
+                          title="Revert cancellation — restore to Posted"
+                          className="p-1.5 text-rose-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-muted rounded transition"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          aria-label={`Cancel ${s.invoiceNo}`}
+                          onClick={(e) => cancelInvoice(s, e)}
+                          title="Cancel and reverse invoice"
+                          className="p-1.5 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-muted rounded transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
