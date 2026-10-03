@@ -1,4 +1,3 @@
-import { createWorker } from 'tesseract.js'
 import { ExtractedInvoice, OcrProgressCallback } from './types'
 import { parsePharmaInvoice } from './pharmaInvoiceParser'
 
@@ -65,9 +64,22 @@ export async function scanInvoiceImage(
   const processedImageUrl = await preprocessImage(imageFile)
   onProgress?.(25, 'Enhancing image contrast & clarity…')
 
-  // Create Tesseract worker
-  const worker = await createWorker('eng', 1, {
-    logger: (m) => {
+  // Dynamically load Tesseract worker
+  let tesseractModule: any
+  try {
+    // @ts-ignore
+    tesseractModule = await import(/* webpackIgnore: true */ 'tesseract.js')
+  } catch {
+    if (typeof window !== 'undefined' && (window as any).Tesseract) {
+      tesseractModule = (window as any).Tesseract
+    } else {
+      throw new Error('Tesseract OCR engine is not installed. Please run `npm install tesseract.js`.')
+    }
+  }
+
+  const createWorkerFn = tesseractModule.createWorker || tesseractModule.default?.createWorker
+  const worker = await createWorkerFn('eng', 1, {
+    logger: (m: any) => {
       if (m.status === 'recognizing text') {
         const pct = 30 + Math.round((m.progress || 0) * 60)
         onProgress?.(pct, `Scanning bill contents (${Math.round((m.progress || 0) * 100)}%)…`)
@@ -100,7 +112,8 @@ export async function scanInvoicePdf(
   onProgress?.(10, 'Reading PDF structure…')
 
   try {
-    const pdfjsLib = await import('pdfjs-dist')
+    // @ts-ignore
+    const pdfjsLib = await import(/* webpackIgnore: true */ 'pdfjs-dist')
     if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
     }

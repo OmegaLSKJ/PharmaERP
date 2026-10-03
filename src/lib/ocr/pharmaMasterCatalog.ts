@@ -697,7 +697,7 @@ export const PHARMA_MASTER_CATALOG: (MasterItemOption & {
     manufacturer: 'Dynamic Techno Medicals',
     salt: 'Lumbo Sacral Support Device',
     category: 'Orthopaedic Supports',
-    aliases: ['L S BELT L (DYNA)', 'L S BELT', 'LS BELT', 'LUMBO SACRAL BELT', 'L S BELT LARGE', 'LS BELT DYNA']
+    aliases: ['L S BELT L (DYNA)', 'L S BELT L', 'L S BELT', 'LS BELT', 'LUMBO SACRAL BELT', 'L S BELT LARGE', 'LS BELT DYNA']
   },
 
   // --- DRUGS LINE AGENCY ITEMS ---

@@ -79,4 +79,25 @@ describe('medicineMapper', () => {
     expect(mapped[1].mappedItemName).toBe('TELMA 40MG TABLET')
     expect(mapped[1].isConfirmed).toBe(true)
   })
+
+  it('disambiguates OCR character errors (optical 1, optical zero)', () => {
+    const resAug = matchMedicineToMaster('AUGMENT1N 625 TAB', masterCatalog)
+    expect(resAug.matchedItem?.id).toBe('item-4')
+
+    const resPan = matchMedicineToMaster('PAN 40MG', masterCatalog)
+    expect(resPan.matchedItem?.id).toBe('item-1')
+  })
+
+  it('matches phonetic variations (AZITRAL -> AZITHRAL)', () => {
+    const res = matchMedicineToMaster('AZITRAL 500 TAB', masterCatalog)
+    expect(res.matchedItem?.id).toBe('item-5')
+  })
+
+  it('penalizes strength mismatches so TELMA 20 does not map to TELMA 40', () => {
+    const res = matchMedicineToMaster('TELMA 20MG TABLET', masterCatalog)
+    // Catalog only has TELMA 40MG, so TELMA 20 should NOT be mapped as exact or high
+    expect(res.matchStatus).not.toBe('exact')
+    expect(res.score).toBeLessThan(0.40)
+  })
 })
+

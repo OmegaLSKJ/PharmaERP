@@ -20,6 +20,8 @@ export interface ExtractedLineItem {
   matchStatus?: 'exact' | 'high' | 'fuzzy' | 'unmapped'
   isConfirmed?: boolean
   stock?: number
+  suggestions?: any[]
+  matchReasons?: string[]
 }
 
 export interface ExtractedInvoice {

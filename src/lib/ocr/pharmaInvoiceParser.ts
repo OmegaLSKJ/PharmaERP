@@ -1,5 +1,6 @@
 import { ExtractedInvoice, ExtractedLineItem } from './types'
 import { KNOWN_DISTRIBUTORS } from './pharmaMasterCatalog'
+import { repairOcrCharacters } from './pharmaNlpEngine'
 
 // Common pharma pharmaceutical words
 const PHARMA_KEYWORDS = [
@@ -150,7 +151,7 @@ export function parsePharmaInvoice(rawText: string, sourceType: 'digital_pdf' | 
 
   // Regex patterns for parsing tabular lines
   const hsnRegex = /\b(300[2-6]\d{0,5}|330[4-7]\d{0,6}|3401\d{0,4}|9018\d{0,4}|9021\d{0,4}|2106\d{0,5})\b/
-  const expiryRegex = /(?<!\d[\/\-\.])\b(0?[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b(?!\d)/
+  const expiryRegex = /(?<!\d[\/\-\.])(?:\b(0[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b|\b([1-9]|1[0-2])[\/\-](20\d{2}|\d{2})\b)(?!\d)/
   const batchExplicitRegex = /(?:BATCH|B\.?NO|LOT)[:.\s-]*([A-Za-z0-9\-_]{3,15})/i
 
   let idCounter = 1
@@ -273,10 +274,10 @@ const HIGH_PHARMA_STRENGTHS = new Set([
       if (yr.length === 4) yr = yr.slice(-2)
       expiry = `${mNum}/${yr}`
     } else {
-      const expMatch = line.match(/\b(0?[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b/)
+      const expMatch = line.match(/(?<!\d[\/\-\.])(?:\b(0[1-9]|1[0-2])[\/\-\.](20\d{2}|\d{2})\b|\b([1-9]|1[0-2])[\/\-](20\d{2}|\d{2})\b)(?!\d)/)
       if (expMatch) {
-        let month = expMatch[1].padStart(2, '0')
-        let yr = expMatch[2]
+        let month = (expMatch[1] || expMatch[3]).padStart(2, '0')
+        let yr = expMatch[2] || expMatch[4]
         if (yr.length === 4) yr = yr.slice(-2)
         expiry = `${month}/${yr}`
       }
@@ -288,27 +289,43 @@ const HIGH_PHARMA_STRENGTHS = new Set([
       batch = batchMatch[1].trim().replace(/\*+$/, '')
     } else {
       const tokens = line.split(/\s+/)
-      for (const t of tokens) {
-        const cleanT = t.replace(/[\*\,]+$/, '').trim()
-        if (/^\d+(?:MG|ML|GM|MCG|IU|S|TAB|CAP)$/i.test(cleanT) || /^\d+X\d+[A-Z]*$/i.test(cleanT)) continue
-        if (/^\d+\.\d+$/.test(cleanT)) continue
-        if (cleanT === hsn || cleanT === '3004' || cleanT === '3401' || cleanT === '9018' || cleanT === '9021' || cleanT === '3307' || cleanT === '2106') continue
 
-        // Skip tokens that are brand names with dosage strengths (e.g. DOLO-650, KEPPRA-500, TAZLOC-40, STAMLO-2.5, VERTIN-16)
-        const brandStrengthMatch = cleanT.match(/^([A-Za-z]{2,})[\-_](\d+(?:\.\d+)?)(?:MG|ML|GM|TAB|CAP)?$/i)
-        if (brandStrengthMatch && (PHARMA_STRENGTHS.has(brandStrengthMatch[2]) || HIGH_PHARMA_STRENGTHS.has(brandStrengthMatch[2]))) continue
-        if (/\b(?:DOLO|PAN|TELMA|TELMIKIND|AZITHRAL|AUGMENTIN|CLAVAM|TAXIM|CEFTUM|CALPOL|MONTEK|AMLO|STAMLO|TAZLOC|VERTIN|CONCOR|KEPPRA|ECOSPRIN|ZERODOL|METROGYL|RABLET|GEMINOR)[\-_]?\d+/i.test(cleanT)) continue
-
-        // Alphanumeric batch with both letters and numbers, or hyphen (e.g. DDNXP058, DOBS4418, FND0526009AS, DLSL443, DOLN177, ZVSZ6081, KKG26006, YA80010, E2601146, XSRS26040, TM826067, PSM26014, D6234, EV260080, EV6232003, T-26215, NKS26007, SENF007F, RBK25036S, RA6090, UC01279, VEB26028, 63525T03, M22AK26009, 18261596A)
-        if (/^[A-Z0-9\-_]{4,15}$/i.test(cleanT) && /\d/.test(cleanT) && /[A-Z]/i.test(cleanT)) {
-          batch = cleanT.toUpperCase()
-          break
+      // 1. Check token immediately preceding expiry as primary batch candidate
+      const expIdx = tokens.findIndex(t => expiryRegex.test(t) || (monthNameExpMatch && t.toUpperCase().includes(monthNameExpMatch[1])))
+      if (expIdx > 0) {
+        const prevT = tokens[expIdx - 1].replace(/[\*\,]+$/, '').trim()
+        if (
+          (/^[A-Z0-9\-_]{3,15}$/i.test(prevT) && /\d/.test(prevT) && /[A-Z]/.test(prevT)) ||
+          (/^\d{6,10}$/.test(prevT) && prevT !== hsn) ||
+          (/^[A-Z]{1,3}\d{3,8}$/i.test(prevT))
+        ) {
+          batch = prevT.toUpperCase()
         }
+      }
 
-        // Pure numeric batch of 6 to 10 digits (e.g. 2604063, 106250595, 28025995, 48021547, 165028, 26460798, 26490632, 26441164, 26540155, 26540494)
-        if (/^\d{6,10}$/.test(cleanT) && !cleanT.startsWith('784') && !cleanT.startsWith('18') && cleanT !== hsn) {
-          batch = cleanT
-          break
+      if (!batch) {
+        for (const t of tokens) {
+          const cleanT = t.replace(/[\*\,]+$/, '').trim()
+          if (/^\d+(?:MG|ML|GM|MCG|IU|S|TAB|CAP|PCS?|ST|VIALS?)$/i.test(cleanT) || /^\d+X\d+[A-Z]*$/i.test(cleanT)) continue
+          if (/^\d+\.\d+$/.test(cleanT)) continue
+          if (cleanT === hsn || cleanT === '3004' || cleanT === '3401' || cleanT === '9018' || cleanT === '9021' || cleanT === '3307' || cleanT === '2106') continue
+
+          // Skip tokens that are brand names with dosage strengths or modifiers
+          const brandStrengthMatch = cleanT.match(/^([A-Za-z]{2,})[\-_](\d+(?:\.\d+)?)(?:MG|ML|GM|TAB|CAP)?$/i)
+          if (brandStrengthMatch && (PHARMA_STRENGTHS.has(brandStrengthMatch[2]) || HIGH_PHARMA_STRENGTHS.has(brandStrengthMatch[2]))) continue
+          if (/\b(?:DOLO|PAN|TELMA|TELMIKIND|AZITHRAL|AUGMENTIN|CLAVAM|TAXIM|CEFTUM|CALPOL|MONTEK|AMLO|STAMLO|TAZLOC|VERTIN|CONCOR|KEPPRA|ECOSPRIN|ZERODOL|METROGYL|RABLET|GEMINOR|CLOPITAB|DYNAFLAM|PENTAB|MICROPOD)[\-_]?[A-Z0-9]*/i.test(cleanT)) continue
+
+          // Alphanumeric batch with both letters and numbers, or hyphen
+          if (/^[A-Z0-9\-_]{4,15}$/i.test(cleanT) && /\d/.test(cleanT) && /[A-Z]/i.test(cleanT)) {
+            batch = cleanT.toUpperCase()
+            break
+          }
+
+          // Pure numeric batch of 6 to 10 digits
+          if (/^\d{6,10}$/.test(cleanT) && !cleanT.startsWith('784') && !cleanT.startsWith('18') && cleanT !== hsn) {
+            batch = cleanT
+            break
+          }
         }
       }
     }
@@ -472,7 +489,9 @@ const HIGH_PHARMA_STRENGTHS = new Set([
 
       // If decimals ARE on line (Standard bill)
       if (qty === 1 && !freeQtyPattern && !qtyMatch) {
-        const lineWithoutName = stripped
+        // Strip prices/decimals first so digits in prices (e.g. 79.53, 60.60) don't get misparsed as integer quantities
+        const lineWithoutDecimals = stripped.replace(/\b\d+\.\d+\b/g, ' ')
+        const lineWithoutName = lineWithoutDecimals
           .replace(/^[0-9]{1,3}\s+/, '')
           .replace(/\b\d+\s*['xX][a-zA-Z0-9]*\b/g, '')
         const intMatches = lineWithoutName.match(/\b\d{1,4}\b/g)
@@ -501,7 +520,10 @@ const HIGH_PHARMA_STRENGTHS = new Set([
         ]
 
         let cleanedLine = lineForName
-          .replace(/\b\d+[\.,]\d{2}\b/g, '')
+          .replace(/\b\d+[\.,]\d{2}\b/g, (match) => {
+            if (PHARMA_STRENGTHS.has(match)) return match
+            return ' '
+          })
           .replace(/\b(5|12|18|28)\s*%/g, '')
           .replace(/\b(2\.5|6|9|14)\s*[\+\s]\s*(2\.5|6|9|14)\b/g, '')
           .replace(/\b\d{1,4}(?:\.0+)?\s*\+\s*\d{1,4}(?:\.0+)?\b/g, '')
@@ -523,15 +545,24 @@ const HIGH_PHARMA_STRENGTHS = new Set([
         itemName = cleanedLine.replace(/\s+/g, ' ').trim()
 
         if (freeQty > 0 && !freeQtyPattern) {
-          itemName = itemName.replace(new RegExp(`\\b${freeQty}\\b\\s*$`), '').trim()
+          itemName = itemName.replace(new RegExp(`\\s+${freeQty}\\s*$`), '').trim()
         }
         if (qty > 1 && !qtyMatch) {
-          itemName = itemName.replace(new RegExp(`\\b${qty}\\b\\s*$`), '').trim()
+          itemName = itemName.replace(new RegExp(`\\s+${qty}\\s*$`), '').trim()
         }
+
+        // Strip batch if present in itemName
+        if (batch) {
+          itemName = itemName.replace(new RegExp(`\\b${batch.replace(/[-_]/g, '[-_]?')}\\b`, 'gi'), ' ').trim()
+        }
+        // Strip trailing isolated single digit discount/scheme token (e.g. " 0" or " 5")
+        itemName = itemName.replace(/\s+[05]\s*$/, '').trim()
       }
     }
 
-    // Clean up serial numbers and edge tokens from itemName
+
+    // Clean up OCR character confusion and serial numbers from itemName
+    itemName = repairOcrCharacters(itemName)
     itemName = itemName.replace(/^(?:SL\.?\s*)?(\d{1,3}[\.\-\s]+)/i, '').trim()
 
     if (itemName.length < 3 || /^\d+$/.test(itemName)) {

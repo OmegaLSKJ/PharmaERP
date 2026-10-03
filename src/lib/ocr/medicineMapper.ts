@@ -1,6 +1,6 @@
-import { normalizeSearchText, diceSimilarity, levenshteinDistance } from '../similarity'
 import { ExtractedLineItem } from './types'
 import { PHARMA_MASTER_CATALOG } from './pharmaMasterCatalog'
+import { scorePharmaMatch, cleanPharmaNlp } from './pharmaNlpEngine'
 
 export interface MasterItemOption {
   id?: string
@@ -26,129 +26,40 @@ export interface MedicineMatchResult {
   score: number // 0 to 1
   matchStatus: 'exact' | 'high' | 'fuzzy' | 'unmapped'
   suggestions: MasterItemOption[]
+  reasons?: string[]
 }
-
-const COMMON_MARKERS = new Set([
-  'tab', 'tablet', 'tablets', 'cap', 'capsule', 'capsules', 'syp', 'syrup',
-  'inj', 'injection', 'drops', 'gel', 'cream', 'oint', 'ointment', 'susp', 'suspension',
-  'liquid', 'liq', 'soap', 'pump', 'belt', 'large', 'l',
-  'mg', 'ml', 'gm', 'mcg', 'iu', 'duo', 'forte', 'plus', 'strip', 's', 'box', 'vial', 'st', 'pcs'
-])
 
 export function cleanPharmaName(str: string): string {
-  return normalizeSearchText(
-    (str || '')
-      // Remove text inside parentheses e.g. (30TAB), (14S), (10*15), (DYNA)
-      .replace(/\([^)]*\)/g, ' ')
-      // Standardize dotted abbreviations like D.F.O -> DFO
-      .replace(/D\.F\.O/gi, 'DFO')
-      .replace(/L\s*\.?\s*S\s*\.?\s*BELT/gi, 'LS BELT')
-      // Strip pharmacopeia notations
-      .replace(/\b(?:IP|BP|USP)\b/gi, ' ')
-      // Separate numbers and letters
-      .replace(/(\d+)([a-zA-Z]+)/g, '$1 $2')
-      .replace(/([a-zA-Z]+)(\d+)/g, '$1 $2')
-      // Remove punctuation
-      .replace(/[-_/\.\*\+]/g, ' ')
-  )
-}
-
-function parseMedicineTokens(name: string): { brandTokens: string[]; strengths: string[] } {
-  const norm = cleanPharmaName(name)
-  const tokens = norm.split(/\s+/).filter(Boolean)
-  const brandTokens: string[] = []
-  const strengths: string[] = []
-
-  for (const t of tokens) {
-    if (COMMON_MARKERS.has(t) || /^\d+x\d+$/i.test(t)) continue
-    if (/^\d+(?:\.\d+)?$/.test(t)) {
-      strengths.push(t)
-    } else {
-      brandTokens.push(t)
-    }
-  }
-
-  return { brandTokens, strengths }
+  return cleanPharmaNlp(str)
 }
 
 function runMatchOnCatalog(
   scannedText: string,
   catalog: MasterItemOption[]
 ): MedicineMatchResult {
-  const cleanScanned = cleanPharmaName(scannedText)
-  const scannedParsed = parseMedicineTokens(scannedText)
+  if (!scannedText || !catalog || catalog.length === 0) {
+    return { matchedItem: null, score: 0, matchStatus: 'unmapped', suggestions: [] }
+  }
 
-  const scoredList: Array<{ item: MasterItemOption; score: number }> = []
+  const scoredList: Array<{
+    item: MasterItemOption
+    score: number
+    matchStatus: 'exact' | 'high' | 'fuzzy' | 'unmapped'
+    reasons: string[]
+  }> = []
 
   for (const item of catalog) {
     const itemName = item.name || item.label || ''
     if (!itemName) continue
 
-    const cleanMaster = cleanPharmaName(itemName)
-
-    // 1. Direct Clean Match
-    if (cleanScanned === cleanMaster) {
-      return {
-        matchedItem: item,
-        score: 1.0,
-        matchStatus: 'exact',
-        suggestions: [item]
-      }
-    }
-
-    // 2. Direct Alias Match
-    const aliases = (item.aliases || (item as any).aliases) as string[] | undefined
-    if (aliases && aliases.length > 0) {
-      for (const al of aliases) {
-        const cleanAl = cleanPharmaName(al)
-        if (cleanScanned === cleanAl || cleanScanned === cleanPharmaName(al)) {
-          return {
-            matchedItem: item,
-            score: 1.0,
-            matchStatus: 'exact',
-            suggestions: [item]
-          }
-        }
-      }
-    }
-
-    const masterParsed = parseMedicineTokens(itemName)
-
-    // 3. Brand token overlap
-    let brandScore = 0
-    if (scannedParsed.brandTokens.length > 0 && masterParsed.brandTokens.length > 0) {
-      let matchedCount = 0
-      for (const st of scannedParsed.brandTokens) {
-        if (masterParsed.brandTokens.some(mt => mt === st || (mt.length > 3 && (mt.includes(st) || st.includes(mt))))) {
-          matchedCount++
-        }
-      }
-      brandScore = matchedCount / Math.max(scannedParsed.brandTokens.length, masterParsed.brandTokens.length)
-    }
-
-    // 4. Strength match (e.g. 40, 625, 500, 2.5, 1.25)
-    let strengthScore = 1.0
-    if (scannedParsed.strengths.length > 0 && masterParsed.strengths.length > 0) {
-      const hasSharedStrength = scannedParsed.strengths.some(s => masterParsed.strengths.includes(s))
-      strengthScore = hasSharedStrength ? 1.0 : 0.4
-    }
-
-    // 5. Dice similarity on whole cleaned names
-    const dice = diceSimilarity(cleanScanned, cleanMaster)
-
-    // Substring bonus
-    const hasSubstring = cleanMaster.includes(cleanScanned) || cleanScanned.includes(cleanMaster)
-    const subBonus = hasSubstring ? 0.2 : 0
-
-    // Compute composite match score
-    const compositeScore = Math.min(1.0, Math.max(
-      dice,
-      (brandScore * 0.7 + (hasSubstring ? 0.25 : 0)) * strengthScore,
-      (brandScore * 0.6 + dice * 0.4 + subBonus) * strengthScore
-    ))
-
-    if (compositeScore >= 0.35) {
-      scoredList.push({ item, score: Math.round(compositeScore * 100) / 100 })
+    const nlpRes = scorePharmaMatch(scannedText, item)
+    if (nlpRes.score >= 0.35) {
+      scoredList.push({
+        item,
+        score: nlpRes.score,
+        matchStatus: nlpRes.status,
+        reasons: nlpRes.reasons
+      })
     }
   }
 
@@ -162,16 +73,12 @@ function runMatchOnCatalog(
   const best = scoredList[0]
   const suggestions = scoredList.slice(0, 5).map(s => s.item)
 
-  let matchStatus: 'exact' | 'high' | 'fuzzy' | 'unmapped' = 'unmapped'
-  if (best.score >= 0.85) matchStatus = 'exact'
-  else if (best.score >= 0.60) matchStatus = 'high'
-  else if (best.score >= 0.40) matchStatus = 'fuzzy'
-
   return {
-    matchedItem: matchStatus !== 'unmapped' ? best.item : null,
+    matchedItem: best.matchStatus !== 'unmapped' ? best.item : null,
     score: best.score,
-    matchStatus,
-    suggestions
+    matchStatus: best.matchStatus,
+    suggestions,
+    reasons: best.reasons
   }
 }
 
@@ -186,27 +93,13 @@ export function matchMedicineToMaster(
     return { matchedItem: null, score: 0, matchStatus: 'unmapped', suggestions: [] }
   }
 
-  // 1. Prioritize user's provided master items
+  // 1. If caller supplied master items (e.g. ERP items or custom test catalog)
   if (masterItems && masterItems.length > 0) {
-    const userResult = runMatchOnCatalog(scannedText, masterItems)
-    if (userResult.matchStatus === 'exact' || userResult.matchStatus === 'high') {
-      return userResult
-    }
+    return runMatchOnCatalog(scannedText, masterItems)
   }
 
-  // 2. Search trained PHARMA_MASTER_CATALOG for instant mapping
-  const catalogResult = runMatchOnCatalog(scannedText, PHARMA_MASTER_CATALOG)
-  if (catalogResult.matchStatus === 'exact' || catalogResult.matchStatus === 'high') {
-    return catalogResult
-  }
-
-  // 3. Fallback to caller's best candidate if any
-  if (masterItems && masterItems.length > 0) {
-    const userResult = runMatchOnCatalog(scannedText, masterItems)
-    return userResult.score >= catalogResult.score ? userResult : catalogResult
-  }
-
-  return catalogResult
+  // 2. Otherwise search trained PHARMA_MASTER_CATALOG
+  return runMatchOnCatalog(scannedText, PHARMA_MASTER_CATALOG)
 }
 
 /**
@@ -252,7 +145,10 @@ export function mapExtractedItemsToMaster(
       saleRate,
       purchaseRate,
       amount,
-      stock: masterStock
+      stock: masterStock,
+      suggestions: match.suggestions,
+      matchReasons: match.reasons
     }
   })
 }
+

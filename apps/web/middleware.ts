@@ -55,12 +55,11 @@ const limiters = buildLimiters()
 
 /** Returns the real client IP, preferring Vercel's x-real-ip header. */
 function clientIp(request: NextRequest): string {
+  const xForwarded = (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
   return (
     request.headers.get('x-real-ip') ??
     request.headers.get('cf-connecting-ip') ??
-    // x-forwarded-for may be a comma-separated list; take the first entry
-    (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ||
-    'unknown'
+    (xForwarded || 'unknown')
   )
 }
 

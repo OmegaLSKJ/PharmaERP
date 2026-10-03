@@ -311,6 +311,37 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
     const updated = [...extractedData.items]
     const item = { ...updated[index], [field]: value }
 
+    // If user edited written medicine name, run real-time NLP matching against master catalog
+    if (field === 'itemName' && typeof value === 'string') {
+      const nlpMatch = matchMedicineToMaster(value, effectiveMasterItems)
+      const matched = nlpMatch.matchedItem
+      item.matchScore = nlpMatch.score
+      item.matchStatus = nlpMatch.matchStatus
+      item.suggestions = nlpMatch.suggestions
+      item.matchReasons = nlpMatch.reasons
+
+      if (matched && (nlpMatch.matchStatus === 'exact' || nlpMatch.matchStatus === 'high')) {
+        item.mappedItemId = matched.id || matched.itemId
+        item.mappedItemName = matched.name || matched.label
+        item.isConfirmed = true
+        if (matched.hsn) item.hsn = matched.hsn
+        if (matched.packing) item.packing = matched.packing
+        if (matched.gstRate) item.gstRate = matched.gstRate
+        if (matched.rate) item.saleRate = matched.rate
+        if (matched.purchaseRate) item.purchaseRate = matched.purchaseRate
+        else if (matched.rate) item.purchaseRate = Math.round(matched.rate * 0.8 * 100) / 100
+        if (matched.mrp) item.mrp = matched.mrp
+        item.stock = matched.stock ?? 0
+
+        const effRate = item.saleRate > 0 ? item.saleRate : (item.purchaseRate > 0 ? item.purchaseRate : (item.mrp || 100))
+        item.amount = Math.round((item.qty || 1) * effRate * 100) / 100
+      } else if (!matched) {
+        item.mappedItemId = undefined
+        item.mappedItemName = undefined
+        item.matchStatus = 'unmapped'
+      }
+    }
+
     // If mapped item changed by user dropdown selection from All Items
     if (field === 'mappedItemId') {
       const selectedMaster = effectiveMasterItems.find((m) => (m.id || m.itemId) === value)
@@ -354,6 +385,15 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
       ...extractedData,
       items: updated,
       totalAmount: Math.round(newTotal * 1.12 * 100) / 100
+    })
+  }
+
+  const handleReRunNlpMapping = () => {
+    if (!extractedData) return
+    const remapped = mapExtractedItemsToMaster(extractedData.items, effectiveMasterItems)
+    setExtractedData({
+      ...extractedData,
+      items: remapped
     })
   }
 
@@ -760,6 +800,14 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     <span>{confirmedCount === totalItemsCount ? 'Uncheck All' : 'Confirm All'}</span>
                   </button>
                   <button
+                    onClick={handleReRunNlpMapping}
+                    title="Re-run Pharma NLP Engine across all medicines"
+                    className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 font-semibold transition cursor-pointer"
+                  >
+                    <Sparkles size={12} className="text-emerald-600" />
+                    <span>Re-run NLP Match</span>
+                  </button>
+                  <button
                     onClick={() => {
                       setExtractedData(null)
                       setFile(null)
@@ -933,8 +981,8 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                   </optgroup>
                                 </select>
 
-                                {/* Status Badge */}
-                                <div className="flex items-center gap-1.5">
+                                {/* Status Badge & Reasons */}
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   {status === 'exact' && (
                                     <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                                       ✓ Exact Match
@@ -942,7 +990,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                   )}
                                   {status === 'high' && (
                                     <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                                      Match: {Math.round((item.matchScore || 0.8) * 100)}%
+                                      NLP Match: {Math.round((item.matchScore || 0.8) * 100)}%
                                     </span>
                                   )}
                                   {status === 'fuzzy' && (
@@ -955,7 +1003,32 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                                       ⚠️ Select from All Items
                                     </span>
                                   )}
+                                  {item.matchReasons && item.matchReasons.length > 0 && (
+                                    <span className="text-[9px] text-muted-foreground italic truncate max-w-[130px]" title={item.matchReasons.join(' • ')}>
+                                      ({item.matchReasons[0]})
+                                    </span>
+                                  )}
                                 </div>
+
+                                {/* Quick Click Suggestions for 1-Click Mapping */}
+                                {item.suggestions && item.suggestions.length > 0 && status !== 'exact' && (
+                                  <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                                      <Sparkles size={9} className="text-amber-500" /> Suggest:
+                                    </span>
+                                    {item.suggestions.slice(0, 2).map((sug: any) => (
+                                      <button
+                                        key={sug.id || sug.itemId}
+                                        type="button"
+                                        onClick={() => handleUpdateItem(idx, 'mappedItemId', sug.id || sug.itemId)}
+                                        className="text-[9px] bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded px-1 py-0.5 font-medium transition cursor-pointer truncate max-w-[125px]"
+                                        title={`Map to ${sug.name || sug.label}`}
+                                      >
+                                        {sug.name || sug.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </td>
 
