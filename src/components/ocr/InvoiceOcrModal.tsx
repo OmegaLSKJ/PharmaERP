@@ -26,7 +26,15 @@ import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
 import { ExtractedInvoice, ExtractedLineItem } from '../../lib/ocr/types'
 import { mapExtractedItemsToMaster, MasterItemOption, matchMedicineToMaster } from '../../lib/ocr/medicineMapper'
 import { PHARMA_MASTER_CATALOG } from '../../lib/ocr/pharmaMasterCatalog'
-import { getStoredGeminiApiKey, setStoredGeminiApiKey, hasGeminiApiKey } from '../../lib/ocr/geminiOcrEngine'
+import {
+  getStoredGeminiApiKey,
+  setStoredGeminiApiKey,
+  hasGeminiApiKey,
+  getStoredGeminiModel,
+  setStoredGeminiModel,
+  fetchAvailableGeminiModels,
+  DEFAULT_GEMINI_CANDIDATE_MODELS
+} from '../../lib/ocr/geminiOcrEngine'
 import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
@@ -107,23 +115,72 @@ interface ApiKeyModalProps {
   isOpen: boolean
   onClose: () => void
   currentKey: string
-  onSave: (key: string) => void
+  currentModel: string
+  onSave: (key: string, model: string) => void
   onSwitchToLocal: () => void
 }
 
-function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: ApiKeyModalProps) {
+function ApiKeyModal({ isOpen, onClose, currentKey, currentModel, onSave, onSwitchToLocal }: ApiKeyModalProps) {
   const [key, setKey] = useState(currentKey)
+  const [model, setModel] = useState(currentModel || 'auto')
+  const [customModel, setCustomModel] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ status: 'success' | 'error'; message: string; models?: string[] } | null>(null)
 
   useEffect(() => {
     setKey(currentKey)
-  }, [currentKey])
+    const knownCandidates: string[] = ['auto', ...DEFAULT_GEMINI_CANDIDATE_MODELS]
+    if (knownCandidates.includes(currentModel)) {
+      setModel(currentModel)
+    } else if (currentModel) {
+      setModel('custom')
+      setCustomModel(currentModel)
+    } else {
+      setModel('auto')
+    }
+  }, [currentKey, currentModel])
 
   if (!isOpen) return null
 
+  const handleTestKey = async () => {
+    if (!key.trim()) {
+      setTestResult({ status: 'error', message: 'Please enter an API key first.' })
+      return
+    }
+
+    setIsTesting(true)
+    setTestResult(null)
+
+    try {
+      const models = await fetchAvailableGeminiModels(key.trim())
+      if (models && models.length > 0) {
+        setTestResult({
+          status: 'success',
+          message: `Connected successfully! Found ${models.length} supported models (e.g. ${models.slice(0, 3).join(', ')}).`,
+          models
+        })
+      } else {
+        setTestResult({
+          status: 'error',
+          message: 'API key responded, but no models supporting generateContent were found for this key/region.'
+        })
+      }
+    } catch (err: any) {
+      setTestResult({
+        status: 'error',
+        message: err?.message || 'Failed to connect to Google Gemini API. Please check your network and API key.'
+      })
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
+  const effectiveModelToSave = model === 'custom' ? (customModel.trim() || 'auto') : model
+
   return createPortal(
     <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
@@ -131,7 +188,7 @@ function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: A
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">Gemini AI Vision Configuration</h3>
-              <p className="text-[11px] text-muted-foreground">High-precision OCR for Indian pharma purchase bills</p>
+              <p className="text-[11px] text-muted-foreground">High-precision multimodal OCR for Indian pharma purchase bills</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground cursor-pointer">
@@ -139,9 +196,9 @@ function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: A
           </button>
         </div>
 
-        <div className="p-4 space-y-3.5">
+        <div className="p-4 space-y-3.5 max-h-[75vh] overflow-y-auto">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Gemini 1.5 Flash provides <strong>near 100% accuracy</strong> on dot-matrix prints, camera photos, Indian medicine brand names, dosage strengths, batches, expiries, and scheme free quantities.
+            Gemini AI Vision provides <strong>near 100% accuracy</strong> on dot-matrix prints, camera photos, Indian medicine brand names, dosage strengths, batches, expiries, and scheme free quantities.
           </p>
 
           <div>
@@ -165,6 +222,66 @@ function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: A
               </button>
             </div>
           </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Gemini Vision Model
+              </label>
+              <button
+                type="button"
+                disabled={isTesting || !key.trim()}
+                onClick={handleTestKey}
+                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTesting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                <span>{isTesting ? 'Testing Key…' : 'Test Key & Detect Models'}</span>
+              </button>
+            </div>
+
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 font-medium"
+            >
+              <option value="auto">✨ Auto-detect Best Available Model (Recommended)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fastest, High Accuracy)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+              <option value="gemini-1.5-flash-002">Gemini 1.5 Flash (002)</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Legacy)</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Low Latency)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+              <option value="custom">Custom Model Name...</option>
+            </select>
+
+            {model === 'custom' && (
+              <input
+                type="text"
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+                placeholder="e.g. gemini-2.5-flash"
+                className="mt-2 w-full px-3 py-1.5 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500/30"
+              />
+            )}
+          </div>
+
+          {testResult && (
+            <div
+              className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                testResult.status === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-destructive/10 border-destructive/20 text-destructive'
+              }`}
+            >
+              {testResult.status === 'success' ? (
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              )}
+              <div className="leading-relaxed">{testResult.message}</div>
+            </div>
+          )}
 
           <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] text-muted-foreground space-y-1.5">
             <div className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
@@ -207,7 +324,7 @@ function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: A
             <button
               type="button"
               onClick={() => {
-                onSave(key)
+                onSave(key, effectiveModelToSave)
                 onClose()
               }}
               className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
@@ -251,6 +368,7 @@ export default function InvoiceOcrModal({
   const [filterText, setFilterText] = useState('')
   const [ocrEngine, setOcrEngine] = useState<'gemini' | 'tesseract'>('gemini')
   const [geminiApiKey, setGeminiApiKey] = useState(() => getStoredGeminiApiKey())
+  const [geminiModel, setGeminiModel] = useState(() => getStoredGeminiModel() || 'auto')
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
 
@@ -369,8 +487,9 @@ export default function InvoiceOcrModal({
     }, 'image/png')
   }
 
-  const handleFileSelect = async (selectedFile: File, explicitKey?: string) => {
+  const handleFileSelect = async (selectedFile: File, explicitKey?: string, explicitModel?: string) => {
     const activeKey = explicitKey || geminiApiKey || getStoredGeminiApiKey()
+    const activeModel = explicitModel || geminiModel || getStoredGeminiModel()
 
     // If Gemini selected but no key is available anywhere, open configuration modal
     if (ocrEngine === 'gemini' && !activeKey && !hasGeminiApiKey()) {
@@ -392,7 +511,7 @@ export default function InvoiceOcrModal({
           setProgress(pct)
           setStatusMessage(msg)
         },
-        { engine: ocrEngine, apiKey: activeKey }
+        { engine: ocrEngine, apiKey: activeKey, model: activeModel }
       )
 
       // Auto-map extracted medicines against master catalog
@@ -416,13 +535,15 @@ export default function InvoiceOcrModal({
     }
   }
 
-  const handleSaveApiKey = (key: string) => {
+  const handleSaveApiKey = (key: string, model: string) => {
     setStoredGeminiApiKey(key)
     setGeminiApiKey(key)
+    setStoredGeminiModel(model)
+    setGeminiModel(model)
     if (pendingFile) {
       const f = pendingFile
       setPendingFile(null)
-      void handleFileSelect(f, key)
+      void handleFileSelect(f, key, model)
     }
   }
 
@@ -758,14 +879,14 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   {ocrEngine === 'gemini' ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      <span>✨ Gemini AI Vision</span>
+                      <span>✨ Gemini AI Vision {geminiModel && geminiModel !== 'auto' ? `(${geminiModel.replace(/^gemini-/, '')})` : ''}</span>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           setShowApiKeyModal(true)
                         }}
-                        title="Configure Gemini API Key"
+                        title="Configure Gemini API Key & Vision Model"
                         className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
                       >
                         <Settings size={12} />
@@ -1066,9 +1187,55 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
 
           {/* Error Message */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                <div className="flex-1 font-medium leading-relaxed">
+                  {error}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t border-destructive/15 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null)
+                    setOcrEngine('tesseract')
+                    if (file) {
+                      void handleFileSelect(file)
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                >
+                  <Sparkles size={13} />
+                  Switch to Local Tesseract (Offline)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowApiKeyModal(true)
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-card hover:bg-secondary border border-border text-foreground font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                >
+                  <Settings size={13} />
+                  Change Gemini Key / Model
+                </button>
+                {ocrEngine === 'gemini' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStoredGeminiModel('auto')
+                      setGeminiModel('auto')
+                      if (file) {
+                        void handleFileSelect(file, undefined, 'auto')
+                      }
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                  >
+                    <RefreshCw size={13} />
+                    Retry with Auto Model Detection
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -1541,6 +1708,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
         <ApiKeyModal
           isOpen={showApiKeyModal}
           currentKey={geminiApiKey}
+          currentModel={geminiModel}
           onClose={() => setShowApiKeyModal(false)}
           onSave={handleSaveApiKey}
           onSwitchToLocal={() => setOcrEngine('tesseract')}

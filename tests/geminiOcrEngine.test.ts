@@ -3,6 +3,10 @@ import {
   getStoredGeminiApiKey,
   setStoredGeminiApiKey,
   hasGeminiApiKey,
+  getStoredGeminiModel,
+  setStoredGeminiModel,
+  fetchAvailableGeminiModels,
+  resolveBestGeminiModel,
   processInvoiceWithGemini
 } from '../src/lib/ocr/geminiOcrEngine'
 import { scanInvoice } from '../src/lib/ocr/ocrEngine'
@@ -18,6 +22,7 @@ describe('Gemini AI Vision OCR Engine', () => {
       removeItem: (key: string) => { delete storage[key] },
       clear: () => { Object.keys(storage).forEach(k => delete storage[k]) }
     })
+    setStoredGeminiModel('')
     vi.restoreAllMocks()
   })
 
@@ -34,12 +39,105 @@ describe('Gemini AI Vision OCR Engine', () => {
     expect(hasGeminiApiKey()).toBe(false)
   })
 
+  it('stores and retrieves Gemini model in local storage', () => {
+    expect(getStoredGeminiModel()).toBe('')
+    setStoredGeminiModel('gemini-2.5-flash')
+    expect(getStoredGeminiModel()).toBe('gemini-2.5-flash')
+    setStoredGeminiModel('')
+    expect(getStoredGeminiModel()).toBe('')
+  })
+
+  it('resolves best model from available models list', () => {
+    const models = ['models/gemini-1.0-pro', 'gemini-1.5-flash-002', 'gemini-2.5-flash', 'text-embedding-004']
+    expect(resolveBestGeminiModel(models)).toBe('gemini-2.5-flash')
+    expect(resolveBestGeminiModel(models, 'gemini-1.5-flash-002')).toBe('gemini-1.5-flash-002')
+  })
+
   it('throws GEMINI_API_KEY_REQUIRED if neither server nor client key is provided', async () => {
     const dummyFile = new File(['dummy content'], 'invoice.png', { type: 'image/png' })
     // Mock fetch so server route fails
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
 
     await expect(processInvoiceWithGemini(dummyFile)).rejects.toThrow('GEMINI_API_KEY_REQUIRED')
+  })
+
+  it('cascades to next candidate model if requested model returns 404', async () => {
+    const dummyFile = new File(['dummy image'], 'invoice.png', { type: 'image/png' })
+    const calls: string[] = []
+
+    const mockSuccessResponse = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  supplierName: 'REBA PHARMA',
+                  invoiceNo: 'INV-101',
+                  invoiceDate: '2026-10-03',
+                  totalAmount: 100,
+                  taxAmount: 12,
+                  items: [
+                    {
+                      itemName: 'TELMA 40MG',
+                      qty: 10,
+                      freeQty: 0,
+                      purchaseRate: 10,
+                      mrp: 14,
+                      amount: 100
+                    }
+                  ]
+                })
+              }
+            ]
+          }
+        }
+      ]
+    }
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      calls.push(url)
+      // Server route fails
+      if (url.includes('/api/ocr/gemini')) {
+        return Promise.reject(new Error('API route unavailable'))
+      }
+      // Simulate listModels failing or returning empty
+      if (url.includes('/models?key=')) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({})
+        })
+      }
+      // If asking for gemini-1.5-flash or gemini-2.5-flash, simulate 404 (the exact error from user screenshot)
+      if (url.includes('models/gemini-1.5-flash:generateContent')) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          text: async () => JSON.stringify({
+            error: {
+              code: 404,
+              message: 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent.',
+              status: 'NOT_FOUND'
+            }
+          })
+        })
+      }
+      // Candidate model succeeds
+      return Promise.resolve({
+        ok: true,
+        json: async () => mockSuccessResponse,
+        text: async () => JSON.stringify(mockSuccessResponse)
+      })
+    }))
+
+    // Specify gemini-1.5-flash which will 404 and verify it cascades automatically
+    const result = await processInvoiceWithGemini(dummyFile, undefined, 'AIzaSyTestKey', 'gemini-1.5-flash')
+    expect(result.supplierName).toBe('REBA PHARMA')
+    expect(result.items.length).toBe(1)
+    expect(result.items[0].itemName).toBe('TELMA 40MG')
+    // Verify gemini-1.5-flash was attempted and failed, then candidate succeeded
+    expect(calls.some(u => u.includes('gemini-1.5-flash'))).toBe(true)
   })
 
   it('parses structured Gemini JSON and auto-maps medicines to catalog', async () => {

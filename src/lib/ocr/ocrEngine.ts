@@ -7,6 +7,7 @@ export type OcrEngineChoice = 'gemini' | 'tesseract' | 'auto'
 export interface ScanInvoiceOptions {
   engine?: OcrEngineChoice
   apiKey?: string
+  model?: string
 }
 
 /**
@@ -284,11 +285,12 @@ export async function scanInvoice(
 ): Promise<ExtractedInvoice> {
   const chosenEngine = options?.engine || 'auto'
   const explicitKey = options?.apiKey || getStoredGeminiApiKey()
+  const explicitModel = options?.model
   const canUseGemini = chosenEngine === 'gemini' || (chosenEngine === 'auto' && (hasGeminiApiKey() || Boolean(explicitKey)))
 
   if (canUseGemini) {
     try {
-      return await processInvoiceWithGemini(file, onProgress, explicitKey)
+      return await processInvoiceWithGemini(file, onProgress, explicitKey, explicitModel)
     } catch (err: any) {
       // If user explicitly selected Gemini, rethrow error so user knows what went wrong (e.g. invalid key)
       if (chosenEngine === 'gemini') {

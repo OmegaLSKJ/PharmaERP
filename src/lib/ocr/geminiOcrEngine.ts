@@ -3,7 +3,26 @@ import { mapExtractedItemsToMaster } from './medicineMapper'
 import { PHARMA_MASTER_CATALOG } from './pharmaMasterCatalog'
 
 const GEMINI_API_KEY_STORAGE = 'pharma_erp_gemini_api_key'
-const DEFAULT_MODEL = 'gemini-1.5-flash'
+const GEMINI_MODEL_STORAGE = 'pharma_erp_gemini_model'
+
+/**
+ * Ordered list of candidate models supporting multimodal vision and generateContent.
+ * If one model is unavailable (404/deprecated) for a specific user's API key/region,
+ * the engine will cascade to the next candidate automatically.
+ */
+export const DEFAULT_GEMINI_CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-pro-latest',
+  'gemini-1.5-pro'
+]
+
+let memoryCachedModel: string | null = null
 
 export function getStoredGeminiApiKey(): string {
   if (typeof localStorage === 'undefined') return ''
@@ -27,8 +46,96 @@ export function setStoredGeminiApiKey(key: string): void {
   }
 }
 
+export function getStoredGeminiModel(): string {
+  if (memoryCachedModel) return memoryCachedModel
+  if (typeof localStorage === 'undefined') return ''
+  try {
+    return localStorage.getItem(GEMINI_MODEL_STORAGE) || ''
+  } catch {
+    return ''
+  }
+}
+
+export function setStoredGeminiModel(model: string): void {
+  memoryCachedModel = model ? model.trim() : null
+  if (typeof localStorage === 'undefined') return
+  try {
+    if (model) {
+      localStorage.setItem(GEMINI_MODEL_STORAGE, model.trim())
+    } else {
+      localStorage.removeItem(GEMINI_MODEL_STORAGE)
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function hasGeminiApiKey(): boolean {
   return Boolean(getStoredGeminiApiKey() || (typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY) : ''))
+}
+
+/**
+ * Query the Google Generative Language ModelService to retrieve all models authorized
+ * for the provided API key that support generateContent.
+ */
+export async function fetchAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  if (!apiKey) return []
+  const apiVersions = ['v1beta', 'v1']
+  for (const ver of apiVersions) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data && Array.isArray(data.models)) {
+          const models = data.models
+            .filter((m: any) => {
+              const methods: string[] = m.supportedGenerationMethods || []
+              return methods.includes('generateContent')
+            })
+            .map((m: any) => (m.name || '').replace(/^models\//, ''))
+            .filter(Boolean)
+          if (models.length > 0) {
+            return models
+          }
+        }
+      }
+    } catch {
+      // Continue to next API version or fallback
+    }
+  }
+  return []
+}
+
+/**
+ * Given a list of available models and an optional preference, returns the best matching candidate.
+ */
+export function resolveBestGeminiModel(availableModels: string[], preferredModel?: string): string {
+  if (preferredModel && preferredModel !== 'auto') {
+    if (!availableModels.length || availableModels.includes(preferredModel)) {
+      return preferredModel
+    }
+  }
+
+  if (!availableModels || availableModels.length === 0) {
+    return DEFAULT_GEMINI_CANDIDATE_MODELS[0]
+  }
+
+  // Check candidates in prioritized order
+  for (const candidate of DEFAULT_GEMINI_CANDIDATE_MODELS) {
+    if (availableModels.includes(candidate)) {
+      return candidate
+    }
+  }
+
+  // Any flash model
+  const flash = availableModels.find((m) => m.toLowerCase().includes('flash'))
+  if (flash) return flash
+
+  // Any gemini model
+  const gemini = availableModels.find((m) => m.toLowerCase().includes('gemini'))
+  if (gemini) return gemini
+
+  return availableModels[0] || DEFAULT_GEMINI_CANDIDATE_MODELS[0]
 }
 
 /**
@@ -106,12 +213,14 @@ Critical Instructions:
 export async function processInvoiceWithGemini(
   file: File,
   onProgress?: OcrProgressCallback,
-  overrideApiKey?: string
+  overrideApiKey?: string,
+  overrideModel?: string
 ): Promise<ExtractedInvoice> {
   onProgress?.(15, 'Preparing document for Gemini AI Vision...')
   const { base64, mimeType } = await fileToBase64(file)
 
   const apiKey = overrideApiKey || getStoredGeminiApiKey() || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : '') || ''
+  const preferredModel = overrideModel || getStoredGeminiModel() || ''
 
   // 1. Try server-side API route first if available
   try {
@@ -120,12 +229,14 @@ export async function processInvoiceWithGemini(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey ? { 'x-gemini-api-key': apiKey } : {})
+        ...(apiKey ? { 'x-gemini-api-key': apiKey } : {}),
+        ...(preferredModel && preferredModel !== 'auto' ? { 'x-gemini-model': preferredModel } : {})
       },
       body: JSON.stringify({
         fileBase64: base64,
         mimeType,
-        fileName: file.name
+        fileName: file.name,
+        model: preferredModel && preferredModel !== 'auto' ? preferredModel : undefined
       })
     })
 
@@ -145,8 +256,33 @@ export async function processInvoiceWithGemini(
     throw new Error('GEMINI_API_KEY_REQUIRED')
   }
 
-  onProgress?.(45, 'Sending image to Gemini 1.5 Flash Vision...')
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${apiKey}`
+  // Build candidate models queue
+  const candidateModels: string[] = []
+  if (preferredModel && preferredModel !== 'auto') {
+    candidateModels.push(preferredModel)
+  }
+  if (memoryCachedModel && !candidateModels.includes(memoryCachedModel)) {
+    candidateModels.push(memoryCachedModel)
+  }
+
+  // Attempt live discovery if candidate queue is empty or auto was specified
+  try {
+    const discovered = await fetchAvailableGeminiModels(apiKey)
+    if (discovered.length > 0) {
+      const best = resolveBestGeminiModel(discovered, preferredModel)
+      if (best && !candidateModels.includes(best)) {
+        candidateModels.unshift(best)
+      }
+    }
+  } catch {
+    // Discovery failed or blocked, proceed with fallback queue
+  }
+
+  for (const m of DEFAULT_GEMINI_CANDIDATE_MODELS) {
+    if (!candidateModels.includes(m)) {
+      candidateModels.push(m)
+    }
+  }
 
   const requestBody = {
     contents: [
@@ -168,40 +304,90 @@ export async function processInvoiceWithGemini(
     }
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  })
+  let lastErrorText = ''
+  let lastStatus = 0
+  const triedModels: string[] = []
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    if (response.status === 400 && errorText.includes('API_KEY_INVALID')) {
-      throw new Error('INVALID_GEMINI_API_KEY')
+  for (const currentModel of candidateModels) {
+    triedModels.push(currentModel)
+    onProgress?.(45, `Sending image to Gemini Vision (${currentModel})…`)
+
+    const apiVersions = ['v1beta', 'v1']
+    let modelSuccess = false
+    let geminiResult: any = null
+
+    for (const apiVer of apiVersions) {
+      const endpoint = `https://generativelanguage.googleapis.com/${apiVer}/models/${currentModel}:generateContent?key=${apiKey}`
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        })
+
+        if (response.ok) {
+          geminiResult = await response.json()
+          modelSuccess = true
+          // Cache successful model
+          memoryCachedModel = currentModel
+          setStoredGeminiModel(currentModel)
+          break
+        }
+
+        lastStatus = response.status
+        lastErrorText = await response.text()
+
+        // Immediate stop if API Key is fundamentally invalid (no need to cycle through other models)
+        if (response.status === 400 && lastErrorText.includes('API_KEY_INVALID')) {
+          throw new Error('INVALID_GEMINI_API_KEY')
+        }
+
+        // If 404 (model not found / not supported for generateContent in this version/account), try next version or candidate
+        const isNotFound = response.status === 404 || lastErrorText.includes('NOT_FOUND') || lastErrorText.includes('not supported for generateContent')
+        if (isNotFound) {
+          console.warn(`Gemini model '${currentModel}' not found in ${apiVer} (404), checking next candidate...`)
+          continue
+        }
+
+        // Other non-404 error (e.g. 429 quota or 500), stop loop
+        throw new Error(`Gemini API Error (${response.status}): ${lastErrorText}`)
+      } catch (err: any) {
+        if (err?.message === 'INVALID_GEMINI_API_KEY' || !err?.message?.includes('404')) {
+          throw err
+        }
+      }
     }
-    throw new Error(`Gemini API Error (${response.status}): ${errorText}`)
+
+    if (modelSuccess && geminiResult) {
+      onProgress?.(80, 'Parsing structured pharma invoice data...')
+      const candidateText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!candidateText) {
+        throw new Error('Gemini did not return any content for this document.')
+      }
+
+      let parsedJson: any
+      try {
+        parsedJson = JSON.parse(candidateText)
+      } catch {
+        // Clean any accidental markdown codeblock backticks
+        const cleaned = candidateText.replace(/```(?:json)?/g, '').trim()
+        parsedJson = JSON.parse(cleaned)
+      }
+
+      onProgress?.(95, 'Mapping medicines to All Items master catalog...')
+      return normalizeGeminiResponse(parsedJson, file.name)
+    }
   }
 
-  onProgress?.(80, 'Parsing structured pharma invoice data...')
-  const geminiResult = await response.json()
-  const candidateText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!candidateText) {
-    throw new Error('Gemini did not return any content for this document.')
+  // If all candidate models returned 404 or failed
+  if (lastStatus === 404 || lastErrorText.includes('NOT_FOUND')) {
+    throw new Error(`Gemini API Error (404): Models tried (${triedModels.slice(0, 4).join(', ')}) were not found or not supported for generateContent with your API key. Please check your Google AI Studio key permissions or switch to Local Tesseract OCR.`)
   }
 
-  let parsedJson: any
-  try {
-    parsedJson = JSON.parse(candidateText)
-  } catch {
-    // Clean any accidental markdown codeblock backticks
-    const cleaned = candidateText.replace(/```(?:json)?/g, '').trim()
-    parsedJson = JSON.parse(cleaned)
-  }
-
-  onProgress?.(95, 'Mapping medicines to All Items master catalog...')
-  return normalizeGeminiResponse(parsedJson, file.name)
+  throw new Error(`Gemini API Error (${lastStatus || 500}): ${lastErrorText || 'Failed to process document with Gemini AI'}`)
 }
 
 function normalizeGeminiResponse(parsed: any, fileName: string): ExtractedInvoice {

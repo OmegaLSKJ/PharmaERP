@@ -33,3 +33,4 @@ scratch/
 *custom-parties.json
 .DS_Store
 .agents/mcp_config.json
+*.traineddata
