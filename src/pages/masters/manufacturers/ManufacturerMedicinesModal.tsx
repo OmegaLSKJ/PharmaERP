@@ -16,10 +16,17 @@ import {
   SlidersHorizontal,
   ExternalLink,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Edit2,
+  Save,
+  Plus,
+  Trash2,
+  Check,
+  Loader2
 } from 'lucide-react'
 import { lookupCatalogManufacturer } from '../../../lib/catalogManufacturers'
-import { getErp } from '../../../lib/erpApi'
+import { getErp, patchErp, postErp, deleteErp } from '../../../lib/erpApi'
+import { useUIStore } from '../../../store/uiStore'
 import { cn, formatCurrency } from '../../../lib/utils'
 import ActiveProductDetailPanel, { ActiveProductDetail } from '../../../components/transactions/ActiveProductDetailPanel'
 
@@ -37,7 +44,9 @@ export interface ManufacturerInfo {
 interface MedicineBatch {
   id?: string
   batch?: string
+  batchNumber?: string
   expiry?: string
+  expiryOn?: string
   stock?: number
   mrp?: number
   costPrice?: number
@@ -79,17 +88,52 @@ interface ManufacturerMedicinesModalProps {
   onClose: () => void
 }
 
+interface BatchDraftState {
+  batch: string
+  expiry: string
+  stock: number | string
+  purchasePrice: number | string
+  costPrice: number | string
+  mrp: number | string
+  salePrice: number | string
+  rackNumber: string
+}
+
+const emptyBatchDraft = (): BatchDraftState => ({
+  batch: '',
+  expiry: '',
+  stock: '',
+  purchasePrice: '',
+  costPrice: '',
+  mrp: '',
+  salePrice: '',
+  rackNumber: ''
+})
+
 export default function ManufacturerMedicinesModal({
   manufacturer,
   onClose
 }: ManufacturerMedicinesModalProps) {
+  const showToast = useUIStore((s) => s.showToast)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [medicines, setMedicines] = useState<MedicineItem[]>([])
   const [search, setSearch] = useState('')
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL')
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'mrp' | 'margin'>('name')
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
+  
+  // Track expanded product rows
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set())
+  
+  // Inline batch editing state
+  const [editingBatchKey, setEditingBatchKey] = useState<string | null>(null)
+  const [batchDraft, setBatchDraft] = useState<BatchDraftState>(emptyBatchDraft())
+  const [savingBatchKey, setSavingBatchKey] = useState<string | null>(null)
+  
+  // Inline new batch creation state
+  const [addingBatchForItemId, setAddingBatchForItemId] = useState<string | null>(null)
+  const [newBatchDraft, setNewBatchDraft] = useState<BatchDraftState>(emptyBatchDraft())
+
   const [inspectProduct, setInspectProduct] = useState<ActiveProductDetail | null>(null)
   const [inspectOpen, setInspectOpen] = useState(false)
 
@@ -166,12 +210,297 @@ export default function ManufacturerMedicinesModal({
     if (manufacturer) {
       setSearch('')
       setStockFilter('ALL')
-      setExpandedItemId(null)
+      setExpandedItemIds(new Set())
+      setEditingBatchKey(null)
+      setAddingBatchForItemId(null)
       setInspectProduct(null)
       setInspectOpen(false)
       fetchMedicines()
     }
   }, [manufacturer?.id, manufacturer?.name])
+
+  const toggleExpand = (itemId: string) => {
+    setExpandedItemIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
+    })
+  }
+
+  const handleStartEditBatch = (med: MedicineItem, batch: MedicineBatch, idx: number) => {
+    const key = `${med.id}::${batch.id || `idx-${idx}`}`
+    setEditingBatchKey(key)
+    setBatchDraft({
+      batch: batch.batch || batch.batchNumber || '',
+      expiry: batch.expiry || batch.expiryOn || '',
+      stock: batch.stock ?? 0,
+      purchasePrice: batch.purchasePrice ?? batch.costPrice ?? med.purchaseRate ?? med.costPrice ?? '',
+      costPrice: batch.costPrice ?? batch.purchasePrice ?? med.costPrice ?? med.purchaseRate ?? '',
+      mrp: batch.mrp ?? med.mrp ?? '',
+      salePrice: batch.salePrice ?? med.saleRate ?? '',
+      rackNumber: batch.rackNumber || batch.location || ''
+    })
+  }
+
+  const handleSaveEditBatch = async (med: MedicineItem, batch: MedicineBatch, idx: number) => {
+    const key = `${med.id}::${batch.id || `idx-${idx}`}`
+    const cleanBatchNo = (batchDraft.batch || '').trim().toUpperCase()
+    if (!cleanBatchNo) {
+      showToast('Batch number cannot be empty.')
+      return
+    }
+
+    const cleanExpiry = (batchDraft.expiry || '').trim()
+    const numStock = Math.max(0, Number(batchDraft.stock) || 0)
+    const numPurchase = Math.max(0, Number(batchDraft.purchasePrice) || 0)
+    const numMrp = Math.max(0, Number(batchDraft.mrp) || 0)
+    const numSale = Math.max(0, Number(batchDraft.salePrice) || 0)
+    const cleanRack = (batchDraft.rackNumber || '').trim()
+
+    setSavingBatchKey(key)
+    try {
+      const updatedBatch: MedicineBatch = {
+        ...batch,
+        id: batch.id || `b-${Date.now()}-${idx}`,
+        batch: cleanBatchNo,
+        batchNumber: cleanBatchNo,
+        expiry: cleanExpiry,
+        expiryOn: cleanExpiry,
+        stock: numStock,
+        purchasePrice: numPurchase,
+        costPrice: numPurchase,
+        mrp: numMrp,
+        salePrice: numSale,
+        rackNumber: cleanRack,
+        location: cleanRack,
+        supplier: batch.supplier || manufacturer?.primarySupplier || manufacturer?.name
+      }
+
+      const currentBatches = [...(med.batches || [])]
+      if (idx >= 0 && idx < currentBatches.length) {
+        currentBatches[idx] = updatedBatch
+      } else {
+        currentBatches.push(updatedBatch)
+      }
+
+      const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
+
+      // Direct patch if batch has persisted id
+      if (batch.id) {
+        try {
+          await patchErp('item-batches', batch.id, {
+            itemId: med.id,
+            batchNumber: cleanBatchNo,
+            expiryOn: cleanExpiry || null,
+            stock: numStock,
+            purchasePrice: numPurchase,
+            costPrice: numPurchase,
+            salePrice: numSale,
+            mrp: numMrp,
+            rackNumber: cleanRack || null
+          })
+        } catch (e) {
+          console.warn('Batch direct update fallback to item sync:', e)
+        }
+      }
+
+      // Sync via parent item
+      await patchErp('items', med.id, {
+        ...med,
+        stock: newTotalStock,
+        batches: currentBatches,
+        batchCount: currentBatches.length,
+        mrp: numMrp || med.mrp,
+        saleRate: numSale || med.saleRate,
+        purchaseRate: numPurchase || med.purchaseRate,
+        costPrice: numPurchase || med.costPrice
+      })
+
+      setMedicines((prev) =>
+        prev.map((item) =>
+          item.id === med.id
+            ? {
+                ...item,
+                stock: newTotalStock,
+                batches: currentBatches,
+                batchCount: currentBatches.length,
+                mrp: numMrp || item.mrp,
+                saleRate: numSale || item.saleRate,
+                purchaseRate: numPurchase || item.purchaseRate,
+                costPrice: numPurchase || item.costPrice
+              }
+            : item
+        )
+      )
+
+      setEditingBatchKey(null)
+      showToast(`Batch "${cleanBatchNo}" updated successfully for ${med.name}.`)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update batch.')
+    } finally {
+      setSavingBatchKey(null)
+    }
+  }
+
+  const handleStartAddBatch = (med: MedicineItem) => {
+    setAddingBatchForItemId(med.id)
+    setNewBatchDraft({
+      batch: '',
+      expiry: '',
+      stock: '',
+      purchasePrice: med.purchaseRate ?? med.costPrice ?? '',
+      costPrice: med.costPrice ?? med.purchaseRate ?? '',
+      mrp: med.mrp ?? '',
+      salePrice: med.saleRate ?? '',
+      rackNumber: ''
+    })
+  }
+
+  const handleSaveNewBatch = async (med: MedicineItem) => {
+    const cleanBatchNo = (newBatchDraft.batch || '').trim().toUpperCase()
+    if (!cleanBatchNo) {
+      showToast('Batch number cannot be empty.')
+      return
+    }
+
+    const cleanExpiry = (newBatchDraft.expiry || '').trim()
+    const numStock = Math.max(0, Number(newBatchDraft.stock) || 0)
+    const numPurchase = Math.max(0, Number(newBatchDraft.purchasePrice) || 0)
+    const numMrp = Math.max(0, Number(newBatchDraft.mrp) || 0)
+    const numSale = Math.max(0, Number(newBatchDraft.salePrice) || 0)
+    const cleanRack = (newBatchDraft.rackNumber || '').trim()
+
+    setSavingBatchKey(`new-${med.id}`)
+    try {
+      let createdBatchId = `b-${Date.now()}`
+      try {
+        const created = await postErp<any>('item-batches', {
+          itemId: med.id,
+          batchNumber: cleanBatchNo,
+          batch: cleanBatchNo,
+          expiryOn: cleanExpiry || null,
+          expiry: cleanExpiry || null,
+          stock: numStock,
+          costPrice: numPurchase,
+          purchasePrice: numPurchase,
+          salePrice: numSale,
+          mrp: numMrp,
+          rackNumber: cleanRack || null,
+          supplier: manufacturer?.primarySupplier || manufacturer?.name
+        })
+        if (created?.id) createdBatchId = created.id
+      } catch (e) {
+        console.warn('Batch post fallback to item sync:', e)
+      }
+
+      const createdBatch: MedicineBatch = {
+        id: createdBatchId,
+        batch: cleanBatchNo,
+        batchNumber: cleanBatchNo,
+        expiry: cleanExpiry,
+        expiryOn: cleanExpiry,
+        stock: numStock,
+        purchasePrice: numPurchase,
+        costPrice: numPurchase,
+        mrp: numMrp,
+        salePrice: numSale,
+        rackNumber: cleanRack,
+        location: cleanRack,
+        supplier: manufacturer?.primarySupplier || manufacturer?.name
+      }
+
+      const currentBatches = [...(med.batches || []), createdBatch]
+      const newTotalStock = currentBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
+
+      await patchErp('items', med.id, {
+        ...med,
+        stock: newTotalStock,
+        batches: currentBatches,
+        batchCount: currentBatches.length,
+        mrp: numMrp || med.mrp,
+        saleRate: numSale || med.saleRate,
+        purchaseRate: numPurchase || med.purchaseRate,
+        costPrice: numPurchase || med.costPrice
+      })
+
+      setMedicines((prev) =>
+        prev.map((item) =>
+          item.id === med.id
+            ? {
+                ...item,
+                stock: newTotalStock,
+                batches: currentBatches,
+                batchCount: currentBatches.length,
+                mrp: numMrp || item.mrp,
+                saleRate: numSale || item.saleRate,
+                purchaseRate: numPurchase || item.purchaseRate,
+                costPrice: numPurchase || item.costPrice
+              }
+            : item
+        )
+      )
+
+      setAddingBatchForItemId(null)
+      showToast(`Batch "${cleanBatchNo}" added with ${numStock} units for ${med.name}.`)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to create new batch.')
+    } finally {
+      setSavingBatchKey(null)
+    }
+  }
+
+  const handleDeleteBatch = async (med: MedicineItem, batch: MedicineBatch, idx: number) => {
+    const bName = batch.batch || batch.batchNumber || 'DEFAULT'
+    if (!window.confirm(`Are you sure you want to delete batch "${bName}" from ${med.name}?`)) {
+      return
+    }
+
+    const key = `${med.id}::${batch.id || `idx-${idx}`}`
+    setSavingBatchKey(key)
+    try {
+      if (batch.id) {
+        try {
+          await deleteErp('item-batches', batch.id)
+        } catch (e) {
+          console.warn('Batch delete direct fallback:', e)
+        }
+      }
+
+      const updatedBatches = (med.batches || []).filter((_, i) => i !== idx)
+      const newTotalStock = updatedBatches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0)
+
+      await patchErp('items', med.id, {
+        ...med,
+        stock: newTotalStock,
+        batches: updatedBatches,
+        batchCount: updatedBatches.length
+      })
+
+      setMedicines((prev) =>
+        prev.map((item) =>
+          item.id === med.id
+            ? {
+                ...item,
+                stock: newTotalStock,
+                batches: updatedBatches,
+                batchCount: updatedBatches.length
+              }
+            : item
+        )
+      )
+
+      if (editingBatchKey === key) setEditingBatchKey(null)
+      showToast(`Batch "${bName}" removed from ${med.name}.`)
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete batch.')
+    } finally {
+      setSavingBatchKey(null)
+    }
+  }
 
   // Filtered & Sorted medicines
   const displayedMedicines = useMemo(() => {
@@ -430,6 +759,25 @@ export default function ManufacturerMedicinesModal({
                 <option value="margin">Sort by Margin %</option>
               </select>
             </div>
+
+            {/* Expand / Collapse All */}
+            {displayedMedicines.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (expandedItemIds.size === displayedMedicines.length) {
+                    setExpandedItemIds(new Set())
+                  } else {
+                    setExpandedItemIds(new Set(displayedMedicines.map((m) => m.id)))
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold bg-background hover:bg-secondary text-foreground transition"
+                title={expandedItemIds.size === displayedMedicines.length ? "Collapse all batch breakdowns" : "Expand all batches to view and edit stock"}
+              >
+                <Layers size={13} className="text-primary" />
+                {expandedItemIds.size === displayedMedicines.length ? 'Collapse All' : 'Expand All'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -500,12 +848,13 @@ export default function ManufacturerMedicinesModal({
               </thead>
               <tbody className="divide-y divide-border">
                 {displayedMedicines.map((med) => {
-                  const isExpanded = expandedItemId === med.id
+                  const isExpanded = expandedItemIds.has(med.id)
                   const marginPct =
                     med.mrp && med.saleRate && med.mrp > 0
                       ? (((med.mrp - med.saleRate) / med.mrp) * 100).toFixed(1)
                       : null
                   const batches = med.batches || []
+                  const isAddingThis = addingBatchForItemId === med.id
 
                   return (
                     <React.Fragment key={med.id}>
@@ -586,17 +935,20 @@ export default function ManufacturerMedicinesModal({
                         {/* Actions & Batch Toggle */}
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {batches.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => setExpandedItemId(isExpanded ? null : med.id)}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary hover:bg-muted text-foreground text-[11px] font-medium transition"
-                                title="Show Batches"
-                              >
-                                <span className="font-mono font-bold">{batches.length}</span> batches
-                                {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(med.id)}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer',
+                                isExpanded
+                                  ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                                  : 'bg-secondary hover:bg-muted text-foreground'
+                              )}
+                              title={isExpanded ? 'Collapse Batches' : 'Expand Batches & Edit Stock'}
+                            >
+                              <span className="font-mono font-bold">{batches.length}</span> {batches.length === 1 ? 'batch' : 'batches'}
+                              {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </button>
 
                             <button
                               type="button"
@@ -611,8 +963,8 @@ export default function ManufacturerMedicinesModal({
                                   salt: med.salt,
                                   hsn: med.hsn,
                                   gstRate: med.gstRate,
-                                  batch: firstBatch?.batch,
-                                  expiry: firstBatch?.expiry,
+                                  batch: firstBatch?.batch || firstBatch?.batchNumber,
+                                  expiry: firstBatch?.expiry || firstBatch?.expiryOn,
                                   stock: med.stock,
                                   saleRate: med.saleRate,
                                   mrp: med.mrp,
@@ -625,7 +977,7 @@ export default function ManufacturerMedicinesModal({
                                 })
                                 setInspectOpen(true)
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-[11px] font-semibold hover:opacity-90 transition shadow-2xs"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-secondary hover:bg-muted text-foreground text-[11px] font-semibold transition border border-border shadow-2xs"
                               title="Inspect Live Batch Inventory"
                             >
                               <ExternalLink size={12} />
@@ -635,51 +987,407 @@ export default function ManufacturerMedicinesModal({
                         </td>
                       </tr>
 
-                      {/* Expandable Batches Sub-table */}
+                      {/* Expandable Batches Sub-table & Inline Editor */}
                       {isExpanded && (
-                        <tr className="bg-muted/30">
-                          <td colSpan={8} className="p-3 pl-8">
-                            <div className="rounded-xl border border-border bg-card p-3 shadow-xs space-y-2">
-                              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono uppercase font-bold tracking-wider">
-                                <span>Batch Breakdown for {med.name}</span>
-                                <span>{batches.length} Registered Batches</span>
+                        <tr className="bg-muted/20 border-b border-border/80">
+                          <td colSpan={8} className="p-3 pl-6 sm:pl-8">
+                            <div className="rounded-xl border border-border bg-card p-3.5 shadow-sm space-y-3">
+                              {/* Header & Inline Controls */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-2.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono text-xs uppercase font-bold text-foreground tracking-wide flex items-center gap-1.5">
+                                    <Package size={14} className="text-primary" />
+                                    Live Batches for:
+                                  </span>
+                                  <span className="text-xs font-semibold text-foreground underline decoration-primary/50 underline-offset-2">
+                                    {med.name}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-secondary text-secondary-foreground border border-border">
+                                    {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                    {med.stock ?? 0} total units
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {!isAddingThis && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartAddBatch(med)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-2xs cursor-pointer"
+                                    >
+                                      <Plus size={13} />
+                                      Add New Batch
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
-                                {batches.map((b, idx) => (
-                                  <div
-                                    key={b.id || idx}
-                                    className="p-2.5 rounded-lg border border-border bg-background font-mono text-xs space-y-1 hover:border-primary/50 transition"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold text-amber-600 dark:text-amber-400">
-                                        Batch: {b.batch || 'DEFAULT'}
-                                      </span>
-                                      <span className="text-[11px] text-muted-foreground">
-                                        Exp: {b.expiry || '—'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px] pt-0.5 border-t border-border">
-                                      <span className="text-muted-foreground">Stock:</span>
-                                      <span className={cn('font-bold', (b.stock ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')}>
-                                        {b.stock ?? 0} units
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px]">
-                                      <span className="text-muted-foreground">MRP / SRate:</span>
-                                      <span className="text-foreground">
-                                        ₹{b.mrp ?? med.mrp ?? 0} / ₹{b.salePrice ?? med.saleRate ?? 0}
-                                      </span>
-                                    </div>
-                                    {(b.location || b.rackNumber) && (
-                                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                        <span>Rack:</span>
-                                        <span>{b.location || b.rackNumber}</span>
-                                      </div>
-                                    )}
+                              {/* Inline New Batch Creator Form */}
+                              {isAddingThis && (
+                                <div className="p-3.5 rounded-xl border-2 border-dashed border-emerald-500/70 bg-emerald-50/30 dark:bg-emerald-950/20 space-y-2.5 animate-in fade-in duration-150">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 font-mono uppercase tracking-wider">
+                                      <Plus size={14} />
+                                      Register New Batch for {med.name}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setAddingBatchForItemId(null)}
+                                      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+                                    >
+                                      <X size={14} />
+                                    </button>
                                   </div>
-                                ))}
-                              </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs font-mono">
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Batch No *
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={newBatchDraft.batch}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, batch: e.target.value.toUpperCase() }))}
+                                        placeholder="e.g. B25001"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary uppercase font-bold"
+                                        autoFocus
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Expiry (YYYY-MM)
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={newBatchDraft.expiry}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, expiry: e.target.value }))}
+                                        placeholder="2028-12-31"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Stock (Units) *
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={newBatchDraft.stock}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, stock: e.target.value }))}
+                                        placeholder="0"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary font-bold text-emerald-600 dark:text-emerald-400"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Purchase Rate (₹)
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={newBatchDraft.purchasePrice}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, purchasePrice: e.target.value }))}
+                                        placeholder="0.00"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        MRP (₹)
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={newBatchDraft.mrp}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, mrp: e.target.value }))}
+                                        placeholder="0.00"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Sale Rate (₹)
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={newBatchDraft.salePrice}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, salePrice: e.target.value }))}
+                                        placeholder="0.00"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                                        Rack / Shelf
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={newBatchDraft.rackNumber}
+                                        onChange={(e) => setNewBatchDraft((prev) => ({ ...prev, rackNumber: e.target.value }))}
+                                        placeholder="e.g. A-12"
+                                        className="w-full px-2.5 py-1.5 rounded-md border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-end gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setAddingBatchForItemId(null)}
+                                      className="px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted text-foreground text-xs font-medium transition cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveNewBatch(med)}
+                                      disabled={savingBatchKey === `new-${med.id}`}
+                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50 shadow-2xs cursor-pointer"
+                                    >
+                                      {savingBatchKey === `new-${med.id}` ? (
+                                        <Loader2 size={13} className="animate-spin" />
+                                      ) : (
+                                        <Check size={13} />
+                                      )}
+                                      Save New Batch
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Batches Grid & Inline Cards */}
+                              {batches.length === 0 && !isAddingThis ? (
+                                <div className="py-6 text-center text-xs text-muted-foreground font-medium border border-dashed border-border rounded-xl bg-background/50 space-y-2.5">
+                                  <p className="text-foreground font-semibold">No registered batches found for {med.name}.</p>
+                                  <p className="text-[11px]">Click below to create an initial batch and set its stock, expiry, and rates.</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartAddBatch(med)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition shadow-2xs cursor-pointer"
+                                  >
+                                    <Plus size={13} />
+                                    Add Initial Batch
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                                  {batches.map((b, idx) => {
+                                    const bKey = `${med.id}::${b.id || `idx-${idx}`}`
+                                    const isEditingThis = editingBatchKey === bKey
+                                    const isSavingThis = savingBatchKey === bKey
+
+                                    if (isEditingThis) {
+                                      return (
+                                        <div
+                                          key={bKey}
+                                          className="p-3.5 rounded-xl border-2 border-primary bg-card/95 font-mono text-xs space-y-3 shadow-md col-span-1 sm:col-span-2 lg:col-span-3 transition animate-in fade-in duration-150"
+                                        >
+                                          <div className="flex items-center justify-between border-b border-border/70 pb-1.5">
+                                            <span className="font-bold text-primary flex items-center gap-1.5">
+                                              <Edit2 size={13} />
+                                              Editing Batch: {b.batch || b.batchNumber || 'DEFAULT'}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditingBatchKey(null)}
+                                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+                                            >
+                                              <X size={14} />
+                                            </button>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                Batch No *
+                                              </label>
+                                              <input
+                                                type="text"
+                                                value={batchDraft.batch}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, batch: e.target.value.toUpperCase() }))}
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary uppercase font-bold"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                Expiry (YYYY-MM)
+                                              </label>
+                                              <input
+                                                type="text"
+                                                value={batchDraft.expiry}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, expiry: e.target.value }))}
+                                                placeholder="2028-12-31"
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                Stock (Units) *
+                                              </label>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                value={batchDraft.stock}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, stock: e.target.value }))}
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary font-bold text-emerald-600 dark:text-emerald-400"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                P.Rate (₹)
+                                              </label>
+                                              <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={batchDraft.purchasePrice}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, purchasePrice: e.target.value }))}
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                MRP (₹)
+                                              </label>
+                                              <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={batchDraft.mrp}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, mrp: e.target.value }))}
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                S.Rate (₹)
+                                              </label>
+                                              <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={batchDraft.salePrice}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, salePrice: e.target.value }))}
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="block text-[10px] text-muted-foreground uppercase mb-0.5">
+                                                Rack / Shelf
+                                              </label>
+                                              <input
+                                                type="text"
+                                                value={batchDraft.rackNumber}
+                                                onChange={(e) => setBatchDraft((prev) => ({ ...prev, rackNumber: e.target.value }))}
+                                                placeholder="e.g. A-12"
+                                                className="w-full px-2 py-1.5 rounded border border-input bg-background font-mono text-xs focus:ring-1 focus:ring-primary"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center justify-end gap-2 pt-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditingBatchKey(null)}
+                                              className="px-3 py-1.5 rounded border border-border bg-background hover:bg-muted text-foreground text-xs font-medium transition cursor-pointer"
+                                            >
+                                              Cancel
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveEditBatch(med, b, idx)}
+                                              disabled={isSavingThis}
+                                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50 shadow-2xs cursor-pointer"
+                                            >
+                                              {isSavingThis ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                                              Save Changes
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )
+                                    }
+
+                                    // Read-only card with action buttons
+                                    const pRate = b.purchasePrice ?? b.costPrice ?? med.purchaseRate ?? med.costPrice ?? 0
+                                    const mrpVal = b.mrp ?? med.mrp ?? 0
+                                    const sRate = b.salePrice ?? med.saleRate ?? 0
+                                    const rackStr = b.rackNumber || b.location
+
+                                    return (
+                                      <div
+                                        key={bKey}
+                                        className="p-3 rounded-xl border border-border bg-background font-mono text-xs space-y-1.5 hover:border-primary/50 transition group shadow-2xs"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-bold text-amber-600 dark:text-amber-400">
+                                            Batch: {b.batch || b.batchNumber || 'DEFAULT'}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-[11px] text-muted-foreground mr-1">
+                                              Exp: {b.expiry || b.expiryOn || '—'}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleStartEditBatch(med, b, idx)}
+                                              className="p-1 rounded bg-secondary hover:bg-primary hover:text-primary-foreground text-muted-foreground text-[10px] font-semibold transition cursor-pointer"
+                                              title="Edit Batch & Stock Values"
+                                            >
+                                              <Edit2 size={11} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteBatch(med, b, idx)}
+                                              className="p-1 rounded bg-secondary hover:bg-rose-600 hover:text-white text-muted-foreground text-[10px] font-semibold transition cursor-pointer"
+                                              title="Delete Batch"
+                                            >
+                                              <Trash2 size={11} />
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border">
+                                          <span className="text-muted-foreground">Stock:</span>
+                                          <span className={cn('font-bold', (b.stock ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')}>
+                                            {b.stock ?? 0} units
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[11px]">
+                                          <span className="text-muted-foreground">P.Rate / MRP / S.Rate:</span>
+                                          <span className="text-foreground font-medium">
+                                            ₹{typeof pRate === 'number' ? pRate.toFixed(2) : pRate} / ₹{typeof mrpVal === 'number' ? mrpVal.toFixed(2) : mrpVal} / ₹{typeof sRate === 'number' ? sRate.toFixed(2) : sRate}
+                                          </span>
+                                        </div>
+
+                                        {rackStr && (
+                                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                            <span>Rack:</span>
+                                            <span className="font-semibold text-foreground">{rackStr}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

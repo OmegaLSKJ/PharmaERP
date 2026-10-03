@@ -95,5 +95,49 @@ describe('Item Stock Editing & Persistence', () => {
     expect(Number(mainStore.used)).toBeGreaterThanOrEqual(60000)
     expect(Number(mainStore.capacity)).toBeGreaterThanOrEqual(Number(mainStore.used))
   })
+
+  it('updates batch values directly via item-batches and recalculates item stock', async () => {
+    const itemCode = `ITM-MFR-${Date.now()}`
+    const created = await create('items', {
+      code: itemCode,
+      name: 'Abbott Test Medicine 100mg',
+      manufacturer: 'ABBOTT',
+      stock: 10,
+      batches: [
+        {
+          id: `b-${itemCode}-1`,
+          batch: 'ABT001',
+          expiry: '2028-01-01',
+          stock: 10,
+          purchasePrice: 200,
+          mrp: 350,
+          salePrice: 280,
+          rackNumber: 'RACK-A1'
+        }
+      ]
+    })
+
+    expect(created).toBeDefined()
+    expect(Number(created.stock)).toBe(10)
+
+    // Update batch directly
+    await update('item-batches', `b-${itemCode}-1`, {
+      batchNumber: 'ABT001-NEW',
+      stock: 45,
+      purchasePrice: 210,
+      mrp: 360,
+      salePrice: 290,
+      rackNumber: 'RACK-B2'
+    })
+
+    const itemsAfter: any = await list('items')
+    const found = itemsAfter.find((i: any) => i.id === created.id)
+    expect(found).toBeDefined()
+    expect(Number(found.stock)).toBe(45)
+    expect(found.batches[0].batch).toBe('ABT001-NEW')
+    expect(Number(found.batches[0].stock)).toBe(45)
+    expect(Number(found.batches[0].mrp)).toBe(360)
+    expect(found.batches[0].rackNumber).toBe('RACK-B2')
+  })
 })
 
