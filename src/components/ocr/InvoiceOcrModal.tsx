@@ -898,7 +898,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     </div>
                   ) : (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <span>Local Tesseract (Offline)</span>
+                      <span>Local Tesseract (LSTM tessdata_best)</span>
                     </div>
                   )}
 
