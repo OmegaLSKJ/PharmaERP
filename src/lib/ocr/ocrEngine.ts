@@ -1,5 +1,13 @@
 import { ExtractedInvoice, OcrProgressCallback } from './types'
 import { parsePharmaInvoice } from './pharmaInvoiceParser'
+import { processInvoiceWithGemini, hasGeminiApiKey, getStoredGeminiApiKey } from './geminiOcrEngine'
+
+export type OcrEngineChoice = 'gemini' | 'tesseract' | 'auto'
+
+export interface ScanInvoiceOptions {
+  engine?: OcrEngineChoice
+  apiKey?: string
+}
 
 /**
  * Preprocesses an image to improve OCR accuracy on faint / carbon-copy printed bills
@@ -267,11 +275,31 @@ export async function scanInvoicePdf(
 
 /**
  * Universal invoice scanner supporting images (PNG, JPG, WebP) and PDFs
+ * Supports high-accuracy Gemini 1.5 Flash Vision with automatic local Tesseract fallback
  */
 export async function scanInvoice(
   file: File,
-  onProgress?: OcrProgressCallback
+  onProgress?: OcrProgressCallback,
+  options?: ScanInvoiceOptions
 ): Promise<ExtractedInvoice> {
+  const chosenEngine = options?.engine || 'auto'
+  const explicitKey = options?.apiKey || getStoredGeminiApiKey()
+  const canUseGemini = chosenEngine === 'gemini' || (chosenEngine === 'auto' && (hasGeminiApiKey() || Boolean(explicitKey)))
+
+  if (canUseGemini) {
+    try {
+      return await processInvoiceWithGemini(file, onProgress, explicitKey)
+    } catch (err: any) {
+      // If user explicitly selected Gemini, rethrow error so user knows what went wrong (e.g. invalid key)
+      if (chosenEngine === 'gemini') {
+        throw err
+      }
+      console.warn('Gemini OCR unavailable, falling back to local Tesseract OCR engine:', err)
+      onProgress?.(20, 'Switching to local offline OCR engine…')
+    }
+  }
+
+  // Local fallback (Tesseract / PDF.js)
   const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
   if (isPdf) {
     return scanInvoicePdf(file, onProgress)

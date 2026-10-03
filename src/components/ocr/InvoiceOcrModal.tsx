@@ -17,13 +17,16 @@ import {
   Search,
   CheckSquare,
   Square,
-  Printer
+  Printer,
+  Settings,
+  Key
 } from 'lucide-react'
 import { scanInvoice } from '../../lib/ocr/ocrEngine'
 import { parsePharmaInvoice } from '../../lib/ocr/pharmaInvoiceParser'
 import { ExtractedInvoice, ExtractedLineItem } from '../../lib/ocr/types'
 import { mapExtractedItemsToMaster, MasterItemOption, matchMedicineToMaster } from '../../lib/ocr/medicineMapper'
 import { PHARMA_MASTER_CATALOG } from '../../lib/ocr/pharmaMasterCatalog'
+import { getStoredGeminiApiKey, setStoredGeminiApiKey, hasGeminiApiKey } from '../../lib/ocr/geminiOcrEngine'
 import { formatCurrency } from '../../lib/utils'
 import { getCached } from '../../lib/erpCache'
 import BlankSheetModal from '../transactions/BlankSheetModal'
@@ -100,6 +103,125 @@ function RawTextModal({ isOpen, initialText, onClose, onReparse }: RawTextModalP
   )
 }
 
+interface ApiKeyModalProps {
+  isOpen: boolean
+  onClose: () => void
+  currentKey: string
+  onSave: (key: string) => void
+  onSwitchToLocal: () => void
+}
+
+function ApiKeyModal({ isOpen, onClose, currentKey, onSave, onSwitchToLocal }: ApiKeyModalProps) {
+  const [key, setKey] = useState(currentKey)
+  const [showKey, setShowKey] = useState(false)
+
+  useEffect(() => {
+    setKey(currentKey)
+  }, [currentKey])
+
+  if (!isOpen) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Gemini AI Vision Configuration</h3>
+              <p className="text-[11px] text-muted-foreground">High-precision OCR for Indian pharma purchase bills</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground cursor-pointer">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3.5">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Gemini 1.5 Flash provides <strong>near 100% accuracy</strong> on dot-matrix prints, camera photos, Indian medicine brand names, dosage strengths, batches, expiries, and scheme free quantities.
+          </p>
+
+          <div>
+            <label className="text-xs font-semibold text-foreground block mb-1.5">
+              Google Gemini API Key
+            </label>
+            <div className="relative">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full px-3 py-2 text-xs bg-muted/20 border border-border rounded-xl font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 pr-16"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded cursor-pointer"
+              >
+                {showKey ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] text-muted-foreground space-y-1.5">
+            <div className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+              <Sparkles size={13} />
+              <span>Free Tier: 15 Scans / Minute</span>
+            </div>
+            <p>
+              Get your free key from Google AI Studio without needing a credit card:{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-500 hover:underline font-semibold inline-flex items-center gap-0.5"
+              >
+                Get Free API Key →
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10">
+          <button
+            type="button"
+            onClick={() => {
+              onSwitchToLocal()
+              onClose()
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer"
+          >
+            Use Local Tesseract (Offline)
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-secondary cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSave(key)
+                onClose()
+              }}
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+            >
+              Save & Use Gemini
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export interface InvoiceOcrModalProps {
   isOpen: boolean
   onClose: () => void
@@ -127,6 +249,10 @@ export default function InvoiceOcrModal({
   const [error, setError] = useState<string | null>(null)
   const [showBlankSheetModal, setShowBlankSheetModal] = useState(false)
   const [filterText, setFilterText] = useState('')
+  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'tesseract'>('gemini')
+  const [geminiApiKey, setGeminiApiKey] = useState(() => getStoredGeminiApiKey())
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
 
   // Load cached ERP items or provide rich defaults for comprehensive master mapping
   const effectiveMasterItems: MasterItemOption[] = useMemo(() => {
@@ -243,18 +369,31 @@ export default function InvoiceOcrModal({
     }, 'image/png')
   }
 
-  const handleFileSelect = async (selectedFile: File) => {
+  const handleFileSelect = async (selectedFile: File, explicitKey?: string) => {
+    const activeKey = explicitKey || geminiApiKey || getStoredGeminiApiKey()
+
+    // If Gemini selected but no key is available anywhere, open configuration modal
+    if (ocrEngine === 'gemini' && !activeKey && !hasGeminiApiKey()) {
+      setPendingFile(selectedFile)
+      setShowApiKeyModal(true)
+      return
+    }
+
     setFile(selectedFile)
     setError(null)
     setScanning(true)
     setProgress(5)
-    setStatusMessage('Preparing image for OCR scan…')
+    setStatusMessage(ocrEngine === 'gemini' ? 'Analyzing invoice with Gemini AI Vision…' : 'Preparing image for OCR scan…')
 
     try {
-      const result = await scanInvoice(selectedFile, (pct, msg) => {
-        setProgress(pct)
-        setStatusMessage(msg)
-      })
+      const result = await scanInvoice(
+        selectedFile,
+        (pct, msg) => {
+          setProgress(pct)
+          setStatusMessage(msg)
+        },
+        { engine: ocrEngine, apiKey: activeKey }
+      )
 
       // Auto-map extracted medicines against master catalog
       if (effectiveMasterItems.length > 0 && result.items.length > 0) {
@@ -265,9 +404,25 @@ export default function InvoiceOcrModal({
       setRawOcrText(result.rawText || '')
     } catch (err: any) {
       console.error('OCR Scanning Error:', err)
-      setError(err?.message || 'Failed to scan document. Please check the file clarity and try again.')
+      if (err?.message === 'GEMINI_API_KEY_REQUIRED' || err?.message === 'INVALID_GEMINI_API_KEY') {
+        setPendingFile(selectedFile)
+        setShowApiKeyModal(true)
+        setError(err?.message === 'INVALID_GEMINI_API_KEY' ? 'Invalid Gemini API Key. Please verify your key.' : 'Please enter your Gemini API Key to use AI Vision.')
+      } else {
+        setError(err?.message || 'Failed to scan document. Please check the file clarity and try again.')
+      }
     } finally {
       setScanning(false)
+    }
+  }
+
+  const handleSaveApiKey = (key: string) => {
+    setStoredGeminiApiKey(key)
+    setGeminiApiKey(key)
+    if (pendingFile) {
+      const f = pendingFile
+      setPendingFile(null)
+      void handleFileSelect(f, key)
     }
   }
 
@@ -597,11 +752,42 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
               <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2 flex-wrap">
                 {getModeTitle()}
-                <span className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                  Free Local OCR · Auto-Mapped
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {ocrEngine === 'gemini' ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      <span>✨ Gemini AI Vision</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowApiKeyModal(true)
+                        }}
+                        title="Configure Gemini API Key"
+                        className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
+                      >
+                        <Settings size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span>Local Tesseract (Offline)</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = ocrEngine === 'gemini' ? 'tesseract' : 'gemini'
+                      setOcrEngine(next)
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground underline transition ml-0.5 cursor-pointer font-normal"
+                  >
+                    Switch to {ocrEngine === 'gemini' ? 'Local Tesseract' : 'Gemini AI Vision'}
+                  </button>
+                </div>
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Upload invoice PDF or take a live camera photo to auto-map medicines with your inventory
@@ -1348,6 +1534,16 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
           initialText={rawOcrText}
           onClose={() => setShowRawTextModal(false)}
           onReparse={handleReparseCustomText}
+        />
+      )}
+
+      {showApiKeyModal && (
+        <ApiKeyModal
+          isOpen={showApiKeyModal}
+          currentKey={geminiApiKey}
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={handleSaveApiKey}
+          onSwitchToLocal={() => setOcrEngine('tesseract')}
         />
       )}
     </div>,
