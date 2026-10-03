@@ -1187,6 +1187,22 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                       <span>🌐 OpenRouter Cloud (Gemma-4-31B — Free)</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const current = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
+                          const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
+                          if (key !== null) {
+                            localStorage.setItem('openrouter_api_key', key.trim())
+                            addToast('OpenRouter API key saved!', 'success')
+                          }
+                        }}
+                        title="Set / Change OpenRouter API Key"
+                        className="hover:text-foreground text-muted-foreground transition p-0.5 ml-0.5 cursor-pointer"
+                      >
+                        <Settings size={12} />
+                      </button>
                     </div>
                   ) : ocrEngine === 'qwen' ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shadow-xs">
@@ -1556,6 +1572,24 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                   <Settings size={13} />
                   Change Gemini Key / Model
                 </button>
+                {ocrEngine === 'openrouter' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
+                      const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
+                      if (key !== null) {
+                        localStorage.setItem('openrouter_api_key', key.trim())
+                        addToast('OpenRouter API key saved!', 'success')
+                        if (file) void handleFileSelect(file)
+                      }
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                  >
+                    <Settings size={13} />
+                    Set / Change OpenRouter Key
+                  </button>
+                )}
                 {ocrEngine === 'gemini' && (
                   <button
                     type="button"

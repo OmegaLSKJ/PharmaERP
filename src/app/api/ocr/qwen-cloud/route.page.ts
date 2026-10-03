@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * Multi-provider vision OCR route. Tries providers in this priority order:
  *
- * 1. OpenRouter  (FREE — qwen/qwen2-vl-7b-instruct:free)
+ * 1. OpenRouter  (FREE — Gemma-4-31B, Qwen2.5-VL-72B, Qwen2-VL-7B, etc.)
  *    → OPENROUTER_API_KEY  | https://openrouter.ai/keys  (free, no credit card)
  *
  * 2. Groq        (FREE — llama-3.2-11b-vision-preview)
@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
  *    → TOGETHER_API_KEY    | https://api.together.xyz    ($25 free credit on signup)
  *
  * Set any ONE (or more for automatic fallback) in Vercel → Settings → Env Vars.
- * No key needed at all when running locally via Ollama.
+ * Or pass apiKey in request body.
  */
 
 export const maxDuration = 60
@@ -33,29 +33,29 @@ interface Provider {
 }
 
 const PROVIDERS: Provider[] = [
-  // ── 1. OpenRouter (FREE vision models — verified live 2026-10) ───────────
+  // ── 1. OpenRouter (FREE vision models — verified live) ─────────────────────
   {
     name: 'OpenRouter',
     envKey: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: [
-      // ★ Best for document OCR: 31B dense, 262K ctx, native image, reasoning mode
+      // Dense 31B vision/reasoning
       'google/gemma-4-31b-it:free',
-      // ★ Strong: 27B Qwen vision-language, 262K ctx, excellent tabular extraction
+      // High-precision tabular/invoice vision
       'qwen/qwen3.8-27b:free',
-      // ★ MoE 26B (only 3.8B active/token), near-31B quality, very fast
+      'qwen/qwen-2.5-vl-72b-instruct:free',
+      'qwen/qwen2-vl-7b-instruct:free',
+      'meta-llama/llama-3.2-11b-vision-instruct:free',
+      // Fast MoE
       'google/gemma-4-26b-a4b-it:free',
-      // Large MoE (41B active / 975B total), general reasoning + vision
       'thinkingmachines/inkling:free',
-      // Smaller MoE (12B active), faster inference
       'thinkingmachines/inkling-small:free',
-      // 512K context MoE — fallback for very large multi-page invoices
       'dots-studio/dots-3-note-preview:free',
     ],
     buildHeaders: (key) => ({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
-      'HTTP-Referer': 'https://pharmapp.vercel.app',
+      'HTTP-Referer': 'https://pharama-erp.vercel.app',
       'X-Title': 'PharmaERP Invoice OCR',
     }),
     buildBody: (model, imageUrl, prompt) => ({
@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { base64, mimeType = 'image/jpeg', prompt, preferProvider } = body
+  const clientKey = (body.apiKey || req.headers.get('x-api-key') || req.headers.get('x-openrouter-key') || '').trim()
 
   if (!base64 || !prompt) {
     return NextResponse.json(
@@ -159,19 +160,17 @@ export async function POST(req: NextRequest) {
 
   const imageUrl = `data:${mimeType};base64,${base64}`
 
-  // Determine which providers are configured (have API keys set)
+  // Determine which providers are configured (have API keys in env or passed from client)
   const configuredProviders = PROVIDERS.filter(
-    (p) => !!process.env[p.envKey]
+    (p) => !!process.env[p.envKey] || (p.name === 'OpenRouter' && !!clientKey)
   )
 
   if (configuredProviders.length === 0) {
     return NextResponse.json(
       {
         error:
-          'No cloud OCR provider is configured. Set at least one of: ' +
-          PROVIDERS.map((p) => p.envKey).join(', ') +
-          ' in Vercel → Project Settings → Environment Variables. ' +
-          'OpenRouter is free: https://openrouter.ai/keys',
+          'No cloud OCR provider is configured. Set OPENROUTER_API_KEY in Vercel → Project Settings → Environment Variables. ' +
+          'Get a free key at https://openrouter.ai/keys (no credit card required).',
       },
       { status: 500 }
     )
@@ -192,7 +191,7 @@ export async function POST(req: NextRequest) {
   const errors: string[] = []
 
   for (const provider of orderedProviders) {
-    const apiKey = process.env[provider.envKey]!
+    const apiKey = (provider.name === 'OpenRouter' && clientKey) ? clientKey : process.env[provider.envKey]!
 
     for (const model of provider.models) {
       try {
@@ -242,7 +241,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(
     {
-      error: 'All configured cloud providers failed.',
+      error: 'All configured cloud providers failed. Check your OPENROUTER_API_KEY in Vercel.',
       details: errors,
       hint: 'Get a free OpenRouter key at https://openrouter.ai/keys and set OPENROUTER_API_KEY in Vercel env vars.',
     },
@@ -253,8 +252,6 @@ export async function POST(req: NextRequest) {
 // ── GET health-check ──────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url)
-
   const providers = PROVIDERS.map((p) => ({
     name: p.name,
     envKey: p.envKey,

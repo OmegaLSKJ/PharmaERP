@@ -535,6 +535,8 @@ export async function processInvoiceWithQwenCloud(
 
   onProgress?.(40, 'Sending to Qwen2-VL on Together AI cloud GPU…')
 
+  const openRouterKey = typeof window !== 'undefined' ? (localStorage.getItem('openrouter_api_key') || localStorage.getItem('OPENROUTER_API_KEY') || '') : ''
+
   const res = await fetch('/api/ocr/qwen-cloud', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -542,23 +544,33 @@ export async function processInvoiceWithQwenCloud(
       base64,
       mimeType,
       prompt: PHARMA_INVOICE_PROMPT,
+      apiKey: openRouterKey || undefined,
       ...(overrideModel ? { model: overrideModel } : {})
     })
   })
 
+  const rawText = await res.text()
+  let result: any = null
+  try {
+    result = JSON.parse(rawText)
+  } catch {
+    if (!res.ok) {
+      throw new Error(`Cloud OCR route returned status ${res.status}. Check OPENROUTER_API_KEY in Vercel.`)
+    }
+    throw new Error(`Could not parse OCR response: ${rawText.slice(0, 120)}`)
+  }
+
   if (!res.ok) {
-    const errData = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(
-      errData.error ||
-      `Cloud OCR route returned ${res.status}. Check TOGETHER_API_KEY in Vercel env vars.`
+      result?.error ||
+      `Cloud OCR route returned ${res.status}. Check OPENROUTER_API_KEY in Vercel env vars.`
     )
   }
 
-  const result = await res.json()
-  const rawJsonText: string = result.content || ''
+  const rawJsonText: string = result?.content || ''
 
   if (!rawJsonText.trim()) {
-    throw new Error('Together AI Qwen2-VL returned an empty response. Check your API key and model availability.')
+    throw new Error('Cloud AI vision returned an empty response. Check your API key and model availability.')
   }
 
   onProgress?.(80, 'Parsing structured invoice data from cloud response…')
