@@ -1197,7 +1197,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                           const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
                           if (key !== null) {
                             localStorage.setItem('openrouter_api_key', key.trim())
-                            addToast('OpenRouter API key saved!', 'success')
+                            setStatusMessage('OpenRouter API key saved!')
                           }
                         }}
                         title="Set / Change OpenRouter API Key"
@@ -1582,7 +1582,7 @@ S.NO | MEDICINE / PRODUCT DESCRIPTION | PACK | HSN | BATCH NO | EXP | QTY | FREE
                       const key = window.prompt('Enter your OpenRouter API Key (sk-or-v1-...):\n\nGet free key at https://openrouter.ai/keys (no credit card needed):', current)
                       if (key !== null) {
                         localStorage.setItem('openrouter_api_key', key.trim())
-                        addToast('OpenRouter API key saved!', 'success')
+                        setStatusMessage('OpenRouter API key saved!')
                         if (file) void handleFileSelect(file)
                       }
                     }}
