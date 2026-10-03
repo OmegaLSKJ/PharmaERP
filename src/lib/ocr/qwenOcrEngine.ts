@@ -150,8 +150,7 @@ Extract the invoice data into structured JSON matching this exact format:
       "gstRate": 12,
       "amount": 0.00
     }
-  ],
-  "rawText": "Complete readable text extracted from the document"
+  ]
 }
 
 Critical Instructions:
@@ -164,7 +163,71 @@ Critical Instructions:
 `
 
 /**
- * Clean and parse JSON returned from Vision LLMs
+ * Repair truncated JSON when a vision model hits output token limits or network cut-off.
+ * Automatically handles unclosed strings, dangling commas/partial properties, and unclosed arrays/objects.
+ */
+function repairTruncatedJson(str: string): string {
+  let s = str.trim()
+  s = s.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+
+  const firstBrace = s.indexOf('{')
+  if (firstBrace === -1) return s
+  s = s.substring(firstBrace)
+
+  // 1. If currently inside an unclosed string, close the string
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (escaped) {
+      escaped = false
+    } else if (ch === '\\\\') {
+      escaped = true
+    } else if (ch === '"') {
+      inString = !inString
+    }
+  }
+  if (inString) {
+    s += '"'
+  }
+
+  // 2. Remove trailing dangling comma or half-keyed structure e.g. `, "key":` or `,`
+  s = s.replace(/,\s*$/g, '')
+  s = s.replace(/,\s*"[^"]*"\s*:\s*$/g, '')
+  s = s.replace(/,\s*"[^"]*"\s*$/g, '')
+
+  // 3. Count unclosed brackets
+  const stack: string[] = []
+  inString = false
+  escaped = false
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (escaped) {
+      escaped = false
+    } else if (ch === '\\\\') {
+      escaped = true
+    } else if (ch === '"') {
+      inString = !inString
+    } else if (!inString) {
+      if (ch === '{') stack.push('}')
+      else if (ch === '[') stack.push(']')
+      else if (ch === '}' || ch === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === ch) {
+          stack.pop()
+        }
+      }
+    }
+  }
+
+  while (stack.length > 0) {
+    s += stack.pop()
+  }
+
+  return s
+}
+
+/**
+ * Clean and parse JSON returned from Vision LLMs with automatic repair
  */
 function cleanAndParseJson(text: string): any {
   let cleaned = text.trim()
@@ -176,9 +239,20 @@ function cleanAndParseJson(text: string): any {
   const firstBrace = cleaned.indexOf('{')
   const lastBrace = cleaned.lastIndexOf('}')
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    cleaned = cleaned.substring(firstBrace, lastBrace + 1)
+    const candidate = cleaned.substring(firstBrace, lastBrace + 1)
+    try {
+      return JSON.parse(candidate)
+    } catch {
+      // If candidate was truncated mid-array or lastBrace was an inner object, fall through to repair
+    }
   }
-  return JSON.parse(cleaned)
+
+  try {
+    const repaired = repairTruncatedJson(cleaned)
+    return JSON.parse(repaired)
+  } catch (err: any) {
+    throw new Error(`JSON could not be parsed: ${err.message}`)
+  }
 }
 
 /**
@@ -217,6 +291,7 @@ export async function processInvoiceWithQwenCloud(
   if (openRouterKey) {
     onProgress?.(35, 'Connecting directly to OpenRouter cloud GPU (no timeout limit)…')
     const freeModels = [
+      'openrouter/free',
       'google/gemma-4-26b-a4b-it:free',
       'qwen/qwen3.8-27b:free',
       'dots-studio/dots-3-note-preview:free',
@@ -252,7 +327,7 @@ export async function processInvoiceWithQwenCloud(
             max_tokens: 4096,
             temperature: 0.1
           }),
-          signal: AbortSignal.timeout(35_000)
+          signal: AbortSignal.timeout(45_000)
         })
 
         if (!directRes.ok) {
@@ -370,6 +445,18 @@ export async function processInvoiceWithQwenCloud(
 
   onProgress?.(100, `Invoice mapped via Cloud AI Vision (${resolvedModel})!`)
 
+  const synthesizedRawText = parsed.rawText || [
+    `SUPPLIER: ${parsed.supplierName || 'Wholesale Pharma Distributor'}`,
+    `GSTIN: ${parsed.supplierGstin || 'N/A'}`,
+    `INVOICE NO: ${parsed.invoiceNo || 'N/A'} | DATE: ${parsed.invoiceDate || new Date().toISOString().split('T')[0]}`,
+    `TOTAL AMOUNT: ₹${totalAmount} | TAX: ₹${taxAmount}`,
+    'ITEMS:',
+    ...mappedItems.map(
+      (it, idx) =>
+        `  ${idx + 1}. ${it.itemName} | Qty: ${it.qty}${it.freeQty ? `+${it.freeQty}` : ''} | Rate: ₹${it.purchaseRate} | MRP: ₹${it.mrp} | Batch: ${it.batch} | Exp: ${it.expiry} | Amt: ₹${it.amount}`
+    ),
+  ].join('\n')
+
   return {
     supplierName: String(parsed.supplierName || 'Wholesale Pharma Distributor').trim(),
     supplierGstin: String(parsed.supplierGstin || '').trim(),
@@ -378,7 +465,7 @@ export async function processInvoiceWithQwenCloud(
     totalAmount,
     taxAmount,
     items: mappedItems,
-    rawText: parsed.rawText || rawJsonText,
+    rawText: synthesizedRawText,
     confidence: 0.93,
     sourceType: 'image_ocr',
     pageCount: 1

@@ -39,6 +39,8 @@ const PROVIDERS: Provider[] = [
     envKey: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: [
+      // 0. OpenRouter free auto-router (picks lowest queue, fastest available free vision model)
+      'openrouter/free',
       // 1. Fast MoE (only 3.8B active params/token) — fastest inference (~3-5s), avoids 10s Vercel timeout
       'google/gemma-4-26b-a4b-it:free',
       // 2. High-precision tabular/invoice vision
